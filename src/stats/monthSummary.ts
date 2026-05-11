@@ -1,0 +1,137 @@
+// src/stats/monthSummary.ts
+import { calcAll, calcTotals } from "../calc/engine";
+import { Dia, listAllProjectsFull } from "../storage/projects";
+
+/**
+ * Converte "HH:MM" em minutos (ex: "08:30" -> 510).
+ */
+function parseTimeToMinutes(hhmm: string): number {
+  if (!hhmm) return 0;
+  const [hStr, mStr] = hhmm.split(":");
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  if (isNaN(h) || isNaN(m)) return 0;
+  return h * 60 + m;
+}
+
+/**
+ * Fix #11: mirrors engine.ts HT_min calculation exactly.
+ * Meals worked during a break (<1h) and transport are ADDED to the wall-clock span,
+ * matching what the project editor shows per day.
+ */
+function computeDayMinutes(dia: Dia): number {
+  if (dia.diaSemTrabalho) return 0;
+
+  const inicio = parseTimeToMinutes(dia.inicio);
+  const fim = parseTimeToMinutes(dia.fim);
+  let total = fim - inicio;
+  if (total < 0) total += 24 * 60; // overnight shift
+  if (total <= 0) return 0;
+
+  // Cap meals at 59 min each (matching engine behaviour)
+  const refeicao  = Math.min(parseTimeToMinutes(dia.refeicaoTrabalho), 59);
+  const jantar    = Math.min(parseTimeToMinutes(dia.jantarTrabalho),   59);
+  const transporte = Math.max(0, Math.round(dia.tempoTransporteMin || 0));
+
+  return total + refeicao + jantar + transporte;
+}
+
+function normalizePercent(v: any): number {
+  const n = Number(v ?? 0);
+  if (!Number.isFinite(n)) return 0;
+  // Fix #7: use >= 1 so that 1% input (n=1) is treated as percent, not as decimal 1.0 = 100%
+  return n >= 1 ? n / 100 : n;
+}
+
+/**
+ * Resumo de horas + valores de um mês.
+ */
+export type MonthSummary = {
+  mes: number;
+  ano: number;
+  totalProjects: number;
+  totalDiasTrabalho: number;
+  totalHoras: number;
+  totalMinutos: number;
+
+  // ✅ NOVO: totais € do mês
+  totalValorBruto: number;
+  totalIRS: number;
+  totalIVA: number;
+  totalValorFinal: number;
+};
+
+/**
+ * Devolve o resumo de um mês específico (mes = 1..12, ano = 2025, etc).
+ */
+export async function getMonthSummary(mes: number, ano: number): Promise<MonthSummary> {
+  const all = await listAllProjectsFull();
+
+  const inMonth = all.filter((p: any) => p?.projeto?.mes === mes && p?.projeto?.ano === ano);
+
+  let totalMinutos = 0;
+  let totalDiasTrabalho = 0;
+
+  let totalValorBruto = 0;
+  let totalIRS = 0;
+  let totalIVA = 0;
+  let totalValorFinal = 0;
+
+  for (const p of inMonth) {
+    // horas/dias
+    for (const d of p.dias) {
+      const mins = computeDayMinutes(d);
+      if (!d.diaSemTrabalho && mins > 0) totalDiasTrabalho += 1;
+      totalMinutos += mins;
+    }
+
+    // ✅ valores €
+    const diasCalc = calcAll(p.dias, p.tabela);
+
+    // fiscal pode estar como { irs, iva } ou { IRS_percent, IVA_percent }
+    const rawFiscal: any = p.fiscal ?? {};
+    const irsRaw = rawFiscal.irs ?? rawFiscal.IRS_percent ?? 0;
+    const ivaRaw = rawFiscal.iva ?? rawFiscal.IVA_percent ?? 0;
+
+    // calcTotals espera percentagem em 0..100 (engine divide /100)
+    // então convertemos 0.23->23 e 23->23
+    const irsPct = normalizePercent(irsRaw) * 100;
+    const ivaPct = normalizePercent(ivaRaw) * 100;
+
+    const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
+
+    totalValorBruto += totals.ValorBruto;
+    totalIRS += totals.IRS_valor;
+    totalIVA += totals.IVA_valor;
+    totalValorFinal += totals.ValorFinal;
+  }
+
+  const totalHoras = totalMinutos / 60;
+
+  // arredondar a 2 casas (para não acumular floats)
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+
+  return {
+    mes,
+    ano,
+    totalProjects: inMonth.length,
+    totalDiasTrabalho,
+    totalHoras,
+    totalMinutos,
+
+    totalValorBruto: r2(totalValorBruto),
+    totalIRS: r2(totalIRS),
+    totalIVA: r2(totalIVA),
+    totalValorFinal: r2(totalValorFinal),
+  };
+}
+
+/**
+ * Helper: resumo do mês atual.
+ */
+export async function getCurrentMonthSummary(): Promise<MonthSummary> {
+  const now = new Date();
+  const mes = now.getMonth() + 1;
+  const ano = now.getFullYear();
+  return getMonthSummary(mes, ano);
+}

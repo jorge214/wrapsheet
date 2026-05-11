@@ -1,0 +1,487 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import dayjs from "dayjs";
+import { getPreset } from "../constants/countryPresets";
+import { getSettings } from "./appSettings";
+import { getActiveProfile } from "./profile";
+
+/* ------------ Tipos internos ------------ */
+
+export type Dia = {
+  descricao: string;
+  data: string; // YYYY-MM-DD
+  continuo: boolean;
+  inicio: string; // "HH:MM"
+  refeicaoTrabalho: string; // "HH:MM"
+  jantarTrabalho: string; // "HH:MM"
+  fim: string; // "HH:MM"
+  meioDia: boolean;
+  tempoTransporteMin: number;
+  diaSemTrabalho: boolean;
+};
+
+export type Ajudas = {
+  refeicao: number;
+  viatura: number;
+  material: number;
+  telefone: number;
+  perDiem: number;
+};
+
+export type Tabela = {
+  salarioDia?: number;
+  H_dia: number;
+  descanso_min: number;
+  multHEA?: number;
+  multHEB?: number;
+  multHR?: number;
+  limiar_A?: number;
+  limiar_B?: number;
+  ajudas?: Ajudas;
+};
+
+export type Fiscal = {
+  IRS_percent: number;
+  IVA_percent: number;
+  nota?: string;
+};
+
+export type Perfil = {
+  nome: string;
+  email: string;
+  telefone: string;
+  departamento: string;
+  funcao: string;
+  empresa?: string;
+  nif?: string;
+  iban?: string;
+  swift?: string;
+};
+
+export type ProjetoInfo = {
+  filme: string;
+  produtora: string;
+  nifProdutora?: string;
+  semana?: string;
+  mes: number;
+  ano: number;
+};
+
+export type ProjectState = {
+  id: string;
+  perfil: Perfil;
+  projeto: ProjetoInfo;
+  tabela: Tabela;
+  fiscal: Fiscal;
+  dias: Dia[];
+  notas: string;
+  updatedAt: string;
+};
+
+export type ProjectListItem = {
+  id: string;
+  nome: string;
+  cliente: string;
+  mes: string;
+  updatedAt: string;
+};
+
+/* ------------ Keys no AsyncStorage ------------ */
+
+const KEY_INDEX = "projects:index:v1";
+const KEY_PROJECT_PREFIX = "projects:item:";
+const KEY_ARCHIVED_INDEX = "projects:archived:index:v1";
+const KEY_ARCHIVED_PREFIX = "projects:archived:item:";
+
+/* ------------ Helpers de index ------------ */
+
+async function readIndex(key: string): Promise<ProjectListItem[]> {
+  const raw = await AsyncStorage.getItem(key);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as ProjectListItem[];
+  } catch {
+    return [];
+  }
+}
+
+async function writeIndex(key: string, list: ProjectListItem[]) {
+  await AsyncStorage.setItem(key, JSON.stringify(list));
+}
+
+/* ------------ Defaults ------------ */
+
+function defaultDia(date: string): Dia {
+  return {
+    descricao: "Filmagem",
+    data: date,
+    continuo: false,
+    inicio: "08:00",
+    refeicaoTrabalho: "00:30",
+    jantarTrabalho: "00:00",
+    fim: "20:00",
+    meioDia: false,
+    tempoTransporteMin: 0,
+    diaSemTrabalho: false,
+  };
+}
+
+function defaultTabela(): Tabela {
+  return {
+    salarioDia: 0,
+    H_dia: 11, // Fix #6: industry standard — salarioDia is the rate for an 11-hour day
+    descanso_min: 11,
+    multHEA: 1.5,
+    multHEB: 2.0,
+    multHR: 3.0,
+    limiar_A: 11,
+    limiar_B: 18,
+    ajudas: {
+      refeicao: 0,
+      viatura: 0,
+      material: 0,
+      telefone: 0,
+      perDiem: 0,
+    },
+  };
+}
+
+function defaultFiscal(): Fiscal {
+  return {
+    IRS_percent: 0,
+    IVA_percent: 0,
+  };
+}
+
+function blankPerfil(from?: Perfil): Perfil {
+  if (!from) {
+    return {
+      nome: "",
+      email: "",
+      telefone: "",
+      departamento: "",
+      funcao: "",
+      empresa: "",
+      nif: "",
+      iban: "",
+      swift: "",
+    };
+  }
+  return {
+    nome: from.nome || "",
+    email: from.email || "",
+    telefone: from.telefone || "",
+    departamento: from.departamento || "",
+    funcao: from.funcao || "",
+    empresa: from.empresa || "",
+    nif: from.nif || "",
+    iban: from.iban || "",
+    swift: from.swift || "",
+  };
+}
+
+/* ------------ Upgrade para garantir estrutura completa ------------ */
+
+function upgradeProject(raw: any, id: string): ProjectState {
+  const today = dayjs().format("YYYY-MM-DD");
+
+  const tabela = {
+    ...defaultTabela(),
+    ...(raw.tabela || {}),
+    ajudas: {
+      ...defaultTabela().ajudas!,
+      ...(raw.tabela?.ajudas || {}),
+    },
+  };
+
+  // Fix #13: migrate old format { irs, iva } → { IRS_percent, IVA_percent }
+  const rawFiscal = raw.fiscal || {};
+  const fiscal: Fiscal = {
+    IRS_percent: Number(rawFiscal.IRS_percent ?? rawFiscal.irs ?? rawFiscal.IRS ?? 0),
+    IVA_percent: Number(rawFiscal.IVA_percent ?? rawFiscal.iva ?? rawFiscal.IVA ?? 0),
+    nota: rawFiscal.nota ?? "",
+  };
+
+  const perfil = blankPerfil(raw.perfil);
+
+  const projeto: ProjetoInfo = {
+    filme: raw.projeto?.filme || raw.nome || "",
+    produtora: raw.projeto?.produtora || raw.cliente || "",
+    nifProdutora: raw.projeto?.nifProdutora || "",
+    semana: raw.projeto?.semana || "",
+    mes:
+      typeof raw.projeto?.mes === "number"
+        ? raw.projeto.mes
+        : dayjs().month() + 1,
+    ano:
+      typeof raw.projeto?.ano === "number"
+        ? raw.projeto.ano
+        : dayjs().year(),
+  };
+
+  const dias: Dia[] =
+    Array.isArray(raw.dias) && raw.dias.length > 0
+      ? raw.dias
+      : [defaultDia(today)];
+
+  return {
+    id,
+    perfil,
+    projeto,
+    tabela,
+    fiscal,
+    dias,
+    notas: raw.notas || "",
+    updatedAt: raw.updatedAt || new Date().toISOString(),
+  };
+}
+
+/* ------------ API pública ------------ */
+
+// lista de projetos para o ecrã /projects (apenas ativos)
+export async function listProjects(): Promise<ProjectListItem[]> {
+  return await readIndex(KEY_INDEX);
+}
+
+// obter projeto completo (ATIVO OU ARQUIVADO) para o editor /projects/[id]
+export async function getProject(id: string): Promise<ProjectState | null> {
+  let raw = await AsyncStorage.getItem(KEY_PROJECT_PREFIX + id);
+  if (!raw) {
+    raw = await AsyncStorage.getItem(KEY_ARCHIVED_PREFIX + id);
+    if (!raw) return null;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return upgradeProject(parsed, id);
+  } catch {
+    return null;
+  }
+}
+
+// guardar / atualizar projeto completo
+export async function saveProject(p: ProjectState): Promise<void> {
+  const updatedAt = new Date().toISOString();
+  const toSave: ProjectState = { ...p, updatedAt };
+
+  const archivedIndex = await readIndex(KEY_ARCHIVED_INDEX);
+  const isArchived = archivedIndex.some((i) => i.id === p.id);
+
+  const summary: ProjectListItem = {
+    id: p.id,
+    nome: toSave.projeto.filme || "Projeto sem nome",
+    cliente: toSave.projeto.produtora || "",
+    mes: `${String(toSave.projeto.mes).padStart(2, "0")}/${toSave.projeto.ano}`,
+    updatedAt,
+  };
+
+  if (isArchived) {
+    await AsyncStorage.setItem(KEY_ARCHIVED_PREFIX + p.id, JSON.stringify(toSave));
+
+    const idx = archivedIndex.findIndex((i) => i.id === p.id);
+    if (idx >= 0) archivedIndex[idx] = summary;
+    else archivedIndex.push(summary);
+
+    await writeIndex(KEY_ARCHIVED_INDEX, archivedIndex);
+  } else {
+    await AsyncStorage.setItem(KEY_PROJECT_PREFIX + p.id, JSON.stringify(toSave));
+
+    const index = await readIndex(KEY_INDEX);
+    const existingIdx = index.findIndex((i) => i.id === p.id);
+    if (existingIdx >= 0) index[existingIdx] = summary;
+    else index.push(summary);
+
+    await writeIndex(KEY_INDEX, index);
+  }
+}
+
+// criar projeto novo
+export async function createProject(): Promise<string> {
+  const id = String(Date.now());
+  const today = dayjs().format("YYYY-MM-DD");
+
+  const active = await getActiveProfile();
+  const perfil = active ? blankPerfil(active as any) : blankPerfil();
+
+  const projeto: ProjetoInfo = {
+    filme: "",
+    produtora: "",
+    nifProdutora: "",
+    semana: "",
+    mes: dayjs().month() + 1,
+    ano: dayjs().year(),
+  };
+
+  const settings = await getSettings();
+  const preset = getPreset(settings.region);
+
+  const novo: ProjectState = {
+    id,
+    perfil,
+    projeto,
+    tabela: { ...defaultTabela(), ...preset.tabela },
+    fiscal: { ...defaultFiscal(), ...preset.fiscal },
+    dias: [defaultDia(today)],
+    notas: "",
+    updatedAt: new Date().toISOString(),
+  };
+
+  await AsyncStorage.setItem(KEY_PROJECT_PREFIX + id, JSON.stringify(novo));
+
+  const index = await readIndex(KEY_INDEX);
+  index.push({
+    id,
+    nome: "Projeto sem nome",
+    cliente: "",
+    mes: `${String(novo.projeto.mes).padStart(2, "0")}/${novo.projeto.ano}`,
+    updatedAt: novo.updatedAt,
+  });
+  await writeIndex(KEY_INDEX, index);
+
+  return id;
+}
+
+// apagar projeto ATIVO
+export async function deleteProject(id: string): Promise<void> {
+  await AsyncStorage.removeItem(KEY_PROJECT_PREFIX + id);
+  const index = await readIndex(KEY_INDEX);
+  const next = index.filter((p) => p.id !== id);
+  await writeIndex(KEY_INDEX, next);
+}
+
+// apagar projeto ARQUIVADO
+export async function deleteArchivedProject(id: string): Promise<void> {
+  await AsyncStorage.removeItem(KEY_ARCHIVED_PREFIX + id);
+  const index = await readIndex(KEY_ARCHIVED_INDEX);
+  const next = index.filter((p) => p.id !== id);
+  await writeIndex(KEY_ARCHIVED_INDEX, next);
+}
+
+// duplicar projeto (mesmo mês/ano)
+export async function duplicateProject(id: string): Promise<string> {
+  const original = await getProject(id);
+  if (!original) throw new Error("Projeto não encontrado");
+
+  const newId = String(Date.now());
+  const now = new Date().toISOString();
+
+  const clone: ProjectState = {
+    ...original,
+    id: newId,
+    projeto: {
+      ...original.projeto,
+      filme: original.projeto.filme
+        ? `${original.projeto.filme} (Cópia)`
+        : "Projeto sem nome (Cópia)",
+    },
+    updatedAt: now,
+  };
+
+  await AsyncStorage.setItem(KEY_PROJECT_PREFIX + newId, JSON.stringify(clone));
+
+  const index = await readIndex(KEY_INDEX);
+  index.push({
+    id: newId,
+    nome: clone.projeto.filme || "Projeto sem nome",
+    cliente: clone.projeto.produtora || "",
+    mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
+    updatedAt: now,
+  });
+  await writeIndex(KEY_INDEX, index);
+
+  return newId;
+}
+
+// 🔥 duplicar projeto escolhendo mês/ano
+export async function duplicateProjectToMonth(
+  id: string,
+  mes: number,
+  ano: number
+): Promise<string> {
+  const original = await getProject(id);
+  if (!original) throw new Error("Projeto não encontrado");
+
+  const newId = String(Date.now());
+  const now = new Date().toISOString();
+
+  const clone: ProjectState = {
+    ...original,
+    id: newId,
+    projeto: {
+      ...original.projeto,
+      mes,
+      ano,
+    },
+    updatedAt: now,
+  };
+
+  await AsyncStorage.setItem(KEY_PROJECT_PREFIX + newId, JSON.stringify(clone));
+
+  const index = await readIndex(KEY_INDEX);
+  index.push({
+    id: newId,
+    nome: clone.projeto.filme || "Projeto sem nome",
+    cliente: clone.projeto.produtora || "",
+    mes: `${String(mes).padStart(2, "0")}/${ano}`,
+    updatedAt: now,
+  });
+  await writeIndex(KEY_INDEX, index);
+
+  return newId;
+}
+
+// arquivar projeto
+export async function archiveProject(id: string): Promise<void> {
+  const project = await getProject(id);
+  if (!project) throw new Error("Projeto não encontrado");
+
+  await AsyncStorage.setItem(KEY_ARCHIVED_PREFIX + id, JSON.stringify(project));
+
+  const archivedIndex = await readIndex(KEY_ARCHIVED_INDEX);
+  archivedIndex.push({
+    id,
+    nome: project.projeto.filme || "Projeto sem nome",
+    cliente: project.projeto.produtora || "",
+    mes: `${String(project.projeto.mes).padStart(2, "0")}/${project.projeto.ano}`,
+    updatedAt: new Date().toISOString(),
+  });
+  await writeIndex(KEY_ARCHIVED_INDEX, archivedIndex);
+
+  await deleteProject(id);
+}
+
+// listar arquivados
+export async function listArchivedProjects(): Promise<ProjectListItem[]> {
+  return await readIndex(KEY_ARCHIVED_INDEX);
+}
+
+/* ------------ NOVO: RENOMEAR PROJETO ------------ */
+
+export async function renameProject(id: string, newName: string): Promise<void> {
+  const project = await getProject(id);
+  if (!project) throw new Error("Projeto não encontrado");
+
+  const updated: ProjectState = {
+    ...project,
+    projeto: {
+      ...project.projeto,
+      filme: newName.trim(),
+    },
+  };
+
+  await saveProject(updated); // atualiza índice + updatedAt
+}
+
+/* ------ listar TODOS os projetos (ativos + arquivados) ------ */
+export async function listAllProjectsFull(): Promise<ProjectState[]> {
+  const idxActive = await readIndex(KEY_INDEX);
+  const idxArchived = await readIndex(KEY_ARCHIVED_INDEX);
+
+  const ids = [...idxActive, ...idxArchived].map((i) => i.id);
+  const uniqueIds = Array.from(new Set(ids));
+
+  const result: ProjectState[] = [];
+  for (const id of uniqueIds) {
+    const p = await getProject(id);
+    if (p) result.push(p);
+  }
+  return result;
+}
