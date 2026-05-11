@@ -25,7 +25,7 @@ export default function LegalScreen() {
         <View style={s.card}>
           <Text style={s.cardTitle}>Termos de Utilização</Text>
           <Text style={s.cardSub}>
-            Estes termos regulam a utilização da aplicação “Relatório de Horas”.
+            Estes termos regulam a utilização da aplicação WrapSheet.
           </Text>
 
           <Text style={s.sectionTitle}>1. Finalidade</Text>
@@ -83,15 +83,12 @@ export default function LegalScreen() {
           <Text style={s.sectionTitle}>4. Contacto</Text>
           <Text style={s.paragraph}>
             Para questões relacionadas com privacidade ou termos de utilização,
-            adiciona aqui o teu email de contacto quando tiveres a versão
-            final preparada.
+            contacta-nos através do email: francarvfcosta@gmail.com
           </Text>
         </View>
 
         <Text style={s.footerNote}>
-          Nota: Este texto é genérico e serve apenas como base. Antes de
-          publicar a aplicação nas lojas, recomenda-se rever estes termos com um
-          profissional.
+          Última atualização: maio de 2026
         </Text>
       </ScrollView>
     </SafeAreaView>
