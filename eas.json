@@ -18,13 +18,7 @@
   },
   "submit": {
     "production": {
-      "ios": {
-        "appleId": "francarvfcosta@gmail.com",
-        "ascAppId": "",
-        "appleTeamId": ""
-      },
       "android": {
-        "serviceAccountKeyPath": "./google-services.json",
         "track": "production"
       }
     }
