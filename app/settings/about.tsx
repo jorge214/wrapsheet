@@ -23,7 +23,7 @@ export default function AboutScreen() {
         <Text style={{ color: COLORS.sub, marginTop: 6 }}>
           App para gerir projetos e exportar relatórios de horas para PDF.
         </Text>
-        <Pressable onPress={() => Linking.openURL("mailto:francarvfcosta@gmail.com")} style={[ss.btn, { backgroundColor: COLORS.accent }]}>
+        <Pressable onPress={() => Linking.openURL("mailto:getwrapsheet@gmail.com")} style={[ss.btn, { backgroundColor: COLORS.accent }]}>
           <Text style={ss.btnText}>Contactar suporte</Text>
         </Pressable>
       </View>
