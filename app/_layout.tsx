@@ -8,11 +8,10 @@ import { getSettings } from "../src/storage/appSettings";
 import { ThemeProvider } from "../src/theme/ThemeProvider";
 import { AppShell } from "../src/ui/AppShell";
 
-Sentry.init({
-  // Replace with your DSN from https://sentry.io → Project → Settings → Client Keys
-  dsn: "YOUR_SENTRY_DSN_HERE",
-  enabled: !__DEV__,
-});
+const SENTRY_DSN = "YOUR_SENTRY_DSN_HERE";
+if (SENTRY_DSN.startsWith("https://")) {
+  Sentry.init({ dsn: SENTRY_DSN, enabled: !__DEV__ });
+}
 
 function OnboardingGate() {
   useEffect(() => {
