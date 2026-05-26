@@ -146,10 +146,11 @@
   "phone_placeholder": "Es: +39 312 345 6789",
   "plan_current": "Piano attuale",
   "plan_footer_note": "L'app è in fase sperimentale. Prova il flusso e inviaci feedback.",
-  "plan_free_desc": "Utilizzo completo dell'app senza limiti di progetti.",
-  "plan_free_item1": "Progetti illimitati",
+  "plan_free_desc": "Inizia gratuitamente. Il piano gratuito include 1 progetto attivo e 3 export PDF.",
+  "plan_free_item1": "1 progetto attivo",
   "plan_free_item2": "Profili tecnico illimitati",
-  "plan_free_item3": "Esportazione PDF e backup locali",
+  "plan_free_item3": "3 export PDF gratuiti",
+  "plan_free_item4": "Backup locali",
   "plan_free_name": "Prova gratuita",
   "plan_free_note": "Sarai informato prima di qualsiasi modifica al modello di prezzi.",
   "plan_free_price": "0 € / mese",
@@ -265,5 +266,12 @@
   "legal_privacy_3_body": "Puoi eliminare i tuoi dati in qualsiasi momento rimuovendo progetti, profili o disinstallando l'app. Se in futuro verrà aggiunta la sincronizzazione cloud, questa informativa verrà aggiornata.",
   "legal_privacy_4_title": "4. Contatto",
   "legal_privacy_4_body": "Per domande sulla privacy o sui termini di utilizzo, contattaci all'indirizzo: getwrapsheet@gmail.com",
-  "legal_last_updated": "Ultimo aggiornamento: maggio 2026"
+  "legal_last_updated": "Ultimo aggiornamento: maggio 2026",
+  "pro_gate_title": "WrapSheet Pro",
+  "pro_gate_projects_body": "Hai raggiunto il limite di 1 progetto attivo del piano gratuito. I progetti illimitati fanno parte di WrapSheet Pro — disponibile a breve.",
+  "pro_gate_archive_body": "L'archiviazione dei progetti è una funzione di WrapSheet Pro — disponibile a breve.",
+  "pro_gate_pdf_body": "Hai utilizzato i tuoi 3 export PDF gratuiti. Gli export illimitati fanno parte di WrapSheet Pro — disponibile a breve.",
+  "pro_gate_duplicate_body": "Duplicare crea un nuovo progetto attivo. I progetti illimitati fanno parte di WrapSheet Pro — disponibile a breve.",
+  "pro_gate_see_plans": "Vedi piani",
+  "plan_pro_item4": "Archiviare progetti"
 }

@@ -146,10 +146,11 @@
   "phone_placeholder": "z.B. +49 151 12345678",
   "plan_current": "Aktueller Plan",
   "plan_footer_note": "Die App befindet sich in der experimentellen Phase. Teste und sende uns Feedback.",
-  "plan_free_desc": "Voller App-Zugang ohne Projektlimits.",
-  "plan_free_item1": "Unbegrenzte Projekte",
+  "plan_free_desc": "Starte kostenlos. Der kostenlose Plan beinhaltet 1 aktives Projekt und 3 PDF-Exporte.",
+  "plan_free_item1": "1 aktives Projekt",
   "plan_free_item2": "Unbegrenzte Technikerprofile",
-  "plan_free_item3": "PDF-Export und lokale Backups",
+  "plan_free_item3": "3 kostenlose PDF-Exporte",
+  "plan_free_item4": "Lokale Backups",
   "plan_free_name": "Kostenlose Testversion",
   "plan_free_note": "Du wirst vor jeder Preisänderung informiert.",
   "plan_free_price": "0 € / Monat",
@@ -265,5 +266,12 @@
   "legal_privacy_3_body": "Du kannst deine Daten jederzeit löschen, indem du Projekte, Profile entfernst oder die App deinstallierst. Falls künftig Cloud-Synchronisierung hinzugefügt wird, wird diese Richtlinie entsprechend aktualisiert.",
   "legal_privacy_4_title": "4. Kontakt",
   "legal_privacy_4_body": "Bei Fragen zum Datenschutz oder zu den Nutzungsbedingungen erreichst du uns unter: getwrapsheet@gmail.com",
-  "legal_last_updated": "Zuletzt aktualisiert: Mai 2026"
+  "legal_last_updated": "Zuletzt aktualisiert: Mai 2026",
+  "pro_gate_title": "WrapSheet Pro",
+  "pro_gate_projects_body": "Du hast das Limit von 1 aktivem Projekt im kostenlosen Plan erreicht. Unbegrenzte Projekte sind Teil von WrapSheet Pro — demnächst verfügbar.",
+  "pro_gate_archive_body": "Das Archivieren von Projekten ist eine WrapSheet Pro-Funktion — demnächst verfügbar.",
+  "pro_gate_pdf_body": "Du hast deine 3 kostenlosen PDF-Exporte verbraucht. Unbegrenzte Exporte sind Teil von WrapSheet Pro — demnächst verfügbar.",
+  "pro_gate_duplicate_body": "Duplizieren erstellt ein neues aktives Projekt. Unbegrenzte Projekte sind Teil von WrapSheet Pro — demnächst verfügbar.",
+  "pro_gate_see_plans": "Pläne anzeigen",
+  "plan_pro_item4": "Projekte archivieren"
 }

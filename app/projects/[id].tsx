@@ -25,6 +25,7 @@ import { getPreset } from "../../src/constants/countryPresets";
 import { exportPDF } from "../../src/export/pdf";
 import { ProjectState } from "../../src/models/project";
 import { getSettings } from "../../src/storage/appSettings";
+import { canExportPdf, incrementPdfExportCount } from "../../src/storage/freeTier";
 import { getActiveProfile } from "../../src/storage/profile";
 import { getProject, saveProject } from "../../src/storage/projects";
 
@@ -184,6 +185,19 @@ export default function ProjectEditor() {
       return;
     }
 
+    const allowed = await canExportPdf();
+    if (!allowed) {
+      Alert.alert(
+        t("pro_gate_title", { defaultValue: "WrapSheet Pro" }),
+        t("pro_gate_pdf_body", { defaultValue: "You've used your 3 free PDF exports. Unlimited exports are part of WrapSheet Pro — coming soon." }),
+        [
+          { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
+          { text: t("pro_gate_see_plans", { defaultValue: "See plans" }), onPress: () => router.push("/settings/plan") },
+        ]
+      );
+      return;
+    }
+
     const calculosLocal = calcAll(p.dias, p.tabela);
     const totaisLocal = calcTotals(calculosLocal, p.fiscal as any);
 
@@ -237,6 +251,7 @@ export default function ProjectEditor() {
         rPreset.currency,
         t("tax_disclaimer")
       );
+      await incrementPdfExportCount();
     } catch (e) {
       console.error(e);
       Alert.alert(t("error"), t("pdf_error"));

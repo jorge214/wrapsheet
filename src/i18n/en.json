@@ -146,10 +146,11 @@
   "phone_placeholder": "e.g. +44 7911 123456",
   "plan_current": "Current plan",
   "plan_footer_note": "The app is currently in experimental phase. Try the workflow and send us feedback.",
-  "plan_free_desc": "Full use of the app, with no project limits, while in experimental phase.",
-  "plan_free_item1": "Unlimited projects",
+  "plan_free_desc": "Get started for free. The free plan includes 1 active project and 3 PDF exports.",
+  "plan_free_item1": "1 active project",
   "plan_free_item2": "Unlimited technician profiles",
-  "plan_free_item3": "PDF export and local backups",
+  "plan_free_item3": "3 free PDF exports",
+  "plan_free_item4": "Local backups",
   "plan_free_name": "Free trial",
   "plan_free_note": "If the pricing model changes, you will be informed before any change.",
   "plan_free_price": "€0 / month",
@@ -265,5 +266,12 @@
   "legal_privacy_3_body": "You can delete your data at any time by removing projects, profiles, or uninstalling the app. If cloud sync is added in the future, this policy will be updated accordingly.",
   "legal_privacy_4_title": "4. Contact",
   "legal_privacy_4_body": "For questions about privacy or terms of use, contact us at: getwrapsheet@gmail.com",
-  "legal_last_updated": "Last updated: May 2026"
+  "legal_last_updated": "Last updated: May 2026",
+  "pro_gate_title": "WrapSheet Pro",
+  "pro_gate_projects_body": "You've reached the free plan limit of 1 active project. Unlimited projects are part of WrapSheet Pro — coming soon.",
+  "pro_gate_archive_body": "Archiving projects is a WrapSheet Pro feature — coming soon.",
+  "pro_gate_pdf_body": "You've used your 3 free PDF exports. Unlimited exports are part of WrapSheet Pro — coming soon.",
+  "pro_gate_duplicate_body": "Duplicating creates a new active project. Unlimited projects are part of WrapSheet Pro — coming soon.",
+  "pro_gate_see_plans": "See plans",
+  "plan_pro_item4": "Archive projects"
 }

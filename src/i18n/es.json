@@ -146,10 +146,11 @@
   "phone_placeholder": "Ej: +34 612 345 678",
   "plan_current": "Plan actual",
   "plan_footer_note": "La app está en fase experimental. Prueba el flujo y envía comentarios.",
-  "plan_free_desc": "Uso completo de la app sin límite de proyectos.",
-  "plan_free_item1": "Proyectos ilimitados",
+  "plan_free_desc": "Empieza gratis. El plan gratuito incluye 1 proyecto activo y 3 exportaciones de PDF.",
+  "plan_free_item1": "1 proyecto activo",
   "plan_free_item2": "Perfiles de técnico ilimitados",
-  "plan_free_item3": "Exportación PDF y backups locales",
+  "plan_free_item3": "3 exportaciones de PDF gratuitas",
+  "plan_free_item4": "Copias de seguridad locales",
   "plan_free_name": "Prueba gratuita",
   "plan_free_note": "Se te informará antes de cualquier cambio en el modelo de precios.",
   "plan_free_price": "0 € / mes",
@@ -265,5 +266,12 @@
   "legal_privacy_3_body": "Puedes eliminar tus datos en cualquier momento borrando proyectos, perfiles o desinstalando la aplicación. Si en el futuro se añade sincronización en la nube, esta política se actualizará.",
   "legal_privacy_4_title": "4. Contacto",
   "legal_privacy_4_body": "Para preguntas relacionadas con la privacidad o los términos de uso, contáctanos en: getwrapsheet@gmail.com",
-  "legal_last_updated": "Última actualización: mayo de 2026"
+  "legal_last_updated": "Última actualización: mayo de 2026",
+  "pro_gate_title": "WrapSheet Pro",
+  "pro_gate_projects_body": "Has alcanzado el límite de 1 proyecto activo del plan gratuito. Los proyectos ilimitados son parte de WrapSheet Pro — próximamente.",
+  "pro_gate_archive_body": "Archivar proyectos es una función de WrapSheet Pro — próximamente.",
+  "pro_gate_pdf_body": "Has usado tus 3 exportaciones de PDF gratuitas. Las exportaciones ilimitadas son parte de WrapSheet Pro — próximamente.",
+  "pro_gate_duplicate_body": "Duplicar crea un nuevo proyecto activo. Los proyectos ilimitados son parte de WrapSheet Pro — próximamente.",
+  "pro_gate_see_plans": "Ver planes",
+  "plan_pro_item4": "Archivar proyectos"
 }

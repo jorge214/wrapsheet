@@ -22,13 +22,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ProjectListItem as Project } from "../../src/storage/projects";
 import {
-  archiveProject,
   createProject,
   deleteProject,
   duplicateProjectToMonth,
   listProjects,
   renameProject,
 } from "../../src/storage/projects";
+import { FREE_PROJECT_LIMIT } from "../../src/storage/freeTier";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 function fmtMonthLabel(m: number, y: number, locale: string = "pt") {
@@ -102,22 +102,13 @@ export default function ProjectsScreen() {
     router.push(`/projects/${id}`);
   }
 
-  function confirmArchive(id: string) {
+  function confirmArchive(_id: string) {
     Alert.alert(
-      t("archive_project_title", { defaultValue: "Arquivar projeto" }),
-      t("archive_project_msg", {
-        defaultValue:
-          "Podes voltar a abri-lo em Arquivados. Queres arquivar este projeto?",
-      }),
+      t("pro_gate_title", { defaultValue: "WrapSheet Pro" }),
+      t("pro_gate_archive_body", { defaultValue: "Archiving projects is a WrapSheet Pro feature — coming soon." }),
       [
         { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
-        {
-          text: t("archive", { defaultValue: "Arquivar" }),
-          onPress: async () => {
-            await archiveProject(id);
-            loadProjects();
-          },
-        },
+        { text: t("pro_gate_see_plans", { defaultValue: "See plans" }), onPress: () => router.push("/settings/plan") },
       ]
     );
   }
@@ -144,6 +135,17 @@ export default function ProjectsScreen() {
   }
 
   async function handleNewProject() {
+    if (projects.length >= FREE_PROJECT_LIMIT) {
+      Alert.alert(
+        t("pro_gate_title", { defaultValue: "WrapSheet Pro" }),
+        t("pro_gate_projects_body", { defaultValue: "You've reached the free plan limit of 1 active project. Unlimited projects are part of WrapSheet Pro — coming soon." }),
+        [
+          { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
+          { text: t("pro_gate_see_plans", { defaultValue: "See plans" }), onPress: () => router.push("/settings/plan") },
+        ]
+      );
+      return;
+    }
     const id = await createProject();
     router.push(`/projects/${id}`);
   }
@@ -197,6 +199,20 @@ export default function ProjectsScreen() {
   }
   async function handleConfirmDuplicate() {
     if (!dupId) return;
+
+    if (projects.length >= FREE_PROJECT_LIMIT) {
+      closeDuplicateDialog();
+      Alert.alert(
+        t("pro_gate_title", { defaultValue: "WrapSheet Pro" }),
+        t("pro_gate_duplicate_body", { defaultValue: "Duplicating creates a new active project. Unlimited projects are part of WrapSheet Pro — coming soon." }),
+        [
+          { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
+          { text: t("pro_gate_see_plans", { defaultValue: "See plans" }), onPress: () => router.push("/settings/plan") },
+        ]
+      );
+      return;
+    }
+
     const mesNum = parseInt(dupMes, 10);
     const anoNum = parseInt(dupAno, 10);
 

@@ -146,10 +146,11 @@
   "phone_placeholder": "Ex: (11) 91234-5678",
   "plan_current": "Plano atual",
   "plan_footer_note": "O aplicativo está em fase experimental. Teste e envie seu feedback.",
-  "plan_free_desc": "Uso completo do aplicativo sem limites de projetos.",
-  "plan_free_item1": "Projetos ilimitados",
+  "plan_free_desc": "Comece grátis. O plano gratuito inclui 1 projeto ativo e 3 exports de PDF.",
+  "plan_free_item1": "1 projeto ativo",
   "plan_free_item2": "Perfis de técnico ilimitados",
-  "plan_free_item3": "Exportação de PDF e backups locais",
+  "plan_free_item3": "3 exports de PDF gratuitos",
+  "plan_free_item4": "Backups locais",
   "plan_free_name": "Gratuito experimental",
   "plan_free_note": "Você será informado antes de qualquer mudança no modelo de preços.",
   "plan_free_price": "R$ 0 / mês",
@@ -265,5 +266,12 @@
   "legal_privacy_3_body": "Você pode apagar seus dados a qualquer momento excluindo projetos, perfis ou desinstalando o aplicativo. Se, no futuro, for adicionada sincronização em nuvem, esta política será atualizada.",
   "legal_privacy_4_title": "4. Contato",
   "legal_privacy_4_body": "Para questões relacionadas à privacidade ou termos de uso, entre em contato pelo e-mail: getwrapsheet@gmail.com",
-  "legal_last_updated": "Última atualização: maio de 2026"
+  "legal_last_updated": "Última atualização: maio de 2026",
+  "pro_gate_title": "WrapSheet Pro",
+  "pro_gate_projects_body": "Você atingiu o limite de 1 projeto ativo no plano gratuito. Projetos ilimitados fazem parte do WrapSheet Pro — em breve.",
+  "pro_gate_archive_body": "Arquivar projetos é uma funcionalidade do WrapSheet Pro — em breve.",
+  "pro_gate_pdf_body": "Você usou seus 3 exports de PDF gratuitos. Exports ilimitados fazem parte do WrapSheet Pro — em breve.",
+  "pro_gate_duplicate_body": "Duplicar cria um novo projeto ativo. Projetos ilimitados fazem parte do WrapSheet Pro — em breve.",
+  "pro_gate_see_plans": "Ver planos",
+  "plan_pro_item4": "Arquivar projetos"
 }

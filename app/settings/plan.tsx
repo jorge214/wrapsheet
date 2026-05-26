@@ -44,9 +44,10 @@ export default function PlanScreen() {
           </Text>
 
           <View style={s.bulletList}>
-            <Bullet text={t("plan_free_item1", { defaultValue: "Projetos ilimitados" })} />
+            <Bullet text={t("plan_free_item1", { defaultValue: "1 projeto ativo" })} />
             <Bullet text={t("plan_free_item2", { defaultValue: "Perfis de técnico ilimitados" })} />
-            <Bullet text={t("plan_free_item3", { defaultValue: "Exportação de PDF e backups locais" })} />
+            <Bullet text={t("plan_free_item3", { defaultValue: "3 exports de PDF gratuitos" })} />
+            <Bullet text={t("plan_free_item4", { defaultValue: "Backups locais" })} />
           </View>
 
           <Text style={s.highlight}>
@@ -73,24 +74,10 @@ export default function PlanScreen() {
           </Text>
 
           <View style={s.bulletList}>
-            <Bullet
-              muted
-              text={t("plan_pro_item1", {
-                defaultValue: "Sincronização entre dispositivos",
-              })}
-            />
-            <Bullet
-              muted
-              text={t("plan_pro_item2", {
-                defaultValue: "Modelos personalizados de relatório",
-              })}
-            />
-            <Bullet
-              muted
-              text={t("plan_pro_item3", {
-                defaultValue: "Mais opções de exportação e automação",
-              })}
-            />
+            <Bullet muted text={t("plan_pro_item1", { defaultValue: "Sincronização entre dispositivos" })} />
+            <Bullet muted text={t("plan_pro_item2", { defaultValue: "Modelos personalizados de relatório" })} />
+            <Bullet muted text={t("plan_pro_item3", { defaultValue: "Mais opções de exportação e automação" })} />
+            <Bullet muted text={t("plan_pro_item4", { defaultValue: "Arquivar projetos" })} />
           </View>
 
           <Text style={s.mutedInfo}>
