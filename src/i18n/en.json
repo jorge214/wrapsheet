@@ -273,5 +273,6 @@
   "pro_gate_pdf_body": "You've used your 3 free PDF exports. Unlimited exports are part of WrapSheet Pro — coming soon.",
   "pro_gate_duplicate_body": "Duplicating creates a new active project. Unlimited projects are part of WrapSheet Pro — coming soon.",
   "pro_gate_see_plans": "See plans",
-  "plan_pro_item4": "Archive projects"
+  "plan_pro_item4": "Archive projects",
+  "copy_suffix": " (Copy)"
 }

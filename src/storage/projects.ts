@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
+import i18n from "../i18n/i18n";
 import { getPreset } from "../constants/countryPresets";
 import { getSettings } from "./appSettings";
 import { getActiveProfile } from "./profile";
@@ -267,7 +268,7 @@ export async function saveProject(p: ProjectState): Promise<void> {
 
   const summary: ProjectListItem = {
     id: p.id,
-    nome: toSave.projeto.filme || "Projeto sem nome",
+    nome: toSave.projeto.filme || "",
     cliente: toSave.projeto.produtora || "",
     mes: `${String(toSave.projeto.mes).padStart(2, "0")}/${toSave.projeto.ano}`,
     updatedAt,
@@ -329,7 +330,7 @@ export async function createProject(): Promise<string> {
   const index = await readIndex(KEY_INDEX);
   index.push({
     id,
-    nome: "Projeto sem nome",
+    nome: "",
     cliente: "",
     mes: `${String(novo.projeto.mes).padStart(2, "0")}/${novo.projeto.ano}`,
     updatedAt: novo.updatedAt,
@@ -369,8 +370,8 @@ export async function duplicateProject(id: string): Promise<string> {
     projeto: {
       ...original.projeto,
       filme: original.projeto.filme
-        ? `${original.projeto.filme} (Cópia)`
-        : "Projeto sem nome (Cópia)",
+        ? `${original.projeto.filme}${i18n.t("copy_suffix")}`
+        : "",
     },
     updatedAt: now,
   };
@@ -380,7 +381,7 @@ export async function duplicateProject(id: string): Promise<string> {
   const index = await readIndex(KEY_INDEX);
   index.push({
     id: newId,
-    nome: clone.projeto.filme || "Projeto sem nome",
+    nome: clone.projeto.filme || "",
     cliente: clone.projeto.produtora || "",
     mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
     updatedAt: now,
@@ -418,7 +419,7 @@ export async function duplicateProjectToMonth(
   const index = await readIndex(KEY_INDEX);
   index.push({
     id: newId,
-    nome: clone.projeto.filme || "Projeto sem nome",
+    nome: clone.projeto.filme || "",
     cliente: clone.projeto.produtora || "",
     mes: `${String(mes).padStart(2, "0")}/${ano}`,
     updatedAt: now,
@@ -438,7 +439,7 @@ export async function archiveProject(id: string): Promise<void> {
   const archivedIndex = await readIndex(KEY_ARCHIVED_INDEX);
   archivedIndex.push({
     id,
-    nome: project.projeto.filme || "Projeto sem nome",
+    nome: project.projeto.filme || "",
     cliente: project.projeto.produtora || "",
     mes: `${String(project.projeto.mes).padStart(2, "0")}/${project.projeto.ano}`,
     updatedAt: new Date().toISOString(),

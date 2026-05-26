@@ -128,7 +128,7 @@ function projectToSummary(raw: any, fallbackDate: string): ProjectListItem {
 
     return {
       id: String(raw.id),
-      nome: raw.projeto.filme || "Projeto sem nome",
+      nome: raw.projeto.filme || "",
       cliente: raw.projeto.produtora || "",
       mes: mesStr,
       updatedAt,
@@ -138,7 +138,7 @@ function projectToSummary(raw: any, fallbackDate: string): ProjectListItem {
   // Caso mais simples: objeto de índice antigo (sem .projeto)
   return {
     id: String(raw.id),
-    nome: raw.nome || "Projeto sem nome",
+    nome: raw.nome || "",
     cliente: raw.cliente || "",
     mes: typeof raw.mes === "string" && raw.mes.length > 0 ? raw.mes : defaultMes,
     updatedAt,
