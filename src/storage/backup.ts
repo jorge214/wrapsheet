@@ -1,5 +1,6 @@
 // src/storage/backup.ts
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import i18n from "../i18n/i18n";
@@ -251,6 +252,22 @@ async function applyBackup(payload: BackupPayload): Promise<void> {
     ARCHIVED_INDEX_KEY,
     JSON.stringify(archivedIndex)
   );
+}
+
+/**
+ * Opens the system file picker, reads the selected JSON file, and applies the backup.
+ */
+export async function importBackup(): Promise<void> {
+  const result = await DocumentPicker.getDocumentAsync({
+    type: "application/json",
+    copyToCacheDirectory: true,
+  });
+
+  if (result.canceled || !result.assets?.length) return;
+
+  const uri = result.assets[0].uri;
+  const json = await FileSystem.readAsStringAsync(uri);
+  await importBackupFromJson(json);
 }
 
 /**
