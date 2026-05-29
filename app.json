@@ -29,7 +29,13 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "WrapSheet",
+      "shortName": "WrapSheet",
+      "description": "Track your film and production work hours. Generate professional PDF reports in seconds.",
+      "themeColor": "#000000",
+      "backgroundColor": "#ffffff",
+      "lang": "en"
     },
     "plugins": [
       "@sentry/react-native/expo",
