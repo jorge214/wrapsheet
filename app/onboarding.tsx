@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Dimensions,
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -15,8 +14,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { completeOnboarding } from "../src/storage/appSettings";
 import { useTheme } from "../src/theme/ThemeProvider";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 type Slide = {
   icon: React.ComponentProps<typeof Ionicons>["name"];
@@ -34,10 +31,11 @@ export default function OnboardingScreen() {
   const { COLORS } = useTheme();
   const { t } = useTranslation();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [slideWidth, setSlideWidth] = useState(400);
   const listRef = useRef<FlatList>(null);
 
   function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    const index = Math.round(e.nativeEvent.contentOffset.x / slideWidth);
     setActiveIndex(index);
   }
 
@@ -67,8 +65,9 @@ export default function OnboardingScreen() {
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
+        onLayout={(e) => setSlideWidth(e.nativeEvent.layout.width)}
         renderItem={({ item }) => (
-          <View style={[s.slide, { width: SCREEN_WIDTH }]}>
+          <View style={[s.slide, { width: slideWidth }]}>
             <View style={[s.iconWrap, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
               <Ionicons name={item.icon} size={56} color={COLORS.accent} />
             </View>
