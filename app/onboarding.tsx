@@ -1,16 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  FlatList,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { completeOnboarding } from "../src/storage/appSettings";
 import { useTheme } from "../src/theme/ThemeProvider";
@@ -31,53 +23,29 @@ export default function OnboardingScreen() {
   const { COLORS } = useTheme();
   const { t } = useTranslation();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [slideWidth, setSlideWidth] = useState(400);
-  const listRef = useRef<FlatList>(null);
 
-  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const index = Math.round(e.nativeEvent.contentOffset.x / slideWidth);
-    setActiveIndex(index);
-  }
-
-  function goNext() {
+  async function goNext() {
     if (activeIndex < SLIDES.length - 1) {
-      listRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
+      setActiveIndex(activeIndex + 1);
     } else {
-      finish();
+      await completeOnboarding();
+      router.replace("/");
     }
   }
 
-  async function finish() {
-    await completeOnboarding();
-    router.replace("/");
-  }
-
+  const slide = SLIDES[activeIndex];
   const isLast = activeIndex === SLIDES.length - 1;
 
   return (
     <SafeAreaView style={[s.root, { backgroundColor: COLORS.bg }]}>
-      <FlatList
-        ref={listRef}
-        data={SLIDES}
-        keyExtractor={(_, i) => String(i)}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        onLayout={(e) => setSlideWidth(e.nativeEvent.layout.width)}
-        renderItem={({ item }) => (
-          <View style={[s.slide, { width: slideWidth }]}>
-            <View style={[s.iconWrap, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
-              <Ionicons name={item.icon} size={56} color={COLORS.accent} />
-            </View>
-            <Text style={[s.title, { color: COLORS.text }]}>{t(item.titleKey)}</Text>
-            <Text style={[s.sub, { color: COLORS.sub }]}>{t(item.subKey)}</Text>
-          </View>
-        )}
-      />
+      <View style={s.slide}>
+        <View style={[s.iconWrap, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+          <Ionicons name={slide.icon} size={56} color={COLORS.accent} />
+        </View>
+        <Text style={[s.title, { color: COLORS.text }]}>{t(slide.titleKey)}</Text>
+        <Text style={[s.sub, { color: COLORS.sub }]}>{t(slide.subKey)}</Text>
+      </View>
 
-      {/* Dots */}
       <View style={s.dots}>
         {SLIDES.map((_, i) => (
           <View
@@ -87,12 +55,8 @@ export default function OnboardingScreen() {
         ))}
       </View>
 
-      {/* Button */}
       <View style={s.footer}>
-        <Pressable
-          onPress={goNext}
-          style={[s.btn, { backgroundColor: COLORS.accent }]}
-        >
+        <Pressable onPress={goNext} style={[s.btn, { backgroundColor: COLORS.accent }]}>
           <Text style={s.btnText}>
             {isLast ? t("onboarding_get_started") : t("continue")}
           </Text>
