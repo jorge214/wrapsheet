@@ -104,24 +104,29 @@ export default function DashboardScreen() {
     load();
   }, [load]);
 
-  // meses disponíveis (a partir do que existe nos projetos)
+  // meses disponíveis — gama fixa (3 anos atrás → 1 ano à frente) + meses com projetos
   const monthOptions = useMemo(() => {
-    const all = [...projects, ...archived];
     const set = new Set<string>();
 
-    for (const p of all) {
-      const m = (p.mes || "").trim(); // ex: "12/2025"
+    // adiciona todos os meses com projetos
+    for (const p of [...projects, ...archived]) {
+      const m = (p.mes || "").trim();
       if (m) set.add(m);
     }
 
-    if (set.size === 0) set.add(toMMYYYY(mes, ano));
+    // adiciona sempre uma gama de meses navegável
+    const startYear = ano - 3;
+    const endYear = ano + 1;
+    for (let y = endYear; y >= startYear; y--) {
+      for (let m = 12; m >= 1; m--) {
+        set.add(toMMYYYY(m, y));
+      }
+    }
 
     const sorted = Array.from(set).sort((a, b) => {
       const [am, ay] = a.split("/").map(Number);
       const [bm, by] = b.split("/").map(Number);
-      const va = (ay || 0) * 100 + (am || 0);
-      const vb = (by || 0) * 100 + (bm || 0);
-      return vb - va;
+      return ((by || 0) * 100 + (bm || 0)) - ((ay || 0) * 100 + (am || 0));
     });
 
     return sorted
@@ -131,7 +136,7 @@ export default function DashboardScreen() {
         return { label: fmtMonthLabel(mm, yy, locale), mes: mm, ano: yy };
       })
       .filter(Boolean) as { label: string; mes: number; ano: number }[];
-  }, [projects, archived, mes, ano, locale]);
+  }, [projects, archived, ano, locale]);
 
   const monthKey = toMMYYYY(mes, ano);
 
