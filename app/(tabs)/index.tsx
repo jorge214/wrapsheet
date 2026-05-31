@@ -3,8 +3,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { Redirect, router } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../src/auth/AuthContext";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import { WrapSheetLogo } from "../../src/ui/WrapSheetLogo";
@@ -12,7 +13,18 @@ import { WrapSheetLogo } from "../../src/ui/WrapSheetLogo";
 export default function HomeHub() {
   const { COLORS } = useTheme();
   const { t } = useTranslation();
+  const { session, loading } = useAuth();
   const isWide = useIsWide();
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator color={COLORS.accent} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!session) return <Redirect href="/auth/login" />;
 
   // On tablet/desktop the sidebar already provides all navigation
   if (isWide) return <Redirect href="/projects" />;
