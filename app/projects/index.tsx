@@ -66,6 +66,9 @@ export default function ProjectsScreen() {
   const [showAll, setShowAll] = useState<boolean>(false);
   const [pickerVisible, setPickerVisible] = useState(false);
 
+  // modal opções (web)
+  const [optsProject, setOptsProject] = useState<Project | null>(null);
+
   // modal renomear
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -103,32 +106,40 @@ export default function ProjectsScreen() {
   }
 
   function confirmArchive(_id: string) {
+    if (Platform.OS === "web") {
+      const ok = (window as any).confirm(
+        `${t("pro_gate_title")}\n${t("pro_gate_archive_body")}\n\n${t("pro_gate_see_plans")}?`
+      );
+      if (ok) router.push("/settings/plan");
+      return;
+    }
     Alert.alert(
-      t("pro_gate_title", { defaultValue: "WrapSheet Pro" }),
-      t("pro_gate_archive_body", { defaultValue: "Archiving projects is a WrapSheet Pro feature — coming soon." }),
+      t("pro_gate_title"),
+      t("pro_gate_archive_body"),
       [
-        { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
-        { text: t("pro_gate_see_plans", { defaultValue: "See plans" }), onPress: () => router.push("/settings/plan") },
+        { text: t("cancel"), style: "cancel" },
+        { text: t("pro_gate_see_plans"), onPress: () => router.push("/settings/plan") },
       ]
     );
   }
 
   function confirmDelete(id: string) {
+    if (Platform.OS === "web") {
+      const ok = (window as any).confirm(
+        `${t("delete_project_title")}\n${t("delete_project_msg")}`
+      );
+      if (ok) { deleteProject(id).then(loadProjects); }
+      return;
+    }
     Alert.alert(
-      t("delete_project_title", { defaultValue: "Apagar projeto" }),
-      t("delete_project_msg", {
-        defaultValue:
-          "Esta ação é definitiva. Tens a certeza que queres apagar este projeto?",
-      }),
+      t("delete_project_title"),
+      t("delete_project_msg"),
       [
-        { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
+        { text: t("cancel"), style: "cancel" },
         {
-          text: t("delete", { defaultValue: "Apagar" }),
+          text: t("delete"),
           style: "destructive",
-          onPress: async () => {
-            await deleteProject(id);
-            loadProjects();
-          },
+          onPress: async () => { await deleteProject(id); loadProjects(); },
         },
       ]
     );
@@ -136,12 +147,19 @@ export default function ProjectsScreen() {
 
   async function handleNewProject() {
     if (projects.length >= FREE_PROJECT_LIMIT) {
+      if (Platform.OS === "web") {
+        const ok = (window as any).confirm(
+          `${t("pro_gate_title")}\n${t("pro_gate_projects_body")}\n\n${t("pro_gate_see_plans")}?`
+        );
+        if (ok) router.push("/settings/plan");
+        return;
+      }
       Alert.alert(
-        t("pro_gate_title", { defaultValue: "WrapSheet Pro" }),
-        t("pro_gate_projects_body", { defaultValue: "You've reached the free plan limit of 1 active project. Unlimited projects are part of WrapSheet Pro — coming soon." }),
+        t("pro_gate_title"),
+        t("pro_gate_projects_body"),
         [
-          { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
-          { text: t("pro_gate_see_plans", { defaultValue: "See plans" }), onPress: () => router.push("/settings/plan") },
+          { text: t("cancel"), style: "cancel" },
+          { text: t("pro_gate_see_plans"), onPress: () => router.push("/settings/plan") },
         ]
       );
       return;
@@ -281,19 +299,11 @@ export default function ProjectsScreen() {
 
   // ------- OPÇÕES DO CARD -------
   function openProjectOptions(project: Project) {
-    const optRename = t("rename", { defaultValue: "Renomear" });
-    const optDuplicate = t("duplicate", { defaultValue: "Duplicar…" });
-    const optArchive = t("archive", { defaultValue: "Arquivar" });
-    const optDelete = t("delete", { defaultValue: "Apagar" });
-    const optCancel = t("cancel", { defaultValue: "Cancelar" });
-
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          title:
-            project.nome ||
-            t("unnamed_project", { defaultValue: "Projeto sem nome" }),
-          options: [optRename, optDuplicate, optArchive, optDelete, optCancel],
+          title: project.nome || t("unnamed_project"),
+          options: [t("rename"), t("duplicate"), t("archive"), t("delete"), t("cancel")],
           cancelButtonIndex: 4,
           destructiveButtonIndex: 3,
         },
@@ -306,22 +316,8 @@ export default function ProjectsScreen() {
       );
       return;
     }
-
-    Alert.alert(
-      t("options", { defaultValue: "Opções" }),
-      project.nome || t("unnamed_project", { defaultValue: "Projeto sem nome" }),
-      [
-        { text: optRename, onPress: () => openRenameDialog(project) },
-        { text: optDuplicate, onPress: () => openDuplicateDialog(project) },
-        { text: optArchive, onPress: () => confirmArchive(project.id) },
-        {
-          text: optDelete,
-          style: "destructive",
-          onPress: () => confirmDelete(project.id),
-        },
-        { text: optCancel, style: "cancel" },
-      ]
-    );
+    // Android e web: modal customizado
+    setOptsProject(project);
   }
 
   return (
@@ -447,6 +443,35 @@ export default function ProjectsScreen() {
           {t("new_project", { defaultValue: "Novo Projeto" })}
         </Text>
       </TouchableOpacity>
+
+      {/* Modal opções do projeto (Android + Web) */}
+      <Modal transparent animationType="fade" visible={!!optsProject}>
+        <Pressable style={s.modalBackdrop} onPress={() => setOptsProject(null)}>
+          <Pressable style={s.modalCard} onPress={() => {}}>
+            <Text style={s.modalTitle}>
+              {optsProject?.nome || t("unnamed_project")}
+            </Text>
+            {[
+              { label: t("rename"), onPress: () => { setOptsProject(null); openRenameDialog(optsProject!); } },
+              { label: t("duplicate"), onPress: () => { setOptsProject(null); openDuplicateDialog(optsProject!); } },
+              { label: t("archive"), onPress: () => { const id = optsProject!.id; setOptsProject(null); confirmArchive(id); } },
+            ].map((opt) => (
+              <Pressable key={opt.label} style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]} onPress={opt.onPress}>
+                <Text style={s.optText}>{opt.label}</Text>
+              </Pressable>
+            ))}
+            <Pressable
+              style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]}
+              onPress={() => { const id = optsProject!.id; setOptsProject(null); confirmDelete(id); }}
+            >
+              <Text style={[s.optText, { color: COLORS.danger }]}>{t("delete")}</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.85 }]} onPress={() => setOptsProject(null)}>
+              <Text style={s.closeBtnText}>{t("close")}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Modal selecionar mês */}
       <Modal transparent animationType="fade" visible={pickerVisible}>
@@ -848,4 +873,26 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       marginTop: 10,
       fontWeight: "900",
     },
+    optRow: {
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      marginTop: 10,
+      backgroundColor: COLORS.bg,
+      alignItems: "center",
+    },
+    optText: { color: COLORS.text, fontWeight: "900", fontSize: 14 },
+    closeBtn: {
+      marginTop: 12,
+      alignSelf: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: "transparent",
+    },
+    closeBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
   });

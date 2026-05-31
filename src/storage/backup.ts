@@ -4,7 +4,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import i18n from "../i18n/i18n";
-import { Alert, Share } from "react-native";
+import { Share } from "react-native";
 
 const PROFILES_KEY = "profiles:list:v1";
 const ACTIVE_PROFILE_KEY = "profiles:activeId:v1";
@@ -148,36 +148,34 @@ function projectToSummary(raw: any, fallbackDate: string): ProjectListItem {
 /* ------------ EXPORTAR BACKUP ------------ */
 
 export async function exportBackup(): Promise<void> {
-  try {
-    const payload = await buildBackupPayload();
-    const json = JSON.stringify(payload, null, 2);
+  const payload = await buildBackupPayload();
+  const json = JSON.stringify(payload, null, 2);
+  const fileName = `wrapsheet-backup-${Date.now()}.json`;
 
-    const fileName = `backup-${Date.now()}.json`;
-    const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+  if ((globalThis as any).document) {
+    // Web: trigger browser download
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = (globalThis as any).document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
 
-    await FileSystem.writeAsStringAsync(fileUri, json);
-
-    const sharingAvailable = await Sharing.isAvailableAsync();
-
-    if (sharingAvailable) {
-      await Sharing.shareAsync(fileUri, {
-        mimeType: "application/json",
-        dialogTitle: i18n.t("backup_export_title"),
-        UTI: "public.json",
-      });
-    } else {
-      // Fallback (ex: web/simulador)
-      await Share.share({
-        title: "Exportar backup",
-        message: json,
-      });
-    }
-  } catch (error) {
-    console.error("Erro ao exportar backup", error);
-    Alert.alert(
-      "Erro ao exportar",
-      "Não foi possível gerar o backup. Tenta novamente."
-    );
+  // Native: write to file and share
+  const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+  await FileSystem.writeAsStringAsync(fileUri, json);
+  const sharingAvailable = await Sharing.isAvailableAsync();
+  if (sharingAvailable) {
+    await Sharing.shareAsync(fileUri, {
+      mimeType: "application/json",
+      dialogTitle: i18n.t("backup_export_title"),
+      UTI: "public.json",
+    });
+  } else {
+    await Share.share({ title: "Exportar backup", message: json });
   }
 }
 
@@ -266,7 +264,16 @@ export async function importBackup(): Promise<void> {
   if (result.canceled || !result.assets?.length) return;
 
   const uri = result.assets[0].uri;
-  const json = await FileSystem.readAsStringAsync(uri);
+
+  let json: string;
+  if ((globalThis as any).document) {
+    // Web: blob URI — use fetch to read
+    const response = await fetch(uri);
+    json = await response.text();
+  } else {
+    json = await FileSystem.readAsStringAsync(uri);
+  }
+
   await importBackupFromJson(json);
 }
 

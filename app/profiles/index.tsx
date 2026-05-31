@@ -1,12 +1,13 @@
 // app/profiles/index.tsx
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useIsWide } from "../../src/ui/useBreakpoint";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
   FlatList,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -54,6 +55,12 @@ export default function ProfilesListScreen() {
     refresh();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [])
+  );
+
   async function handleNew() {
     const p = await createProfile();
     await setActiveProfileId(p.id);
@@ -61,11 +68,21 @@ export default function ProfilesListScreen() {
   }
 
   async function handleDelete(id: string) {
+    if (Platform.OS === "web") {
+      const ok = (window as any).confirm(
+        `${t("profile_delete_title", { defaultValue: "Apagar perfil" })}\n${t("profile_delete_msg", { defaultValue: "Tens a certeza que queres apagar?" })}`
+      );
+      if (ok) {
+        await deleteProfile(id);
+        setOptsId(null);
+        await refresh();
+      }
+      return;
+    }
+
     Alert.alert(
       t("profile_delete_title", { defaultValue: "Apagar perfil" }),
-      t("profile_delete_msg", {
-        defaultValue: "Tens a certeza que queres apagar?",
-      }),
+      t("profile_delete_msg", { defaultValue: "Tens a certeza que queres apagar?" }),
       [
         { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
         {

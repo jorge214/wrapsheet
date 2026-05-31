@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -117,11 +118,20 @@ export default function ProfileEditScreen() {
   async function handleDelete() {
     if (!p) return;
 
+    if (Platform.OS === "web") {
+      const ok = (window as any).confirm(
+        `${t("delete", { defaultValue: "Apagar" })}\n${t("delete_profile_confirm", { defaultValue: "Queres mesmo apagar este perfil?" })}`
+      );
+      if (ok) {
+        await deleteProfile(p.id);
+        router.replace("/profiles");
+      }
+      return;
+    }
+
     Alert.alert(
       t("delete", { defaultValue: "Apagar" }),
-      t("delete_profile_confirm", {
-        defaultValue: "Queres mesmo apagar este perfil?",
-      }),
+      t("delete_profile_confirm", { defaultValue: "Queres mesmo apagar este perfil?" }),
       [
         { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
         {
@@ -323,7 +333,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       borderColor: COLORS.border,
       paddingHorizontal: 12,
       paddingVertical: 10,
-      fontSize: 15,
+      fontSize: 16,
       color: COLORS.text,
     },
 

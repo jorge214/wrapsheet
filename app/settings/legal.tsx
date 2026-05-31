@@ -1,7 +1,7 @@
 // app/settings/legal.tsx
 import { router } from "expo-router";
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -15,9 +15,9 @@ export default function LegalScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.backLink} onPress={() => router.back()}>
-          ‹ {t("back")}
-        </Text>
+        <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Text style={s.backLink}>‹ {t("back")}</Text>
+        </Pressable>
         <Text style={s.headerTitle}>{t("settings_terms_privacy")}</Text>
         <View style={{ width: 60 }} />
       </View>
@@ -75,9 +75,9 @@ const createStyles = (COLORS: any) =>
       borderColor: COLORS.border,
     },
     backLink: {
-      color: COLORS.accent,
-      fontWeight: "600",
-      fontSize: 16,
+      color: COLORS.text,
+      fontWeight: "800",
+      fontSize: 15,
       width: 60,
     },
     headerTitle: {
