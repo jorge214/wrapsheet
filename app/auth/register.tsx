@@ -34,42 +34,29 @@ export default function RegisterScreen() {
 
   async function handleRegister() {
     if (!email.trim() || !password) return;
-    if (password !== confirm) {
-      setError("As passwords não coincidem.");
-      return;
-    }
-    if (password.length < 6) {
-      setError("A password deve ter pelo menos 6 caracteres.");
-      return;
-    }
+    if (password !== confirm) { setError(t("auth_password_mismatch")); return; }
+    if (password.length < 6) { setError(t("auth_password_too_short")); return; }
     setLoading(true);
     setError(null);
     const err = await signUp(email.trim(), password);
-    if (err) {
-      setError(err);
-      setLoading(false);
-    }
-    // on success, session is set → _layout redirects automatically
+    if (err) { setError(err); setLoading(false); }
   }
 
   const s = styles(COLORS, mode);
 
   return (
     <SafeAreaView style={s.root}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <Pressable onPress={() => router.back()} style={s.back}>
-            <Text style={s.backText}>‹ Entrar</Text>
+            <Text style={s.backText}>‹ {t("auth_login_title")}</Text>
           </Pressable>
 
           <View style={s.logoWrap}>
             <WrapSheetLogo variant="lockup" size="lg" />
           </View>
 
-          <Text style={s.title}>Criar conta</Text>
+          <Text style={s.title}>{t("auth_register_title")}</Text>
 
           {error && <Text style={s.errorText}>{error}</Text>}
 
@@ -79,30 +66,28 @@ export default function RegisterScreen() {
               style={s.input}
               value={email}
               onChangeText={setEmail}
-              placeholder="exemplo@email.com"
+              placeholder={t("email_placeholder")}
               placeholderTextColor={COLORS.sub}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
             />
-
-            <Text style={s.label}>{t("password", { defaultValue: "Password" })}</Text>
+            <Text style={s.label}>{t("auth_password")}</Text>
             <TextInput
               style={s.input}
               value={password}
               onChangeText={setPassword}
-              placeholder="Mínimo 6 caracteres"
+              placeholder={t("auth_password_placeholder")}
               placeholderTextColor={COLORS.sub}
               secureTextEntry
               autoComplete="new-password"
             />
-
-            <Text style={s.label}>Confirmar password</Text>
+            <Text style={s.label}>{t("auth_confirm_password")}</Text>
             <TextInput
               style={s.input}
               value={confirm}
               onChangeText={setConfirm}
-              placeholder="Repetir password"
+              placeholder={t("auth_password_confirm_placeholder")}
               placeholderTextColor={COLORS.sub}
               secureTextEntry
             />
@@ -113,10 +98,7 @@ export default function RegisterScreen() {
             onPress={handleRegister}
             disabled={loading}
           >
-            {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={s.btnText}>Criar conta</Text>
-            }
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>{t("auth_register_title")}</Text>}
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -133,30 +115,9 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
     logoWrap: { alignItems: "center", marginBottom: 24 },
     title: { fontSize: 28, fontWeight: "900", color: COLORS.text, marginBottom: 20 },
     errorText: { color: COLORS.danger, fontSize: 14, marginBottom: 12, fontWeight: "600" },
-    card: {
-      backgroundColor: COLORS.card,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      padding: 16,
-      marginBottom: 16,
-    },
+    card: { backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 16, marginBottom: 16 },
     label: { color: COLORS.sub, fontSize: 12, fontWeight: "900", marginBottom: 6, marginTop: 10 },
-    input: {
-      backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0",
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-      fontSize: 16,
-      color: COLORS.text,
-    },
-    btn: {
-      backgroundColor: COLORS.accent,
-      borderRadius: 14,
-      paddingVertical: 16,
-      alignItems: "center",
-    },
+    input: { backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0", borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, color: COLORS.text },
+    btn: { backgroundColor: COLORS.accent, borderRadius: 14, paddingVertical: 16, alignItems: "center" },
     btnText: { color: "#fff", fontWeight: "900", fontSize: 16 },
   });

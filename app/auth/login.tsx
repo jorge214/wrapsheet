@@ -40,23 +40,19 @@ export default function LoginScreen() {
       setError(err);
       setLoading(false);
     }
-    // on success: onAuthStateChange fires → session updates → useEffect above redirects
   }
 
   const s = styles(COLORS, mode);
 
   return (
     <SafeAreaView style={s.root}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.logoWrap}>
             <WrapSheetLogo variant="lockup" size="lg" />
           </View>
 
-          <Text style={s.title}>Entrar</Text>
+          <Text style={s.title}>{t("auth_login_title")}</Text>
 
           {error && <Text style={s.errorText}>{error}</Text>}
 
@@ -66,14 +62,13 @@ export default function LoginScreen() {
               style={s.input}
               value={email}
               onChangeText={setEmail}
-              placeholder="exemplo@email.com"
+              placeholder={t("email_placeholder")}
               placeholderTextColor={COLORS.sub}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
             />
-
-            <Text style={s.label}>{t("password", { defaultValue: "Password" })}</Text>
+            <Text style={s.label}>{t("auth_password")}</Text>
             <TextInput
               style={s.input}
               value={password}
@@ -90,21 +85,18 @@ export default function LoginScreen() {
             onPress={handleLogin}
             disabled={loading}
           >
-            {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={s.btnText}>Entrar</Text>
-            }
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>{t("auth_login_title")}</Text>}
           </Pressable>
 
           <Pressable onPress={() => router.push("/auth/forgot")} style={s.link}>
-            <Text style={s.linkText}>Esqueceste a password?</Text>
+            <Text style={s.linkText}>{t("auth_forgot_link")}</Text>
           </Pressable>
 
           <View style={s.divider} />
 
           <Pressable onPress={() => router.push("/auth/register")} style={s.link}>
             <Text style={s.linkText}>
-              Ainda não tens conta? <Text style={{ fontWeight: "900" }}>Registar</Text>
+              {t("auth_no_account")} <Text style={{ fontWeight: "900" }}>{t("auth_register_link")}</Text>
             </Text>
           </Pressable>
         </ScrollView>
@@ -120,32 +112,10 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
     logoWrap: { alignItems: "center", marginBottom: 32 },
     title: { fontSize: 28, fontWeight: "900", color: COLORS.text, marginBottom: 20 },
     errorText: { color: COLORS.danger, fontSize: 14, marginBottom: 12, fontWeight: "600" },
-    card: {
-      backgroundColor: COLORS.card,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      padding: 16,
-      marginBottom: 16,
-    },
+    card: { backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 16, marginBottom: 16 },
     label: { color: COLORS.sub, fontSize: 12, fontWeight: "900", marginBottom: 6, marginTop: 10 },
-    input: {
-      backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0",
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-      fontSize: 16,
-      color: COLORS.text,
-    },
-    btn: {
-      backgroundColor: COLORS.accent,
-      borderRadius: 14,
-      paddingVertical: 16,
-      alignItems: "center",
-      marginBottom: 12,
-    },
+    input: { backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0", borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, color: COLORS.text },
+    btn: { backgroundColor: COLORS.accent, borderRadius: 14, paddingVertical: 16, alignItems: "center", marginBottom: 12 },
     btnText: { color: "#fff", fontWeight: "900", fontSize: 16 },
     divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 16 },
     link: { alignItems: "center", paddingVertical: 8 },

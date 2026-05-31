@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../src/auth/AuthContext";
 import { supabase } from "../../src/lib/supabase";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -20,6 +21,7 @@ import { useIsWide } from "../../src/ui/useBreakpoint";
 
 export default function AccountScreen() {
   const { COLORS, mode } = useTheme();
+  const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const isWide = useIsWide();
 
@@ -33,11 +35,11 @@ export default function AccountScreen() {
 
   async function handleChangePassword() {
     if (!newPassword || newPassword.length < 6) {
-      setPasswordMsg({ text: "A password deve ter pelo menos 6 caracteres.", ok: false });
+      setPasswordMsg({ text: t("auth_password_too_short"), ok: false });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordMsg({ text: "As passwords não coincidem.", ok: false });
+      setPasswordMsg({ text: t("auth_password_mismatch"), ok: false });
       return;
     }
     setChangingPassword(true);
@@ -47,7 +49,7 @@ export default function AccountScreen() {
     if (error) {
       setPasswordMsg({ text: error.message, ok: false });
     } else {
-      setPasswordMsg({ text: "Password alterada com sucesso.", ok: true });
+      setPasswordMsg({ text: t("auth_password_changed"), ok: true });
       setNewPassword("");
       setConfirmPassword("");
     }
@@ -61,26 +63,20 @@ export default function AccountScreen() {
 
   function handleDeleteAccount() {
     if (Platform.OS === "web") {
-      const ok = (window as any).confirm(
-        "Apagar conta\nEsta ação é permanente. Todos os teus dados serão eliminados. Continuar?"
-      );
+      const ok = (window as any).confirm(`${t("auth_delete_account")}\n${t("auth_delete_account_confirm")}`);
       if (ok) doDeleteAccount();
       return;
     }
-    Alert.alert(
-      "Apagar conta",
-      "Esta ação é permanente. Todos os teus dados serão eliminados. Continuar?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Apagar", style: "destructive", onPress: doDeleteAccount },
-      ]
-    );
+    Alert.alert(t("auth_delete_account"), t("auth_delete_account_confirm"), [
+      { text: t("cancel"), style: "cancel" },
+      { text: t("delete"), style: "destructive", onPress: doDeleteAccount },
+    ]);
   }
 
   async function doDeleteAccount() {
     const { error } = await supabase.rpc("delete_user");
     if (error) {
-      Alert.alert("Erro", "Não foi possível apagar a conta. Contacta o suporte.");
+      Alert.alert(t("error"), t("auth_delete_account_error"));
       return;
     }
     await signOut();
@@ -95,7 +91,7 @@ export default function AccountScreen() {
             <Ionicons name="chevron-back" size={26} color={COLORS.text} />
           </Pressable>
         )}
-        <Text style={s.headerTitle}>Conta</Text>
+        <Text style={s.headerTitle}>{t("account_title")}</Text>
         {!isWide && <View style={{ width: 26 }} />}
       </View>
 
@@ -103,7 +99,7 @@ export default function AccountScreen() {
 
         {/* Email */}
         <View style={s.section}>
-          <Text style={s.sectionLabel}>EMAIL</Text>
+          <Text style={s.sectionLabel}>{t("account_section_email")}</Text>
           <View style={s.row}>
             <Ionicons name="mail-outline" size={20} color={COLORS.sub} style={{ marginRight: 10 }} />
             <Text style={s.emailText}>{user?.email ?? "—"}</Text>
@@ -112,44 +108,44 @@ export default function AccountScreen() {
 
         {/* Subscrição */}
         <View style={s.section}>
-          <Text style={s.sectionLabel}>SUBSCRIÇÃO</Text>
+          <Text style={s.sectionLabel}>{t("account_section_subscription")}</Text>
           <View style={s.row}>
             <Ionicons name="star-outline" size={20} color={COLORS.sub} style={{ marginRight: 10 }} />
             <View style={{ flex: 1 }}>
-              <Text style={s.rowTitle}>Plano gratuito</Text>
-              <Text style={s.rowSub}>WrapSheet Pro em breve</Text>
+              <Text style={s.rowTitle}>{t("account_free_plan")}</Text>
+              <Text style={s.rowSub}>{t("account_pro_soon")}</Text>
             </View>
             <Pressable
               onPress={() => router.push("/settings/plan")}
               style={({ pressed }) => [s.planBtn, pressed && { opacity: 0.8 }]}
             >
-              <Text style={s.planBtnText}>Ver planos</Text>
+              <Text style={s.planBtnText}>{t("account_see_plans")}</Text>
             </Pressable>
           </View>
         </View>
 
         {/* Alterar password */}
         <View style={s.section}>
-          <Text style={s.sectionLabel}>ALTERAR PASSWORD</Text>
+          <Text style={s.sectionLabel}>{t("account_section_password")}</Text>
           <View style={s.inputWrap}>
-            <Text style={s.inputLabel}>Nova password</Text>
+            <Text style={s.inputLabel}>{t("auth_new_password")}</Text>
             <TextInput
               style={s.input}
               value={newPassword}
               onChangeText={setNewPassword}
-              placeholder="Mínimo 6 caracteres"
+              placeholder={t("auth_password_placeholder")}
               placeholderTextColor={COLORS.sub}
               secureTextEntry
               autoComplete="new-password"
             />
           </View>
           <View style={s.inputWrap}>
-            <Text style={s.inputLabel}>Confirmar nova password</Text>
+            <Text style={s.inputLabel}>{t("auth_confirm_new_password")}</Text>
             <TextInput
               style={s.input}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              placeholder="Repetir password"
+              placeholder={t("auth_password_confirm_placeholder")}
               placeholderTextColor={COLORS.sub}
               secureTextEntry
             />
@@ -166,7 +162,7 @@ export default function AccountScreen() {
           >
             {changingPassword
               ? <ActivityIndicator color="#fff" />
-              : <Text style={s.btnText}>Guardar nova password</Text>
+              : <Text style={s.btnText}>{t("auth_save_password")}</Text>
             }
           </Pressable>
         </View>
@@ -179,19 +175,19 @@ export default function AccountScreen() {
         >
           <Ionicons name="log-out-outline" size={20} color={COLORS.text} style={{ marginRight: 8 }} />
           <Text style={[s.outlineBtnText, { color: COLORS.text }]}>
-            {signingOut ? "A sair…" : "Terminar sessão"}
+            {signingOut ? t("auth_signing_out") : t("auth_sign_out")}
           </Text>
         </Pressable>
 
         {/* Zona de perigo */}
         <View style={[s.section, { borderColor: COLORS.danger + "40" }]}>
-          <Text style={[s.sectionLabel, { color: COLORS.danger }]}>ZONA DE PERIGO</Text>
+          <Text style={[s.sectionLabel, { color: COLORS.danger }]}>{t("account_section_danger")}</Text>
           <Pressable
             style={({ pressed }) => [s.dangerBtn, pressed && { opacity: 0.8 }]}
             onPress={handleDeleteAccount}
           >
             <Ionicons name="trash-outline" size={18} color={COLORS.danger} style={{ marginRight: 8 }} />
-            <Text style={[s.dangerBtnText, { color: COLORS.danger }]}>Apagar conta</Text>
+            <Text style={[s.dangerBtnText, { color: COLORS.danger }]}>{t("auth_delete_account")}</Text>
           </Pressable>
         </View>
 

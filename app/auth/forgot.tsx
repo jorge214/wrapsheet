@@ -1,19 +1,14 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { useTranslation } from "react-i18next";
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 export default function ForgotScreen() {
   const { COLORS, mode } = useTheme();
+  const { t } = useTranslation();
   const { resetPassword } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -37,27 +32,25 @@ export default function ForgotScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.content}>
         <Pressable onPress={() => router.back()} style={s.back}>
-          <Text style={s.backText}>‹ Entrar</Text>
+          <Text style={s.backText}>‹ {t("auth_login_title")}</Text>
         </Pressable>
 
-        <Text style={s.title}>Recuperar password</Text>
+        <Text style={s.title}>{t("auth_forgot_title")}</Text>
 
         {sent ? (
           <View style={s.card}>
-            <Text style={[s.label, { color: COLORS.text, fontSize: 15 }]}>
-              Email enviado! Verifica a tua caixa de entrada para redefinir a password.
-            </Text>
+            <Text style={[s.label, { color: COLORS.text, fontSize: 15 }]}>{t("auth_email_sent")}</Text>
           </View>
         ) : (
           <>
             {error && <Text style={s.errorText}>{error}</Text>}
             <View style={s.card}>
-              <Text style={s.label}>Email</Text>
+              <Text style={s.label}>{t("email")}</Text>
               <TextInput
                 style={s.input}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="exemplo@email.com"
+                placeholder={t("email_placeholder")}
                 placeholderTextColor={COLORS.sub}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -68,10 +61,7 @@ export default function ForgotScreen() {
               onPress={handleReset}
               disabled={loading}
             >
-              {loading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={s.btnText}>Enviar email</Text>
-              }
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>{t("auth_send_email")}</Text>}
             </Pressable>
           </>
         )}
@@ -88,30 +78,9 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
     backText: { color: COLORS.text, fontSize: 15, fontWeight: "800" },
     title: { fontSize: 28, fontWeight: "900", color: COLORS.text, marginBottom: 20 },
     errorText: { color: COLORS.danger, fontSize: 14, marginBottom: 12, fontWeight: "600" },
-    card: {
-      backgroundColor: COLORS.card,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      padding: 16,
-      marginBottom: 16,
-    },
+    card: { backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 16, marginBottom: 16 },
     label: { color: COLORS.sub, fontSize: 12, fontWeight: "900", marginBottom: 6 },
-    input: {
-      backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0",
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-      fontSize: 16,
-      color: COLORS.text,
-    },
-    btn: {
-      backgroundColor: COLORS.accent,
-      borderRadius: 14,
-      paddingVertical: 16,
-      alignItems: "center",
-    },
+    input: { backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0", borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, color: COLORS.text },
+    btn: { backgroundColor: COLORS.accent, borderRadius: 14, paddingVertical: 16, alignItems: "center" },
     btnText: { color: "#fff", fontWeight: "900", fontSize: 16 },
   });
