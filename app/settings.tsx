@@ -55,6 +55,20 @@ export default function SettingsScreen() {
           {!isWide && <View style={{ width: 26 }} />}
         </View>
 
+        {/* Conta */}
+        <Section title="CONTA" COLORS={COLORS}>
+          <Pressable
+            onPress={() => router.push("/settings/account")}
+            style={[ss.row, { borderColor: COLORS.border }]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Ionicons name="person-circle-outline" size={22} color={COLORS.sub} />
+              <Text style={[ss.rowLabel, { color: COLORS.text }]}>Conta e sessão</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.sub} />
+          </Pressable>
+        </Section>
+
         {/* Região */}
         <Section title={t("settings_section_region")} COLORS={COLORS}>
           <Pressable
