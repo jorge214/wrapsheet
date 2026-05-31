@@ -68,6 +68,7 @@ export default function ProjectsScreen() {
 
   // modal opções (web)
   const [optsProject, setOptsProject] = useState<Project | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   // modal renomear
   const [renameId, setRenameId] = useState<string | null>(null);
@@ -436,29 +437,54 @@ export default function ProjectsScreen() {
 
       {/* Modal opções do projeto (Android + Web) */}
       <Modal transparent animationType="fade" visible={!!optsProject}>
-        <Pressable style={s.modalBackdrop} onPress={() => setOptsProject(null)}>
+        <Pressable style={s.modalBackdrop} onPress={() => { setOptsProject(null); setDeleteConfirm(false); }}>
           <Pressable style={s.modalCard} onPress={() => {}}>
             <Text style={s.modalTitle}>
               {optsProject?.nome || t("unnamed_project")}
             </Text>
-            {[
-              { label: t("rename"), onPress: () => { setOptsProject(null); openRenameDialog(optsProject!); } },
-              { label: t("duplicate"), onPress: () => { setOptsProject(null); openDuplicateDialog(optsProject!); } },
-              { label: t("archive"), onPress: () => { const id = optsProject!.id; setOptsProject(null); confirmArchive(id); } },
-            ].map((opt) => (
-              <Pressable key={opt.label} style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]} onPress={opt.onPress}>
-                <Text style={s.optText}>{opt.label}</Text>
-              </Pressable>
-            ))}
-            <Pressable
-              style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]}
-              onPress={() => { const id = optsProject!.id; setOptsProject(null); confirmDelete(id); }}
-            >
-              <Text style={[s.optText, { color: COLORS.danger }]}>{t("delete")}</Text>
-            </Pressable>
-            <Pressable style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.85 }]} onPress={() => setOptsProject(null)}>
-              <Text style={s.closeBtnText}>{t("close")}</Text>
-            </Pressable>
+            {!deleteConfirm ? (
+              <>
+                {[
+                  { label: t("rename"), onPress: () => { setOptsProject(null); openRenameDialog(optsProject!); } },
+                  { label: t("duplicate"), onPress: () => { setOptsProject(null); openDuplicateDialog(optsProject!); } },
+                  { label: t("archive"), onPress: () => { const id = optsProject!.id; setOptsProject(null); confirmArchive(id); } },
+                ].map((opt) => (
+                  <Pressable key={opt.label} style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]} onPress={opt.onPress}>
+                    <Text style={s.optText}>{opt.label}</Text>
+                  </Pressable>
+                ))}
+                <Pressable
+                  style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]}
+                  onPress={() => setDeleteConfirm(true)}
+                >
+                  <Text style={[s.optText, { color: COLORS.danger }]}>{t("delete")}</Text>
+                </Pressable>
+                <Pressable style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.85 }]} onPress={() => { setOptsProject(null); setDeleteConfirm(false); }}>
+                  <Text style={s.closeBtnText}>{t("close")}</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={[s.modalTitle, { color: COLORS.danger, marginTop: 8 }]}>
+                  {t("delete_project_msg")}
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [s.optRow, { backgroundColor: COLORS.danger }, pressed && { opacity: 0.85 }]}
+                  onPress={async () => {
+                    const id = optsProject!.id;
+                    setOptsProject(null);
+                    setDeleteConfirm(false);
+                    await deleteProject(id);
+                    loadProjects();
+                  }}
+                >
+                  <Text style={[s.optText, { color: "#fff" }]}>{t("delete")}</Text>
+                </Pressable>
+                <Pressable style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.85 }]} onPress={() => setDeleteConfirm(false)}>
+                  <Text style={s.closeBtnText}>{t("cancel")}</Text>
+                </Pressable>
+              </>
+            )}
           </Pressable>
         </Pressable>
       </Modal>

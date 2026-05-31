@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -191,17 +192,12 @@ export default function DashboardScreen() {
         {!isWide && <View style={{ width: 70 }} />}
       </View>
 
-      {/* MÊS (igual a Projects) */}
+      {/* MÊS */}
       <Pressable
-        style={({ pressed }) => [s.monthDisplay, pressed && { opacity: 0.88 }]}
+        style={({ pressed }) => [s.monthDisplay, pressed && { opacity: 0.75 }]}
         onPress={() => setPickerVisible(true)}
       >
-        <Text style={s.monthLabel}>{labelMes}</Text>
-        <Text style={s.monthHint}>
-          {Platform.OS === "web"
-            ? t("click_to_select_month", { defaultValue: "Clique para selecionar o mês" })
-            : t("tap_to_select_month", { defaultValue: "Toque para selecionar o mês" })}
-        </Text>
+        <Text style={s.monthLabel}>{labelMes} ▾</Text>
       </Pressable>
 
       <ScrollView
@@ -313,11 +309,10 @@ export default function DashboardScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Picker mês — overlay inline (sem Modal, compatível web) */}
-      {pickerVisible && (
-        <View style={s.overlayRoot}>
-          <Pressable style={s.overlayBackdrop} onPress={() => setPickerVisible(false)} />
-          <View style={s.modalCard}>
+      {/* Picker mês */}
+      <Modal transparent animationType="fade" visible={pickerVisible}>
+        <Pressable style={s.modalBackdrop} onPress={() => setPickerVisible(false)}>
+          <Pressable style={s.modalCard} onPress={() => {}}>
             <Text style={s.modalTitle}>
               {t("select_month", { defaultValue: "Selecionar mês" })}
             </Text>
@@ -351,9 +346,9 @@ export default function DashboardScreen() {
             >
               <Text style={s.modalCloseText}>{t("close", { defaultValue: "Fechar" })}</Text>
             </Pressable>
-          </View>
-        </View>
-      )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -404,9 +399,18 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       letterSpacing: -0.2,
     },
 
-    monthDisplay: { alignItems: "center", marginTop: 2, marginBottom: 10 },
-    monthLabel: { fontSize: 18, fontWeight: "900", color: COLORS.text },
-    monthHint: { marginTop: 2, color: COLORS.sub, fontSize: 12 },
+    monthDisplay: {
+      alignSelf: "center",
+      marginTop: 4,
+      marginBottom: 12,
+      paddingVertical: 8,
+      paddingHorizontal: 18,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.card,
+    },
+    monthLabel: { fontSize: 16, fontWeight: "900", color: COLORS.text, textAlign: "center" },
 
     content: {
       paddingHorizontal: 16,
