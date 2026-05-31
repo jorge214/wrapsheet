@@ -1,7 +1,7 @@
 // app/_layout.tsx
 import * as Sentry from "@sentry/react-native";
-import { Stack, router } from "expo-router";
-import React, { useEffect } from "react";
+import { Redirect, Stack, useSegments } from "expo-router";
+import React, { useEffect, useState } from "react";
 
 import "../src/i18n/i18n";
 import { AuthProvider, useAuth } from "../src/auth/AuthContext";
@@ -17,19 +17,32 @@ if (SENTRY_DSN.startsWith("https://")) {
 
 function AuthGate() {
   const { session, loading } = useAuth();
+  const segments = useSegments();
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (loading) return;
-    if (!session) {
-      router.replace("/auth/login");
-      return;
+    if (session) {
+      getSettings().then((s) => setOnboardingDone(!!s.onboardingComplete));
     }
-    getSettings().then((s) => {
-      if (!s.onboardingComplete) {
-        router.replace("/onboarding");
-      }
-    });
-  }, [session, loading]);
+  }, [session]);
+
+  if (loading) return null;
+
+  const inAuthGroup = segments[0] === "auth";
+
+  if (!session && !inAuthGroup) {
+    return <Redirect href="/auth/login" />;
+  }
+
+  if (session && inAuthGroup) {
+    if (onboardingDone === false) return <Redirect href="/onboarding" />;
+    if (onboardingDone === true) return <Redirect href="/" />;
+    return null;
+  }
+
+  if (session && onboardingDone === false) {
+    return <Redirect href="/onboarding" />;
+  }
 
   return null;
 }
@@ -40,8 +53,8 @@ export default function RootLayout() {
       <AuthProvider>
         <AppShell>
           <WebHead />
-          <AuthGate />
           <Stack screenOptions={{ headerShown: false }} />
+          <AuthGate />
         </AppShell>
       </AuthProvider>
     </ThemeProvider>
