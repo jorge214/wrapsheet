@@ -58,6 +58,7 @@ export default function ProjectsScreen() {
   const isWide = useIsWide();
   const s = useMemo(() => createStyles(COLORS, mode), [COLORS, mode]);
 
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -126,12 +127,16 @@ export default function ProjectsScreen() {
     );
   }
 
-  function confirmDelete(id: string) {
+  async function confirmDelete(id: string) {
     if (Platform.OS === "web") {
       const ok = (window as any).confirm(
         `${t("delete_project_title")}\n${t("delete_project_msg")}`
       );
-      if (ok) { deleteProject(id).then(loadProjects); }
+      if (ok) {
+        await deleteProject(id);
+        if (user) await deleteProjectFromCloud(user.id, id);
+        loadProjects();
+      }
       return;
     }
     Alert.alert(
@@ -142,7 +147,11 @@ export default function ProjectsScreen() {
         {
           text: t("delete"),
           style: "destructive",
-          onPress: async () => { await deleteProject(id); loadProjects(); },
+          onPress: async () => {
+            await deleteProject(id);
+            if (user) await deleteProjectFromCloud(user.id, id);
+            loadProjects();
+          },
         },
       ]
     );
@@ -477,6 +486,7 @@ export default function ProjectsScreen() {
                     setOptsProject(null);
                     setDeleteConfirm(false);
                     await deleteProject(id);
+                    if (user) await deleteProjectFromCloud(user.id, id);
                     loadProjects();
                   }}
                 >

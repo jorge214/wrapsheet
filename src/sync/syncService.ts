@@ -1,18 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
 import { Profile, listProfiles, upsertProfile } from "../storage/profile";
 import { ProjectState, listAllProjectsFull, saveProject } from "../storage/projects";
-
-const SYNC_FLAG_PREFIX = "sync:done:";
-
-async function hasSynced(userId: string): Promise<boolean> {
-  const val = await AsyncStorage.getItem(SYNC_FLAG_PREFIX + userId);
-  return val === "1";
-}
-
-async function markSynced(userId: string): Promise<void> {
-  await AsyncStorage.setItem(SYNC_FLAG_PREFIX + userId, "1");
-}
 
 /* ---------- Upload local → Supabase ---------- */
 
@@ -27,7 +15,8 @@ async function uploadProjects(userId: string): Promise<void> {
     updated_at: p.updatedAt || new Date().toISOString(),
   }));
 
-  await supabase.from("projects").upsert(rows, { onConflict: "id,user_id" });
+  const { error } = await supabase.from("projects").upsert(rows, { onConflict: "id" });
+  if (error) console.error("[sync] uploadProjects:", error.message);
 }
 
 async function uploadProfiles(userId: string): Promise<void> {
@@ -41,7 +30,8 @@ async function uploadProfiles(userId: string): Promise<void> {
     updated_at: new Date().toISOString(),
   }));
 
-  await supabase.from("profiles").upsert(rows, { onConflict: "id,user_id" });
+  const { error } = await supabase.from("profiles").upsert(rows, { onConflict: "id" });
+  if (error) console.error("[sync] uploadProfiles:", error.message);
 }
 
 /* ---------- Download Supabase → local ---------- */
@@ -52,7 +42,8 @@ async function downloadProjects(userId: string): Promise<void> {
     .select("data, updated_at")
     .eq("user_id", userId);
 
-  if (error || !data) return;
+  if (error) { console.error("[sync] downloadProjects:", error.message); return; }
+  if (!data) return;
 
   for (const row of data) {
     try {
@@ -69,7 +60,8 @@ async function downloadProfiles(userId: string): Promise<void> {
     .select("data")
     .eq("user_id", userId);
 
-  if (error || !data) return;
+  if (error) { console.error("[sync] downloadProfiles:", error.message); return; }
+  if (!data) return;
 
   for (const row of data) {
     try {
@@ -83,52 +75,35 @@ async function downloadProfiles(userId: string): Promise<void> {
 /* ---------- Sync per-item (after save) ---------- */
 
 export async function syncProjectToCloud(userId: string, project: ProjectState): Promise<void> {
-  try {
-    await supabase.from("projects").upsert(
-      { id: project.id, user_id: userId, data: project, updated_at: project.updatedAt },
-      { onConflict: "id,user_id" }
-    );
-  } catch {
-    // silent fail — local save already succeeded
-  }
+  const { error } = await supabase.from("projects").upsert(
+    { id: project.id, user_id: userId, data: project, updated_at: project.updatedAt },
+    { onConflict: "id" }
+  );
+  if (error) console.error("[sync] syncProjectToCloud:", error.message);
 }
 
 export async function syncProfileToCloud(userId: string, profile: Profile): Promise<void> {
-  try {
-    await supabase.from("profiles").upsert(
-      { id: profile.id, user_id: userId, data: profile, updated_at: new Date().toISOString() },
-      { onConflict: "id,user_id" }
-    );
-  } catch {
-    // silent fail
-  }
+  const { error } = await supabase.from("profiles").upsert(
+    { id: profile.id, user_id: userId, data: profile, updated_at: new Date().toISOString() },
+    { onConflict: "id" }
+  );
+  if (error) console.error("[sync] syncProfileToCloud:", error.message);
 }
 
 export async function deleteProjectFromCloud(userId: string, projectId: string): Promise<void> {
-  try {
-    await supabase.from("projects").delete().eq("id", projectId).eq("user_id", userId);
-  } catch {
-    // silent fail
-  }
+  const { error } = await supabase.from("projects").delete().eq("id", projectId).eq("user_id", userId);
+  if (error) console.error("[sync] deleteProjectFromCloud:", error.message);
 }
 
 /* ---------- Full sync on login ---------- */
 
 export async function fullSync(userId: string): Promise<void> {
   try {
-    const synced = await hasSynced(userId);
-
-    if (!synced) {
-      // First login: upload local data first, then download remote
-      await uploadProjects(userId);
-      await uploadProfiles(userId);
-      await markSynced(userId);
-    }
-
-    // Always pull latest from cloud (remote wins for newer items)
+    await uploadProjects(userId);
+    await uploadProfiles(userId);
     await downloadProjects(userId);
     await downloadProfiles(userId);
-  } catch {
-    // sync failure is non-critical
+  } catch (e) {
+    console.error("[sync] fullSync:", e);
   }
 }
