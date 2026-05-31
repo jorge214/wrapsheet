@@ -3,6 +3,8 @@ import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "../../src/auth/AuthContext";
+import { syncProjectToCloud } from "../../src/sync/syncService";
 import { useTranslation } from "react-i18next";
 import i18n from "../../src/i18n/i18n";
 import {
@@ -61,6 +63,7 @@ export default function ProjectEditor() {
   const router = useRouter();
   const isWide = useIsWide();
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   const [project, setProject] = useState<ProjectState | null>(null);
   const projectRef = useRef<ProjectState | null>(null);
@@ -129,6 +132,7 @@ export default function ProjectEditor() {
     setProject(next);
     projectRef.current = next;
     await saveProject(next);
+    if (user) syncProjectToCloud(user.id, next as any);
   }
 
   function setP<K extends keyof ProjectState>(key: K, value: ProjectState[K]) {

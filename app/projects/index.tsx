@@ -28,6 +28,8 @@ import {
   listProjects,
   renameProject,
 } from "../../src/storage/projects";
+import { useAuth } from "../../src/auth/AuthContext";
+import { deleteProjectFromCloud } from "../../src/sync/syncService";
 import { FREE_PROJECT_LIMIT } from "../../src/storage/freeTier";
 import { useTheme } from "../../src/theme/ThemeProvider";
 

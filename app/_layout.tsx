@@ -5,6 +5,7 @@ import React from "react";
 
 import "../src/i18n/i18n";
 import { AuthProvider } from "../src/auth/AuthContext";
+import { SyncProvider } from "../src/sync/SyncProvider";
 import { ThemeProvider } from "../src/theme/ThemeProvider";
 import { AppShell } from "../src/ui/AppShell";
 import { WebHead } from "../src/ui/WebHead";
@@ -18,10 +19,12 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppShell>
-          <WebHead />
-          <Stack screenOptions={{ headerShown: false }} />
-        </AppShell>
+        <SyncProvider>
+          <AppShell>
+            <WebHead />
+            <Stack screenOptions={{ headerShown: false }} />
+          </AppShell>
+        </SyncProvider>
       </AuthProvider>
     </ThemeProvider>
   );

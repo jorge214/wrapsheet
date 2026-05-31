@@ -2,6 +2,8 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../../src/auth/AuthContext";
+import { syncProfileToCloud } from "../../src/sync/syncService";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
@@ -65,6 +67,7 @@ export default function ProfileEditScreen() {
   const { t } = useTranslation();
   const { COLORS, mode } = useTheme();
   const isWide = useIsWide();
+  const { user } = useAuth();
   const s = useMemo(() => createStyles(COLORS, mode), [COLORS, mode]);
 
   const [p, setP] = useState<Profile | null>(null);
@@ -99,8 +102,10 @@ export default function ProfileEditScreen() {
 
     setSaving(true);
     try {
-      await upsertProfile({ ...p, nome });
+      const updated = { ...p, nome };
+      await upsertProfile(updated);
       await setActiveProfileId(p.id);
+      if (user) syncProfileToCloud(user.id, updated);
       router.back();
     } catch (e) {
       console.error("Erro ao guardar perfil", e);
