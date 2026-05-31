@@ -6,7 +6,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -314,15 +313,15 @@ export default function DashboardScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Modal selecionar mês (estilo Projects) */}
-      <Modal transparent animationType="fade" visible={pickerVisible}>
-        <View style={s.modalBackdrop}>
+      {/* Picker mês — overlay inline (sem Modal, compatível web) */}
+      {pickerVisible && (
+        <View style={s.overlayRoot}>
+          <Pressable style={s.overlayBackdrop} onPress={() => setPickerVisible(false)} />
           <View style={s.modalCard}>
             <Text style={s.modalTitle}>
               {t("select_month", { defaultValue: "Selecionar mês" })}
             </Text>
-
-            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
               {monthOptions.map((opt) => {
                 const selected = opt.mes === mes && opt.ano === ano;
                 return (
@@ -346,18 +345,15 @@ export default function DashboardScreen() {
                 );
               })}
             </ScrollView>
-
             <Pressable
               style={({ pressed }) => [s.modalCloseBtn, pressed && { opacity: 0.88 }]}
               onPress={() => setPickerVisible(false)}
             >
-              <Text style={s.modalCloseText}>
-                {t("close", { defaultValue: "Fechar" })}
-              </Text>
+              <Text style={s.modalCloseText}>{t("close", { defaultValue: "Fechar" })}</Text>
             </Pressable>
           </View>
         </View>
-      </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -561,5 +557,24 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       color: COLORS.text,
       fontWeight: "900",
       fontSize: 13,
+    },
+    overlayRoot: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 100,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 24,
+    },
+    overlayBackdrop: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0,0,0,0.35)",
     },
   });

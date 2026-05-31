@@ -147,25 +147,15 @@ export default function ProjectsScreen() {
 
   async function handleNewProject() {
     if (projects.length >= FREE_PROJECT_LIMIT) {
-      if (Platform.OS === "web") {
-        const ok = (window as any).confirm(
-          `${t("pro_gate_title")}\n${t("pro_gate_projects_body")}\n\n${t("pro_gate_see_plans")}?`
-        );
-        if (ok) router.push("/settings/plan");
-        return;
-      }
-      Alert.alert(
-        t("pro_gate_title"),
-        t("pro_gate_projects_body"),
-        [
-          { text: t("cancel"), style: "cancel" },
-          { text: t("pro_gate_see_plans"), onPress: () => router.push("/settings/plan") },
-        ]
-      );
+      router.push("/settings/plan");
       return;
     }
-    const id = await createProject();
-    router.push(`/projects/${id}`);
+    try {
+      const id = await createProject();
+      router.push(`/projects/${id}`);
+    } catch (e) {
+      console.error("Erro ao criar projeto", e);
+    }
   }
 
   // ------- RENOMEAR -------

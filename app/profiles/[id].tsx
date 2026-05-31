@@ -312,7 +312,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     },
     saveBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
 
-    scrollContent: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 30, gap: 12 },
+    scrollContent: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 280, gap: 12 },
     card: {
       backgroundColor: COLORS.card,
       borderWidth: 1,
