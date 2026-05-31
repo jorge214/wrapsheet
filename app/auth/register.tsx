@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -20,13 +20,17 @@ import { WrapSheetLogo } from "../../src/ui/WrapSheetLogo";
 export default function RegisterScreen() {
   const { COLORS, mode } = useTheme();
   const { t } = useTranslation();
-  const { signUp } = useAuth();
+  const { signUp, session } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (session) router.replace("/");
+  }, [session]);
 
   async function handleRegister() {
     if (!email.trim() || !password) return;

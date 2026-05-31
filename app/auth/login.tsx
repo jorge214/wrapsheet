@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -20,12 +20,16 @@ import { WrapSheetLogo } from "../../src/ui/WrapSheetLogo";
 export default function LoginScreen() {
   const { COLORS, mode } = useTheme();
   const { t } = useTranslation();
-  const { signIn } = useAuth();
+  const { signIn, session } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (session) router.replace("/");
+  }, [session]);
 
   async function handleLogin() {
     if (!email.trim() || !password) return;
@@ -36,7 +40,7 @@ export default function LoginScreen() {
       setError(err);
       setLoading(false);
     }
-    // on success, AuthContext updates session → _layout redirects automatically
+    // on success: onAuthStateChange fires → session updates → useEffect above redirects
   }
 
   const s = styles(COLORS, mode);
