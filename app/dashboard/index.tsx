@@ -12,6 +12,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -194,10 +195,15 @@ export default function DashboardScreen() {
 
       {/* MÊS */}
       <Pressable
-        style={({ pressed }) => [s.monthDisplay, pressed && { opacity: 0.75 }]}
+        style={({ pressed }) => [s.monthDisplay, pressed && { opacity: 0.88 }]}
         onPress={() => setPickerVisible(true)}
       >
-        <Text style={s.monthLabel}>{labelMes} ▾</Text>
+        <Text style={s.monthLabel}>{labelMes}</Text>
+        <Text style={s.monthHint}>
+          {Platform.OS === "web"
+            ? t("click_to_select_month", { defaultValue: "Clique para selecionar o mês" })
+            : t("tap_to_select_month", { defaultValue: "Toque para selecionar o mês" })}
+        </Text>
       </Pressable>
 
       <ScrollView
@@ -311,12 +317,12 @@ export default function DashboardScreen() {
 
       {/* Picker mês */}
       <Modal transparent animationType="fade" visible={pickerVisible}>
-        <Pressable style={s.modalBackdrop} onPress={() => setPickerVisible(false)}>
-          <Pressable style={s.modalCard} onPress={() => {}}>
+        <View style={s.modalBackdrop}>
+          <View style={s.modalCard}>
             <Text style={s.modalTitle}>
               {t("select_month", { defaultValue: "Selecionar mês" })}
             </Text>
-            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
               {monthOptions.map((opt) => {
                 const selected = opt.mes === mes && opt.ano === ano;
                 return (
@@ -340,14 +346,14 @@ export default function DashboardScreen() {
                 );
               })}
             </ScrollView>
-            <Pressable
-              style={({ pressed }) => [s.modalCloseBtn, pressed && { opacity: 0.88 }]}
+            <TouchableOpacity
+              style={s.modalCloseBtn}
               onPress={() => setPickerVisible(false)}
             >
               <Text style={s.modalCloseText}>{t("close", { defaultValue: "Fechar" })}</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -399,18 +405,9 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       letterSpacing: -0.2,
     },
 
-    monthDisplay: {
-      alignSelf: "center",
-      marginTop: 4,
-      marginBottom: 12,
-      paddingVertical: 8,
-      paddingHorizontal: 18,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      backgroundColor: COLORS.card,
-    },
-    monthLabel: { fontSize: 16, fontWeight: "900", color: COLORS.text, textAlign: "center" },
+    monthDisplay: { alignItems: "center", marginTop: 10, marginBottom: 6 },
+    monthLabel: { fontSize: 18, fontWeight: "900", color: COLORS.text },
+    monthHint: { marginTop: 2, color: COLORS.sub, fontSize: 12 },
 
     content: {
       paddingHorizontal: 16,
