@@ -1,8 +1,8 @@
 // app/projects/[id].tsx
 import dayjs from "dayjs";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useIsWide } from "../../src/ui/useBreakpoint";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
 import { syncProjectToCloud } from "../../src/sync/syncService";
 import { useTranslation } from "react-i18next";
@@ -80,57 +80,37 @@ export default function ProjectEditor() {
     getSettings().then((s) => setRegionCode(s.region ?? "pt"));
   }, []);
 
+  const loadProject = useCallback(async () => {
+    const p = await getProject(id!);
+    if (!p) return;
+
+    const aj = p.tabela.ajudas ?? { refeicao: 0, viatura: 0, material: 0, telefone: 0, perDiem: 0 };
+    const dias = p.dias.map((d) => ({ jantarTrabalho: "00:00", tempoTransporteMin: 0, ...d })) as Dia[];
+    const fiscalRaw = (p.fiscal as any) ?? {};
+    const fiscal = {
+      IRS_percent: Number(fiscalRaw.IRS_percent ?? fiscalRaw.irs ?? fiscalRaw.IRS ?? 0) || 0,
+      IVA_percent: Number(fiscalRaw.IVA_percent ?? fiscalRaw.iva ?? fiscalRaw.IVA ?? 0) || 0,
+      nota: fiscalRaw.nota ?? "",
+    };
+    const normalized: ProjectState = {
+      ...p,
+      tabela: { multHEA: 1.5, multHEB: 2.0, multHR: 3.0, limiar_A: 11, limiar_B: 18, ...p.tabela, ajudas: aj },
+      dias,
+      fiscal: fiscal as any,
+    };
+    setProject(normalized);
+    projectRef.current = normalized;
+  }, [id]);
+
   useEffect(() => {
-    (async () => {
-      const p = await getProject(id!);
-      if (!p) {
-        Alert.alert(t("oops"), t("proj_not_found"));
-        router.replace("/projects");
-        return;
-      }
+    loadProject().catch(() => {
+      Alert.alert(t("oops"), t("proj_not_found"));
+      router.replace("/projects");
+    });
+  }, [loadProject]);
 
-      const aj =
-        p.tabela.ajudas ?? {
-          refeicao: 0,
-          viatura: 0,
-          material: 0,
-          telefone: 0,
-          perDiem: 0,
-        };
-
-      const dias = p.dias.map((d) => ({
-        jantarTrabalho: "00:00",
-        tempoTransporteMin: 0,
-        ...d,
-      })) as Dia[];
-
-      // Fix #13: normalise to canonical Fiscal shape — handles old { irs, iva } format
-      const fiscalRaw = (p.fiscal as any) ?? {};
-      const fiscal = {
-        IRS_percent: Number(fiscalRaw.IRS_percent ?? fiscalRaw.irs ?? fiscalRaw.IRS ?? 0) || 0,
-        IVA_percent: Number(fiscalRaw.IVA_percent ?? fiscalRaw.iva ?? fiscalRaw.IVA ?? 0) || 0,
-        nota: fiscalRaw.nota ?? "",
-      };
-
-      const normalized: ProjectState = {
-        ...p,
-        tabela: {
-          multHEA: 1.5,
-          multHEB: 2.0,
-          multHR: 3.0,
-          limiar_A: 11,
-          limiar_B: 18,
-          ...p.tabela,
-          ajudas: aj,
-        },
-        dias,
-        fiscal: fiscal as any,
-      };
-
-      setProject(normalized);
-      projectRef.current = normalized;
-    })();
-  }, [id, router]);
+  // Reload from storage when returning from the table editor page
+  useFocusEffect(useCallback(() => { loadProject(); }, [loadProject]));
 
   async function persist(next: ProjectState) {
     setProject(next);
@@ -790,6 +770,14 @@ export default function ProjectEditor() {
                     </Text>
                   </Pressable>
                 </View>
+                {/* Open table in full page */}
+                <Pressable
+                  onPress={() => router.push(`/projects/table/${id}`)}
+                  style={({ pressed }) => [ss.expandBtn, pressed && { opacity: 0.75 }]}
+                  hitSlop={6}
+                >
+                  <Text style={ss.expandBtnText}>⤢</Text>
+                </Pressable>
                 {daysView === "form" && <Pill label={t("add_day")} onPress={addDia} />}
               </View>
             }
@@ -1322,6 +1310,17 @@ const ss = StyleSheet.create({
   },
   viewToggleTextActive: {
     color: COLORS.bg,
+  },
+  expandBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  expandBtnText: {
+    fontSize: 14,
+    color: COLORS.text,
   },
 
   menuBackdrop: {
