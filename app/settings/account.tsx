@@ -88,11 +88,11 @@ export default function AccountScreen() {
       <View style={s.header}>
         {!isWide && (
           <Pressable onPress={() => router.back()} hitSlop={10}>
-            <Ionicons name="chevron-back" size={26} color={COLORS.text} />
+            <Text style={s.backLink}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
           </Pressable>
         )}
         <Text style={s.headerTitle}>{t("account_title")}</Text>
-        {!isWide && <View style={{ width: 26 }} />}
+        {!isWide && <View style={{ width: 70 }} />}
       </View>
 
       <ScrollView contentContainerStyle={s.scroll}>
@@ -208,6 +208,7 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
       borderBottomWidth: 1,
       borderColor: COLORS.border,
     },
+    backLink: { color: COLORS.text, fontSize: 15, fontWeight: "800", width: 70, opacity: 0.9 },
     headerTitle: { fontSize: 22, fontWeight: "700", color: COLORS.text },
     scroll: { padding: 16, gap: 16, paddingBottom: 40 },
 

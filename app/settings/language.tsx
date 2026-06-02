@@ -58,7 +58,7 @@ export default function LanguageScreen() {
         <View style={[ss.header, { borderColor: COLORS.border }]}>
           {!isWide && (
             <Pressable onPress={() => router.back()} hitSlop={10}>
-              <Ionicons name="chevron-back" size={26} color={COLORS.text} />
+              <Text style={[ss.backLink, { color: COLORS.text }]}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
             </Pressable>
           )}
 
@@ -66,7 +66,7 @@ export default function LanguageScreen() {
             {t("settings_section_language", { defaultValue: "Language" })}
           </Text>
 
-          {!isWide && <View style={{ width: 26 }} />}
+          {!isWide && <View style={{ width: 70 }} />}
         </View>
 
         {LANGS.map((l) => (
@@ -108,6 +108,7 @@ const ss = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
   },
+  backLink: { fontSize: 15, fontWeight: "800", width: 70, opacity: 0.9 },
   row: {
     paddingVertical: 14,
     paddingHorizontal: 16,

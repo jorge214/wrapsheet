@@ -191,18 +191,37 @@ export default function ArchivedScreen() {
         {!isWide && <View style={{ width: 70 }} />}
       </View>
 
-      {/* MÊS (IGUAL ao Projects) */}
-      <Pressable
-        style={({ pressed }) => [s.monthDisplay, pressed && { opacity: 0.88 }]}
-        onPress={() => setPickerVisible(true)}
-      >
-        <Text style={s.monthLabel}>{selectedLabel}</Text>
-        <Text style={s.monthHint}>
-          {Platform.OS === "web"
-            ? t("click_to_select_month", { defaultValue: "Clique para selecionar o mês" })
-            : t("tap_to_select_month", { defaultValue: "Toque para selecionar o mês" })}
-        </Text>
-      </Pressable>
+      {/* MÊS com setas de navegação */}
+      <View style={s.monthNav}>
+        <Pressable
+          hitSlop={12}
+          onPress={() => {
+            setShowAll(false);
+            if (mes === 1) { setMes(12); setAno(ano - 1); }
+            else setMes(mes - 1);
+          }}
+          style={({ pressed }) => [s.navArrow, pressed && { opacity: 0.5 }]}
+        >
+          <Text style={s.navArrowText}>‹</Text>
+        </Pressable>
+
+        <Pressable onPress={() => setPickerVisible(true)} style={s.monthCenter}>
+          <Text style={s.monthLabel}>{selectedLabel}</Text>
+          <Text style={s.monthHint}>{t("tap_to_select_month", { defaultValue: "Toque para selecionar o mês" })}</Text>
+        </Pressable>
+
+        <Pressable
+          hitSlop={12}
+          onPress={() => {
+            setShowAll(false);
+            if (mes === 12) { setMes(1); setAno(ano + 1); }
+            else setMes(mes + 1);
+          }}
+          style={({ pressed }) => [s.navArrow, pressed && { opacity: 0.5 }]}
+        >
+          <Text style={s.navArrowText}>›</Text>
+        </Pressable>
+      </View>
 
       {/* Filtro por cliente/nome */}
       <View style={s.filters}>
@@ -395,7 +414,17 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       letterSpacing: -0.2,
     },
 
-    // ✅ IGUAL AO PROJECTS
+    monthNav: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 8,
+      marginTop: 2,
+      marginBottom: 10,
+    },
+    navArrow: { paddingHorizontal: 12, paddingVertical: 4 },
+    navArrowText: { fontSize: 28, fontWeight: "900", color: COLORS.text, lineHeight: 32 },
+    monthCenter: { alignItems: "center", flex: 1 },
     monthDisplay: { alignItems: "center", marginTop: 2, marginBottom: 10 },
     monthLabel: { fontSize: 18, fontWeight: "900", color: COLORS.text },
     monthHint: { marginTop: 2, color: COLORS.sub, fontSize: 12 },

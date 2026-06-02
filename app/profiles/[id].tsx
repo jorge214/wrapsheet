@@ -26,10 +26,10 @@ import {
 } from "../../src/storage/profile";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
-/** ✅ FORA do screen (não remonta a cada render) */
 function ProfileField({
   label,
   value,
+  editing,
   onChangeText,
   placeholder,
   keyboardType,
@@ -39,6 +39,7 @@ function ProfileField({
 }: {
   label: string;
   value?: string;
+  editing: boolean;
   onChangeText: (v: string) => void;
   placeholder?: string;
   keyboardType?: any;
@@ -49,15 +50,19 @@ function ProfileField({
   return (
     <View style={styles.fieldWrapper}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        value={value ?? ""}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={COLORS.sub}
-        style={styles.fieldInput}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-      />
+      {editing ? (
+        <TextInput
+          value={value ?? ""}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.sub}
+          style={styles.fieldInput}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+        />
+      ) : (
+        <Text style={styles.fieldValue}>{value || "—"}</Text>
+      )}
     </View>
   );
 }
@@ -71,6 +76,8 @@ export default function ProfileEditScreen() {
   const s = useMemo(() => createStyles(COLORS, mode), [COLORS, mode]);
 
   const [p, setP] = useState<Profile | null>(null);
+  const [original, setOriginal] = useState<Profile | null>(null);
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -85,8 +92,18 @@ export default function ProfileEditScreen() {
         return;
       }
       setP(loaded);
+      setOriginal(loaded);
     })();
   }, [id, t]);
+
+  function handleEdit() {
+    setEditing(true);
+  }
+
+  function handleCancel() {
+    setP(original);
+    setEditing(false);
+  }
 
   async function handleSave() {
     if (!p || saving) return;
@@ -106,14 +123,13 @@ export default function ProfileEditScreen() {
       await upsertProfile(updated);
       await setActiveProfileId(p.id);
       if (user) syncProfileToCloud(user.id, updated);
-      router.back();
+      setOriginal(updated);
+      setEditing(false);
     } catch (e) {
       console.error("Erro ao guardar perfil", e);
       Alert.alert(
         t("error", { defaultValue: "Erro" }),
-        t("save_error", {
-          defaultValue: "Não foi possível guardar. Tenta novamente.",
-        })
+        t("save_error", { defaultValue: "Não foi possível guardar. Tenta novamente." })
       );
     } finally {
       setSaving(false);
@@ -157,8 +173,10 @@ export default function ProfileEditScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <View style={s.header}>
         {!isWide && (
-          <Pressable onPress={() => router.back()} hitSlop={8}>
-            <Text style={s.backLink}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+          <Pressable onPress={editing ? handleCancel : () => router.back()} hitSlop={8}>
+            <Text style={s.backLink}>
+              ‹ {editing ? t("cancel", { defaultValue: "Cancelar" }) : t("back", { defaultValue: "Voltar" })}
+            </Text>
           </Pressable>
         )}
 
@@ -166,125 +184,50 @@ export default function ProfileEditScreen() {
           {t("profile", { defaultValue: "Perfil" })}
         </Text>
 
-        <Pressable
-          onPress={handleSave}
-          disabled={saving}
-          style={({ pressed }) => [
-            s.saveBtn,
-            pressed && !saving && { opacity: 0.85 },
-            saving && { opacity: 0.5 },
-          ]}
-          hitSlop={8}
-        >
-          <Text style={s.saveBtnText}>
-            {saving
-              ? t("saving", { defaultValue: "A guardar…" })
-              : t("save", { defaultValue: "Guardar" })}
-          </Text>
-        </Pressable>
+        {editing ? (
+          <Pressable
+            onPress={handleSave}
+            disabled={saving}
+            style={({ pressed }) => [s.actionBtn, pressed && !saving && { opacity: 0.85 }, saving && { opacity: 0.5 }]}
+            hitSlop={8}
+          >
+            <Text style={s.actionBtnText}>
+              {saving ? t("saving", { defaultValue: "A guardar…" }) : t("save", { defaultValue: "Guardar" })}
+            </Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={handleEdit}
+            style={({ pressed }) => [s.actionBtn, pressed && { opacity: 0.85 }]}
+            hitSlop={8}
+          >
+            <Text style={s.actionBtnText}>
+              {t("edit", { defaultValue: "Editar" })}
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={s.card}>
-          <ProfileField
-            label={t("name", { defaultValue: "Nome" })}
-            value={p.nome}
-            onChangeText={(v) => setP({ ...p, nome: v })}
-            placeholder={t("name_placeholder", { defaultValue: "Ex: João Costa" })}
-            autoCapitalize="words"
-            COLORS={COLORS}
-            styles={s}
-          />
-
-          <ProfileField
-            label={t("email", { defaultValue: "Email" })}
-            value={p.email}
-            onChangeText={(v) => setP({ ...p, email: v })}
-            placeholder={t("email_placeholder")}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            COLORS={COLORS}
-            styles={s}
-          />
-
-          <ProfileField
-            label={t("phone", { defaultValue: "Telefone" })}
-            value={p.telefone}
-            onChangeText={(v) => setP({ ...p, telefone: v })}
-            placeholder={t("phone_placeholder", { defaultValue: "Ex: 912345678" })}
-            keyboardType="phone-pad"
-            autoCapitalize="none"
-            COLORS={COLORS}
-            styles={s}
-          />
-
-          <ProfileField
-            label={t("department", { defaultValue: "Departamento" })}
-            value={p.departamento}
-            onChangeText={(v) => setP({ ...p, departamento: v })}
-            placeholder={t("department_placeholder", { defaultValue: "Ex: Suporte" })}
-            autoCapitalize="words"
-            COLORS={COLORS}
-            styles={s}
-          />
-
-          <ProfileField
-            label={t("role", { defaultValue: "Função" })}
-            value={p.funcao}
-            onChangeText={(v) => setP({ ...p, funcao: v })}
-            placeholder={t("role_placeholder", { defaultValue: "Ex: Técnico" })}
-            autoCapitalize="words"
-            COLORS={COLORS}
-            styles={s}
-          />
-
-          <ProfileField
-            label={t("company", { defaultValue: "Empresa" })}
-            value={p.empresa}
-            onChangeText={(v) => setP({ ...p, empresa: v })}
-            placeholder={t("company_placeholder", { defaultValue: "Ex: ItsAWrap" })}
-            autoCapitalize="words"
-            COLORS={COLORS}
-            styles={s}
-          />
-
-          <ProfileField
-            label={t("nif", { defaultValue: "NIF" })}
-            value={p.nif}
-            onChangeText={(v) => setP({ ...p, nif: v })}
-            placeholder={t("nif_placeholder")}
-            keyboardType="number-pad"
-            autoCapitalize="none"
-            COLORS={COLORS}
-            styles={s}
-          />
-
-          <ProfileField
-            label={t("iban", { defaultValue: "IBAN" })}
-            value={p.iban}
-            onChangeText={(v) => setP({ ...p, iban: v })}
-            placeholder={t("iban_placeholder")}
-            autoCapitalize="characters"
-            COLORS={COLORS}
-            styles={s}
-          />
-
-          <ProfileField
-            label={t("swift", { defaultValue: "SWIFT" })}
-            value={p.swift}
-            onChangeText={(v) => setP({ ...p, swift: v })}
-            placeholder={t("swift_placeholder")}
-            autoCapitalize="characters"
-            COLORS={COLORS}
-            styles={s}
-          />
+          <ProfileField label={t("name", { defaultValue: "Nome" })} value={p.nome} editing={editing} onChangeText={(v) => setP({ ...p, nome: v })} placeholder={t("name_placeholder", { defaultValue: "Ex: João Costa" })} autoCapitalize="words" COLORS={COLORS} styles={s} />
+          <ProfileField label={t("email", { defaultValue: "Email" })} value={p.email} editing={editing} onChangeText={(v) => setP({ ...p, email: v })} placeholder={t("email_placeholder")} keyboardType="email-address" autoCapitalize="none" COLORS={COLORS} styles={s} />
+          <ProfileField label={t("phone", { defaultValue: "Telefone" })} value={p.telefone} editing={editing} onChangeText={(v) => setP({ ...p, telefone: v })} placeholder={t("phone_placeholder", { defaultValue: "Ex: 912345678" })} keyboardType="phone-pad" autoCapitalize="none" COLORS={COLORS} styles={s} />
+          <ProfileField label={t("department", { defaultValue: "Departamento" })} value={p.departamento} editing={editing} onChangeText={(v) => setP({ ...p, departamento: v })} placeholder={t("department_placeholder", { defaultValue: "Ex: Suporte" })} autoCapitalize="words" COLORS={COLORS} styles={s} />
+          <ProfileField label={t("role", { defaultValue: "Função" })} value={p.funcao} editing={editing} onChangeText={(v) => setP({ ...p, funcao: v })} placeholder={t("role_placeholder", { defaultValue: "Ex: Técnico" })} autoCapitalize="words" COLORS={COLORS} styles={s} />
+          <ProfileField label={t("company", { defaultValue: "Empresa" })} value={p.empresa} editing={editing} onChangeText={(v) => setP({ ...p, empresa: v })} placeholder={t("company_placeholder", { defaultValue: "Ex: ItsAWrap" })} autoCapitalize="words" COLORS={COLORS} styles={s} />
+          <ProfileField label={t("nif", { defaultValue: "NIF" })} value={p.nif} editing={editing} onChangeText={(v) => setP({ ...p, nif: v })} placeholder={t("nif_placeholder")} keyboardType="number-pad" autoCapitalize="none" COLORS={COLORS} styles={s} />
+          <ProfileField label={t("iban", { defaultValue: "IBAN" })} value={p.iban} editing={editing} onChangeText={(v) => setP({ ...p, iban: v })} placeholder={t("iban_placeholder")} autoCapitalize="characters" COLORS={COLORS} styles={s} />
+          <ProfileField label={t("swift", { defaultValue: "SWIFT / BIC" })} value={p.swift} editing={editing} onChangeText={(v) => setP({ ...p, swift: v })} placeholder={t("swift_placeholder")} autoCapitalize="characters" COLORS={COLORS} styles={s} />
         </View>
 
-        <Pressable onPress={handleDelete} style={({ pressed }) => [s.deleteBtn, pressed && { opacity: 0.85 }]}>
-          <Text style={s.deleteBtnText}>
-            {t("delete_profile", { defaultValue: "Apagar perfil" })}
-          </Text>
-        </Pressable>
+        {!editing && (
+          <Pressable onPress={handleDelete} style={({ pressed }) => [s.deleteBtn, pressed && { opacity: 0.85 }]}>
+            <Text style={s.deleteBtnText}>
+              {t("delete_profile", { defaultValue: "Apagar perfil" })}
+            </Text>
+          </Pressable>
+        )}
 
         <View style={{ height: 24 }} />
       </ScrollView>
@@ -305,17 +248,17 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     backLink: { color: COLORS.text, fontSize: 15, fontWeight: "800", width: 80 },
     headerTitle: { color: COLORS.text, fontSize: 28, fontWeight: "900", letterSpacing: -0.2 },
 
-    saveBtn: {
+    actionBtn: {
       borderWidth: 1,
       borderColor: COLORS.border,
       backgroundColor: "transparent",
       paddingVertical: 10,
       paddingHorizontal: 14,
       borderRadius: 999,
-      minWidth: 96,
+      minWidth: 80,
       alignItems: "center",
     },
-    saveBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
+    actionBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
 
     scrollContent: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 280, gap: 12 },
     card: {
@@ -331,6 +274,11 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
 
     fieldWrapper: { marginBottom: 10 },
     fieldLabel: { color: COLORS.sub, fontSize: 12, fontWeight: "900", marginBottom: 6 },
+    fieldValue: {
+      fontSize: 16,
+      color: COLORS.text,
+      paddingVertical: 4,
+    },
     fieldInput: {
       backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0",
       borderRadius: 12,
