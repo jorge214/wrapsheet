@@ -388,11 +388,9 @@ export default function ProjectEditor() {
         {/* Header */}
         <View style={{ paddingTop: paddingTop, paddingHorizontal: PAGE_X }}>
           <View style={ss.topbar}>
-            {!isWide && (
-              <Pressable onPress={handleBack} hitSlop={10}>
-                <Text style={ss.backLink}>‹ {t("projects")}</Text>
-              </Pressable>
-            )}
+            <Pressable onPress={handleBack} hitSlop={10}>
+              <Text style={ss.backLink}>‹ {t("projects")}</Text>
+            </Pressable>
 
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Pressable

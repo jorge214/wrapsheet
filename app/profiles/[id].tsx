@@ -1,6 +1,5 @@
 // app/profiles/[id].tsx
 import { router, useLocalSearchParams } from "expo-router";
-import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
 import { syncProfileToCloud } from "../../src/sync/syncService";
@@ -71,7 +70,6 @@ export default function ProfileEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const { COLORS, mode } = useTheme();
-  const isWide = useIsWide();
   const { user } = useAuth();
   const s = useMemo(() => createStyles(COLORS, mode), [COLORS, mode]);
 
@@ -172,13 +170,11 @@ export default function ProfileEditScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <View style={s.header}>
-        {!isWide && (
-          <Pressable onPress={editing ? handleCancel : () => router.back()} hitSlop={8}>
-            <Text style={s.backLink}>
-              ‹ {editing ? t("cancel", { defaultValue: "Cancelar" }) : t("back", { defaultValue: "Voltar" })}
-            </Text>
-          </Pressable>
-        )}
+        <Pressable onPress={editing ? handleCancel : () => router.back()} hitSlop={8}>
+          <Text style={s.backLink}>
+            ‹ {editing ? t("cancel", { defaultValue: "Cancelar" }) : t("back", { defaultValue: "Voltar" })}
+          </Text>
+        </Pressable>
 
         <Text style={s.headerTitle}>
           {t("profile", { defaultValue: "Perfil" })}
