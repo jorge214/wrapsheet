@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { completeOnboarding } from "../src/storage/appSettings";
 import { useTheme } from "../src/theme/ThemeProvider";
+import { LanguagePicker } from "../src/ui/LanguagePicker";
 
 type Slide = {
   icon: React.ComponentProps<typeof Ionicons>["name"];
@@ -38,6 +39,9 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={[s.root, { backgroundColor: COLORS.bg }]}>
+      <View style={s.topBar}>
+        <LanguagePicker />
+      </View>
       <View style={s.slide}>
         <View style={[s.iconWrap, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
           <Ionicons name={slide.icon} size={56} color={COLORS.accent} />
@@ -69,6 +73,7 @@ export default function OnboardingScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
+  topBar: { alignItems: "flex-end", paddingHorizontal: 20, paddingTop: 8 },
   slide: {
     flex: 1,
     alignItems: "center",

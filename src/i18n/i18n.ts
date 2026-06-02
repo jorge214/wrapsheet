@@ -38,8 +38,11 @@ function normalizeLang(tag: string): LangCode {
   return "en";
 }
 
-const locales = Localization.getLocales();
-const deviceLocale = normalizeLang(locales?.[0]?.languageTag || "en");
+// During SSR/static build window is undefined — always start with "en" so the
+// generated HTML matches what the browser will hydrate with.
+const isSSR = typeof window === "undefined";
+const locales = isSSR ? [] : Localization.getLocales();
+const deviceLocale = isSSR ? "en" : normalizeLang(locales?.[0]?.languageTag || "en");
 
 i18n.use(initReactI18next).init({
   resources,

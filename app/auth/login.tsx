@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useTheme } from "../../src/theme/ThemeProvider";
+import { LanguagePicker } from "../../src/ui/LanguagePicker";
 import { WrapSheetLogo } from "../../src/ui/WrapSheetLogo";
 
 export default function LoginScreen() {
@@ -46,6 +47,9 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={s.root}>
+      <View style={s.topBar}>
+        <LanguagePicker />
+      </View>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.logoWrap}>
@@ -108,7 +112,8 @@ export default function LoginScreen() {
 const styles = (COLORS: any, mode: "light" | "dark") =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: COLORS.bg },
-    scroll: { padding: 24, paddingTop: 40 },
+    topBar: { alignItems: "flex-end", paddingHorizontal: 20, paddingTop: 8 },
+    scroll: { padding: 24, paddingTop: 16 },
     logoWrap: { alignItems: "center", marginBottom: 32 },
     title: { fontSize: 28, fontWeight: "900", color: COLORS.text, marginBottom: 20 },
     errorText: { color: COLORS.danger, fontSize: 14, marginBottom: 12, fontWeight: "600" },
