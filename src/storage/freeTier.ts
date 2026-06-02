@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const FREE_PROJECT_LIMIT = 1;
+export const FREE_PROJECT_LIMIT = Infinity;
 export const FREE_PDF_EXPORTS = 3;
 
 const PDF_COUNT_KEY = "app:pdfExports:count";
