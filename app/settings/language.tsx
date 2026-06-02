@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -6,7 +5,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import i18n, { setAppLanguage } from "../../src/i18n/i18n";
 import { useTheme } from "../../src/theme/ThemeProvider";
-import { useIsWide } from "../../src/ui/useBreakpoint";
 
 const LANGS = [
   { code: "pt",    label: "Português" },
@@ -35,7 +33,6 @@ function normalizeLang(tag: string): LangCode {
 export default function LanguageScreen() {
   const { COLORS } = useTheme();
   const { t } = useTranslation();
-  const isWide = useIsWide();
 
   const [active, setActive] = React.useState<LangCode>(() =>
     normalizeLang(i18n.resolvedLanguage || i18n.language)
@@ -56,17 +53,13 @@ export default function LanguageScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
         <View style={[ss.header, { borderColor: COLORS.border }]}>
-          {!isWide && (
-            <Pressable onPress={() => router.back()} hitSlop={10}>
-              <Text style={[ss.backLink, { color: COLORS.text }]}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
-            </Pressable>
-          )}
-
+          <Pressable onPress={() => router.back()} hitSlop={10}>
+            <Text style={[ss.backLink, { color: COLORS.text }]}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+          </Pressable>
           <Text style={[ss.headerTitle, { color: COLORS.text }]}>
             {t("settings_section_language", { defaultValue: "Language" })}
           </Text>
-
-          {!isWide && <View style={{ width: 70 }} />}
+          <View style={{ width: 70 }} />
         </View>
 
         {LANGS.map((l) => (
@@ -80,12 +73,9 @@ export default function LanguageScreen() {
             ]}
           >
             <Text style={{ color: COLORS.text, fontSize: 16 }}>{l.label}</Text>
-
-            {active === l.code ? (
-              <Ionicons name="checkmark-circle" size={22} color={COLORS.text} />
-            ) : (
-              <Ionicons name="ellipse-outline" size={22} color={COLORS.sub} />
-            )}
+            <Text style={{ color: active === l.code ? COLORS.text : COLORS.sub, fontSize: 18, fontWeight: "900" }}>
+              {active === l.code ? "●" : "○"}
+            </Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -104,10 +94,7 @@ const ss = StyleSheet.create({
     borderBottomWidth: 1,
     marginBottom: 6,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-  },
+  headerTitle: { fontSize: 22, fontWeight: "700" },
   backLink: { fontSize: 15, fontWeight: "800", width: 70, opacity: 0.9 },
   row: {
     paddingVertical: 14,

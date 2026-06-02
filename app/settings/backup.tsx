@@ -99,13 +99,13 @@ export default function BackupScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.backLink} onPress={() => router.back()}>
-          ‹ {t("back", { defaultValue: "Voltar" })}
-        </Text>
+        <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Text style={s.backLink}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+        </Pressable>
         <Text style={s.headerTitle}>
           {t("backup_title", { defaultValue: "Backup e importação" })}
         </Text>
-        <View style={{ width: 60 }} />
+        <View style={{ width: 70 }} />
       </View>
 
       <ScrollView contentContainerStyle={s.content}>
@@ -237,10 +237,11 @@ const createStyles = (COLORS: any) =>
       borderColor: COLORS.border,
     },
     backLink: {
-      color: COLORS.accent,
-      fontWeight: "600",
-      fontSize: 16,
-      width: 80,
+      color: COLORS.text,
+      fontWeight: "800",
+      fontSize: 15,
+      width: 70,
+      opacity: 0.9,
     },
     headerTitle: {
       fontSize: 20,

@@ -4,27 +4,23 @@ import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../src/theme/ThemeProvider";
-import { useIsWide } from "../../src/ui/useBreakpoint";
 
 export default function AboutScreen() {
   const { COLORS } = useTheme();
   const { t } = useTranslation();
-  const isWide = useIsWide();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <View style={[ss.header, { borderColor: COLORS.border }]}>
-        {!isWide && (
-          <Pressable onPress={() => router.back()} hitSlop={10}>
-            <Text style={[ss.backLink, { color: COLORS.text }]}>
-              ‹ {t("back", { defaultValue: "Voltar" })}
-            </Text>
-          </Pressable>
-        )}
+        <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Text style={[ss.backLink, { color: COLORS.text }]}>
+            ‹ {t("back", { defaultValue: "Voltar" })}
+          </Text>
+        </Pressable>
         <Text style={[ss.headerTitle, { color: COLORS.text }]}>
           {t("settings_contact", { defaultValue: "Contactar" })}
         </Text>
-        {!isWide && <View style={{ width: 70 }} />}
+        <View style={{ width: 70 }} />
       </View>
 
       <View style={[ss.card, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>

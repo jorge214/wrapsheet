@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -7,12 +6,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { REGION_LIST, RegionCode } from "../../src/constants/countryPresets";
 import { getSettings, setRegion } from "../../src/storage/appSettings";
 import { useTheme } from "../../src/theme/ThemeProvider";
-import { useIsWide } from "../../src/ui/useBreakpoint";
 
 export default function RegionScreen() {
   const { COLORS } = useTheme();
   const { t } = useTranslation();
-  const isWide = useIsWide();
 
   const [active, setActive] = React.useState<RegionCode | undefined>(undefined);
 
@@ -30,15 +27,13 @@ export default function RegionScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
         <View style={[ss.header, { borderColor: COLORS.border }]}>
-          {!isWide && (
-            <Pressable onPress={() => router.back()} hitSlop={10}>
-              <Text style={[ss.backLink, { color: COLORS.text }]}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
-            </Pressable>
-          )}
+          <Pressable onPress={() => router.back()} hitSlop={10}>
+            <Text style={[ss.backLink, { color: COLORS.text }]}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+          </Pressable>
           <Text style={[ss.headerTitle, { color: COLORS.text }]}>
             {t("settings_section_region")}
           </Text>
-          {!isWide && <View style={{ width: 70 }} />}
+          <View style={{ width: 70 }} />
         </View>
 
         <Text style={[ss.hint, { color: COLORS.sub }]}>

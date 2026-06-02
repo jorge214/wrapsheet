@@ -19,7 +19,7 @@ export default function LegalScreen() {
           <Text style={s.backLink}>‹ {t("back")}</Text>
         </Pressable>
         <Text style={s.headerTitle}>{t("settings_terms_privacy")}</Text>
-        <View style={{ width: 60 }} />
+        <View style={{ width: 70 }} />
       </View>
 
       <ScrollView contentContainerStyle={s.content}>
@@ -78,7 +78,8 @@ const createStyles = (COLORS: any) =>
       color: COLORS.text,
       fontWeight: "800",
       fontSize: 15,
-      width: 60,
+      width: 70,
+      opacity: 0.9,
     },
     headerTitle: {
       fontSize: 20,

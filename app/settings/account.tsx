@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -17,13 +16,11 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../src/auth/AuthContext";
 import { supabase } from "../../src/lib/supabase";
 import { useTheme } from "../../src/theme/ThemeProvider";
-import { useIsWide } from "../../src/ui/useBreakpoint";
 
 export default function AccountScreen() {
   const { COLORS, mode } = useTheme();
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
-  const isWide = useIsWide();
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -86,13 +83,11 @@ export default function AccountScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <View style={s.header}>
-        {!isWide && (
-          <Pressable onPress={() => router.back()} hitSlop={10}>
-            <Text style={s.backLink}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
-          </Pressable>
-        )}
+        <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Text style={s.backLink}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+        </Pressable>
         <Text style={s.headerTitle}>{t("account_title")}</Text>
-        {!isWide && <View style={{ width: 70 }} />}
+        <View style={{ width: 70 }} />
       </View>
 
       <ScrollView contentContainerStyle={s.scroll}>
