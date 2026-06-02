@@ -401,6 +401,19 @@ export default function ProjectEditor() {
               </Pressable>
 
               <Pressable
+                onPress={() => {
+                  if (typeof window !== "undefined") {
+                    window.open(`/table/${id}`, "_blank");
+                  } else {
+                    router.push(`/table/${id}` as any);
+                  }
+                }}
+                style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={ss.exportBtnText}>{t("open_table", { defaultValue: "Tabela ↗" })}</Text>
+              </Pressable>
+
+              <Pressable
                 onPress={handleExportPDF}
                 style={({ pressed }) => [
                   ss.exportBtn,
