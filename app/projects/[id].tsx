@@ -24,6 +24,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engine";
 import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
+import { buildPdfHtml } from "../../src/export/buildPdfHtml";
 import { exportPDF } from "../../src/export/pdf";
 import { ProjectState } from "../../src/models/project";
 import { getSettings } from "../../src/storage/appSettings";
@@ -71,6 +72,7 @@ export default function ProjectEditor() {
 
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     getSettings().then((s) => setRegionCode(s.region ?? "pt"));
@@ -164,6 +166,24 @@ export default function ProjectEditor() {
   );
 
   const taxLabels = getPreset(regionCode).taxLabels;
+
+  const previewHtml = useMemo(() => {
+    if (!project) return "";
+    const rPreset = getPreset(regionCode);
+    return buildPdfHtml(
+      project.perfil,
+      project.projeto,
+      project.dias,
+      calculos,
+      totais,
+      project.tabela as any,
+      project.notas,
+      i18n.language,
+      regionCode,
+      rPreset.currency,
+      t("tax_disclaimer")
+    );
+  }, [project, calculos, totais, regionCode]);
 
   if (!project) {
     return (
@@ -393,6 +413,13 @@ export default function ProjectEditor() {
             </Pressable>
 
             <View style={{ flexDirection: "row", gap: 8 }}>
+              <Pressable
+                onPress={() => setShowPreview(true)}
+                style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={ss.exportBtnText}>{t("preview", { defaultValue: "Preview" })}</Text>
+              </Pressable>
+
               <Pressable
                 onPress={handleExportPDF}
                 style={({ pressed }) => [
@@ -879,6 +906,44 @@ export default function ProjectEditor() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Preview overlay */}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={showPreview}
+        onRequestClose={() => setShowPreview(false)}
+      >
+        <View style={ss.previewOverlay}>
+          <View style={ss.previewHeader}>
+            <Text style={ss.previewTitle} numberOfLines={1}>
+              {project.projeto.filme || t("unnamed_project")}
+            </Text>
+            <Pressable
+              onPress={() => setShowPreview(false)}
+              hitSlop={12}
+              style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
+            </Pressable>
+          </View>
+
+          {Platform.OS === "web" ? (
+            // @ts-ignore — iframe is web-only
+            <iframe
+              srcDoc={previewHtml}
+              style={{ flex: 1, border: "none", width: "100%", height: "100%" } as any}
+              title="PDF Preview"
+            />
+          ) : (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
+              <Text style={{ color: COLORS.sub, textAlign: "center", fontSize: 16, lineHeight: 24 }}>
+                {t("preview_web_only", { defaultValue: "O preview está disponível na versão web da aplicação." })}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1295,5 +1360,40 @@ const ss = StyleSheet.create({
     fontSize: 11,
     color: COLORS.sub,
     lineHeight: 16,
+  },
+
+  previewOverlay: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  previewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+  },
+  previewTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "900",
+    color: COLORS.text,
+    marginRight: 12,
+  },
+  previewCloseBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  previewCloseText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: COLORS.text,
   },
 });
