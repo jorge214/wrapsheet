@@ -26,6 +26,7 @@ import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml } from "../../src/export/buildPdfHtml";
 import { exportPDF } from "../../src/export/pdf";
+import { DayTableEditor } from "../../src/ui/DayTableEditor";
 import { ProjectState } from "../../src/models/project";
 import { getSettings } from "../../src/storage/appSettings";
 import { canExportPdf, incrementPdfExportCount } from "../../src/storage/freeTier";
@@ -73,6 +74,7 @@ export default function ProjectEditor() {
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [daysView, setDaysView] = useState<"form" | "table">("form");
 
   useEffect(() => {
     getSettings().then((s) => setRegionCode(s.region ?? "pt"));
@@ -765,94 +767,92 @@ export default function ProjectEditor() {
           {/* RIGHT column: days */}
           <View style={isWide ? { flex: 3 } : {}}>
 
-          <Section title={t("days")} right={<Pill label={t("add_day")} onPress={addDia} />}>
-            {project.dias.map((d, i) => {
-              const c = calculos[i];
-              return (
-                <View key={i} style={ss.dayCard}>
-                  <View style={ss.dayHeader}>
-                    <Text style={ss.dayHeaderTitle}>{t("day_n", { n: i + 1 })}</Text>
-
-                    {i > 0 ? (
-                      <Pressable
-                        onPress={() => removeDia(i)}
-                        style={({ pressed }) => [
-                          ss.pillDanger,
-                          pressed && { opacity: 0.85 },
-                        ]}
-                      >
-                        <Text style={ss.pillDangerText}>{t("remove")}</Text>
-                      </Pressable>
-                    ) : (
-                      <View />
-                    )}
-                  </View>
-
-                  <Grid2>
-                    <Input
-                      label={t("date_format")}
-                      value={d.data}
-                      onChangeText={(v) => updateDia(i, { data: v })}
-                    />
-                    <Input
-                      label={t("description")}
-                      value={d.descricao || ""}
-                      onChangeText={(v) => updateDia(i, { descricao: v })}
-                    />
-                  </Grid2>
-
-                  <Grid2>
-                    <Input
-                      label={t("start_time")}
-                      value={d.inicio}
-                      onChangeText={(v) => updateDia(i, { inicio: v })}
-                    />
-                    <Input
-                      label={t("end_time")}
-                      value={d.fim}
-                      onChangeText={(v) => updateDia(i, { fim: v })}
-                    />
-                  </Grid2>
-
-                  <Grid2>
-                    <Input
-                      label={t("meal_break")}
-                      value={d.refeicaoTrabalho}
-                      onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })}
-                    />
-                    <Input
-                      label={t("dinner_break")}
-                      value={d.jantarTrabalho}
-                      onChangeText={(v) => updateDia(i, { jantarTrabalho: v })}
-                    />
-                  </Grid2>
-
-                  <Grid4>
-                    <Num
-                      label={t("transport_time")}
-                      value={d.tempoTransporteMin ?? 0}
-                      onChange={(n) =>
-                        updateDia(i, {
-                          tempoTransporteMin: Math.max(0, Math.round(n)),
-                        })
-                      }
-                    />
-                  </Grid4>
-
-                  <View style={ss.metricsRow}>
-                    <Metric label="HT" value={minutesToHM(c?.HT_min ?? 0)} />
-                    <Metric label="HEA" value={minutesToHM(c?.HEA_min ?? 0)} />
-                    <Metric label="HEB" value={minutesToHM(c?.HEB_min ?? 0)} />
-                    <Metric label="HR" value={minutesToHM(c?.HR_min ?? 0)} />
-                    <Metric
-                      label={t("day_total")}
-                      value={`${CURRENCY} ${(c?.totalDia ?? 0).toFixed(2)}`}
-                      highlight
-                    />
-                  </View>
+          <Section
+            title={t("days")}
+            right={
+              <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+                {/* Form / Table toggle */}
+                <View style={ss.viewToggle}>
+                  <Pressable
+                    onPress={() => setDaysView("form")}
+                    style={[ss.viewToggleBtn, daysView === "form" && ss.viewToggleBtnActive]}
+                  >
+                    <Text style={[ss.viewToggleText, daysView === "form" && ss.viewToggleTextActive]}>
+                      {t("form", { defaultValue: "Form" })}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setDaysView("table")}
+                    style={[ss.viewToggleBtn, daysView === "table" && ss.viewToggleBtnActive]}
+                  >
+                    <Text style={[ss.viewToggleText, daysView === "table" && ss.viewToggleTextActive]}>
+                      {t("table", { defaultValue: "Tabela" })}
+                    </Text>
+                  </Pressable>
                 </View>
-              );
-            })}
+                {daysView === "form" && <Pill label={t("add_day")} onPress={addDia} />}
+              </View>
+            }
+          >
+            {daysView === "table" ? (
+              <DayTableEditor
+                dias={project.dias}
+                calculos={calculos}
+                onChangeDia={(i, partial) => updateDia(i, partial)}
+                onAddDia={addDia}
+                onRemoveDia={removeDia}
+                COLORS={COLORS}
+                mode={mode}
+                currency={getPreset(regionCode).currency}
+              />
+            ) : (
+              project.dias.map((d, i) => {
+                const c = calculos[i];
+                return (
+                  <View key={i} style={ss.dayCard}>
+                    <View style={ss.dayHeader}>
+                      <Text style={ss.dayHeaderTitle}>{t("day_n", { n: i + 1 })}</Text>
+                      {i > 0 ? (
+                        <Pressable
+                          onPress={() => removeDia(i)}
+                          style={({ pressed }) => [ss.pillDanger, pressed && { opacity: 0.85 }]}
+                        >
+                          <Text style={ss.pillDangerText}>{t("remove")}</Text>
+                        </Pressable>
+                      ) : (
+                        <View />
+                      )}
+                    </View>
+                    <Grid2>
+                      <Input label={t("date_format")} value={d.data} onChangeText={(v) => updateDia(i, { data: v })} />
+                      <Input label={t("description")} value={d.descricao || ""} onChangeText={(v) => updateDia(i, { descricao: v })} />
+                    </Grid2>
+                    <Grid2>
+                      <Input label={t("start_time")} value={d.inicio} onChangeText={(v) => updateDia(i, { inicio: v })} />
+                      <Input label={t("end_time")} value={d.fim} onChangeText={(v) => updateDia(i, { fim: v })} />
+                    </Grid2>
+                    <Grid2>
+                      <Input label={t("meal_break")} value={d.refeicaoTrabalho} onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })} />
+                      <Input label={t("dinner_break")} value={d.jantarTrabalho} onChangeText={(v) => updateDia(i, { jantarTrabalho: v })} />
+                    </Grid2>
+                    <Grid4>
+                      <Num
+                        label={t("transport_time")}
+                        value={d.tempoTransporteMin ?? 0}
+                        onChange={(n) => updateDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })}
+                      />
+                    </Grid4>
+                    <View style={ss.metricsRow}>
+                      <Metric label="HT" value={minutesToHM(c?.HT_min ?? 0)} />
+                      <Metric label="HEA" value={minutesToHM(c?.HEA_min ?? 0)} />
+                      <Metric label="HEB" value={minutesToHM(c?.HEB_min ?? 0)} />
+                      <Metric label="HR" value={minutesToHM(c?.HR_min ?? 0)} />
+                      <Metric label={t("day_total")} value={`${CURRENCY} ${(c?.totalDia ?? 0).toFixed(2)}`} highlight />
+                    </View>
+                  </View>
+                );
+              })
+            )}
           </Section>
 
           </View>
@@ -1299,6 +1299,30 @@ const ss = StyleSheet.create({
   },
   metricK: { color: COLORS.sub, fontSize: 11, fontWeight: "700" },
   metricV: { color: COLORS.text, fontSize: 15, fontWeight: "900", marginTop: 2 },
+
+  viewToggle: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  viewToggleBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: "transparent",
+  },
+  viewToggleBtnActive: {
+    backgroundColor: COLORS.text,
+  },
+  viewToggleText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.sub,
+  },
+  viewToggleTextActive: {
+    color: COLORS.bg,
+  },
 
   menuBackdrop: {
     flex: 1,
