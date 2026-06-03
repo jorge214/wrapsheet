@@ -73,6 +73,10 @@ export default function ProjectEditor() {
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [livePreview, setLivePreview] = useState(false);
+
+  // On desktop, two-column form only when live preview is NOT open
+  const twoColForm = isWide && !livePreview;
 
 
   useEffect(() => {
@@ -385,7 +389,8 @@ export default function ProjectEditor() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
+      <View style={livePreview ? ss.splitRow : { flex: 1 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 70 }} style={livePreview ? { flex: 6 } : undefined}>
         {/* Header */}
         <View style={{ paddingTop: paddingTop, paddingHorizontal: PAGE_X }}>
           <View style={ss.topbar}>
@@ -395,10 +400,22 @@ export default function ProjectEditor() {
 
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Pressable
-                onPress={() => setShowPreview(true)}
-                style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
+                onPress={() => {
+                  if (isWide && Platform.OS === "web") {
+                    setLivePreview((v) => !v);
+                  } else {
+                    setShowPreview(true);
+                  }
+                }}
+                style={({ pressed }) => [
+                  ss.exportBtn,
+                  livePreview && { backgroundColor: COLORS.text, borderColor: COLORS.text },
+                  pressed && { opacity: 0.85 },
+                ]}
               >
-                <Text style={ss.exportBtnText}>{t("preview", { defaultValue: "Preview" })}</Text>
+                <Text style={[ss.exportBtnText, livePreview && { color: COLORS.bg }]}>
+                  {livePreview ? t("close_preview", { defaultValue: "Fechar" }) : t("preview", { defaultValue: "Preview" })}
+                </Text>
               </Pressable>
 
               <Pressable
@@ -458,10 +475,10 @@ export default function ProjectEditor() {
 
         <View style={{ paddingHorizontal: PAGE_X }}>
           {/* ── Two-column on wide screens ─────────────────────────────── */}
-          <View style={isWide ? { flexDirection: "row", gap: 20, alignItems: "flex-start" } : {}}>
+          <View style={twoColForm ? { flexDirection: "row", gap: 20, alignItems: "flex-start" } : {}}>
 
           {/* LEFT column: settings sections */}
-          <View style={isWide ? { flex: 2 } : {}}>
+          <View style={twoColForm ? { flex: 2 } : {}}>
           <Section
             title={t("technician_profile")}
             right={<Pill label={t("apply_profile")} onPress={handleApplyActiveProfile} />}
@@ -744,7 +761,7 @@ export default function ProjectEditor() {
 
           </View>
           {/* RIGHT column: days */}
-          <View style={isWide ? { flex: 3 } : {}}>
+          <View style={twoColForm ? { flex: 3 } : {}}>
 
           <Section title={t("days")} right={<Pill label={t("add_day")} onPress={addDia} />}>
             {project.dias.map((d, i) => {
@@ -802,6 +819,19 @@ export default function ProjectEditor() {
 
         </View>
       </ScrollView>
+
+      {/* Live preview panel (desktop only) */}
+      {livePreview && Platform.OS === "web" && (
+        <View style={ss.previewPanel}>
+          {/* @ts-ignore — iframe is web-only */}
+          <iframe
+            srcDoc={previewHtml}
+            style={{ width: "100%", height: "100%", border: "none" } as any}
+            title="Live PDF Preview"
+          />
+        </View>
+      )}
+      </View>
 
       {/* Menu ⋯ */}
       <Modal
@@ -1335,6 +1365,17 @@ const ss = StyleSheet.create({
     fontSize: 11,
     color: COLORS.sub,
     lineHeight: 16,
+  },
+
+  splitRow: {
+    flex: 1,
+    flexDirection: "row",
+  },
+  previewPanel: {
+    flex: 5,
+    borderLeftWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: "#fff",
   },
 
   previewOverlay: {
