@@ -25,6 +25,7 @@ import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engin
 import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml } from "../../src/export/buildPdfHtml";
+import { buildEditableHtml, EDIT_STORAGE_PREFIX } from "../../src/export/buildEditableHtml";
 import { exportPDF } from "../../src/export/pdf";
 import { DayTableEditor } from "../../src/ui/DayTableEditor";
 import { ProjectState } from "../../src/models/project";
@@ -61,8 +62,7 @@ function parseTimeToMinutes(str: string): number | null {
 }
 
 export default function ProjectEditor() {
-  const { id, view } = useLocalSearchParams<{ id: string; view?: string }>();
-  const tableMode = view === "table";
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const isWide = useIsWide();
   const { t } = useTranslation();
@@ -75,6 +75,29 @@ export default function ProjectEditor() {
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+
+  // Listen for edits made in the standalone editable HTML tab
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    const key = EDIT_STORAGE_PREFIX + id;
+    function onStorage(e: StorageEvent) {
+      if (e.key !== key || !e.newValue) return;
+      try {
+        const { days } = JSON.parse(e.newValue);
+        if (!Array.isArray(days)) return;
+        const current = projectRef.current;
+        if (!current) return;
+        const updatedDias = current.dias.map((d, i) => {
+          const patch = days[i];
+          if (!patch) return d;
+          return { ...d, ...patch };
+        });
+        persist({ ...current, dias: updatedDias });
+      } catch {}
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [id]);
 
   useEffect(() => {
     getSettings().then((s) => setRegionCode(s.region ?? "pt"));
@@ -384,35 +407,6 @@ export default function ProjectEditor() {
     ]);
   }
 
-  // Table-only mode: opened via ?view=table in a new tab
-  if (tableMode) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
-        <View style={[ss.topbar, { paddingHorizontal: PAGE_X, paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1, borderColor: COLORS.border }]}>
-          <Pressable onPress={handleBack} hitSlop={10}>
-            <Text style={ss.backLink}>‹ {t("projects")}</Text>
-          </Pressable>
-          <Text style={{ flex: 1, textAlign: "center", fontWeight: "900", fontSize: 16, color: COLORS.text }} numberOfLines={1}>
-            {project.projeto.filme || t("unnamed_project")}
-          </Text>
-          <View style={{ width: 80 }} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <DayTableEditor
-            dias={project.dias}
-            calculos={calculos}
-            onChangeDia={(i, partial) => updateDia(i, partial)}
-            onAddDia={addDia}
-            onRemoveDia={removeDia}
-            COLORS={COLORS}
-            mode="light"
-            currency={getPreset(regionCode).currency}
-          />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
@@ -431,16 +425,29 @@ export default function ProjectEditor() {
                 <Text style={ss.exportBtnText}>{t("preview", { defaultValue: "Preview" })}</Text>
               </Pressable>
 
-              {!tableMode && (
+              {Platform.OS === "web" && (
                 <Pressable
                   onPress={() => {
-                    if (typeof window !== "undefined") {
-                      window.open(`/projects/${id}?view=table`, "_blank");
-                    }
+                    const p = projectRef.current;
+                    if (!p) return;
+                    const rPreset = getPreset(regionCode);
+                    const html = buildEditableHtml(
+                      id!,
+                      p.perfil,
+                      p.projeto,
+                      p.dias,
+                      calcAll(p.dias, p.tabela as any),
+                      calcTotals(calcAll(p.dias, p.tabela as any), p.fiscal as any),
+                      p.tabela as any,
+                      rPreset.currency
+                    );
+                    const blob = new Blob([html], { type: "text/html" });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, "_blank");
                   }}
                   style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
                 >
-                  <Text style={ss.exportBtnText}>{t("open_table", { defaultValue: "Tabela ↗" })}</Text>
+                  <Text style={ss.exportBtnText}>{t("edit_table", { defaultValue: "Editar ↗" })}</Text>
                 </Pressable>
               )}
 
