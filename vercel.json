@@ -3,6 +3,6 @@
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/projects/:id", "destination": "/projects/[id]" }
   ]
 }
