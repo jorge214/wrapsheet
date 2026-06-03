@@ -405,7 +405,7 @@ export default function ProjectEditor() {
             onAddDia={addDia}
             onRemoveDia={removeDia}
             COLORS={COLORS}
-            mode={mode}
+            mode="light"
             currency={getPreset(regionCode).currency}
           />
         </View>
