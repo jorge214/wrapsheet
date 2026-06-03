@@ -26,6 +26,7 @@ import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml } from "../../src/export/buildPdfHtml";
 import { exportPDF } from "../../src/export/pdf";
+import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
 import { getSettings } from "../../src/storage/appSettings";
 import { canExportPdf, incrementPdfExportCount } from "../../src/storage/freeTier";
@@ -73,10 +74,15 @@ export default function ProjectEditor() {
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [livePreview, setLivePreview] = useState(false);
+  const { setPreviewHtml, clearPreview } = useLivePreview();
+  const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
+  const livePreview = isWide && Platform.OS === "web" && livePreviewEnabled;
 
   // On desktop, two-column form only when live preview is NOT open
   const twoColForm = isWide && !livePreview;
+
+  // Clear preview when leaving this screen
+  useEffect(() => { return () => clearPreview(); }, []);
 
 
   useEffect(() => {
@@ -153,7 +159,7 @@ export default function ProjectEditor() {
   const taxLabels = getPreset(regionCode).taxLabels;
 
   const previewHtml = useMemo(() => {
-    if (!project) return "";
+    if (!project || !livePreview) return "";
     const rPreset = getPreset(regionCode);
     return buildPdfHtml(
       project.perfil,
@@ -168,8 +174,7 @@ export default function ProjectEditor() {
       rPreset.currency,
       t("tax_disclaimer")
     );
-    // Inject auto-scale script so the PDF fits the panel width without cropping
-    return html.replace(
+    const scaled = html.replace(
       "</body>",
       `<script>
 (function(){
@@ -182,7 +187,14 @@ export default function ProjectEditor() {
 })();
 </script></body>`
     );
-  }, [project, calculos, totais, regionCode]);
+    return scaled;
+  }, [project, calculos, totais, regionCode, livePreview]);
+
+  // Sync to context whenever previewHtml changes
+  useEffect(() => {
+    if (livePreview && previewHtml) setPreviewHtml(previewHtml);
+    else if (!livePreview) clearPreview();
+  }, [previewHtml, livePreview]);
 
   if (!project) {
     return (
@@ -403,8 +415,6 @@ export default function ProjectEditor() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <View style={livePreview ? ss.splitRow : { flex: 1 }}>
-      <View style={livePreview ? ss.formPane : { flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
         {/* Header */}
         <View style={{ paddingTop: paddingTop, paddingHorizontal: PAGE_X }}>
@@ -417,7 +427,7 @@ export default function ProjectEditor() {
               <Pressable
                 onPress={() => {
                   if (isWide && Platform.OS === "web") {
-                    setLivePreview((v) => !v);
+                    setLivePreviewEnabled((v) => !v);
                   } else {
                     setShowPreview(true);
                   }
@@ -834,20 +844,6 @@ export default function ProjectEditor() {
 
         </View>
       </ScrollView>
-      </View>{/* end formPane */}
-
-      {/* Live preview panel (desktop only) */}
-      {livePreview && Platform.OS === "web" && (
-        <View style={ss.previewPanel}>
-          {/* @ts-ignore — iframe is web-only */}
-          <iframe
-            srcDoc={previewHtml}
-            style={{ width: "100%", height: "100%", border: "none" } as any}
-            title="Live PDF Preview"
-          />
-        </View>
-      )}
-      </View>
 
       {/* Menu ⋯ */}
       <Modal

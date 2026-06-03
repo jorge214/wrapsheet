@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTranslation } from "react-i18next";
 
+import { useLivePreview } from "../contexts/LivePreviewContext";
 import { useTheme } from "../theme/ThemeProvider";
 import {
   SIDEBAR_WIDTH,
@@ -44,9 +45,10 @@ type NavItem = {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const isWide = useIsWide();
   const { height } = useWindowDimensions();
+  const { previewHtml } = useLivePreview();
+  const showPreviewPanel = isWide && Platform.OS === "web" && !!previewHtml;
 
   if (!isWide) {
-    // Phone: no sidebar, existing stack navigation unchanged
     return <>{children}</>;
   }
 
@@ -54,8 +56,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <View style={[styles.root, { height }]}>
       <Sidebar />
       <View style={styles.content}>
-        <View style={styles.contentInner}>{children}</View>
+        <View style={showPreviewPanel ? styles.contentInnerNarrow : styles.contentInner}>
+          {children}
+        </View>
       </View>
+      {showPreviewPanel && (
+        <View style={styles.previewPane}>
+          {/* @ts-ignore — iframe is web-only */}
+          <iframe
+            srcDoc={previewHtml}
+            style={{ width: "100%", height: "100%", border: "none" } as any}
+            title="Live PDF Preview"
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -221,10 +235,21 @@ const styles = StyleSheet.create({
   },
   contentInner: {
     flex: 1,
-    // Cap content width so it doesn't stretch to 1500px on wide monitors
     maxWidth: 960,
     width: "100%",
     alignSelf: "center",
+  },
+  contentInnerNarrow: {
+    flex: 1,
+    maxWidth: 600,
+    width: "100%",
+    alignSelf: "flex-start",
+  },
+  previewPane: {
+    flex: 1,
+    borderLeftWidth: 1,
+    borderColor: "#E5E6EA",
+    backgroundColor: "#fff",
   },
   brand: {
     paddingHorizontal: 4,

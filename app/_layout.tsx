@@ -5,6 +5,7 @@ import React from "react";
 
 import "../src/i18n/i18n";
 import { AuthProvider } from "../src/auth/AuthContext";
+import { LivePreviewProvider } from "../src/contexts/LivePreviewContext";
 import { SyncProvider } from "../src/sync/SyncProvider";
 import { ThemeProvider } from "../src/theme/ThemeProvider";
 import { AppShell } from "../src/ui/AppShell";
@@ -20,10 +21,12 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <SyncProvider>
-          <AppShell>
-            <WebHead />
-            <Stack screenOptions={{ headerShown: false }} />
-          </AppShell>
+          <LivePreviewProvider>
+            <AppShell>
+              <WebHead />
+              <Stack screenOptions={{ headerShown: false }} />
+            </AppShell>
+          </LivePreviewProvider>
         </SyncProvider>
       </AuthProvider>
     </ThemeProvider>
