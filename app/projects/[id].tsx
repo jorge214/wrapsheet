@@ -26,6 +26,7 @@ import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml } from "../../src/export/buildPdfHtml";
 import { exportPDF } from "../../src/export/pdf";
+import { DayTableEditor } from "../../src/ui/DayTableEditor";
 import { ProjectState } from "../../src/models/project";
 import { getSettings } from "../../src/storage/appSettings";
 import { canExportPdf, incrementPdfExportCount } from "../../src/storage/freeTier";
@@ -60,7 +61,8 @@ function parseTimeToMinutes(str: string): number | null {
 }
 
 export default function ProjectEditor() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, view } = useLocalSearchParams<{ id: string; view?: string }>();
+  const tableMode = view === "table";
   const router = useRouter();
   const isWide = useIsWide();
   const { t } = useTranslation();
@@ -382,6 +384,35 @@ export default function ProjectEditor() {
     ]);
   }
 
+  // Table-only mode: opened via ?view=table in a new tab
+  if (tableMode) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        <View style={[ss.topbar, { paddingHorizontal: PAGE_X, paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1, borderColor: COLORS.border }]}>
+          <Pressable onPress={handleBack} hitSlop={10}>
+            <Text style={ss.backLink}>‹ {t("projects")}</Text>
+          </Pressable>
+          <Text style={{ flex: 1, textAlign: "center", fontWeight: "900", fontSize: 16, color: COLORS.text }} numberOfLines={1}>
+            {project.projeto.filme || t("unnamed_project")}
+          </Text>
+          <View style={{ width: 80 }} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <DayTableEditor
+            dias={project.dias}
+            calculos={calculos}
+            onChangeDia={(i, partial) => updateDia(i, partial)}
+            onAddDia={addDia}
+            onRemoveDia={removeDia}
+            COLORS={COLORS}
+            mode={mode}
+            currency={getPreset(regionCode).currency}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
@@ -400,18 +431,18 @@ export default function ProjectEditor() {
                 <Text style={ss.exportBtnText}>{t("preview", { defaultValue: "Preview" })}</Text>
               </Pressable>
 
-              <Pressable
-                onPress={() => {
-                  if (typeof window !== "undefined") {
-                    window.open(`/table/${id}`, "_blank");
-                  } else {
-                    router.push(`/table/${id}` as any);
-                  }
-                }}
-                style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
-              >
-                <Text style={ss.exportBtnText}>{t("open_table", { defaultValue: "Tabela ↗" })}</Text>
-              </Pressable>
+              {!tableMode && (
+                <Pressable
+                  onPress={() => {
+                    if (typeof window !== "undefined") {
+                      window.open(`/projects/${id}?view=table`, "_blank");
+                    }
+                  }}
+                  style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
+                >
+                  <Text style={ss.exportBtnText}>{t("open_table", { defaultValue: "Tabela ↗" })}</Text>
+                </Pressable>
+              )}
 
               <Pressable
                 onPress={handleExportPDF}

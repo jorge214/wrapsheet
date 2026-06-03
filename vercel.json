@@ -1,8 +1,5 @@
 {
   "buildCommand": "npx expo export -p web",
   "outputDirectory": "dist",
-  "framework": null,
-  "rewrites": [
-    { "source": "/table/:id", "destination": "/table/[id]" }
-  ]
+  "framework": null
 }
