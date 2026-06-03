@@ -163,6 +163,10 @@ export function buildEditableHtml(
     function save() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ days: days, ts: Date.now() }));
+        // Notify parent app (when shown inside an iframe)
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'wrapsheet:edit', days: days }, '*');
+        }
         setStatus('Guardado ✓', 'saved');
       } catch(e) {
         setStatus('Erro ao guardar', 'unsaved');

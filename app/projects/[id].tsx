@@ -25,9 +25,8 @@ import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engin
 import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml } from "../../src/export/buildPdfHtml";
-import { buildEditableHtml, EDIT_STORAGE_PREFIX } from "../../src/export/buildEditableHtml";
+import { buildEditableHtml } from "../../src/export/buildEditableHtml";
 import { exportPDF } from "../../src/export/pdf";
-import { DayTableEditor } from "../../src/ui/DayTableEditor";
 import { ProjectState } from "../../src/models/project";
 import { getSettings } from "../../src/storage/appSettings";
 import { canExportPdf, incrementPdfExportCount } from "../../src/storage/freeTier";
@@ -75,29 +74,27 @@ export default function ProjectEditor() {
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [frozenPreviewHtml, setFrozenPreviewHtml] = useState("");
 
-  // Listen for edits made in the standalone editable HTML tab
+  // Receive edits from the editable preview iframe via postMessage
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") return;
-    const key = EDIT_STORAGE_PREFIX + id;
-    function onStorage(e: StorageEvent) {
-      if (e.key !== key || !e.newValue) return;
-      try {
-        const { days } = JSON.parse(e.newValue);
-        if (!Array.isArray(days)) return;
-        const current = projectRef.current;
-        if (!current) return;
-        const updatedDias = current.dias.map((d, i) => {
-          const patch = days[i];
-          if (!patch) return d;
-          return { ...d, ...patch };
-        });
-        persist({ ...current, dias: updatedDias });
-      } catch {}
+    function onMessage(e: MessageEvent) {
+      if (e.data?.type !== "wrapsheet:edit") return;
+      const { days } = e.data;
+      if (!Array.isArray(days)) return;
+      const current = projectRef.current;
+      if (!current) return;
+      const updatedDias = current.dias.map((d, i) => {
+        const patch = days[i];
+        if (!patch) return d;
+        return { ...d, ...patch };
+      });
+      persist({ ...current, dias: updatedDias });
     }
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [id]);
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   useEffect(() => {
     getSettings().then((s) => setRegionCode(s.region ?? "pt"));
@@ -172,23 +169,6 @@ export default function ProjectEditor() {
 
   const taxLabels = getPreset(regionCode).taxLabels;
 
-  const previewHtml = useMemo(() => {
-    if (!project) return "";
-    const rPreset = getPreset(regionCode);
-    return buildPdfHtml(
-      project.perfil,
-      project.projeto,
-      project.dias,
-      calculos,
-      totais,
-      project.tabela as any,
-      project.notas,
-      i18n.language,
-      regionCode,
-      rPreset.currency,
-      t("tax_disclaimer")
-    );
-  }, [project, calculos, totais, regionCode]);
 
   if (!project) {
     return (
@@ -419,37 +399,29 @@ export default function ProjectEditor() {
 
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Pressable
-                onPress={() => setShowPreview(true)}
+                onPress={() => {
+                  const p = projectRef.current;
+                  if (!p) return;
+                  const rPreset = getPreset(regionCode);
+                  const calcs = calcAll(p.dias, p.tabela as any);
+                  const tots = calcTotals(calcs, p.fiscal as any);
+                  const html = buildEditableHtml(
+                    id!,
+                    p.perfil,
+                    p.projeto,
+                    p.dias,
+                    calcs,
+                    tots,
+                    p.tabela as any,
+                    rPreset.currency
+                  );
+                  setFrozenPreviewHtml(html);
+                  setShowPreview(true);
+                }}
                 style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
               >
                 <Text style={ss.exportBtnText}>{t("preview", { defaultValue: "Preview" })}</Text>
               </Pressable>
-
-              {Platform.OS === "web" && (
-                <Pressable
-                  onPress={() => {
-                    const p = projectRef.current;
-                    if (!p) return;
-                    const rPreset = getPreset(regionCode);
-                    const html = buildEditableHtml(
-                      id!,
-                      p.perfil,
-                      p.projeto,
-                      p.dias,
-                      calcAll(p.dias, p.tabela as any),
-                      calcTotals(calcAll(p.dias, p.tabela as any), p.fiscal as any),
-                      p.tabela as any,
-                      rPreset.currency
-                    );
-                    const blob = new Blob([html], { type: "text/html" });
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, "_blank");
-                  }}
-                  style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
-                >
-                  <Text style={ss.exportBtnText}>{t("edit_table", { defaultValue: "Editar ↗" })}</Text>
-                </Pressable>
-              )}
 
               <Pressable
                 onPress={handleExportPDF}
@@ -921,7 +893,7 @@ export default function ProjectEditor() {
           {Platform.OS === "web" ? (
             // @ts-ignore — iframe is web-only
             <iframe
-              srcDoc={previewHtml}
+              srcDoc={frozenPreviewHtml}
               style={{ flex: 1, border: "none", width: "100%", height: "100%" } as any}
               title="PDF Preview"
             />
