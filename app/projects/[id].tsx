@@ -390,7 +390,8 @@ export default function ProjectEditor() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <View style={livePreview ? ss.splitRow : { flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 70 }} style={livePreview ? { flex: 6 } : undefined}>
+      <View style={livePreview ? ss.formPane : { flex: 1 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
         {/* Header */}
         <View style={{ paddingTop: paddingTop, paddingHorizontal: PAGE_X }}>
           <View style={ss.topbar}>
@@ -819,6 +820,7 @@ export default function ProjectEditor() {
 
         </View>
       </ScrollView>
+      </View>{/* end formPane */}
 
       {/* Live preview panel (desktop only) */}
       {livePreview && Platform.OS === "web" && (
@@ -1370,6 +1372,11 @@ const ss = StyleSheet.create({
   splitRow: {
     flex: 1,
     flexDirection: "row",
+  },
+  formPane: {
+    flex: 6,
+    minWidth: 0,
+    overflow: "hidden" as const,
   },
   previewPanel: {
     flex: 5,
