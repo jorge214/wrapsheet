@@ -168,6 +168,20 @@ export default function ProjectEditor() {
       rPreset.currency,
       t("tax_disclaimer")
     );
+    // Inject auto-scale script so the PDF fits the panel width without cropping
+    return html.replace(
+      "</body>",
+      `<script>
+(function(){
+  function fit(){
+    var w = document.documentElement.scrollWidth;
+    if(w > 0) document.documentElement.style.zoom = Math.min(1, window.innerWidth / w);
+  }
+  window.addEventListener('DOMContentLoaded', function(){ fit(); window.addEventListener('resize', fit); });
+  fit();
+})();
+</script></body>`
+    );
   }, [project, calculos, totais, regionCode]);
 
   if (!project) {
