@@ -2,6 +2,7 @@
 import dayjs from "dayjs";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useIsWide } from "../../src/ui/useBreakpoint";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
 import { syncProjectToCloud } from "../../src/sync/syncService";
@@ -74,7 +75,9 @@ export default function ProjectEditor() {
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const { setPreviewHtml, clearPreview } = useLivePreview();
+  const [fsPreview, setFsPreview] = useState(false);
+  const fsIframeRef = useRef<any>(null);
+  const { setPreviewHtml, clearPreview, zoom, setZoom } = useLivePreview();
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
   const livePreview = isWide && Platform.OS === "web" && livePreviewEnabled;
 
@@ -158,10 +161,12 @@ export default function ProjectEditor() {
 
   const taxLabels = getPreset(regionCode).taxLabels;
 
+  const anyPreview = livePreview || showPreview || fsPreview;
+
   const previewHtml = useMemo(() => {
-    if (!project || !livePreview) return "";
+    if (!project || !anyPreview) return "";
     const rPreset = getPreset(regionCode);
-    return buildPdfHtml(
+    const html = buildPdfHtml(
       project.perfil,
       project.projeto,
       project.dias,
@@ -174,27 +179,46 @@ export default function ProjectEditor() {
       rPreset.currency,
       t("tax_disclaimer")
     );
-    const scaled = html.replace(
+    return html.replace(
       "</body>",
       `<script>
 (function(){
   function fit(){
     var w = document.documentElement.scrollWidth;
-    if(w > 0) document.documentElement.style.zoom = Math.min(1, window.innerWidth / w);
+    var z = w > 0 ? Math.min(1, window.innerWidth / w) : 1;
+    document.documentElement.style.zoom = String(z);
+    try { window.parent.postMessage({ type: 'wrapsheet:zoom-actual', zoom: z }, '*'); } catch(e){}
   }
-  window.addEventListener('DOMContentLoaded', function(){ fit(); window.addEventListener('resize', fit); });
+  window.addEventListener('message', function(e){
+    if(e.data && e.data.type === 'wrapsheet:zoom'){
+      if(e.data.zoom === 'auto'){ fit(); }
+      else { document.documentElement.style.zoom = String(e.data.zoom); }
+    }
+  });
+  document.addEventListener('DOMContentLoaded', function(){ fit(); window.addEventListener('resize', fit); });
   fit();
 })();
 </script></body>`
     );
-    return scaled;
-  }, [project, calculos, totais, regionCode, livePreview]);
+  }, [project, calculos, totais, regionCode, anyPreview]);
 
   // Sync to context whenever previewHtml changes
   useEffect(() => {
     if (livePreview && previewHtml) setPreviewHtml(previewHtml);
     else if (!livePreview) clearPreview();
   }, [previewHtml, livePreview]);
+
+  // Send zoom to fullscreen iframe when zoom changes
+  useEffect(() => {
+    if (!fsPreview) return;
+    const win = fsIframeRef.current?.contentWindow;
+    if (!win) return;
+    if (zoom === null) {
+      win.postMessage({ type: "wrapsheet:zoom", zoom: "auto" }, "*");
+    } else {
+      win.postMessage({ type: "wrapsheet:zoom", zoom }, "*");
+    }
+  }, [zoom, fsPreview]);
 
   if (!project) {
     return (
@@ -442,6 +466,19 @@ export default function ProjectEditor() {
                   {livePreview ? t("close_preview", { defaultValue: "Fechar" }) : t("preview", { defaultValue: "Preview" })}
                 </Text>
               </Pressable>
+
+              {isWide && Platform.OS === "web" && (
+                <Pressable
+                  onPress={() => setFsPreview(true)}
+                  hitSlop={10}
+                  style={({ pressed }) => [
+                    ss.iconBtn,
+                    pressed && { opacity: 0.85 },
+                  ]}
+                >
+                  <Ionicons name="expand-outline" size={18} color={COLORS.text} />
+                </Pressable>
+              )}
 
               <Pressable
                 onPress={handleExportPDF}
@@ -889,6 +926,63 @@ export default function ProjectEditor() {
         </Pressable>
       </Modal>
 
+      {/* Fullscreen preview (desktop) */}
+      <Modal
+        animationType="fade"
+        visible={fsPreview}
+        onRequestClose={() => setFsPreview(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+          <View style={ss.previewHeader}>
+            <Text style={ss.previewTitle} numberOfLines={1}>
+              {project.projeto.filme || t("unnamed_project")}
+            </Text>
+            <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+              <Pressable
+                onPress={() => setZoom(zoom === null ? 0.75 : Math.max(0.25, zoom - 0.25))}
+                style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={ss.zoomBtnText}>−</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setZoom(null)}
+                style={({ pressed }) => [ss.zoomBtnMid, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={ss.zoomBtnText}>{zoom === null ? "auto" : `${Math.round(zoom * 100)}%`}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setZoom(zoom === null ? 1.25 : Math.min(3, zoom + 0.25))}
+                style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={ss.zoomBtnText}>+</Text>
+              </Pressable>
+            </View>
+            <Pressable
+              onPress={() => setFsPreview(false)}
+              hitSlop={12}
+              style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
+            </Pressable>
+          </View>
+          {Platform.OS === "web" ? (
+            // @ts-ignore — iframe is web-only
+            <iframe
+              ref={fsIframeRef}
+              srcDoc={previewHtml}
+              onLoad={() => {
+                const win = fsIframeRef.current?.contentWindow;
+                if (win && zoom !== null) {
+                  win.postMessage({ type: "wrapsheet:zoom", zoom }, "*");
+                }
+              }}
+              style={{ flex: 1, border: "none", width: "100%", height: "100%" } as any}
+              title="PDF Preview Fullscreen"
+            />
+          ) : null}
+        </View>
+      </Modal>
+
       {/* Preview overlay */}
       <Modal
         transparent
@@ -1126,6 +1220,16 @@ const ss = StyleSheet.create({
     fontSize: 13,
   },
 
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.card,
+  },
   moreBtn: {
     width: 36,
     height: 36,
@@ -1427,6 +1531,33 @@ const ss = StyleSheet.create({
   previewCloseText: {
     fontSize: 13,
     fontWeight: "800",
+    color: COLORS.text,
+  },
+
+  zoomBtn: {
+    width: 30,
+    height: 28,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  zoomBtnMid: {
+    height: 28,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 52,
+  },
+  zoomBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
     color: COLORS.text,
   },
 });

@@ -8,7 +8,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { usePathname } from "expo-router";
 import { router } from "expo-router";
-import React from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import {
   Platform,
   Pressable,
@@ -45,8 +45,50 @@ type NavItem = {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const isWide = useIsWide();
   const { height } = useWindowDimensions();
-  const { previewHtml } = useLivePreview();
+  const { previewHtml, zoom, setZoom } = useLivePreview();
   const showPreviewPanel = isWide && Platform.OS === "web" && !!previewHtml;
+  const iframeRef = useRef<any>(null);
+  // Tracks the zoom actually rendered in the iframe (updated via postMessage from iframe)
+  const actualZoomRef = useRef<number>(1);
+
+  // Listen for the iframe reporting its actual rendered zoom (e.g. after auto-fit)
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const handler = (e: any) => {
+      if (e.data?.type === "wrapsheet:zoom-actual") {
+        actualZoomRef.current = e.data.zoom;
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
+  // Send zoom via postMessage whenever it changes
+  useEffect(() => {
+    if (!iframeRef.current?.contentWindow) return;
+    if (zoom === null) {
+      iframeRef.current.contentWindow.postMessage({ type: "wrapsheet:zoom", zoom: "auto" }, "*");
+    } else {
+      iframeRef.current.contentWindow.postMessage({ type: "wrapsheet:zoom", zoom }, "*");
+    }
+  }, [zoom]);
+
+  const handleZoomOut = useCallback(() => {
+    const base = zoom === null ? actualZoomRef.current : zoom;
+    setZoom(Math.max(0.25, Math.round((base - 0.25) * 100) / 100));
+  }, [zoom, setZoom]);
+
+  const handleZoomIn = useCallback(() => {
+    const base = zoom === null ? actualZoomRef.current : zoom;
+    setZoom(Math.min(3, Math.round((base + 0.25) * 100) / 100));
+  }, [zoom, setZoom]);
+
+  const handleZoomReset = useCallback(() => {
+    setZoom(null);
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({ type: "wrapsheet:zoom", zoom: "auto" }, "*");
+    }
+  }, [setZoom]);
 
   if (!isWide) {
     return <>{children}</>;
@@ -62,12 +104,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </View>
       {showPreviewPanel && (
         <View style={styles.previewPane}>
-          {/* @ts-ignore — iframe is web-only */}
-          <iframe
-            srcDoc={previewHtml}
-            style={{ width: "100%", height: "100%", border: "none" } as any}
-            title="Live PDF Preview"
-          />
+          {/* Zoom toolbar */}
+          <View style={styles.previewToolbar}>
+            <Pressable
+              onPress={handleZoomOut}
+              style={({ pressed }: any) => [styles.zoomBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.zoomBtnText}>−</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleZoomReset}
+              style={({ pressed }: any) => [styles.zoomBtnMid, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.zoomBtnText}>{zoom === null ? "auto" : `${Math.round(zoom * 100)}%`}</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleZoomIn}
+              style={({ pressed }: any) => [styles.zoomBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.zoomBtnText}>+</Text>
+            </Pressable>
+          </View>
+          {/* Preview iframe */}
+          <View style={{ flex: 1 }}>
+            {/* @ts-ignore — iframe is web-only */}
+            <iframe
+              ref={iframeRef}
+              srcDoc={previewHtml}
+              onLoad={() => {
+                if (iframeRef.current?.contentWindow && zoom !== null) {
+                  iframeRef.current.contentWindow.postMessage({ type: "wrapsheet:zoom", zoom }, "*");
+                }
+              }}
+              style={{ width: "100%", height: "100%", border: "none" } as any}
+              title="Live PDF Preview"
+            />
+          </View>
         </View>
       )}
     </View>
@@ -250,6 +322,43 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderColor: "#E5E6EA",
     backgroundColor: "#fff",
+  },
+  previewToolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderColor: "#E5E6EA",
+    backgroundColor: "#F6F7F9",
+  },
+  zoomBtn: {
+    width: 30,
+    height: 28,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#E5E6EA",
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  zoomBtnMid: {
+    height: 28,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#E5E6EA",
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 52,
+  },
+  zoomBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1C1C1E",
   },
   brand: {
     paddingHorizontal: 4,
