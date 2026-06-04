@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ProjectListItem as Project } from "../../src/storage/projects";
 import {
+  archiveProject,
   createProject,
   deleteProject,
   duplicateProjectToMonth,
@@ -109,22 +110,9 @@ export default function ProjectsScreen() {
     router.push(`/projects/${id}`);
   }
 
-  function confirmArchive(_id: string) {
-    if (Platform.OS === "web") {
-      const ok = (window as any).confirm(
-        `${t("pro_gate_title")}\n${t("pro_gate_archive_body")}\n\n${t("pro_gate_see_plans")}?`
-      );
-      if (ok) router.push("/settings/plan");
-      return;
-    }
-    Alert.alert(
-      t("pro_gate_title"),
-      t("pro_gate_archive_body"),
-      [
-        { text: t("cancel"), style: "cancel" },
-        { text: t("pro_gate_see_plans"), onPress: () => router.push("/settings/plan") },
-      ]
-    );
+  async function confirmArchive(id: string) {
+    await archiveProject(id);
+    await loadProjects();
   }
 
   async function confirmDelete(id: string) {

@@ -18,6 +18,5 @@ export async function incrementPdfExportCount(): Promise<void> {
 }
 
 export async function canExportPdf(): Promise<boolean> {
-  const count = await getPdfExportCount();
-  return count < FREE_PDF_EXPORTS;
+  return true;
 }
