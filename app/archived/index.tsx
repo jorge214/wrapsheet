@@ -53,6 +53,7 @@ export default function ArchivedScreen() {
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [showAll, setShowAll] = useState<boolean>(false);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [webMenuProject, setWebMenuProject] = useState<ProjectListItem | null>(null);
 
   async function loadArchived() {
     const list = await listArchivedProjects();
@@ -143,8 +144,7 @@ export default function ArchivedScreen() {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          title:
-            p.nome || t("unnamed_project", { defaultValue: "Projeto sem nome" }),
+          title: p.nome || t("unnamed_project", { defaultValue: "Projeto sem nome" }),
           options: [optOpen, optDelete, optCancel],
           cancelButtonIndex: 2,
           destructiveButtonIndex: 1,
@@ -157,16 +157,17 @@ export default function ArchivedScreen() {
       return;
     }
 
+    if (Platform.OS === "web") {
+      setWebMenuProject(p);
+      return;
+    }
+
     Alert.alert(
       t("options", { defaultValue: "Opções" }),
       p.nome || t("unnamed_project", { defaultValue: "Projeto sem nome" }),
       [
         { text: optOpen, onPress: () => handleOpen(p.id) },
-        {
-          text: optDelete,
-          style: "destructive",
-          onPress: () => handleDelete(p.id),
-        },
+        { text: optDelete, style: "destructive", onPress: () => handleDelete(p.id) },
         { text: optCancel, style: "cancel" },
       ]
     );
@@ -386,6 +387,41 @@ export default function ArchivedScreen() {
           </View>
         </View>
       </Modal>
+      {/* Web options menu */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={!!webMenuProject}
+        onRequestClose={() => setWebMenuProject(null)}
+      >
+        <Pressable style={s.menuBackdrop} onPress={() => setWebMenuProject(null)}>
+          <Pressable style={s.menuCard} onPress={() => {}}>
+            <Text style={s.menuTitle} numberOfLines={1}>
+              {webMenuProject?.nome || t("unnamed_project", { defaultValue: "Projeto sem nome" })}
+            </Text>
+            <Pressable
+              style={({ pressed }) => [s.menuItem, pressed && { opacity: 0.8 }]}
+              onPress={() => { handleOpen(webMenuProject!.id); setWebMenuProject(null); }}
+            >
+              <Text style={s.menuItemText}>{t("open", { defaultValue: "Abrir" })}</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [s.menuItem, pressed && { opacity: 0.8 }]}
+              onPress={() => { handleDelete(webMenuProject!.id); setWebMenuProject(null); }}
+            >
+              <Text style={[s.menuItemText, { color: COLORS.danger ?? "#FF3B30" }]}>
+                {t("delete", { defaultValue: "Apagar" })}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [s.menuClose, pressed && { opacity: 0.8 }]}
+              onPress={() => setWebMenuProject(null)}
+            >
+              <Text style={s.menuCloseText}>{t("cancel", { defaultValue: "Cancelar" })}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -559,5 +595,56 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       color: COLORS.text,
       fontWeight: "900",
       fontSize: 13,
+    },
+
+    menuBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.35)",
+      justifyContent: "flex-end",
+      padding: 14,
+    },
+    menuCard: {
+      backgroundColor: COLORS.card,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      borderRadius: 16,
+      padding: 12,
+    },
+    menuTitle: {
+      color: COLORS.text,
+      fontWeight: "900",
+      fontSize: 14,
+      textAlign: "center",
+      marginBottom: 8,
+    },
+    menuItem: {
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      marginBottom: 8,
+      backgroundColor: "transparent",
+    },
+    menuItemText: {
+      color: COLORS.text,
+      fontWeight: "900",
+      fontSize: 14,
+      textAlign: "center",
+    },
+    menuClose: {
+      marginTop: 4,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      backgroundColor: COLORS.bg,
+    },
+    menuCloseText: {
+      color: COLORS.text,
+      fontWeight: "900",
+      fontSize: 14,
+      textAlign: "center",
     },
   });

@@ -462,7 +462,7 @@ export default function ProjectEditor() {
                 ]}
               >
                 <Text style={[ss.exportBtnText, livePreview && { color: COLORS.bg }]}>
-                  {livePreview ? t("close_preview", { defaultValue: "Fechar" }) : t("preview", { defaultValue: "Preview" })}
+                  {livePreview ? t("close") : t("preview", { defaultValue: "Preview" })}
                 </Text>
               </Pressable>
 

@@ -64,7 +64,7 @@ export default function ProfilesListScreen() {
   async function handleNew() {
     const p = await createProfile();
     await setActiveProfileId(p.id);
-    router.push(`/profiles/${p.id}`);
+    router.push(`/profiles/${p.id}?edit=1`);
   }
 
   async function handleDelete(id: string) {

@@ -15,7 +15,7 @@ async function uploadProjects(userId: string): Promise<void> {
     updated_at: p.updatedAt || new Date().toISOString(),
   }));
 
-  const { error } = await supabase.from("projects").upsert(rows, { onConflict: "id" });
+  const { error } = await supabase.from("projects").upsert(rows, {});
   if (error) console.error("[sync] uploadProjects:", error.message);
 }
 
@@ -30,7 +30,7 @@ async function uploadProfiles(userId: string): Promise<void> {
     updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase.from("profiles").upsert(rows, { onConflict: "id" });
+  const { error } = await supabase.from("profiles").upsert(rows, {});
   if (error) console.error("[sync] uploadProfiles:", error.message);
 }
 
@@ -77,7 +77,7 @@ async function downloadProfiles(userId: string): Promise<void> {
 export async function syncProjectToCloud(userId: string, project: ProjectState): Promise<void> {
   const { error } = await supabase.from("projects").upsert(
     { id: project.id, user_id: userId, data: project, updated_at: project.updatedAt },
-    { onConflict: "id" }
+    {}
   );
   if (error) console.error("[sync] syncProjectToCloud:", error.message);
 }
@@ -85,7 +85,7 @@ export async function syncProjectToCloud(userId: string, project: ProjectState):
 export async function syncProfileToCloud(userId: string, profile: Profile): Promise<void> {
   const { error } = await supabase.from("profiles").upsert(
     { id: profile.id, user_id: userId, data: profile, updated_at: new Date().toISOString() },
-    { onConflict: "id" }
+    {}
   );
   if (error) console.error("[sync] syncProfileToCloud:", error.message);
 }

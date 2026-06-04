@@ -67,7 +67,7 @@ function ProfileField({
 }
 
 export default function ProfileEditScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const { t } = useTranslation();
   const { COLORS, mode } = useTheme();
   const { user } = useAuth();
@@ -75,7 +75,7 @@ export default function ProfileEditScreen() {
 
   const [p, setP] = useState<Profile | null>(null);
   const [original, setOriginal] = useState<Profile | null>(null);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(edit === "1");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -99,8 +99,27 @@ export default function ProfileEditScreen() {
   }
 
   function handleCancel() {
-    setP(original);
-    setEditing(false);
+    const isDirty = JSON.stringify(p) !== JSON.stringify(original);
+    if (!isDirty) {
+      setP(original);
+      setEditing(false);
+      return;
+    }
+    if (Platform.OS === "web") {
+      const ok = (window as any).confirm(
+        t("discard_changes_confirm", { defaultValue: "Descartar alterações? As tuas alterações não serão guardadas." })
+      );
+      if (ok) { setP(original); setEditing(false); }
+    } else {
+      Alert.alert(
+        t("discard_changes", { defaultValue: "Descartar alterações?" }),
+        t("discard_changes_confirm", { defaultValue: "As tuas alterações não serão guardadas." }),
+        [
+          { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
+          { text: t("discard", { defaultValue: "Descartar" }), style: "destructive", onPress: () => { setP(original); setEditing(false); } },
+        ]
+      );
+    }
   }
 
   async function handleSave() {
