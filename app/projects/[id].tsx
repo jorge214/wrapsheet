@@ -2,7 +2,6 @@
 import dayjs from "dayjs";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useIsWide } from "../../src/ui/useBreakpoint";
-import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
 import { syncProjectToCloud } from "../../src/sync/syncService";
@@ -77,7 +76,7 @@ export default function ProjectEditor() {
   const [showPreview, setShowPreview] = useState(false);
   const [fsPreview, setFsPreview] = useState(false);
   const fsIframeRef = useRef<any>(null);
-  const { setPreviewHtml, clearPreview, zoom, setZoom } = useLivePreview();
+  const { setPreviewHtml, clearPreview, zoom, setZoom, actualZoom } = useLivePreview();
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
   const livePreview = isWide && Platform.OS === "web" && livePreviewEnabled;
 
@@ -470,14 +469,39 @@ export default function ProjectEditor() {
               {isWide && Platform.OS === "web" && (
                 <Pressable
                   onPress={() => setFsPreview(true)}
-                  hitSlop={10}
-                  style={({ pressed }) => [
-                    ss.iconBtn,
-                    pressed && { opacity: 0.85 },
-                  ]}
+                  style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
                 >
-                  <Ionicons name="expand-outline" size={18} color={COLORS.text} />
+                  <Text style={ss.exportBtnText}>⛶</Text>
                 </Pressable>
+              )}
+
+              {livePreview && (
+                <View style={ss.zoomRow}>
+                  <Pressable
+                    onPress={() => {
+                      const base = zoom === null ? actualZoom : zoom;
+                      setZoom(Math.max(0.25, Math.round((base - 0.25) * 100) / 100));
+                    }}
+                    style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
+                  >
+                    <Text style={ss.zoomBtnText}>−</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setZoom(null)}
+                    style={({ pressed }) => [ss.zoomBtnMid, pressed && { opacity: 0.7 }]}
+                  >
+                    <Text style={ss.zoomBtnText}>{zoom === null ? "auto" : `${Math.round(zoom * 100)}%`}</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      const base = zoom === null ? actualZoom : zoom;
+                      setZoom(Math.min(3, Math.round((base + 0.25) * 100) / 100));
+                    }}
+                    style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
+                  >
+                    <Text style={ss.zoomBtnText}>+</Text>
+                  </Pressable>
+                </View>
               )}
 
               <Pressable
@@ -1534,26 +1558,31 @@ const ss = StyleSheet.create({
     color: COLORS.text,
   },
 
-  zoomBtn: {
-    width: 30,
-    height: 28,
-    borderRadius: 6,
+  zoomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
     borderWidth: 1,
     borderColor: COLORS.border,
+    borderRadius: 999,
+    overflow: "hidden",
     backgroundColor: COLORS.card,
+  },
+  zoomBtn: {
+    width: 30,
+    height: 34,
     alignItems: "center",
     justifyContent: "center",
   },
   zoomBtnMid: {
-    height: 28,
+    height: 34,
     paddingHorizontal: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.card,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 52,
+    minWidth: 48,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: COLORS.border,
   },
   zoomBtnText: {
     fontSize: 13,

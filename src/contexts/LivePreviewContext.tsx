@@ -6,6 +6,8 @@ interface LivePreviewContextType {
   clearPreview: () => void;
   zoom: number | null;
   setZoom: (z: number | null) => void;
+  actualZoom: number;
+  setActualZoom: (z: number) => void;
 }
 
 const LivePreviewContext = createContext<LivePreviewContextType>({
@@ -14,18 +16,23 @@ const LivePreviewContext = createContext<LivePreviewContextType>({
   clearPreview: () => {},
   zoom: null,
   setZoom: () => {},
+  actualZoom: 1,
+  setActualZoom: () => {},
 });
 
 export function LivePreviewProvider({ children }: { children: React.ReactNode }) {
   const [previewHtml, setPreviewHtml] = useState("");
   const [zoom, setZoom] = useState<number | null>(null);
+  const [actualZoom, setActualZoom] = useState(1);
   return (
     <LivePreviewContext.Provider value={{
       previewHtml,
       setPreviewHtml,
-      clearPreview: () => { setPreviewHtml(""); setZoom(null); },
+      clearPreview: () => { setPreviewHtml(""); setZoom(null); setActualZoom(1); },
       zoom,
       setZoom,
+      actualZoom,
+      setActualZoom,
     }}>
       {children}
     </LivePreviewContext.Provider>
