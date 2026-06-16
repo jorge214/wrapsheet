@@ -1,7 +1,8 @@
 // src/export/pdf.web.ts
-// Web delivery: injects a hidden iframe, writes HTML directly and triggers print.
-// Using contentDocument.write avoids popup blockers and unreliable srcdoc onload.
+// Web delivery: generates a PDF file via html2pdf.js and triggers a browser download.
+// No print dialog — the user gets a direct .pdf file download.
 
+import html2pdf from "html2pdf.js";
 import { CalcDia, Dia } from "../calc/types";
 import {
   buildPdfHtml,
@@ -25,32 +26,45 @@ export async function exportPDF(
   currency: string = "EUR",
   taxDisclaimer?: string
 ): Promise<void> {
-  const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer);
+  const html = buildPdfHtml(
+    perfil, projeto, dias, calculos, totais, tabela,
+    notas, locale, region, currency, taxDisclaimer
+  );
 
-  return new Promise((resolve, reject) => {
-    try {
-      const iframe = document.createElement("iframe");
-      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none;";
-      document.body.appendChild(iframe);
+  // Extract <style> blocks and <body> content so we can render off-screen
+  const styles = (html.match(/<style[^>]*>[\s\S]*?<\/style>/gi) ?? []).join("\n");
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  const bodyContent = bodyMatch ? bodyMatch[1] : html;
 
-      iframe.contentDocument!.write(html);
-      iframe.contentDocument!.close();
+  // Create a fixed-width off-screen container so html2canvas captures at the
+  // correct A3 landscape width (420 mm ≈ 1587 px at 96 dpi)
+  const container = document.createElement("div");
+  container.style.cssText =
+    "position:fixed;left:-9999px;top:0;width:1587px;background:#fff;";
+  container.innerHTML = styles + bodyContent;
+  document.body.appendChild(container);
 
-      setTimeout(() => {
-        try {
-          iframe.contentWindow!.focus();
-          iframe.contentWindow!.print();
-          resolve();
-        } catch (err) {
-          reject(err);
-        } finally {
-          setTimeout(() => {
-            if (document.body.contains(iframe)) document.body.removeChild(iframe);
-          }, 2000);
-        }
-      }, 600);
-    } catch (err) {
-      reject(err);
-    }
-  });
+  const filename =
+    (projeto.filme || "folha-horas").replace(/[^a-zA-Z0-9_-]/g, "_") + ".pdf";
+
+  try {
+    await html2pdf()
+      .from(container)
+      .set({
+        margin: 5,
+        filename,
+        image: { type: "jpeg", quality: 0.97 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 1587,
+        },
+        jsPDF: { unit: "mm", format: "a3", orientation: "landscape" },
+      })
+      .save();
+  } finally {
+    document.body.removeChild(container);
+  }
 }
