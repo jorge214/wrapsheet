@@ -1,8 +1,8 @@
 // src/export/pdf.web.ts
 // Web delivery: generates a PDF file via html2pdf.js and triggers a browser download.
 // No print dialog — the user gets a direct .pdf file download.
+// html2pdf.js is loaded dynamically to avoid SSR/Node.js import errors.
 
-import html2pdf from "html2pdf.js";
 import { CalcDia, Dia } from "../calc/types";
 import {
   buildPdfHtml,
@@ -46,6 +46,9 @@ export async function exportPDF(
 
   const filename =
     (projeto.filme || "folha-horas").replace(/[^a-zA-Z0-9_-]/g, "_") + ".pdf";
+
+  // Dynamic import so html2pdf.js is never evaluated during SSR/static render
+  const html2pdf = (await import("html2pdf.js")).default;
 
   try {
     await html2pdf()
