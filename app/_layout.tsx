@@ -11,7 +11,7 @@ import { ThemeProvider } from "../src/theme/ThemeProvider";
 import { AppShell } from "../src/ui/AppShell";
 import { WebHead } from "../src/ui/WebHead";
 
-const SENTRY_DSN = "YOUR_SENTRY_DSN_HERE";
+const SENTRY_DSN = "https://65f96b52fe9c560186fd8f5b5bd7be8a@o4511576189501440.ingest.de.sentry.io/4511576194416720";
 if (SENTRY_DSN.startsWith("https://")) {
   Sentry.init({ dsn: SENTRY_DSN, enabled: !__DEV__ });
 }
