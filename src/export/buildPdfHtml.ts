@@ -393,19 +393,22 @@ const STRINGS = {
 };
 
 function getStrings(locale: string, region?: string) {
-  // Region overrides language for PDF locale (tax labels stay correct regardless of UI language)
+  // UI language takes priority; region is only used as fallback
+  const lang = locale.toLowerCase();
+  if (lang.startsWith("pt")) return STRINGS.pt;
+  if (lang.startsWith("en")) {
+    // UK region gets UK-specific English labels (UTR, VAT No., etc.)
+    return (region ?? "").toLowerCase() === "uk" ? STRINGS.uk : STRINGS.en;
+  }
+  if (lang.startsWith("es")) return STRINGS.es;
+  if (lang.startsWith("fr")) return STRINGS.fr;
+  if (lang.startsWith("de")) return STRINGS.de;
+  // Fallback to region
   const r = (region ?? "").toLowerCase();
   if (r === "uk") return STRINGS.uk;
   if (r === "de") return STRINGS.de;
   if (r === "fr") return STRINGS.fr;
   if (r === "es") return STRINGS.es;
-  if (r === "pt") return STRINGS.pt;
-  // Fallback to UI language
-  const lang = locale.toLowerCase();
-  if (lang.startsWith("en")) return STRINGS.en;
-  if (lang.startsWith("es")) return STRINGS.es;
-  if (lang.startsWith("fr")) return STRINGS.fr;
-  if (lang.startsWith("de")) return STRINGS.de;
   return STRINGS.pt;
 }
 
