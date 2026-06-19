@@ -1,7 +1,7 @@
 // src/export/pdf.web.ts
-// Web PDF generation: html2canvas captures the HTML, jsPDF assembles the PDF.
-// We bypass html2pdf.js because v0.14 wraps the element in an opacity:0 overlay
-// which causes html2canvas to produce a blank canvas.
+// Web PDF generation: html2canvas + jsPDF.
+// The container must be in the viewport for html2canvas to capture it;
+// a white overlay div hides it from the user during rendering.
 
 import { CalcDia, Dia } from "../calc/types";
 import {
@@ -31,45 +31,64 @@ export async function exportPDF(
     notas, locale, region, currency, taxDisclaimer
   );
 
-  // Extract <style> and <body> content to inject into our container div
-  const styles = (html.match(/<style[^>]*>[\s\S]*?<\/style>/gi) ?? []).join("\n");
+  // Pull the CSS text out of the <style> block
+  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+  const cssText = styleMatch ? styleMatch[1] : "";
+
+  // Pull the body content
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
   const bodyContent = bodyMatch ? bodyMatch[1] : html;
 
-  // Off-screen container at A3 landscape width (420 mm ≈ 1587 px @ 96 dpi)
+  // Inject styles into <head> so they apply properly to our container
+  const styleEl = document.createElement("style");
+  styleEl.setAttribute("data-wrapsheet-pdf", "1");
+  styleEl.textContent = cssText;
+  document.head.appendChild(styleEl);
+
+  // White overlay — covers the PDF container so the user doesn't see it flash
+  const overlay = document.createElement("div");
+  overlay.style.cssText =
+    "position:fixed;inset:0;background:#fff;z-index:99999;pointer-events:none;";
+  document.body.appendChild(overlay);
+
+  // PDF container placed at (0,0) so it's inside the viewport — html2canvas
+  // cannot capture elements positioned outside the viewport boundaries.
   const container = document.createElement("div");
   container.style.cssText =
-    "position:absolute;left:-9999px;top:0;width:1587px;background:#fff;";
-  container.innerHTML = styles + bodyContent;
+    "position:fixed;top:0;left:0;width:1587px;background:#fff;z-index:1;";
+  container.innerHTML = bodyContent;
   document.body.appendChild(container);
 
-  // Two rAFs: first attaches the node, second ensures layout + font painting
-  await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+  // Two rAFs: first attaches the nodes, second ensures layout + paint
+  await new Promise<void>((r) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => r()))
+  );
 
   const filename =
     (projeto.filme || "folha-horas").replace(/[^a-zA-Z0-9_-]/g, "_") + ".pdf";
 
   try {
-    // Capture with html2canvas directly (dynamic import — safe for SSR)
     const html2canvas = (await import("html2canvas")).default;
     const canvas = await html2canvas(container, {
       scale: 2,
       useCORS: true,
       backgroundColor: "#ffffff",
       windowWidth: 1587,
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0,
     });
 
-    // Assemble PDF with jsPDF
     const { jsPDF } = await import("jspdf");
     const pdf = new jsPDF({ unit: "mm", format: "a3", orientation: "landscape" });
 
     const pageW = pdf.internal.pageSize.getWidth();  // 420 mm
     const pageH = pdf.internal.pageSize.getHeight(); // 297 mm
-    const margin = 5; // mm
+    const margin = 5;
     const innerW = pageW - 2 * margin; // 410 mm
     const innerH = pageH - 2 * margin; // 287 mm
 
-    // How many px represent 1 mm of inner page width
     const pxPerMm = canvas.width / innerW;
     const pageHeightPx = Math.floor(innerH * pxPerMm);
     const numPages = Math.ceil(canvas.height / pageHeightPx);
@@ -80,7 +99,6 @@ export async function exportPDF(
       const srcY = i * pageHeightPx;
       const srcH = Math.min(pageHeightPx, canvas.height - srcY);
 
-      // Slice this page out of the full canvas
       const pageCanvas = document.createElement("canvas");
       pageCanvas.width = canvas.width;
       pageCanvas.height = srcH;
@@ -90,12 +108,13 @@ export async function exportPDF(
       ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
 
       const imgData = pageCanvas.toDataURL("image/jpeg", 0.97);
-      const imgH = srcH / pxPerMm;
-      pdf.addImage(imgData, "JPEG", margin, margin, innerW, imgH);
+      pdf.addImage(imgData, "JPEG", margin, margin, innerW, srcH / pxPerMm);
     }
 
     pdf.save(filename);
   } finally {
     document.body.removeChild(container);
+    document.body.removeChild(overlay);
+    document.head.removeChild(styleEl);
   }
 }
