@@ -40,10 +40,15 @@ export async function exportPDF(
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
   if (isIOS) {
-    const blob = new Blob([html], { type: "text/html; charset=utf-8" });
+    // Inject auto-print script so the iOS print dialog fires automatically when the page loads.
+    // The print dialog on iOS shows the correct content preview + "Save to Files" / AirPrint.
+    const printScript =
+      '<scr' + 'ipt>window.addEventListener("load",function(){setTimeout(function(){window.print();},400);});<\/scr' + 'ipt>';
+    const htmlWithPrint = html.replace("</body>", printScript + "</body>");
+    const blob = new Blob([htmlWithPrint], { type: "text/html; charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const win = window.open(url, "_blank");
-    if (!win) window.location.href = url; // fallback if popup blocked
+    if (!win) window.location.href = url;
     else setTimeout(() => URL.revokeObjectURL(url), 60_000);
     return;
   }
