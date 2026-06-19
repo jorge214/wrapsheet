@@ -37,12 +37,17 @@ export async function exportPDF(
   const bodyContent = bodyMatch ? bodyMatch[1] : html;
 
   // Create a fixed-width off-screen container so html2canvas captures at the
-  // correct A3 landscape width (420 mm ≈ 1587 px at 96 dpi)
+  // correct A3 landscape width (420 mm ≈ 1587 px at 96 dpi).
+  // Must use position:absolute (not fixed) — html2canvas skips fixed elements
+  // outside the viewport, producing a blank canvas.
   const container = document.createElement("div");
   container.style.cssText =
-    "position:fixed;left:-9999px;top:0;width:1587px;background:#fff;";
+    "position:absolute;left:-9999px;top:0;width:1587px;background:#fff;";
   container.innerHTML = styles + bodyContent;
   document.body.appendChild(container);
+
+  // One rAF so the browser lays out the injected HTML before html2canvas reads it
+  await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
   const filename =
     (projeto.filme || "folha-horas").replace(/[^a-zA-Z0-9_-]/g, "_") + ".pdf";
@@ -60,8 +65,6 @@ export async function exportPDF(
         html2canvas: {
           scale: 2,
           useCORS: true,
-          scrollX: 0,
-          scrollY: 0,
           windowWidth: 1587,
         },
         jsPDF: { unit: "mm", format: "a3", orientation: "landscape" },
