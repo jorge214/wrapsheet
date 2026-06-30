@@ -778,7 +778,10 @@ export default function ProjectEditor() {
               />
             </Grid2>
 
-            <Text style={ss.helperTitle}>{t("base_hour_mult")}</Text>
+            <View style={{ flexDirection: "row", marginTop: 14, marginBottom: 6 }}>
+              <Text style={[ss.helperTitle, { flex: 1, marginTop: 0, marginBottom: 0 }]}>{t("base_hour_mult")}</Text>
+              <Text style={[ss.helperTitle, { flex: 1, marginTop: 0, marginBottom: 0 }]}>{t("threshold_ab")}</Text>
+            </View>
             <Grid3>
               <Num
                 label={t("mult_hea")}
@@ -801,10 +804,6 @@ export default function ProjectEditor() {
                   setP("tabela", { ...project.tabela, multHR: n || 3.0 })
                 }
               />
-            </Grid3>
-
-            <Text style={ss.helperTitle}>{t("threshold_ab")}</Text>
-            <Grid3>
               <Num
                 label={t("threshold_a")}
                 value={project.tabela.limiar_A ?? 11}
@@ -1363,7 +1362,7 @@ const ss = StyleSheet.create({
   col4: { flexBasis: "23%", minWidth: "23%", flexGrow: 1 },
 
   input: {
-    backgroundColor: "#FFF",
+    backgroundColor: COLORS.bg,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
