@@ -908,10 +908,10 @@ export default function ProjectEditor() {
                     />
                   </Grid4>
                   <View style={ss.metricsRow}>
-                    <Metric label="HT" value={minutesToHM(c?.HT_min ?? 0)} />
-                    <Metric label="HEA" value={minutesToHM(c?.HEA_min ?? 0)} />
-                    <Metric label="HEB" value={minutesToHM(c?.HEB_min ?? 0)} />
-                    <Metric label="HR" value={minutesToHM(c?.HR_min ?? 0)} />
+                    <Metric label={t("label_ht")} value={minutesToHM(c?.HT_min ?? 0)} />
+                    <Metric label={t("label_hea")} value={minutesToHM(c?.HEA_min ?? 0)} />
+                    <Metric label={t("label_heb")} value={minutesToHM(c?.HEB_min ?? 0)} />
+                    <Metric label={t("label_hr")} value={minutesToHM(c?.HR_min ?? 0)} />
                     <Metric label={t("day_total")} value={`${CURRENCY} ${(c?.totalDia ?? 0).toFixed(2)}`} highlight />
                   </View>
                 </View>
