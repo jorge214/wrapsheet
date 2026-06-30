@@ -583,17 +583,17 @@ export default function ProjectEditor() {
             title={t("technician_profile")}
             right={<Pill label={t("apply_profile")} onPress={handleApplyActiveProfile} />}
           >
+            <Input
+              label={t("name")}
+              value={project.perfil.nome}
+              onChangeText={(v) => setP("perfil", { ...project.perfil, nome: v })}
+            />
+            <Input
+              label={t("email")}
+              value={project.perfil.email}
+              onChangeText={(v) => setP("perfil", { ...project.perfil, email: v })}
+            />
             <Grid2>
-              <Input
-                label={t("name")}
-                value={project.perfil.nome}
-                onChangeText={(v) => setP("perfil", { ...project.perfil, nome: v })}
-              />
-              <Input
-                label={t("email")}
-                value={project.perfil.email}
-                onChangeText={(v) => setP("perfil", { ...project.perfil, email: v })}
-              />
               <Input
                 label={t("phone")}
                 value={project.perfil.telefone}
@@ -602,44 +602,44 @@ export default function ProjectEditor() {
                 }
               />
               <Input
-                label={t("department")}
-                value={project.perfil.departamento}
-                onChangeText={(v) =>
-                  setP("perfil", { ...project.perfil, departamento: v })
-                }
-              />
-              <Input
-                label={t("role")}
-                value={project.perfil.funcao}
-                onChangeText={(v) => setP("perfil", { ...project.perfil, funcao: v })}
-              />
-              <Input
-                label={t("company")}
-                value={project.perfil.empresa ?? ""}
-                onChangeText={(v) =>
-                  setP("perfil", { ...project.perfil, empresa: v })
-                }
-              />
-              <Input
                 label={t("nif")}
                 value={project.perfil.nif ?? ""}
                 onChangeText={(v) => setP("perfil", { ...project.perfil, nif: v })}
               />
-              <Input
-                label={t("iban")}
-                value={project.perfil.iban ?? ""}
-                onChangeText={(v) =>
-                  setP("perfil", { ...project.perfil, iban: v })
-                }
-              />
-              <Input
-                label={t("swift")}
-                value={project.perfil.swift ?? ""}
-                onChangeText={(v) =>
-                  setP("perfil", { ...project.perfil, swift: v })
-                }
-              />
             </Grid2>
+            <Input
+              label={t("department")}
+              value={project.perfil.departamento}
+              onChangeText={(v) =>
+                setP("perfil", { ...project.perfil, departamento: v })
+              }
+            />
+            <Input
+              label={t("role")}
+              value={project.perfil.funcao}
+              onChangeText={(v) => setP("perfil", { ...project.perfil, funcao: v })}
+            />
+            <Input
+              label={t("company")}
+              value={project.perfil.empresa ?? ""}
+              onChangeText={(v) =>
+                setP("perfil", { ...project.perfil, empresa: v })
+              }
+            />
+            <Input
+              label={t("iban")}
+              value={project.perfil.iban ?? ""}
+              onChangeText={(v) =>
+                setP("perfil", { ...project.perfil, iban: v })
+              }
+            />
+            <Input
+              label={t("swift")}
+              value={project.perfil.swift ?? ""}
+              onChangeText={(v) =>
+                setP("perfil", { ...project.perfil, swift: v })
+              }
+            />
           </Section>
 
           <Section title={t("project_section")}>
