@@ -1342,6 +1342,7 @@ const ss = StyleSheet.create({
   sectionTitle: { color: COLORS.text, fontSize: 16, fontWeight: "900" },
 
   helperTitle: {
+    width: "100%",
     marginTop: 14,
     marginBottom: 6,
     color: COLORS.sub,
@@ -1349,6 +1350,7 @@ const ss = StyleSheet.create({
     fontWeight: "700",
   },
   blockTitle: {
+    width: "100%",
     marginTop: 18,
     marginBottom: 10,
     fontWeight: "900",
