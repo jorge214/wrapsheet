@@ -366,21 +366,32 @@ export default function ProjectEditor() {
   function removeDia(i: number) {
     const p = projectRef.current!;
     if (p.dias.length <= 1) {
-      Alert.alert(t("days"), t("min_one_day"));
+      if (Platform.OS === "web") {
+        window.alert(t("min_one_day"));
+      } else {
+        Alert.alert(t("days"), t("min_one_day"));
+      }
       return;
     }
 
-    Alert.alert(t("remove_day"), t("remove_day_confirm"), [
-      { text: t("cancel"), style: "cancel" },
-      {
-        text: t("delete"),
-        style: "destructive",
-        onPress: () => {
-          const next = p.dias.filter((_, idx) => idx !== i);
-          setP("dias", next);
+    if (Platform.OS === "web") {
+      if (window.confirm(t("remove_day_confirm"))) {
+        const next = p.dias.filter((_, idx) => idx !== i);
+        setP("dias", next);
+      }
+    } else {
+      Alert.alert(t("remove_day"), t("remove_day_confirm"), [
+        { text: t("cancel"), style: "cancel" },
+        {
+          text: t("delete"),
+          style: "destructive",
+          onPress: () => {
+            const next = p.dias.filter((_, idx) => idx !== i);
+            setP("dias", next);
+          },
         },
-      },
-    ]);
+      ]);
+    }
   }
 
   async function handleClearAll() {
@@ -535,6 +546,9 @@ export default function ProjectEditor() {
             }
           />
           <Text style={ss.subtitle}>{t("report_subtitle")}</Text>
+          {project.projeto.produtora ? (
+            <Text style={ss.producerSubtitle}>{project.projeto.produtora}</Text>
+          ) : null}
         </View>
 
         {/* Cards Totais */}
@@ -708,49 +722,6 @@ export default function ProjectEditor() {
               />
             </Grid3>
 
-            <Text style={ss.helperTitle}>{t("base_hour_mult")}</Text>
-            <Grid3>
-              <Num
-                label={t("mult_hea")}
-                value={project.tabela.multHEA ?? 1.5}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, multHEA: n || 1.5 })
-                }
-              />
-              <Num
-                label={t("mult_heb")}
-                value={project.tabela.multHEB ?? 2.0}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, multHEB: n || 2.0 })
-                }
-              />
-              <Num
-                label={t("mult_hr")}
-                value={project.tabela.multHR ?? 3.0}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, multHR: n || 3.0 })
-                }
-              />
-            </Grid3>
-
-            <Text style={ss.helperTitle}>{t("threshold_ab")}</Text>
-            <Grid3>
-              <Num
-                label={t("threshold_a")}
-                value={project.tabela.limiar_A ?? 11}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, limiar_A: n || 11 })
-                }
-              />
-              <Num
-                label={t("threshold_b")}
-                value={project.tabela.limiar_B ?? 18}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, limiar_B: n || 18 })
-                }
-              />
-            </Grid3>
-
             <Text style={ss.blockTitle}>{t("allowances_day")}</Text>
             <Grid4>
               <Num
@@ -807,6 +778,56 @@ export default function ProjectEditor() {
                 }
               />
             </Grid4>
+
+            <Text style={ss.helperTitle}>{t("base_hour_mult")}</Text>
+            <Grid3>
+              <Num
+                label={t("mult_hea")}
+                value={project.tabela.multHEA ?? 1.5}
+                onChange={(n) =>
+                  setP("tabela", { ...project.tabela, multHEA: n || 1.5 })
+                }
+              />
+              <Num
+                label={t("mult_heb")}
+                value={project.tabela.multHEB ?? 2.0}
+                onChange={(n) =>
+                  setP("tabela", { ...project.tabela, multHEB: n || 2.0 })
+                }
+              />
+              <Num
+                label={t("mult_hr")}
+                value={project.tabela.multHR ?? 3.0}
+                onChange={(n) =>
+                  setP("tabela", { ...project.tabela, multHR: n || 3.0 })
+                }
+              />
+            </Grid3>
+
+            <Text style={ss.helperTitle}>{t("threshold_ab")}</Text>
+            <Grid3>
+              <Num
+                label={t("threshold_a")}
+                value={project.tabela.limiar_A ?? 11}
+                onChange={(n) =>
+                  setP("tabela", { ...project.tabela, limiar_A: n || 11 })
+                }
+              />
+              <Num
+                label={t("threshold_b")}
+                value={project.tabela.limiar_B ?? 18}
+                onChange={(n) =>
+                  setP("tabela", { ...project.tabela, limiar_B: n || 18 })
+                }
+              />
+              <Num
+                label={t("threshold_hr")}
+                value={project.tabela.limiar_HR ?? project.tabela.descanso_min ?? 11}
+                onChange={(n) =>
+                  setP("tabela", { ...project.tabela, limiar_HR: n || 11 })
+                }
+              />
+            </Grid3>
           </Section>
 
           <Section title={t("fiscal_section")}>
@@ -1278,7 +1299,8 @@ const ss = StyleSheet.create({
     marginBottom: 2,
     paddingVertical: 6,
   },
-  subtitle: { color: COLORS.sub, fontSize: 12, marginBottom: 12 },
+  subtitle: { color: COLORS.sub, fontSize: 12, marginBottom: 2 },
+  producerSubtitle: { color: COLORS.sub, fontSize: 13, fontWeight: "600", marginBottom: 12 },
 
   cardsRow: {
     flexDirection: "row",

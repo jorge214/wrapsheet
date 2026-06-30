@@ -37,7 +37,8 @@ export type Tabela = {
   H_dia: number;            // horas contratuais do dia (default 11)
   limiar_A?: number;        // início das HE-A em horas acumuladas (default 11 => 12.ª hora)
   limiar_B?: number;        // início das HE-B (default 18 => 19.ª hora)
-  descanso_min: number;     // descanso mínimo entre dias em HORAS (não minutos; default 11)
+  limiar_HR?: number;       // intervalo mínimo entre dias para não cobrar HR, em horas (default 11)
+  descanso_min: number;     // legado — substituído por limiar_HR quando definido
   arredondarMeiasHoras?: boolean;
 
   ajudas?: AjudasGlobais;   // € globais por dia

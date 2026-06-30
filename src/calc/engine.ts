@@ -55,7 +55,7 @@ export function calcDay(dia: Dia, prox: Dia | undefined, tabela: Tabela): CalcDi
   const H_dia_h      = tabela.H_dia      ?? 11;
   const limiarA_h    = tabela.limiar_A   ?? 11;
   const limiarB_h    = tabela.limiar_B   ?? 18;
-  const descansoMin_h = tabela.descanso_min ?? 11; // hours, NOT minutes
+  const descansoMin_h = tabela.limiar_HR ?? tabela.descanso_min ?? 11; // HR threshold in hours
 
   const multHEA = tabela.multHEA ?? 1.5;
   const multHEB = tabela.multHEB ?? 2.0;
