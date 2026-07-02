@@ -311,5 +311,15 @@
   "account_section_danger": "ZONA DI PERICOLO",
   "account_free_plan": "Piano gratuito",
   "account_pro_soon": "WrapSheet Pro in arrivo",
-  "account_see_plans": "Vedi piani"
+  "account_see_plans": "Vedi piani",
+  "date": "Data",
+  "duplicate_day": "Duplica giorno",
+  "saved": "Salvato",
+  "break_helper": "Durata delle pause fatte durante il lavoro (h:mm).",
+  "view_cards": "Schede",
+  "view_table": "Tabella",
+  "collapse_all": "Comprimi tutto",
+  "expand_all": "Espandi tutto",
+  "pick_date": "Scegli data",
+  "today": "Oggi"
 }

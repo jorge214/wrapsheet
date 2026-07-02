@@ -311,5 +311,15 @@
   "account_section_danger": "GEFAHRENBEREICH",
   "account_free_plan": "Kostenloser Plan",
   "account_pro_soon": "WrapSheet Pro demnächst",
-  "account_see_plans": "Pläne ansehen"
+  "account_see_plans": "Pläne ansehen",
+  "date": "Datum",
+  "duplicate_day": "Tag duplizieren",
+  "saved": "Gespeichert",
+  "break_helper": "Dauer der Pausen während der Arbeit (h:mm).",
+  "view_cards": "Karten",
+  "view_table": "Tabelle",
+  "collapse_all": "Alle einklappen",
+  "expand_all": "Alle ausklappen",
+  "pick_date": "Datum wählen",
+  "today": "Heute"
 }

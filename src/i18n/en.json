@@ -311,5 +311,15 @@
   "account_section_danger": "DANGER ZONE",
   "account_free_plan": "Free Plan",
   "account_pro_soon": "WrapSheet Pro coming soon",
-  "account_see_plans": "See Plans"
+  "account_see_plans": "See Plans",
+  "date": "Date",
+  "duplicate_day": "Duplicate day",
+  "saved": "Saved",
+  "break_helper": "Duration of breaks taken during work (h:mm).",
+  "view_cards": "Cards",
+  "view_table": "Table",
+  "collapse_all": "Collapse all",
+  "expand_all": "Expand all",
+  "pick_date": "Pick date",
+  "today": "Today"
 }

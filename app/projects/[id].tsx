@@ -60,6 +60,64 @@ function parseTimeToMinutes(str: string): number | null {
   return h * 60 + m;
 }
 
+function isValidTimeStr(v: string): boolean {
+  return parseTimeToMinutes(v) !== null;
+}
+
+/** Formata dígitos em HH:MM à medida que o utilizador escreve. "0800" -> "08:00". */
+function maskTime(v: string): string {
+  const digits = v.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return digits.slice(0, 2) + ":" + digits.slice(2);
+}
+
+/** dayjs a partir de uma string ISO (YYYY-MM-DD); null se inválida. */
+function parseISO(v?: string) {
+  if (!v) return null;
+  const d = dayjs(v);
+  return d.isValid() ? d : null;
+}
+
+/** Mostra a data de forma amigável e localizada (ex: "qua, 02/07/2026"). */
+function formatDateDisplay(v: string | undefined, lang: string): string {
+  const d = parseISO(v);
+  if (!d) return "";
+  try {
+    return new Intl.DateTimeFormat(lang, {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(d.toDate());
+  } catch {
+    return d.format("DD/MM/YYYY");
+  }
+}
+
+function monthTitle(d: dayjs.Dayjs, lang: string): string {
+  try {
+    const s = new Intl.DateTimeFormat(lang, { month: "long", year: "numeric" }).format(d.toDate());
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  } catch {
+    return d.format("MM/YYYY");
+  }
+}
+
+/** Cabeçalhos dos dias da semana, começando à segunda-feira e localizados. */
+function weekdayHeaders(lang: string): string[] {
+  try {
+    const fmt = new Intl.DateTimeFormat(lang, { weekday: "narrow" });
+    const base = new Date(2021, 7, 2); // 2 Ago 2021 é uma segunda-feira
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      return fmt.format(d);
+    });
+  } catch {
+    return ["S", "T", "Q", "Q", "S", "S", "D"];
+  }
+}
+
 export default function ProjectEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -70,6 +128,14 @@ export default function ProjectEditor() {
   const [project, setProject] = useState<ProjectState | null>(null);
   const projectRef = useRef<ProjectState | null>(null);
   const [regionCode, setRegionCode] = useState<string>("pt");
+
+  // "Guardado ✓" indicator
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const saveTimer = useRef<any>(null);
+
+  // Collapsible day cards + desktop view mode
+  const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
@@ -126,8 +192,16 @@ export default function ProjectEditor() {
   async function persist(next: ProjectState) {
     setProject(next);
     projectRef.current = next;
-    await saveProject(next);
+    setSaveStatus("saving");
+    try {
+      await saveProject(next);
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("idle");
+    }
     if (user) syncProjectToCloud(user.id, next as any);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => setSaveStatus("idle"), 1500);
   }
 
   function setP<K extends keyof ProjectState>(key: K, value: ProjectState[K]) {
@@ -365,6 +439,26 @@ export default function ProjectEditor() {
     setP("dias", dias);
   }
 
+  // Duplica um dia logo a seguir, com a data avançada +1 dia (estilo "arrastar" do Excel)
+  function duplicateDia(i: number) {
+    const p = projectRef.current!;
+    const src = p.dias[i];
+    const copy: Dia = {
+      ...src,
+      data: dayjs(src.data).add(1, "day").format("YYYY-MM-DD"),
+    };
+    const dias = [...p.dias.slice(0, i + 1), copy, ...p.dias.slice(i + 1)];
+    setP("dias", dias);
+  }
+
+  const toggleCollapse = (i: number) =>
+    setCollapsed((c) => ({ ...c, [i]: !c[i] }));
+  const setAllCollapsed = (v: boolean) => {
+    const next: Record<number, boolean> = {};
+    (projectRef.current?.dias ?? []).forEach((_, i) => (next[i] = v));
+    setCollapsed(next);
+  };
+
   function removeDia(i: number) {
     const p = projectRef.current!;
     if (p.dias.length <= 1) {
@@ -450,15 +544,31 @@ export default function ProjectEditor() {
     ]);
   }
 
+  const allCollapsed =
+    project.dias.length > 0 && project.dias.every((_, i) => collapsed[i]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
         {/* Header */}
         <View style={{ paddingTop: paddingTop, paddingHorizontal: PAGE_X }}>
           <View style={ss.topbar}>
-            <Pressable onPress={handleBack} hitSlop={10}>
-              <Text style={ss.backLink}>‹ {t("projects")}</Text>
-            </Pressable>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1 }}>
+              <Pressable onPress={handleBack} hitSlop={10}>
+                <Text style={ss.backLink}>‹ {t("projects")}</Text>
+              </Pressable>
+              {saveStatus !== "idle" && (
+                <Text
+                  style={[
+                    ss.saveStatus,
+                    saveStatus === "saved" && { color: "#1a9c4e" },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {saveStatus === "saving" ? t("saving") : `✓ ${t("saved")}`}
+                </Text>
+              )}
+            </View>
 
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Pressable
@@ -880,53 +990,166 @@ export default function ProjectEditor() {
           {/* RIGHT column: days */}
           <View style={twoColForm ? { flex: 3 } : {}}>
 
-          <Section title={t("days")} right={<Pill label={t("add_day")} onPress={addDia} />}>
-            {project.dias.map((d, i) => {
-              const c = calculos[i];
-              return (
-                <View key={i} style={ss.dayCard}>
-                  <View style={ss.dayHeader}>
-                    <Text style={ss.dayHeaderTitle}>{t("day_n", { n: i + 1 })}</Text>
-                    {i > 0 ? (
+          <Section
+            title={t("days")}
+            right={
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                {isWide && (
+                  <View style={ss.viewToggle}>
+                    <Pressable
+                      onPress={() => setViewMode("cards")}
+                      style={[ss.viewToggleBtn, viewMode === "cards" && ss.viewToggleBtnActive]}
+                    >
+                      <Text style={[ss.viewToggleText, viewMode === "cards" && ss.viewToggleTextActive]}>{t("view_cards")}</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setViewMode("table")}
+                      style={[ss.viewToggleBtn, viewMode === "table" && ss.viewToggleBtnActive]}
+                    >
+                      <Text style={[ss.viewToggleText, viewMode === "table" && ss.viewToggleTextActive]}>{t("view_table")}</Text>
+                    </Pressable>
+                  </View>
+                )}
+                {(!isWide || viewMode === "cards") && project.dias.length > 1 && (
+                  <Pill
+                    label={allCollapsed ? t("expand_all") : t("collapse_all")}
+                    onPress={() => setAllCollapsed(!allCollapsed)}
+                  />
+                )}
+                <Pill label={t("add_day")} onPress={addDia} />
+              </View>
+            }
+          >
+            {isWide && viewMode === "table" ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator style={{ marginHorizontal: -4 }}>
+                <View style={{ minWidth: 980 }}>
+                  <View style={ss.tRowHead}>
+                    <Text style={[ss.tCellHead, ss.tcNum]}>#</Text>
+                    <Text style={[ss.tCellHead, ss.tcDate]}>{t("date")}</Text>
+                    <Text style={[ss.tCellHead, ss.tcDesc]}>{t("description")}</Text>
+                    <Text style={[ss.tCellHead, ss.tcTime]}>{t("start_time")}</Text>
+                    <Text style={[ss.tCellHead, ss.tcTime]}>{t("end_time")}</Text>
+                    <Text style={[ss.tCellHead, ss.tcTime]}>{t("meal_break")}</Text>
+                    <Text style={[ss.tCellHead, ss.tcTime]}>{t("dinner_break")}</Text>
+                    <Text style={[ss.tCellHead, ss.tcTransp]}>{t("transport_time")}</Text>
+                    <Text style={[ss.tCellHead, ss.tcHt]}>{t("label_ht")}</Text>
+                    <Text style={[ss.tCellHead, ss.tcTotal]}>{t("day_total")}</Text>
+                    <Text style={[ss.tCellHead, ss.tcAct]} />
+                  </View>
+                  {project.dias.map((d, i) => {
+                    const c = calculos[i];
+                    return (
+                      <View key={i} style={[ss.tRow, i % 2 === 1 && ss.tRowAlt]}>
+                        <Text style={[ss.tCellNum, ss.tcNum]}>{i + 1}</Text>
+                        <View style={ss.tcDate}>
+                          <DateField compact value={d.data} onChangeText={(v) => updateDia(i, { data: v })} />
+                        </View>
+                        <View style={ss.tcDesc}>
+                          <Input compact value={d.descricao || ""} onChangeText={(v) => updateDia(i, { descricao: v })} />
+                        </View>
+                        <View style={ss.tcTime}>
+                          <TimeField compact value={d.inicio} onChangeText={(v) => updateDia(i, { inicio: v })} />
+                        </View>
+                        <View style={ss.tcTime}>
+                          <TimeField compact value={d.fim} onChangeText={(v) => updateDia(i, { fim: v })} />
+                        </View>
+                        <View style={ss.tcTime}>
+                          <TimeField compact value={d.refeicaoTrabalho} onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })} />
+                        </View>
+                        <View style={ss.tcTime}>
+                          <TimeField compact value={d.jantarTrabalho} onChangeText={(v) => updateDia(i, { jantarTrabalho: v })} />
+                        </View>
+                        <View style={ss.tcTransp}>
+                          <Num compact value={d.tempoTransporteMin ?? 0} onChange={(n) => updateDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })} />
+                        </View>
+                        <Text style={[ss.tCellVal, ss.tcHt]}>{minutesToHM(c?.HT_min ?? 0)}</Text>
+                        <Text style={[ss.tCellVal, ss.tcTotal, { fontWeight: "900" }]}>{CURRENCY} {(c?.totalDia ?? 0).toFixed(2)}</Text>
+                        <View style={[ss.tcAct, { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 }]}>
+                          <Pressable onPress={() => duplicateDia(i)} hitSlop={6} style={ss.tIconBtn}>
+                            <Text style={ss.tIconText}>⧉</Text>
+                          </Pressable>
+                          {i > 0 && (
+                            <Pressable onPress={() => removeDia(i)} hitSlop={6} style={ss.tIconBtn}>
+                              <Text style={[ss.tIconText, { color: COLORS.danger }]}>✕</Text>
+                            </Pressable>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            ) : (
+              project.dias.map((d, i) => {
+                const c = calculos[i];
+                const isCollapsed = !!collapsed[i];
+                return (
+                  <View key={i} style={ss.dayCard}>
+                    <View style={ss.dayHeader}>
                       <Pressable
-                        onPress={() => removeDia(i)}
-                        style={({ pressed }) => [ss.pillDanger, pressed && { opacity: 0.85 }]}
+                        onPress={() => toggleCollapse(i)}
+                        hitSlop={8}
+                        style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: 8 }}
                       >
-                        <Text style={ss.pillDangerText}>{t("remove")}</Text>
+                        <Text style={ss.dayChevron}>{isCollapsed ? "▸" : "▾"}</Text>
+                        <Text style={ss.dayHeaderTitle}>{t("day_n", { n: i + 1 })}</Text>
+                        {isCollapsed && (
+                          <Text style={ss.daySummary} numberOfLines={1}>
+                            {(formatDateDisplay(d.data, i18n.language) || d.data || "—")} · {d.inicio}–{d.fim} · {CURRENCY} {(c?.totalDia ?? 0).toFixed(2)}
+                          </Text>
+                        )}
                       </Pressable>
-                    ) : (
-                      <View />
+                      <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+                        <Pressable
+                          onPress={() => duplicateDia(i)}
+                          style={({ pressed }) => [ss.pillGhost, pressed && { opacity: 0.85 }]}
+                        >
+                          <Text style={ss.pillGhostText}>{t("duplicate_day")}</Text>
+                        </Pressable>
+                        {i > 0 && (
+                          <Pressable
+                            onPress={() => removeDia(i)}
+                            style={({ pressed }) => [ss.pillDanger, pressed && { opacity: 0.85 }]}
+                          >
+                            <Text style={ss.pillDangerText}>{t("remove")}</Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+
+                    {!isCollapsed && (
+                      <>
+                        <Grid2>
+                          <DateField label={t("date")} value={d.data} onChangeText={(v) => updateDia(i, { data: v })} />
+                          <Input label={t("description")} value={d.descricao || ""} onChangeText={(v) => updateDia(i, { descricao: v })} />
+                        </Grid2>
+                        <Grid2>
+                          <TimeField label={t("start_time")} value={d.inicio} onChangeText={(v) => updateDia(i, { inicio: v })} />
+                          <TimeField label={t("end_time")} value={d.fim} onChangeText={(v) => updateDia(i, { fim: v })} />
+                        </Grid2>
+                        <Grid3>
+                          <TimeField label={t("meal_break")} value={d.refeicaoTrabalho} onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })} />
+                          <TimeField label={t("dinner_break")} value={d.jantarTrabalho} onChangeText={(v) => updateDia(i, { jantarTrabalho: v })} />
+                          <Num
+                            label={t("transport_time")}
+                            value={d.tempoTransporteMin ?? 0}
+                            onChange={(n) => updateDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })}
+                          />
+                        </Grid3>
+                        <Text style={ss.fieldHint}>{t("break_helper")}</Text>
+                        <View style={ss.metricsRow}>
+                          <Metric label={t("label_ht")} value={minutesToHM(c?.HT_min ?? 0)} />
+                          <Metric label={t("label_hea")} value={minutesToHM(c?.HEA_min ?? 0)} />
+                          <Metric label={t("label_heb")} value={minutesToHM(c?.HEB_min ?? 0)} />
+                          <Metric label={t("label_hr")} value={minutesToHM(c?.HR_min ?? 0)} />
+                          <Metric label={t("day_total")} value={`${CURRENCY} ${(c?.totalDia ?? 0).toFixed(2)}`} highlight />
+                        </View>
+                      </>
                     )}
                   </View>
-                  <Grid2>
-                    <Input label={t("date_format")} value={d.data} onChangeText={(v) => updateDia(i, { data: v })} />
-                    <Input label={t("description")} value={d.descricao || ""} onChangeText={(v) => updateDia(i, { descricao: v })} />
-                  </Grid2>
-                  <Grid2>
-                    <Input label={t("start_time")} value={d.inicio} onChangeText={(v) => updateDia(i, { inicio: v })} />
-                    <Input label={t("end_time")} value={d.fim} onChangeText={(v) => updateDia(i, { fim: v })} />
-                  </Grid2>
-                  <Grid2>
-                    <Input label={t("meal_break")} value={d.refeicaoTrabalho} onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })} />
-                    <Input label={t("dinner_break")} value={d.jantarTrabalho} onChangeText={(v) => updateDia(i, { jantarTrabalho: v })} />
-                  </Grid2>
-                  <Grid4>
-                    <Num
-                      label={t("transport_time")}
-                      value={d.tempoTransporteMin ?? 0}
-                      onChange={(n) => updateDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })}
-                    />
-                  </Grid4>
-                  <View style={ss.metricsRow}>
-                    <Metric label={t("label_ht")} value={minutesToHM(c?.HT_min ?? 0)} />
-                    <Metric label={t("label_hea")} value={minutesToHM(c?.HEA_min ?? 0)} />
-                    <Metric label={t("label_heb")} value={minutesToHM(c?.HEB_min ?? 0)} />
-                    <Metric label={t("label_hr")} value={minutesToHM(c?.HR_min ?? 0)} />
-                    <Metric label={t("day_total")} value={`${CURRENCY} ${(c?.totalDia ?? 0).toFixed(2)}`} highlight />
-                  </View>
-                </View>
-              );
-            })}
+                );
+              })
+            )}
           </Section>
 
           </View>
@@ -1164,6 +1387,7 @@ function Input({
   keyboardType,
   multiline,
   placeholder,
+  compact,
 }: {
   label?: string;
   value: string;
@@ -1171,9 +1395,10 @@ function Input({
   keyboardType?: "default" | "numeric";
   multiline?: boolean;
   placeholder?: string;
+  compact?: boolean;
 }) {
   return (
-    <View style={{ marginBottom: 8, flex: 1 }}>
+    <View style={{ marginBottom: compact ? 0 : 8, flex: 1 }}>
       {label ? <Text style={ss.label}>{label}</Text> : null}
       <TextInput
         style={[
@@ -1196,14 +1421,16 @@ function Num({
   label,
   value,
   onChange,
+  compact,
 }: {
-  label: string;
+  label?: string;
   value: number;
   onChange: (n: number) => void;
+  compact?: boolean;
 }) {
   return (
-    <View style={{ marginBottom: 8, flex: 1 }}>
-      <Text style={ss.label}>{label}</Text>
+    <View style={{ marginBottom: compact ? 0 : 8, flex: 1 }}>
+      {label ? <Text style={ss.label}>{label}</Text> : null}
       <TextInput
         style={[ss.input, { width: "100%" }]}
         keyboardType="numeric"
@@ -1212,6 +1439,175 @@ function Num({
         placeholderTextColor={COLORS.sub}
       />
     </View>
+  );
+}
+
+/** Campo de hora com máscara HH:MM (teclado numérico) + validação inline. */
+function TimeField({
+  label,
+  value,
+  onChangeText,
+  invalid,
+  compact,
+  placeholder,
+}: {
+  label?: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  invalid?: boolean;
+  compact?: boolean;
+  placeholder?: string;
+}) {
+  const [text, setText] = useState(value ?? "");
+  useEffect(() => {
+    setText(value ?? "");
+  }, [value]);
+  const showError = invalid ?? (text.trim().length > 0 && !isValidTimeStr(text));
+  return (
+    <View style={{ marginBottom: compact ? 0 : 8, flex: 1 }}>
+      {label ? <Text style={ss.label}>{label}</Text> : null}
+      <TextInput
+        style={[ss.input, { width: "100%" }, showError && ss.inputError]}
+        value={text}
+        onChangeText={(v) => {
+          const m = maskTime(v);
+          setText(m);
+          onChangeText(m);
+        }}
+        keyboardType="numeric"
+        placeholder={placeholder ?? "00:00"}
+        placeholderTextColor={COLORS.sub}
+        maxLength={5}
+      />
+    </View>
+  );
+}
+
+/** Campo de data com calendário (funciona igual na web/iOS/Android, sem dependências). */
+function DateField({
+  label,
+  value,
+  onChangeText,
+  invalid,
+  compact,
+}: {
+  label?: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  invalid?: boolean;
+  compact?: boolean;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const display = formatDateDisplay(value, i18n.language) || value || "";
+  const showError = invalid ?? (!!value && parseISO(value) === null);
+  return (
+    <View style={{ marginBottom: compact ? 0 : 8, flex: 1 }}>
+      {label ? <Text style={ss.label}>{label}</Text> : null}
+      <Pressable
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => [ss.input, ss.dateField, showError && ss.inputError, pressed && { opacity: 0.85 }]}
+      >
+        <Text style={[ss.dateFieldText, !display && { color: COLORS.sub }]} numberOfLines={1}>
+          {display || t("pick_date")}
+        </Text>
+        <Text style={ss.dateFieldIcon}>▾</Text>
+      </Pressable>
+      <CalendarModal
+        visible={open}
+        value={value}
+        onClose={() => setOpen(false)}
+        onPick={(iso) => {
+          onChangeText(iso);
+          setOpen(false);
+        }}
+      />
+    </View>
+  );
+}
+
+function CalendarModal({
+  visible,
+  value,
+  onClose,
+  onPick,
+}: {
+  visible: boolean;
+  value: string;
+  onClose: () => void;
+  onPick: (iso: string) => void;
+}) {
+  const { t } = useTranslation();
+  const lang = i18n.language;
+  const [view, setView] = useState(() => (parseISO(value) ?? dayjs()).startOf("month"));
+  useEffect(() => {
+    if (visible) setView((parseISO(value) ?? dayjs()).startOf("month"));
+  }, [visible]);
+
+  const daysInMonth = view.daysInMonth();
+  const firstWeekday = (view.startOf("month").day() + 6) % 7; // segunda-feira primeiro
+  const selected = parseISO(value);
+  const selectedIso = selected ? selected.format("YYYY-MM-DD") : "";
+  const todayStr = dayjs().format("YYYY-MM-DD");
+  const headers = weekdayHeaders(lang);
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+      <Pressable style={ss.calBackdrop} onPress={onClose}>
+        <Pressable style={ss.calCard} onPress={() => {}}>
+          <View style={ss.calHeader}>
+            <Pressable onPress={() => setView(view.subtract(1, "month"))} hitSlop={10} style={ss.calNav}>
+              <Text style={ss.calNavText}>‹</Text>
+            </Pressable>
+            <Text style={ss.calTitle}>{monthTitle(view, lang)}</Text>
+            <Pressable onPress={() => setView(view.add(1, "month"))} hitSlop={10} style={ss.calNav}>
+              <Text style={ss.calNavText}>›</Text>
+            </Pressable>
+          </View>
+          <View style={ss.calWeekRow}>
+            {headers.map((h, i) => (
+              <Text key={i} style={ss.calWeekday}>{h}</Text>
+            ))}
+          </View>
+          <View style={ss.calGrid}>
+            {cells.map((d, i) => {
+              if (d === null) return <View key={i} style={ss.calCell} />;
+              const iso = view.date(d).format("YYYY-MM-DD");
+              const isSel = iso === selectedIso;
+              const isToday = iso === todayStr;
+              return (
+                <Pressable
+                  key={i}
+                  onPress={() => onPick(iso)}
+                  style={({ pressed }) => [
+                    ss.calCell,
+                    ss.calCellDay,
+                    isSel && ss.calCellSel,
+                    !isSel && isToday && ss.calCellToday,
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={[ss.calCellText, isSel && ss.calCellTextSel]}>{d}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={ss.calActions}>
+            <Pressable onPress={() => onPick(todayStr)} style={({ pressed }) => [ss.calTodayBtn, pressed && { opacity: 0.85 }]}>
+              <Text style={ss.calTodayText}>{t("today")}</Text>
+            </Pressable>
+            <Pressable onPress={onClose} style={({ pressed }) => [ss.calCloseBtn, pressed && { opacity: 0.85 }]}>
+              <Text style={ss.calCloseText}>{t("close")}</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -1636,4 +2032,185 @@ const ss = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.text,
   },
+
+  /* ---- Save status ---- */
+  saveStatus: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: COLORS.sub,
+  },
+
+  /* ---- Inline validation ---- */
+  inputError: {
+    borderColor: COLORS.danger,
+    borderWidth: 1.5,
+    backgroundColor: "#FFF5F5",
+  },
+
+  /* ---- Field hint (meal/dinner clarification) ---- */
+  fieldHint: {
+    fontSize: 11,
+    color: COLORS.sub,
+    marginTop: -2,
+    marginBottom: 4,
+    fontStyle: "italic",
+  },
+
+  /* ---- Date field (opens calendar) ---- */
+  dateField: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dateFieldText: { color: COLORS.text, fontSize: 15, flex: 1 },
+  dateFieldIcon: { color: COLORS.sub, fontSize: 11, marginLeft: 6 },
+
+  /* ---- Calendar modal ---- */
+  calBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  calCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+  },
+  calHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  calNav: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.cardAlt,
+  },
+  calNavText: { fontSize: 20, fontWeight: "900", color: COLORS.text },
+  calTitle: { fontSize: 15, fontWeight: "900", color: COLORS.text },
+  calWeekRow: { flexDirection: "row", marginBottom: 6 },
+  calWeekday: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 11,
+    fontWeight: "800",
+    color: COLORS.sub,
+    textTransform: "uppercase",
+  },
+  calGrid: { flexDirection: "row", flexWrap: "wrap" },
+  calCell: {
+    width: "14.2857%",
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 2,
+  },
+  calCellDay: { borderRadius: 10 },
+  calCellSel: { backgroundColor: COLORS.text, borderRadius: 10 },
+  calCellToday: {
+    borderWidth: 1.5,
+    borderColor: COLORS.text,
+    borderRadius: 10,
+  },
+  calCellText: { fontSize: 14, fontWeight: "700", color: COLORS.text },
+  calCellTextSel: { color: "#fff", fontWeight: "900" },
+  calActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  calTodayBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    backgroundColor: COLORS.cardAlt,
+  },
+  calTodayText: { fontSize: 14, fontWeight: "900", color: COLORS.text },
+  calCloseBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 12,
+    alignItems: "center",
+    backgroundColor: COLORS.text,
+  },
+  calCloseText: { fontSize: 14, fontWeight: "900", color: "#fff" },
+
+  /* ---- Day card: chevron + summary ---- */
+  dayChevron: { fontSize: 13, color: COLORS.sub, fontWeight: "900", width: 14 },
+  daySummary: { fontSize: 12, color: COLORS.sub, fontWeight: "600", flexShrink: 1 },
+
+  /* ---- Ghost pill (Duplicate day) ---- */
+  pillGhost: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: COLORS.card,
+  },
+  pillGhostText: { color: COLORS.text, fontWeight: "800", fontSize: 12 },
+
+  /* ---- Desktop table view ---- */
+  tRowHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderBottomWidth: 2,
+    borderColor: COLORS.border,
+  },
+  tCellHead: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: COLORS.sub,
+    textTransform: "uppercase",
+    paddingHorizontal: 4,
+  },
+  tRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderColor: COLORS.border,
+  },
+  tRowAlt: { backgroundColor: COLORS.cardAlt },
+  tCellNum: { fontSize: 13, fontWeight: "900", color: COLORS.text, textAlign: "center" },
+  tCellVal: { fontSize: 13, fontWeight: "700", color: COLORS.text, paddingHorizontal: 4 },
+  tIconBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.card,
+  },
+  tIconText: { fontSize: 13, fontWeight: "900", color: COLORS.text },
+  tcNum: { width: 34 },
+  tcDate: { width: 150, paddingHorizontal: 4 },
+  tcDesc: { width: 170, paddingHorizontal: 4 },
+  tcTime: { width: 82, paddingHorizontal: 4 },
+  tcTransp: { width: 78, paddingHorizontal: 4 },
+  tcHt: { width: 72 },
+  tcTotal: { width: 104 },
+  tcAct: { width: 76 },
 });
