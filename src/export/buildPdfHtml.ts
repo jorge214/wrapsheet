@@ -75,8 +75,8 @@ const STRINGS = {
     issuedOn: "Emitido a",
     month: "Mês",
     year: "Ano",
-    vb: "VB",
-    vf: "VF",
+    vb: "Valor Bruto",
+    vf: "Valor Final",
     salary: "SALÁRIO",
     overtimeA: "HORA EXTRA A",
     overtimeB: "HORA EXTRA B",
@@ -189,8 +189,8 @@ const STRINGS = {
     issuedOn: "Emitido el",
     month: "Mes",
     year: "Año",
-    vb: "VB",
-    vf: "VF",
+    vb: "Valor Bruto",
+    vf: "Valor Final",
     salary: "SALARIO",
     overtimeA: "HORA EXTRA A",
     overtimeB: "HORA EXTRA B",
@@ -639,7 +639,6 @@ export function buildPdfHtml(
         <div class="stack">
           <div class="box">
             <div class="boxTitle">${escapeHtml(s.personalData)}</div>
-            ${headerRow(s.film, safeStr(projeto.filme))}
             ${headerRow(s.name, safeStr(perfil.nome))}
             ${headerRow(s.role, safeStr(perfil.funcao))}
             ${headerRow(s.phone, safeStr(perfil.telefone))}
@@ -657,6 +656,7 @@ export function buildPdfHtml(
         <div class="stack">
           <div class="box">
             <div class="boxTitle">${escapeHtml(s.productionSection)}</div>
+            ${headerRow(s.film, safeStr(projeto.filme))}
             ${headerRow(s.productionLabel, safeStr(projeto.produtora))}
             ${headerRow(s.productionNif, safeStr(projeto.nifProdutora ?? ""))}
           </div>

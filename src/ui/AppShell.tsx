@@ -45,9 +45,23 @@ type NavItem = {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const isWide = useIsWide();
   const { height } = useWindowDimensions();
-  const { previewHtml, zoom, setActualZoom } = useLivePreview();
+  const { previewHtml, zoom, setActualZoom, clearPreview } = useLivePreview();
+  const pathname = usePathname();
+  const isProjectEditor = /^\/projects\/[^/]+$/.test(pathname);
   const showPreviewPanel = isWide && Platform.OS === "web" && !!previewHtml;
   const iframeRef = useRef<any>(null);
+
+  // Close the live PDF preview whenever we leave the project editor,
+  // so it never lingers over other screens (Projects list, Archived, etc.).
+  useEffect(() => {
+    if (!isProjectEditor && previewHtml) clearPreview();
+  }, [isProjectEditor]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const innerStyle = showPreviewPanel
+    ? styles.contentInnerNarrow
+    : isProjectEditor
+    ? styles.contentInnerWide
+    : styles.contentInner;
 
   // Receive the real rendered zoom from the iframe after auto-fit and store in context
   useEffect(() => {
@@ -79,7 +93,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <View style={[styles.root, { height }]}>
       <Sidebar />
       <View style={styles.content}>
-        <View style={showPreviewPanel ? styles.contentInnerNarrow : styles.contentInner}>
+        <View style={innerStyle}>
           {children}
         </View>
       </View>
@@ -273,6 +287,15 @@ const styles = StyleSheet.create({
     maxWidth: 600,
     width: "100%",
     alignSelf: "flex-start",
+  },
+  // Project editor (no preview open) fills the available width so the
+  // two-column form and the days table are wider and shorter — better
+  // readability and easier data entry on desktop.
+  contentInnerWide: {
+    flex: 1,
+    width: "100%",
+    maxWidth: 1500,
+    alignSelf: "center",
   },
   previewPane: {
     flex: 1,
