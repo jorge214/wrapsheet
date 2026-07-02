@@ -239,7 +239,7 @@ const ss = StyleSheet.create({
     marginBottom: 10,
     borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 22, fontWeight: "700" },
+  headerTitle: { fontSize: 22, fontWeight: "800" },
 
   section: {
     borderWidth: 1,
@@ -250,7 +250,7 @@ const ss = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  sectionTitle: { fontSize: 13, fontWeight: "600", marginLeft: 16, marginBottom: 6 },
+  sectionTitle: { fontSize: 13, fontWeight: "800", marginLeft: 16, marginBottom: 6 },
   sectionBody: { borderTopWidth: 1 },
 
   row: {
@@ -261,7 +261,7 @@ const ss = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
   },
-  rowLabel: { fontSize: 16 },
+  rowLabel: { fontSize: 16, fontWeight: "700" },
   rowRight: { flexDirection: "row", alignItems: "center" },
   rowValue: { fontSize: 15 },
   rowSub: { fontSize: 13 },

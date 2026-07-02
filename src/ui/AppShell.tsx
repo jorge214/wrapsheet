@@ -59,9 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const innerStyle = showPreviewPanel
     ? styles.contentInnerNarrow
-    : isProjectEditor
-    ? styles.contentInnerWide
-    : styles.contentInner;
+    : styles.contentInnerWide;
 
   // Receive the real rendered zoom from the iframe after auto-fit and store in context
   useEffect(() => {
@@ -288,14 +286,12 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "flex-start",
   },
-  // Project editor (no preview open) fills the available width so the
-  // two-column form and the days table are wider and shorter — better
-  // readability and easier data entry on desktop.
+  // Fill the whole available width on desktop (no centred 960px column,
+  // no white side bands) so every screen uses the full space.
   contentInnerWide: {
     flex: 1,
     width: "100%",
-    maxWidth: 1500,
-    alignSelf: "center",
+    alignSelf: "stretch",
   },
   previewPane: {
     flex: 1,

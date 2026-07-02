@@ -548,11 +548,19 @@ export function buildPdfHtml(
     <head>
       <meta charset="utf-8" />
       <style>
-        * { box-sizing: border-box; }
+        * {
+          box-sizing: border-box;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          color-adjust: exact;
+        }
+        html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         body {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
           padding: 18px;
           color: #111;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
         .titleBox {
           border: 2px solid #2b2b2b;
@@ -626,7 +634,16 @@ export function buildPdfHtml(
           white-space: pre-wrap;
           word-break: break-word;
         }
-        @media print { @page { size: A3 landscape; margin: 10mm; } }
+        /* Keep table rows and the closing blocks from being split across pages */
+        tr { break-inside: avoid; page-break-inside: avoid; }
+        .bottomGrid, .bottomGrid .box, .conditions {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+        @media print {
+          @page { size: A3 landscape; margin: 10mm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
       </style>
     </head>
     <body>

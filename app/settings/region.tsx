@@ -27,6 +27,7 @@ export default function RegionScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+        <View style={ss.column}>
         <View style={[ss.header, { borderColor: COLORS.border }]}>
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <Text style={[ss.backLink, { color: COLORS.text }]}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
@@ -69,12 +70,14 @@ export default function RegionScreen() {
             )}
           </Pressable>
         ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const ss = StyleSheet.create({
+  column: { width: "100%", maxWidth: 720, alignSelf: "center" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -85,7 +88,7 @@ const ss = StyleSheet.create({
     borderBottomWidth: 1,
     marginBottom: 6,
   },
-  headerTitle: { fontSize: 22, fontWeight: "700" },
+  headerTitle: { fontSize: 22, fontWeight: "800" },
   backLink: { fontSize: 15, fontWeight: "800", width: 70, opacity: 0.9 },
   hint: {
     fontSize: 12,
@@ -103,6 +106,6 @@ const ss = StyleSheet.create({
   },
   rowLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   flag: { fontSize: 28 },
-  rowLabel: { fontSize: 16, fontWeight: "600" },
+  rowLabel: { fontSize: 16, fontWeight: "700" },
   rowSub: { fontSize: 12, marginTop: 2 },
 });
