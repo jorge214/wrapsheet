@@ -262,11 +262,6 @@ export default function DashboardScreen() {
           />
           <StatCard
             s={s}
-            value={formatNumberPT(stats.totalAtualizadosMes, 0)}
-            label={t("dash_updated_month", { defaultValue: "Atualizados (mês)" })}
-          />
-          <StatCard
-            s={s}
             value={formatNumberPT(stats.totalArquivados, 0)}
             label={t("dash_archived_total", { defaultValue: "Arquivados (total)" })}
           />
