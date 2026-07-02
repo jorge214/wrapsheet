@@ -19,7 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CURRENCY } from "../../src/calc/engine";
 import i18n from "../../src/i18n/i18n";
-import { getMonthSummary, MonthSummary } from "../../src/stats/monthSummary";
+import { getMonthSummary, getYearSummary, MonthSummary, YearSummary } from "../../src/stats/monthSummary";
 import {
   listArchivedProjects,
   listProjects,
@@ -70,6 +70,7 @@ export default function DashboardScreen() {
   const [archived, setArchived] = useState<ProjectListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [monthSummary, setMonthSummary] = useState<MonthSummary | null>(null);
+  const [yearSummary, setYearSummary] = useState<YearSummary | null>(null);
 
   const [pickerVisible, setPickerVisible] = useState(false);
 
@@ -79,10 +80,11 @@ export default function DashboardScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [activeList, archivedList, summary] = await Promise.all([
+      const [activeList, archivedList, summary, ySummary] = await Promise.all([
         listProjects(),
         listArchivedProjects(),
         getMonthSummary(mes, ano),
+        getYearSummary(ano),
       ]);
 
       const sortByUpdated = (arr: ProjectListItem[]) =>
@@ -95,6 +97,7 @@ export default function DashboardScreen() {
       setProjects(sortByUpdated(activeList));
       setArchived(sortByUpdated(archivedList));
       setMonthSummary(summary);
+      setYearSummary(ySummary);
     } finally {
       setLoading(false);
     }
@@ -164,15 +167,27 @@ export default function DashboardScreen() {
   const totalProjetosMes = projects.filter((p) => (p.mes || "") === monthKey).length;
   const totalArquivados = archived.length;
 
+  const dias = monthSummary?.totalDiasTrabalho ?? 0;
+  const horas = monthSummary?.totalHoras ?? 0;
+
   return {
     totalProjetosMes,
     totalAtualizadosMes: monthSummary?.totalProjects ?? totalProjetosMes,
     totalArquivados,
-    horasMes: monthSummary?.totalHoras ?? 0,
-    diasTrabalhoMes: monthSummary?.totalDiasTrabalho ?? 0,
+    horasMes: horas,
+    diasTrabalhoMes: dias,
     valorBrutoMes: monthSummary?.totalValorBruto ?? 0,
+    valorLiquidoMes: monthSummary?.totalValorFinal ?? 0,
+    irsMes: monthSummary?.totalIRS ?? 0,
+    ivaMes: monthSummary?.totalIVA ?? 0,
+    horasExtraMes: monthSummary?.totalHorasExtra ?? 0,
+    mediaHorasDia: dias > 0 ? horas / dias : 0,
+    anoLabel: ano,
+    horasAno: yearSummary?.totalHoras ?? 0,
+    valorBrutoAno: yearSummary?.totalValorBruto ?? 0,
+    valorLiquidoAno: yearSummary?.totalValorFinal ?? 0,
   };
-}, [projects, archived, monthSummary, monthKey]);
+}, [projects, archived, monthSummary, yearSummary, ano, monthKey]);
 
 
   function openProject(id: string) {
@@ -269,6 +284,58 @@ export default function DashboardScreen() {
             s={s}
             value={formatMoneyPT(stats.valorBrutoMes)}
             label={t("dash_gross_month", { defaultValue: "Valor bruto (mês)" })}
+            isMoney
+          />
+          <StatCard
+            s={s}
+            value={formatMoneyPT(stats.valorLiquidoMes)}
+            label={t("dash_net_month", { defaultValue: "Valor líquido (mês)" })}
+            isMoney
+          />
+          <StatCard
+            s={s}
+            value={formatMoneyPT(stats.irsMes)}
+            label={t("dash_irs_month", { defaultValue: "IRS retido (mês)" })}
+            isMoney
+          />
+          <StatCard
+            s={s}
+            value={formatMoneyPT(stats.ivaMes)}
+            label={t("dash_iva_month", { defaultValue: "IVA (mês)" })}
+            isMoney
+          />
+          <StatCard
+            s={s}
+            value={formatNumberPT(stats.horasExtraMes, 1)}
+            label={t("dash_overtime_month", { defaultValue: "Horas extra (mês)" })}
+          />
+          <StatCard
+            s={s}
+            value={formatNumberPT(stats.mediaHorasDia, 1)}
+            label={t("dash_avg_hours_day", { defaultValue: "Média horas/dia" })}
+          />
+        </View>
+
+        {/* ACUMULADO DO ANO */}
+        <Text style={s.sectionTitle}>
+          {t("dash_year_section", { defaultValue: "Acumulado do ano" })} {stats.anoLabel}
+        </Text>
+        <View style={s.statsGrid}>
+          <StatCard
+            s={s}
+            value={formatNumberPT(stats.horasAno, 1)}
+            label={t("dash_hours_year", { defaultValue: "Horas (ano)" })}
+          />
+          <StatCard
+            s={s}
+            value={formatMoneyPT(stats.valorBrutoAno)}
+            label={t("dash_gross_year", { defaultValue: "Valor bruto (ano)" })}
+            isMoney
+          />
+          <StatCard
+            s={s}
+            value={formatMoneyPT(stats.valorLiquidoAno)}
+            label={t("dash_net_year", { defaultValue: "Valor líquido (ano)" })}
             isMoney
           />
         </View>

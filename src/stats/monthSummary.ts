@@ -54,6 +54,9 @@ export type MonthSummary = {
   totalHoras: number;
   totalMinutos: number;
 
+  // horas extra (A + B + recuperação)
+  totalHorasExtra: number;
+
   // ✅ NOVO: totais € do mês
   totalValorBruto: number;
   totalIRS: number;
@@ -70,6 +73,7 @@ export async function getMonthSummary(mes: number, ano: number): Promise<MonthSu
   const inMonth = all.filter((p: any) => p?.projeto?.mes === mes && p?.projeto?.ano === ano);
 
   let totalMinutos = 0;
+  let totalMinutosExtra = 0;
   let totalDiasTrabalho = 0;
 
   let totalValorBruto = 0;
@@ -87,6 +91,12 @@ export async function getMonthSummary(mes: number, ano: number): Promise<MonthSu
 
     // ✅ valores €
     const diasCalc = calcAll(p.dias, p.tabela);
+
+    // horas extra (A + B + recuperação)
+    for (const dc of diasCalc as any[]) {
+      totalMinutosExtra +=
+        (dc?.HEA_min ?? 0) + (dc?.HEB_min ?? 0) + (dc?.HR_min ?? 0);
+    }
 
     // fiscal pode estar como { irs, iva } ou { IRS_percent, IVA_percent }
     const rawFiscal: any = p.fiscal ?? {};
@@ -118,10 +128,59 @@ export async function getMonthSummary(mes: number, ano: number): Promise<MonthSu
     totalDiasTrabalho,
     totalHoras,
     totalMinutos,
+    totalHorasExtra: r2(totalMinutosExtra / 60),
 
     totalValorBruto: r2(totalValorBruto),
     totalIRS: r2(totalIRS),
     totalIVA: r2(totalIVA),
+    totalValorFinal: r2(totalValorFinal),
+  };
+}
+
+/**
+ * Resumo acumulado de um ano inteiro (todos os meses).
+ */
+export type YearSummary = {
+  ano: number;
+  totalDiasTrabalho: number;
+  totalHoras: number;
+  totalValorBruto: number;
+  totalValorFinal: number;
+};
+
+export async function getYearSummary(ano: number): Promise<YearSummary> {
+  const all = await listAllProjectsFull();
+  const inYear = all.filter((p: any) => p?.projeto?.ano === ano);
+
+  let totalMinutos = 0;
+  let totalDiasTrabalho = 0;
+  let totalValorBruto = 0;
+  let totalValorFinal = 0;
+
+  for (const p of inYear) {
+    for (const d of p.dias) {
+      const mins = computeDayMinutes(d);
+      if (!d.diaSemTrabalho && mins > 0) totalDiasTrabalho += 1;
+      totalMinutos += mins;
+    }
+
+    const diasCalc = calcAll(p.dias, p.tabela);
+    const rawFiscal: any = p.fiscal ?? {};
+    const irsPct = normalizePercent(rawFiscal.irs ?? rawFiscal.IRS_percent ?? 0) * 100;
+    const ivaPct = normalizePercent(rawFiscal.iva ?? rawFiscal.IVA_percent ?? 0) * 100;
+    const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
+
+    totalValorBruto += totals.ValorBruto;
+    totalValorFinal += totals.ValorFinal;
+  }
+
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+
+  return {
+    ano,
+    totalDiasTrabalho,
+    totalHoras: r2(totalMinutos / 60),
+    totalValorBruto: r2(totalValorBruto),
     totalValorFinal: r2(totalValorFinal),
   };
 }
