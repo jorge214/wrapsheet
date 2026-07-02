@@ -75,6 +75,7 @@ export type ProjectState = {
   fiscal: Fiscal;
   dias: Dia[];
   notas: string;
+  condicoes?: string;
   updatedAt: string;
 };
 
@@ -232,6 +233,7 @@ function upgradeProject(raw: any, id: string): ProjectState {
     fiscal,
     dias,
     notas: raw.notas || "",
+    condicoes: raw.condicoes || "",
     updatedAt: raw.updatedAt || new Date().toISOString(),
   };
 }

@@ -37,10 +37,11 @@ export async function exportPDF(
   locale: string = "pt",
   region?: string,
   currency: string = "EUR",
-  taxDisclaimer?: string
+  taxDisclaimer?: string,
+  condicoes?: string
 ): Promise<void> {
   try {
-    const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer);
+    const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes);
 
     const result = await Print.printToFileAsync({ html });
     let outUri = result.uri;

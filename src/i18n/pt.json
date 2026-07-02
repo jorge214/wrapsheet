@@ -136,6 +136,8 @@
   "no_projects_in_month": "Sem projetos neste mês",
   "no_projects_in_month_sub": "Cria um novo projeto para começar.",
   "notes_pdf": "Notas do PDF",
+  "conditions_pdf": "Condições de trabalho (PDF)",
+  "conditions_pdf_placeholder": "Condições de trabalho, regras de horas extra, per diems, condições de deslocação… Aparece no fundo do PDF.",
   "observation": "Observação",
   "oops": "Ops",
   "open": "Abrir",

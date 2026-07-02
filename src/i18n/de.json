@@ -136,6 +136,8 @@
   "no_projects_in_month": "Keine Projekte diesen Monat",
   "no_projects_in_month_sub": "Erstelle ein neues Projekt, um loszulegen.",
   "notes_pdf": "PDF-Notizen",
+  "conditions_pdf": "Arbeitsbedingungen (PDF)",
+  "conditions_pdf_placeholder": "Arbeitsbedingungen, Überstundenregeln, Tagegelder, Reisebedingungen… Erscheint unten im PDF.",
   "observation": "Hinweis",
   "oops": "Ups",
   "open": "Öffnen",

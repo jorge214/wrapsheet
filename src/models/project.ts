@@ -34,5 +34,6 @@ export type ProjectState = {
   tabela: Tabela;
   dias: Dia[];
   notas?: string;
+  condicoes?: string;
   updatedAt?: number;
 };

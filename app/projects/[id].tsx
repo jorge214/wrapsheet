@@ -176,7 +176,8 @@ export default function ProjectEditor() {
       i18n.language,
       regionCode,
       rPreset.currency,
-      t("tax_disclaimer")
+      t("tax_disclaimer"),
+      project.condicoes
     );
     return html.replace(
       "</body>",
@@ -307,7 +308,8 @@ export default function ProjectEditor() {
         i18n.language,
         regionCode,
         rPreset.currency,
-        t("tax_disclaimer")
+        t("tax_disclaimer"),
+        p.condicoes
       );
       await incrementPdfExportCount();
     } catch (e) {
@@ -425,6 +427,7 @@ export default function ProjectEditor() {
               ano: dayjs().year(),
             },
             notas: "",
+            condicoes: "",
             fiscal: { IRS_percent: 0, IVA_percent: 0, nota: "" },
             dias: [
               {
@@ -697,6 +700,14 @@ export default function ProjectEditor() {
               label={t("notes_pdf")}
               value={project.notas || ""}
               onChangeText={(v) => setP("notas", v)}
+              multiline
+            />
+
+            <Input
+              label={t("conditions_pdf")}
+              placeholder={t("conditions_pdf_placeholder")}
+              value={project.condicoes || ""}
+              onChangeText={(v) => setP("condicoes", v)}
               multiline
             />
           </Section>
@@ -1152,12 +1163,14 @@ function Input({
   onChangeText,
   keyboardType,
   multiline,
+  placeholder,
 }: {
   label?: string;
   value: string;
   onChangeText: (v: string) => void;
   keyboardType?: "default" | "numeric";
   multiline?: boolean;
+  placeholder?: string;
 }) {
   return (
     <View style={{ marginBottom: 8, flex: 1 }}>
@@ -1172,6 +1185,7 @@ function Input({
         onChangeText={onChangeText}
         keyboardType={keyboardType}
         multiline={multiline}
+        placeholder={placeholder}
         placeholderTextColor={COLORS.sub}
       />
     </View>

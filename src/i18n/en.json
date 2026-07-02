@@ -136,6 +136,8 @@
   "no_projects_in_month": "No projects this month",
   "no_projects_in_month_sub": "Create a new project to get started.",
   "notes_pdf": "PDF notes",
+  "conditions_pdf": "Working conditions (PDF)",
+  "conditions_pdf_placeholder": "Working conditions, overtime rules, per diems, travel terms… Appears at the bottom of the PDF.",
   "observation": "Note",
   "oops": "Oops",
   "open": "Open",

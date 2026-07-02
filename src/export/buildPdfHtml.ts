@@ -109,6 +109,7 @@ const STRINGS = {
     irs: "IRS",
     iva: "IVA",
     net: "VALOR",
+    workConditions: "CONDIÇÕES DE TRABALHO",
   },
   en: {
     title: "ADVERTISING",
@@ -165,6 +166,7 @@ const STRINGS = {
     irs: "IRS",
     iva: "VAT",
     net: "VALUE",
+    workConditions: "WORKING CONDITIONS",
   },
   es: {
     title: "PUBLICIDAD",
@@ -221,6 +223,7 @@ const STRINGS = {
     irs: "IRPF",
     iva: "IVA",
     net: "VALOR",
+    workConditions: "CONDICIONES DE TRABAJO",
   },
   fr: {
     title: "PUBLICITÉ",
@@ -277,6 +280,7 @@ const STRINGS = {
     irs: "IR",
     iva: "TVA",
     net: "VALEUR",
+    workConditions: "CONDITIONS DE TRAVAIL",
   },
   de: {
     title: "WERBUNG",
@@ -333,6 +337,7 @@ const STRINGS = {
     irs: "ESt",
     iva: "MwSt",
     net: "WERT",
+    workConditions: "ARBEITSBEDINGUNGEN",
   },
   uk: {
     title: "ADVERTISING",
@@ -389,6 +394,7 @@ const STRINGS = {
     irs: "Income Tax",
     iva: "VAT",
     net: "VALUE",
+    workConditions: "WORKING CONDITIONS",
   },
 };
 
@@ -474,7 +480,8 @@ export function buildPdfHtml(
   locale: string = "pt",
   region?: string,
   currency: string = "EUR",
-  taxDisclaimer?: string
+  taxDisclaimer?: string,
+  condicoes?: string
 ): string {
   const s = getStrings(locale, region);
   const fmt = (n: number) => fmtMoney(n, currency);
@@ -553,8 +560,10 @@ export function buildPdfHtml(
           text-align: center;
           font-weight: 800;
           letter-spacing: 0.5px;
+          background: #c00000;
+          color: #fff;
         }
-        .subTitle { margin-top: 2px; font-weight: 600; font-size: 12px; opacity: .85; }
+        .subTitle { margin-top: 2px; font-weight: 600; font-size: 12px; opacity: .95; }
         .headgrid {
           margin-top: 10px;
           display: grid;
@@ -585,7 +594,17 @@ export function buildPdfHtml(
         .muted { opacity: .8; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 2px solid #2b2b2b; padding: 6px; font-size: 11px; text-align: center; vertical-align: middle; }
-        th { background: #efefef; font-weight: 800; }
+        th { background: #7f7f7f; color: #fff; font-weight: 800; }
+        /* Column colours matching the original sheet */
+        th.h-blue   { background: #2e75b6; color: #fff; }
+        th.h-olive  { background: #7f7f2e; color: #fff; }
+        th.h-purple { background: #7030a0; color: #fff; }
+        th.h-total  { background: #bf9000; color: #fff; }
+        .days .subhead th { background: #d9d9d9; color: #111; }
+        .days .subhead th.h-blue   { background: #cfe0f2; color: #1b5fbf; }
+        .days .subhead th.h-olive  { background: #e6e6c8; color: #111; }
+        .days .subhead th.h-purple { background: #e4d6f0; color: #111; }
+        .days .subhead th.h-total  { background: #f2e2b3; color: #111; }
         .days th { font-size: 10px; }
         .days td { font-size: 10px; }
         .days .mini { font-size: 9px; font-weight: 700; }
@@ -597,8 +616,16 @@ export function buildPdfHtml(
         .notesBody { padding: 10px; font-size: 12px; min-height: 62px; }
         .totalsMini table { margin-top: 0; }
         .totalsMini td, .totalsMini th { font-size: 11px; }
-        .totalsMini th { background: #fff; text-align: left; }
+        .totalsMini th { background: #f2f2f2; color: #1f7a37; text-align: left; }
         .totalsMini .val { text-align: right; font-weight: 800; }
+        .conditions { margin-top: 10px; }
+        .conditionsBody {
+          padding: 10px 12px;
+          font-size: 11px;
+          line-height: 1.45;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
         @media print { @page { size: A3 landscape; margin: 10mm; } }
       </style>
     </head>
@@ -652,12 +679,12 @@ export function buildPdfHtml(
           <th>${escapeHtml(s.salary)}</th>
           <th>${escapeHtml(s.overtimeA)}</th>
           <th>${escapeHtml(s.overtimeB)}</th>
-          <th>${escapeHtml(s.recoveryHours)}</th>
+          <th class="h-blue">${escapeHtml(s.recoveryHours)}</th>
           <th>${escapeHtml(s.meal)}</th>
           <th>${escapeHtml(s.perDiem)}</th>
           <th>${escapeHtml(s.telephone)}</th>
-          <th>${escapeHtml(s.vehicle)}</th>
-          <th>${escapeHtml(s.material)}</th>
+          <th class="h-olive">${escapeHtml(s.vehicle)}</th>
+          <th class="h-purple">${escapeHtml(s.material)}</th>
         </tr>
         <tr>
           <td>${fmt(salarioDia)}</td>
@@ -682,14 +709,14 @@ export function buildPdfHtml(
           <th>${escapeHtml(s.meal)}</th>
           <th>${escapeHtml(s.perDiem)}</th>
           <th>${escapeHtml(s.telephone)}</th>
-          <th>${escapeHtml(s.vehicle)}</th>
-          <th>${escapeHtml(s.material)}</th>
+          <th class="h-olive">${escapeHtml(s.vehicle)}</th>
+          <th class="h-purple">${escapeHtml(s.material)}</th>
           <th colspan="2">${escapeHtml(s.overtimeAFull)}</th>
           <th colspan="2">${escapeHtml(s.overtimeBFull)}</th>
-          <th colspan="2">${escapeHtml(s.recoveryFull)}</th>
-          <th>${escapeHtml(s.total)}</th>
+          <th colspan="2" class="h-blue">${escapeHtml(s.recoveryFull)}</th>
+          <th class="h-total">${escapeHtml(s.total)}</th>
         </tr>
-        <tr>
+        <tr class="subhead">
           <th class="mini">${escapeHtml(s.description)}</th>
           <th class="mini"></th>
           <th class="mini">${escapeHtml(s.day)}</th>
@@ -701,15 +728,15 @@ export function buildPdfHtml(
           <th class="mini">${escapeHtml(s.perDay)}</th>
           <th class="mini">${escapeHtml(s.perDay)}</th>
           <th class="mini">${escapeHtml(s.perDay)}</th>
-          <th class="mini">${escapeHtml(s.perDay)}</th>
-          <th class="mini">${escapeHtml(s.perDay)}</th>
+          <th class="mini h-olive">${escapeHtml(s.perDay)}</th>
+          <th class="mini h-purple">${escapeHtml(s.perDay)}</th>
           <th class="mini">${escapeHtml(s.total)}</th>
           <th class="mini">${escapeHtml(s.value)}</th>
           <th class="mini">${escapeHtml(s.total)}</th>
           <th class="mini">${escapeHtml(s.value)}</th>
-          <th class="mini">${escapeHtml(s.total)}</th>
-          <th class="mini">${escapeHtml(s.value)}</th>
-          <th class="mini">${escapeHtml(s.day)}</th>
+          <th class="mini h-blue">${escapeHtml(s.total)}</th>
+          <th class="mini h-blue">${escapeHtml(s.value)}</th>
+          <th class="mini h-total">${escapeHtml(s.day)}</th>
         </tr>
         ${dayRows}
       </table>
@@ -729,6 +756,13 @@ export function buildPdfHtml(
           </table>
         </div>
       </div>
+
+      ${condicoes && condicoes.trim()
+        ? `<div class="box conditions">
+          <div class="boxTitle">${escapeHtml(s.workConditions)}</div>
+          <div class="conditionsBody">${escapeHtml(condicoes)}</div>
+        </div>`
+        : ""}
     </body>
   </html>
   `;

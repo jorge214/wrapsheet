@@ -25,11 +25,12 @@ export async function exportPDF(
   locale: string = "pt",
   region?: string,
   currency: string = "EUR",
-  taxDisclaimer?: string
+  taxDisclaimer?: string,
+  condicoes?: string
 ): Promise<void> {
   const html = buildPdfHtml(
     perfil, projeto, dias, calculos, totais, tabela,
-    notas, locale, region, currency, taxDisclaimer
+    notas, locale, region, currency, taxDisclaimer, condicoes
   );
 
   // iOS Safari: iframe.contentWindow.print() prints the parent app page, not the iframe.
