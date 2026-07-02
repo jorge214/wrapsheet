@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import i18n, { setAppLanguage } from "../../src/i18n/i18n";
+import { Flag } from "../../src/ui/Flag";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 const LANGS = [
@@ -74,7 +75,7 @@ export default function LanguageScreen() {
               ]}
             >
               <View style={ss.rowLeft}>
-                <Text style={ss.flag}>{l.flag}</Text>
+                <Flag code={l.code} />
                 <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: "700" }}>{l.label}</Text>
               </View>
               <Text style={{ color: active === l.code ? COLORS.accent : COLORS.sub, fontSize: 20, fontWeight: "900" }}>

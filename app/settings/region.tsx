@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { REGION_LIST, RegionCode } from "../../src/constants/countryPresets";
 import { getSettings, setRegion } from "../../src/storage/appSettings";
+import { Flag } from "../../src/ui/Flag";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 export default function RegionScreen() {
@@ -53,7 +54,7 @@ export default function RegionScreen() {
             ]}
           >
             <View style={ss.rowLeft}>
-              <Text style={ss.flag}>{r.flag}</Text>
+              <Flag code={r.code} />
               <View>
                 <Text style={[ss.rowLabel, { color: COLORS.text }]}>
                   {t(r.nameKey)}
