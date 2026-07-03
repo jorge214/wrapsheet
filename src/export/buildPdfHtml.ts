@@ -398,7 +398,7 @@ const STRINGS = {
   },
 };
 
-function getStrings(locale: string, region?: string) {
+export function getStrings(locale: string, region?: string) {
   // UI language takes priority; region is only used as fallback
   const lang = locale.toLowerCase();
   if (lang.startsWith("pt")) return STRINGS.pt;
@@ -432,7 +432,7 @@ function safeStr(v: any) {
   return v == null ? "" : String(v);
 }
 
-function fmtMoney(n: number, currency = "EUR") {
+export function fmtMoney(n: number, currency = "EUR") {
   const locale = currency === "GBP" ? "en-GB" : "pt-PT";
   return Number(n || 0).toLocaleString(locale, {
     style: "currency",

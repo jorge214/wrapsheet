@@ -32,6 +32,7 @@ import { getSettings } from "../../src/storage/appSettings";
 import { canExportPdf, incrementPdfExportCount } from "../../src/storage/freeTier";
 import { getActiveProfile } from "../../src/storage/profile";
 import { getProject, saveProject } from "../../src/storage/projects";
+import EditableSheet from "../../src/ui/EditableSheet";
 
 /* ---------- Paleta (manual, neutra) ---------- */
 const COLORS = {
@@ -630,446 +631,67 @@ export default function ProjectEditor() {
             </View>
           </View>
 
-          {/* Título */}
-          <TextInput
-            style={ss.titleInput}
-            placeholder={t("unnamed_project")}
-            placeholderTextColor={COLORS.sub}
-            value={project.projeto.filme}
-            onChangeText={(v) =>
-              setP("projeto", { ...project.projeto, filme: v })
-            }
-          />
-          <Text style={ss.subtitle}>{t("report_subtitle")}</Text>
-          {project.projeto.produtora ? (
-            <Text style={ss.producerSubtitle}>{project.projeto.produtora}</Text>
-          ) : null}
-        </View>
-
-        {/* Cards Totais */}
-        <View style={[ss.cardsRow, { paddingHorizontal: PAGE_X }]}>
-          <CardStat k={t("total_days")} v={`${totalDias}`} />
-          <CardStat
-            k={t("gross_value")}
-            v={`${CURRENCY} ${Number(totais.ValorBruto).toFixed(2)}`}
-          />
-          <CardStat
-            k={taxLabels.incomeTax}
-            v={`${CURRENCY} ${Number(totais.IRS_valor).toFixed(2)}`}
-          />
-          <CardStat
-            k={taxLabels.vat}
-            v={`${CURRENCY} ${Number(totais.IVA_valor).toFixed(2)}`}
-          />
-          <CardStat
-            k={t("final_value")}
-            v={`${CURRENCY} ${Number(totais.ValorFinal).toFixed(2)}`}
-            big
-          />
         </View>
 
         <View style={{ paddingHorizontal: PAGE_X }}>
-          {/* Single-column: header sections collapsed, grid full-width below */}
-          <View>
+          <EditableSheet
+            perfil={project.perfil as any}
+            projeto={project.projeto as any}
+            tabela={project.tabela as any}
+            dias={project.dias}
+            calculos={calculos as any}
+            totais={totais as any}
+            notas={project.notas || ""}
+            condicoes={project.condicoes || ""}
+            locale={i18n.language}
+            region={regionCode}
+            currency={getPreset(regionCode).currency}
+            taxDisclaimer={t("tax_disclaimer")}
+            isWide={isWide}
+            onPerfil={(patch) => setP("perfil", { ...project.perfil, ...patch })}
+            onProjeto={(patch) => setP("projeto", { ...project.projeto, ...patch })}
+            onTabela={(patch) => setP("tabela", { ...project.tabela, ...patch })}
+            onDia={updateDia}
+            onAddDia={addDia}
+            onDuplicateDia={duplicateDia}
+            onRemoveDia={removeDia}
+            onNotas={(v) => setP("notas", v)}
+            onCondicoes={(v) => setP("condicoes", v)}
+            onApplyProfile={handleApplyActiveProfile}
+          />
 
-          {/* Header + settings sections */}
-          <View>
-          <Section
-            title={t("technician_profile")}
-            collapsible
-            defaultCollapsed
-            summary={project.perfil.nome || undefined}
-            right={<Pill label={t("apply_profile")} onPress={handleApplyActiveProfile} />}
-          >
-            <Input
-              label={t("name")}
-              value={project.perfil.nome}
-              onChangeText={(v) => setP("perfil", { ...project.perfil, nome: v })}
-            />
-            <Grid2>
-              <Input
-                label={t("role")}
-                value={project.perfil.funcao}
-                onChangeText={(v) => setP("perfil", { ...project.perfil, funcao: v })}
-              />
-              <Input
-                label={t("phone")}
-                value={project.perfil.telefone}
-                onChangeText={(v) =>
-                  setP("perfil", { ...project.perfil, telefone: v })
-                }
-              />
-            </Grid2>
-            <Input
-              label={t("email")}
-              value={project.perfil.email}
-              onChangeText={(v) => setP("perfil", { ...project.perfil, email: v })}
-            />
-            <Input
-              label={t("department")}
-              value={project.perfil.departamento}
-              onChangeText={(v) =>
-                setP("perfil", { ...project.perfil, departamento: v })
-              }
-            />
-            <Grid2>
-              <Input
-                label={t("nif")}
-                value={project.perfil.nif ?? ""}
-                onChangeText={(v) => setP("perfil", { ...project.perfil, nif: v })}
-              />
-              <Input
-                label={t("iban")}
-                value={project.perfil.iban ?? ""}
-                onChangeText={(v) =>
-                  setP("perfil", { ...project.perfil, iban: v })
-                }
-              />
-            </Grid2>
-            <Input
-              label={t("swift")}
-              value={project.perfil.swift ?? ""}
-              onChangeText={(v) =>
-                setP("perfil", { ...project.perfil, swift: v })
-              }
-            />
-            <Input
-              label={t("company")}
-              value={project.perfil.empresa ?? ""}
-              onChangeText={(v) =>
-                setP("perfil", { ...project.perfil, empresa: v })
-              }
-            />
-          </Section>
+          <View style={{ marginTop: 12 }}>
+            <Section title={t("table_params")} collapsible defaultCollapsed>
+              <Grid2>
+                <Num label={t("hours_day")} value={project.tabela.H_dia} onChange={(n) => setP("tabela", { ...project.tabela, H_dia: n })} />
+                <Num label={t("min_rest")} value={project.tabela.descanso_min} onChange={(n) => setP("tabela", { ...project.tabela, descanso_min: n })} />
+              </Grid2>
+              <Text style={ss.helperTitle}>{t("base_hour_mult")}</Text>
+              <Grid3>
+                <Num label={t("mult_hea")} value={project.tabela.multHEA ?? 1.5} onChange={(n) => setP("tabela", { ...project.tabela, multHEA: n || 1.5 })} />
+                <Num label={t("mult_heb")} value={project.tabela.multHEB ?? 2.0} onChange={(n) => setP("tabela", { ...project.tabela, multHEB: n || 2.0 })} />
+                <Num label={t("mult_hr")} value={project.tabela.multHR ?? 3.0} onChange={(n) => setP("tabela", { ...project.tabela, multHR: n || 3.0 })} />
+              </Grid3>
+              <Text style={ss.helperTitle}>{t("threshold_ab")}</Text>
+              <Grid3>
+                <Num label={t("threshold_a")} value={project.tabela.limiar_A ?? 11} onChange={(n) => setP("tabela", { ...project.tabela, limiar_A: n || 11 })} />
+                <Num label={t("threshold_b")} value={project.tabela.limiar_B ?? 18} onChange={(n) => setP("tabela", { ...project.tabela, limiar_B: n || 18 })} />
+                <Num label={t("threshold_hr")} value={(project.tabela as any).limiar_HR ?? project.tabela.descanso_min ?? 11} onChange={(n) => setP("tabela", { ...project.tabela, limiar_HR: n || 11 } as any)} />
+              </Grid3>
+            </Section>
 
-          <Section
-            title={t("project_section")}
-            collapsible
-            summary={project.projeto.produtora || undefined}
-          >
-            <Grid2>
-              <Input
-                label={t("film_project")}
-                value={project.projeto.filme}
-                onChangeText={(v) =>
-                  setP("projeto", { ...project.projeto, filme: v })
-                }
-              />
-              <Input
-                label={t("production_company")}
-                value={project.projeto.produtora}
-                onChangeText={(v) =>
-                  setP("projeto", { ...project.projeto, produtora: v })
-                }
-              />
-              <Input
-                label={t("production_nif")}
-                value={project.projeto.nifProdutora ?? ""}
-                onChangeText={(v) =>
-                  setP("projeto", { ...project.projeto, nifProdutora: v })
-                }
-              />
-              <Input
-                label={t("week")}
-                value={project.projeto.semana ?? ""}
-                onChangeText={(v) =>
-                  setP("projeto", { ...project.projeto, semana: v })
-                }
-              />
-              <Input
-                label={t("month")}
-                value={String(project.projeto.mes)}
-                onChangeText={(v) =>
-                  setP("projeto", { ...project.projeto, mes: Number(v) || 1 })
-                }
-                keyboardType="numeric"
-              />
-              <Input
-                label={t("year")}
-                value={String(project.projeto.ano)}
-                onChangeText={(v) =>
-                  setP("projeto", {
-                    ...project.projeto,
-                    ano: Number(v) || dayjs().year(),
-                  })
-                }
-                keyboardType="numeric"
-              />
-            </Grid2>
-
-            <Input
-              label={t("notes_pdf")}
-              value={project.notas || ""}
-              onChangeText={(v) => setP("notas", v)}
-              multiline
-            />
-
-            <Input
-              label={t("conditions_pdf")}
-              placeholder={t("conditions_pdf_placeholder")}
-              value={project.condicoes || ""}
-              onChangeText={(v) => setP("condicoes", v)}
-              multiline
-            />
-          </Section>
-
-          <Section title={t("table_params")} collapsible defaultCollapsed>
-            <Grid3>
-              <Num
-                label={t("salary_day")}
-                value={project.tabela.salarioDia ?? 0}
-                onChange={(n) => setP("tabela", { ...project.tabela, salarioDia: n })}
-              />
-              <Num
-                label={t("hours_day")}
-                value={project.tabela.H_dia}
-                onChange={(n) => setP("tabela", { ...project.tabela, H_dia: n })}
-              />
-              <Num
-                label={t("min_rest")}
-                value={project.tabela.descanso_min}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, descanso_min: n })
-                }
-              />
-            </Grid3>
-
-            <Text style={ss.blockTitle}>{t("allowances_day")}</Text>
-            <Grid3>
-              <Num
-                label={t("allowance_meal")}
-                value={project.tabela.ajudas?.refeicao ?? 0}
-                onChange={(n) =>
-                  setP("tabela", {
-                    ...project.tabela,
-                    ajudas: { ...project.tabela.ajudas, refeicao: n },
-                  })
-                }
-              />
-              <Num
-                label={t("allowance_phone")}
-                value={project.tabela.ajudas?.telefone ?? 0}
-                onChange={(n) =>
-                  setP("tabela", {
-                    ...project.tabela,
-                    ajudas: { ...project.tabela.ajudas, telefone: n },
-                  })
-                }
-              />
-              <Num
-                label={t("allowance_vehicle")}
-                value={project.tabela.ajudas?.viatura ?? 0}
-                onChange={(n) =>
-                  setP("tabela", {
-                    ...project.tabela,
-                    ajudas: { ...project.tabela.ajudas, viatura: n },
-                  })
-                }
-              />
-            </Grid3>
-            <Grid2>
-              <Num
-                label={t("allowance_material")}
-                value={project.tabela.ajudas?.material ?? 0}
-                onChange={(n) =>
-                  setP("tabela", {
-                    ...project.tabela,
-                    ajudas: { ...project.tabela.ajudas, material: n },
-                  })
-                }
-              />
-              <Num
-                label={t("allowance_perdiem")}
-                value={project.tabela.ajudas?.perDiem ?? 0}
-                onChange={(n) =>
-                  setP("tabela", {
-                    ...project.tabela,
-                    ajudas: { ...project.tabela.ajudas, perDiem: n },
-                  })
-                }
-              />
-            </Grid2>
-
-            <Text style={ss.helperTitle}>{t("base_hour_mult")}</Text>
-            <Grid3>
-              <Num
-                label={t("mult_hea")}
-                value={project.tabela.multHEA ?? 1.5}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, multHEA: n || 1.5 })
-                }
-              />
-              <Num
-                label={t("mult_heb")}
-                value={project.tabela.multHEB ?? 2.0}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, multHEB: n || 2.0 })
-                }
-              />
-              <Num
-                label={t("mult_hr")}
-                value={project.tabela.multHR ?? 3.0}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, multHR: n || 3.0 })
-                }
-              />
-            </Grid3>
-
-            <Text style={ss.helperTitle}>{t("threshold_ab")}</Text>
-            <Grid3>
-              <Num
-                label={t("threshold_a")}
-                value={project.tabela.limiar_A ?? 11}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, limiar_A: n || 11 })
-                }
-              />
-              <Num
-                label={t("threshold_b")}
-                value={project.tabela.limiar_B ?? 18}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, limiar_B: n || 18 })
-                }
-              />
-              <Num
-                label={t("threshold_hr")}
-                value={project.tabela.limiar_HR ?? project.tabela.descanso_min ?? 11}
-                onChange={(n) =>
-                  setP("tabela", { ...project.tabela, limiar_HR: n || 11 })
-                }
-              />
-            </Grid3>
-          </Section>
-
-          <Section title={t("fiscal_section")} collapsible defaultCollapsed>
-            <Grid3>
-              <Num
-                label={taxLabels.incomeTax}
-                value={project.fiscal.IRS_percent}
-                onChange={(n) =>
-                  setP("fiscal", { ...project.fiscal, IRS_percent: n })
-                }
-              />
-              <Num
-                label={taxLabels.vat}
-                value={project.fiscal.IVA_percent}
-                onChange={(n) =>
-                  setP("fiscal", { ...project.fiscal, IVA_percent: n })
-                }
-              />
-            </Grid3>
-
-            <View style={{ marginTop: 4 }}>
-              <Text style={ss.label}>{t("observation")}</Text>
-              <TextInput
-                style={ss.input}
-                placeholder={t("fiscal_note_placeholder")}
-                placeholderTextColor={COLORS.sub}
-                value={project.fiscal.nota ?? ""}
-                onChangeText={(v) =>
-                  setP("fiscal", { ...project.fiscal, nota: v })
-                }
-              />
-            </View>
-
-            <View style={ss.disclaimerBox}>
-              <Text style={ss.disclaimerText}>{t("tax_disclaimer")}</Text>
-            </View>
-          </Section>
-
-          </View>
-          {/* Days grid (full width) */}
-          <View>
-
-          <Section
-            title={t("days")}
-            right={<Pill label={t("add_day")} onPress={addDia} />}
-          >
-            <ScrollView horizontal showsHorizontalScrollIndicator style={{ marginHorizontal: -4 }}>
-              <View style={{ minWidth: isWide ? 1180 : 1000 }}>
-                <View style={ss.tRowHead}>
-                  <Text style={[ss.tCellHead, ss.tcNum]}>#</Text>
-                  <Text style={[ss.tCellHead, ss.tcDate]}>{t("date")}</Text>
-                  <Text style={[ss.tCellHead, ss.tcDesc]}>{t("description")}</Text>
-                  <Text style={[ss.tCellHead, ss.tcTime]}>{t("start_time")}</Text>
-                  <Text style={[ss.tCellHead, ss.tcTime]}>{t("end_time")}</Text>
-                  <Text style={[ss.tCellHead, ss.tcTime]}>{t("meal_break")}</Text>
-                  <Text style={[ss.tCellHead, ss.tcTime]}>{t("dinner_break")}</Text>
-                  <Text style={[ss.tCellHead, ss.tcTransp]}>{t("transport_time")}</Text>
-                  <Text style={[ss.tCellHead, ss.tcHt]}>{t("label_ht")}</Text>
-                  {isWide && (
-                    <>
-                      <Text style={[ss.tCellHead, ss.tcExtra]}>{t("label_hea")}</Text>
-                      <Text style={[ss.tCellHead, ss.tcExtra]}>{t("label_heb")}</Text>
-                      <Text style={[ss.tCellHead, ss.tcExtra]}>{t("label_hr")}</Text>
-                    </>
-                  )}
-                  <Text style={[ss.tCellHead, ss.tcTotal]}>{t("day_total")}</Text>
-                  <Text style={[ss.tCellHead, ss.tcAct]} />
-                </View>
-                {project.dias.map((d, i) => {
-                  const c = calculos[i];
-                  return (
-                    <View key={i} style={[ss.tRow, i % 2 === 1 && ss.tRowAlt]}>
-                      <Text style={[ss.tCellNum, ss.tcNum]}>{i + 1}</Text>
-                      <View style={ss.tcDate}>
-                        <DateField compact value={d.data} onChangeText={(v) => updateDia(i, { data: v })} />
-                      </View>
-                      <View style={ss.tcDesc}>
-                        <Input compact value={d.descricao || ""} onChangeText={(v) => updateDia(i, { descricao: v })} />
-                      </View>
-                      <View style={ss.tcTime}>
-                        <TimeField compact value={d.inicio} onChangeText={(v) => updateDia(i, { inicio: v })} />
-                      </View>
-                      <View style={ss.tcTime}>
-                        <TimeField compact value={d.fim} onChangeText={(v) => updateDia(i, { fim: v })} />
-                      </View>
-                      <View style={ss.tcTime}>
-                        <TimeField compact value={d.refeicaoTrabalho} onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })} />
-                      </View>
-                      <View style={ss.tcTime}>
-                        <TimeField compact value={d.jantarTrabalho} onChangeText={(v) => updateDia(i, { jantarTrabalho: v })} />
-                      </View>
-                      <View style={ss.tcTransp}>
-                        <Num compact value={d.tempoTransporteMin ?? 0} onChange={(n) => updateDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })} />
-                      </View>
-                      <Text style={[ss.tCellVal, ss.tcHt]}>{minutesToHM(c?.HT_min ?? 0)}</Text>
-                      {isWide && (
-                        <>
-                          <Text style={[ss.tCellVal, ss.tcExtra]}>{minutesToHM(c?.HEA_min ?? 0)}</Text>
-                          <Text style={[ss.tCellVal, ss.tcExtra]}>{minutesToHM(c?.HEB_min ?? 0)}</Text>
-                          <Text style={[ss.tCellVal, ss.tcExtra]}>{minutesToHM(c?.HR_min ?? 0)}</Text>
-                        </>
-                      )}
-                      <Text style={[ss.tCellVal, ss.tcTotal, { fontWeight: "900" }]}>{CURRENCY} {(c?.totalDia ?? 0).toFixed(2)}</Text>
-                      <View style={[ss.tcAct, { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 }]}>
-                        <Pressable onPress={() => duplicateDia(i)} hitSlop={6} style={ss.tIconBtn}>
-                          <Text style={ss.tIconText}>⧉</Text>
-                        </Pressable>
-                        {i > 0 && (
-                          <Pressable onPress={() => removeDia(i)} hitSlop={6} style={ss.tIconBtn}>
-                            <Text style={[ss.tIconText, { color: COLORS.danger }]}>✕</Text>
-                          </Pressable>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
+            <Section title={t("fiscal_section")} collapsible defaultCollapsed>
+              <Grid3>
+                <Num label={taxLabels.incomeTax} value={project.fiscal.IRS_percent} onChange={(n) => setP("fiscal", { ...project.fiscal, IRS_percent: n })} />
+                <Num label={taxLabels.vat} value={project.fiscal.IVA_percent} onChange={(n) => setP("fiscal", { ...project.fiscal, IVA_percent: n })} />
+              </Grid3>
+              <View style={{ marginTop: 4 }}>
+                <Text style={ss.label}>{t("observation")}</Text>
+                <TextInput style={ss.input} placeholder={t("fiscal_note_placeholder")} placeholderTextColor={COLORS.sub} value={project.fiscal.nota ?? ""} onChangeText={(v) => setP("fiscal", { ...project.fiscal, nota: v })} />
               </View>
-            </ScrollView>
-
-            <Text style={ss.fieldHint}>{t("break_helper")}</Text>
-
-            <Pressable onPress={addDia} style={({ pressed }) => [ss.addRowBtn, pressed && { opacity: 0.85 }]}>
-              <Text style={ss.addRowText}>+ {t("add_day")}</Text>
-            </Pressable>
-          </Section>
-
+              <View style={ss.disclaimerBox}><Text style={ss.disclaimerText}>{t("tax_disclaimer")}</Text></View>
+            </Section>
           </View>
-          {/* end right column */}
-          </View>
-          {/* end two-column row */}
-
         </View>
       </ScrollView>
 
