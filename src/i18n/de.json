@@ -321,5 +321,7 @@
   "collapse_all": "Alle einklappen",
   "expand_all": "Alle ausklappen",
   "pick_date": "Datum wählen",
-  "today": "Heute"
+  "today": "Heute",
+  "conditions_profile": "Arbeitsbedingungen (Standard)",
+  "conditions_profile_hint": "Werden automatisch auf jedes neue Projekt angewendet. Pro Projekt anpassbar."
 }

@@ -660,13 +660,10 @@ export function buildPdfHtml(
             ${headerRow(s.role, safeStr(perfil.funcao))}
             ${headerRow(s.phone, safeStr(perfil.telefone))}
             ${headerRow(s.email, safeStr(perfil.email))}
-          </div>
-          <div class="box">
-            <div class="boxTitle">${escapeHtml(s.companySection)}</div>
-            ${headerRow(s.companyLabel, safeStr(perfil.empresa ?? ""))}
             ${headerRow(s.nif, safeStr(perfil.nif ?? ""))}
             ${headerRow(s.iban, safeStr(perfil.iban ?? ""))}
             ${headerRow(s.swift, safeStr(perfil.swift ?? ""))}
+            ${perfil.empresa ? headerRow(s.companyLabel, safeStr(perfil.empresa)) : ""}
           </div>
         </div>
 
@@ -698,10 +695,10 @@ export function buildPdfHtml(
           <th>${escapeHtml(s.overtimeB)}</th>
           <th class="h-blue">${escapeHtml(s.recoveryHours)}</th>
           <th>${escapeHtml(s.meal)}</th>
-          <th>${escapeHtml(s.perDiem)}</th>
           <th>${escapeHtml(s.telephone)}</th>
           <th class="h-olive">${escapeHtml(s.vehicle)}</th>
           <th class="h-purple">${escapeHtml(s.material)}</th>
+          <th>${escapeHtml(s.perDiem)}</th>
         </tr>
         <tr>
           <td>${fmt(salarioDia)}</td>
@@ -709,10 +706,10 @@ export function buildPdfHtml(
           <td>${fmt(vHEB)} <span class="mini">${escapeHtml(s.perHour)}</span></td>
           <td>${fmt(vHR)} <span class="mini">${escapeHtml(s.perHour)}</span></td>
           <td>${fmt(valRef)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
-          <td>${fmt(valPer)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
           <td>${fmt(valTel)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
           <td>${fmt(valViat)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
           <td>${fmt(valMat)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
+          <td>${fmt(valPer)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
         </tr>
       </table>
 

@@ -303,6 +303,7 @@ export async function createProject(): Promise<string> {
 
   const active = await getActiveProfile();
   const perfil = active ? blankPerfil(active as any) : blankPerfil();
+  const condicoesFromProfile = (active as any)?.condicoes || "";
 
   const projeto: ProjetoInfo = {
     filme: "",
@@ -324,6 +325,7 @@ export async function createProject(): Promise<string> {
     fiscal: { ...defaultFiscal(), ...preset.fiscal },
     dias: [defaultDia(today)],
     notas: "",
+    condicoes: condicoesFromProfile,
     updatedAt: new Date().toISOString(),
   };
 

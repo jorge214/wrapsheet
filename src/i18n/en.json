@@ -321,5 +321,7 @@
   "collapse_all": "Collapse all",
   "expand_all": "Expand all",
   "pick_date": "Pick date",
-  "today": "Today"
+  "today": "Today",
+  "conditions_profile": "Working conditions (default)",
+  "conditions_profile_hint": "Automatically applied to every new project. You can edit them per project."
 }

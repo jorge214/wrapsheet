@@ -321,5 +321,7 @@
   "collapse_all": "Recolher tudo",
   "expand_all": "Expandir tudo",
   "pick_date": "Escolher data",
-  "today": "Hoje"
+  "today": "Hoje",
+  "conditions_profile": "Condições de trabalho (padrão)",
+  "conditions_profile_hint": "Aplicam-se automaticamente a cada projeto novo. Você pode editá-las por projeto."
 }

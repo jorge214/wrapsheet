@@ -133,10 +133,6 @@ export default function ProjectEditor() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const saveTimer = useRef<any>(null);
 
-  // Collapsible day cards + desktop view mode
-  const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
-
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -145,9 +141,6 @@ export default function ProjectEditor() {
   const { setPreviewHtml, clearPreview, zoom, setZoom, actualZoom } = useLivePreview();
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
   const livePreview = isWide && Platform.OS === "web" && livePreviewEnabled;
-
-  // On desktop, two-column form only when live preview is NOT open
-  const twoColForm = isWide && !livePreview;
 
   // Clear preview when leaving this screen
   useEffect(() => { return () => clearPreview(); }, []);
@@ -451,14 +444,6 @@ export default function ProjectEditor() {
     setP("dias", dias);
   }
 
-  const toggleCollapse = (i: number) =>
-    setCollapsed((c) => ({ ...c, [i]: !c[i] }));
-  const setAllCollapsed = (v: boolean) => {
-    const next: Record<number, boolean> = {};
-    (projectRef.current?.dias ?? []).forEach((_, i) => (next[i] = v));
-    setCollapsed(next);
-  };
-
   function removeDia(i: number) {
     const p = projectRef.current!;
     if (p.dias.length <= 1) {
@@ -543,9 +528,6 @@ export default function ProjectEditor() {
       },
     ]);
   }
-
-  const allCollapsed =
-    project.dias.length > 0 && project.dias.every((_, i) => collapsed[i]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -687,13 +669,16 @@ export default function ProjectEditor() {
         </View>
 
         <View style={{ paddingHorizontal: PAGE_X }}>
-          {/* ── Two-column on wide screens ─────────────────────────────── */}
-          <View style={twoColForm ? { flexDirection: "row", gap: 20, alignItems: "flex-start" } : {}}>
+          {/* Single-column: header sections collapsed, grid full-width below */}
+          <View>
 
-          {/* LEFT column: settings sections */}
-          <View style={twoColForm ? { flex: 2 } : {}}>
+          {/* Header + settings sections */}
+          <View>
           <Section
             title={t("technician_profile")}
+            collapsible
+            defaultCollapsed
+            summary={project.perfil.nome || undefined}
             right={<Pill label={t("apply_profile")} onPress={handleApplyActiveProfile} />}
           >
             <Input
@@ -701,12 +686,12 @@ export default function ProjectEditor() {
               value={project.perfil.nome}
               onChangeText={(v) => setP("perfil", { ...project.perfil, nome: v })}
             />
-            <Input
-              label={t("email")}
-              value={project.perfil.email}
-              onChangeText={(v) => setP("perfil", { ...project.perfil, email: v })}
-            />
             <Grid2>
+              <Input
+                label={t("role")}
+                value={project.perfil.funcao}
+                onChangeText={(v) => setP("perfil", { ...project.perfil, funcao: v })}
+              />
               <Input
                 label={t("phone")}
                 value={project.perfil.telefone}
@@ -714,12 +699,12 @@ export default function ProjectEditor() {
                   setP("perfil", { ...project.perfil, telefone: v })
                 }
               />
-              <Input
-                label={t("nif")}
-                value={project.perfil.nif ?? ""}
-                onChangeText={(v) => setP("perfil", { ...project.perfil, nif: v })}
-              />
             </Grid2>
+            <Input
+              label={t("email")}
+              value={project.perfil.email}
+              onChangeText={(v) => setP("perfil", { ...project.perfil, email: v })}
+            />
             <Input
               label={t("department")}
               value={project.perfil.departamento}
@@ -727,10 +712,26 @@ export default function ProjectEditor() {
                 setP("perfil", { ...project.perfil, departamento: v })
               }
             />
+            <Grid2>
+              <Input
+                label={t("nif")}
+                value={project.perfil.nif ?? ""}
+                onChangeText={(v) => setP("perfil", { ...project.perfil, nif: v })}
+              />
+              <Input
+                label={t("iban")}
+                value={project.perfil.iban ?? ""}
+                onChangeText={(v) =>
+                  setP("perfil", { ...project.perfil, iban: v })
+                }
+              />
+            </Grid2>
             <Input
-              label={t("role")}
-              value={project.perfil.funcao}
-              onChangeText={(v) => setP("perfil", { ...project.perfil, funcao: v })}
+              label={t("swift")}
+              value={project.perfil.swift ?? ""}
+              onChangeText={(v) =>
+                setP("perfil", { ...project.perfil, swift: v })
+              }
             />
             <Input
               label={t("company")}
@@ -739,23 +740,13 @@ export default function ProjectEditor() {
                 setP("perfil", { ...project.perfil, empresa: v })
               }
             />
-            <Input
-              label={t("iban")}
-              value={project.perfil.iban ?? ""}
-              onChangeText={(v) =>
-                setP("perfil", { ...project.perfil, iban: v })
-              }
-            />
-            <Input
-              label={t("swift")}
-              value={project.perfil.swift ?? ""}
-              onChangeText={(v) =>
-                setP("perfil", { ...project.perfil, swift: v })
-              }
-            />
           </Section>
 
-          <Section title={t("project_section")}>
+          <Section
+            title={t("project_section")}
+            collapsible
+            summary={project.projeto.produtora || undefined}
+          >
             <Grid2>
               <Input
                 label={t("film_project")}
@@ -822,7 +813,7 @@ export default function ProjectEditor() {
             />
           </Section>
 
-          <Section title={t("table_params")}>
+          <Section title={t("table_params")} collapsible defaultCollapsed>
             <Grid3>
               <Num
                 label={t("salary_day")}
@@ -856,6 +847,16 @@ export default function ProjectEditor() {
                 }
               />
               <Num
+                label={t("allowance_phone")}
+                value={project.tabela.ajudas?.telefone ?? 0}
+                onChange={(n) =>
+                  setP("tabela", {
+                    ...project.tabela,
+                    ajudas: { ...project.tabela.ajudas, telefone: n },
+                  })
+                }
+              />
+              <Num
                 label={t("allowance_vehicle")}
                 value={project.tabela.ajudas?.viatura ?? 0}
                 onChange={(n) =>
@@ -865,6 +866,8 @@ export default function ProjectEditor() {
                   })
                 }
               />
+            </Grid3>
+            <Grid2>
               <Num
                 label={t("allowance_material")}
                 value={project.tabela.ajudas?.material ?? 0}
@@ -872,18 +875,6 @@ export default function ProjectEditor() {
                   setP("tabela", {
                     ...project.tabela,
                     ajudas: { ...project.tabela.ajudas, material: n },
-                  })
-                }
-              />
-            </Grid3>
-            <Grid2>
-              <Num
-                label={t("allowance_phone")}
-                value={project.tabela.ajudas?.telefone ?? 0}
-                onChange={(n) =>
-                  setP("tabela", {
-                    ...project.tabela,
-                    ajudas: { ...project.tabela.ajudas, telefone: n },
                   })
                 }
               />
@@ -950,7 +941,7 @@ export default function ProjectEditor() {
             </Grid3>
           </Section>
 
-          <Section title={t("fiscal_section")}>
+          <Section title={t("fiscal_section")} collapsible defaultCollapsed>
             <Grid3>
               <Num
                 label={taxLabels.incomeTax}
@@ -987,169 +978,91 @@ export default function ProjectEditor() {
           </Section>
 
           </View>
-          {/* RIGHT column: days */}
-          <View style={twoColForm ? { flex: 3 } : {}}>
+          {/* Days grid (full width) */}
+          <View>
 
           <Section
             title={t("days")}
-            right={
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {isWide && (
-                  <View style={ss.viewToggle}>
-                    <Pressable
-                      onPress={() => setViewMode("cards")}
-                      style={[ss.viewToggleBtn, viewMode === "cards" && ss.viewToggleBtnActive]}
-                    >
-                      <Text style={[ss.viewToggleText, viewMode === "cards" && ss.viewToggleTextActive]}>{t("view_cards")}</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => setViewMode("table")}
-                      style={[ss.viewToggleBtn, viewMode === "table" && ss.viewToggleBtnActive]}
-                    >
-                      <Text style={[ss.viewToggleText, viewMode === "table" && ss.viewToggleTextActive]}>{t("view_table")}</Text>
-                    </Pressable>
-                  </View>
-                )}
-                {(!isWide || viewMode === "cards") && project.dias.length > 1 && (
-                  <Pill
-                    label={allCollapsed ? t("expand_all") : t("collapse_all")}
-                    onPress={() => setAllCollapsed(!allCollapsed)}
-                  />
-                )}
-                <Pill label={t("add_day")} onPress={addDia} />
-              </View>
-            }
+            right={<Pill label={t("add_day")} onPress={addDia} />}
           >
-            {isWide && viewMode === "table" ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator style={{ marginHorizontal: -4 }}>
-                <View style={{ minWidth: 980 }}>
-                  <View style={ss.tRowHead}>
-                    <Text style={[ss.tCellHead, ss.tcNum]}>#</Text>
-                    <Text style={[ss.tCellHead, ss.tcDate]}>{t("date")}</Text>
-                    <Text style={[ss.tCellHead, ss.tcDesc]}>{t("description")}</Text>
-                    <Text style={[ss.tCellHead, ss.tcTime]}>{t("start_time")}</Text>
-                    <Text style={[ss.tCellHead, ss.tcTime]}>{t("end_time")}</Text>
-                    <Text style={[ss.tCellHead, ss.tcTime]}>{t("meal_break")}</Text>
-                    <Text style={[ss.tCellHead, ss.tcTime]}>{t("dinner_break")}</Text>
-                    <Text style={[ss.tCellHead, ss.tcTransp]}>{t("transport_time")}</Text>
-                    <Text style={[ss.tCellHead, ss.tcHt]}>{t("label_ht")}</Text>
-                    <Text style={[ss.tCellHead, ss.tcTotal]}>{t("day_total")}</Text>
-                    <Text style={[ss.tCellHead, ss.tcAct]} />
-                  </View>
-                  {project.dias.map((d, i) => {
-                    const c = calculos[i];
-                    return (
-                      <View key={i} style={[ss.tRow, i % 2 === 1 && ss.tRowAlt]}>
-                        <Text style={[ss.tCellNum, ss.tcNum]}>{i + 1}</Text>
-                        <View style={ss.tcDate}>
-                          <DateField compact value={d.data} onChangeText={(v) => updateDia(i, { data: v })} />
-                        </View>
-                        <View style={ss.tcDesc}>
-                          <Input compact value={d.descricao || ""} onChangeText={(v) => updateDia(i, { descricao: v })} />
-                        </View>
-                        <View style={ss.tcTime}>
-                          <TimeField compact value={d.inicio} onChangeText={(v) => updateDia(i, { inicio: v })} />
-                        </View>
-                        <View style={ss.tcTime}>
-                          <TimeField compact value={d.fim} onChangeText={(v) => updateDia(i, { fim: v })} />
-                        </View>
-                        <View style={ss.tcTime}>
-                          <TimeField compact value={d.refeicaoTrabalho} onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })} />
-                        </View>
-                        <View style={ss.tcTime}>
-                          <TimeField compact value={d.jantarTrabalho} onChangeText={(v) => updateDia(i, { jantarTrabalho: v })} />
-                        </View>
-                        <View style={ss.tcTransp}>
-                          <Num compact value={d.tempoTransporteMin ?? 0} onChange={(n) => updateDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })} />
-                        </View>
-                        <Text style={[ss.tCellVal, ss.tcHt]}>{minutesToHM(c?.HT_min ?? 0)}</Text>
-                        <Text style={[ss.tCellVal, ss.tcTotal, { fontWeight: "900" }]}>{CURRENCY} {(c?.totalDia ?? 0).toFixed(2)}</Text>
-                        <View style={[ss.tcAct, { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 }]}>
-                          <Pressable onPress={() => duplicateDia(i)} hitSlop={6} style={ss.tIconBtn}>
-                            <Text style={ss.tIconText}>⧉</Text>
-                          </Pressable>
-                          {i > 0 && (
-                            <Pressable onPress={() => removeDia(i)} hitSlop={6} style={ss.tIconBtn}>
-                              <Text style={[ss.tIconText, { color: COLORS.danger }]}>✕</Text>
-                            </Pressable>
-                          )}
-                        </View>
-                      </View>
-                    );
-                  })}
+            <ScrollView horizontal showsHorizontalScrollIndicator style={{ marginHorizontal: -4 }}>
+              <View style={{ minWidth: isWide ? 1180 : 1000 }}>
+                <View style={ss.tRowHead}>
+                  <Text style={[ss.tCellHead, ss.tcNum]}>#</Text>
+                  <Text style={[ss.tCellHead, ss.tcDate]}>{t("date")}</Text>
+                  <Text style={[ss.tCellHead, ss.tcDesc]}>{t("description")}</Text>
+                  <Text style={[ss.tCellHead, ss.tcTime]}>{t("start_time")}</Text>
+                  <Text style={[ss.tCellHead, ss.tcTime]}>{t("end_time")}</Text>
+                  <Text style={[ss.tCellHead, ss.tcTime]}>{t("meal_break")}</Text>
+                  <Text style={[ss.tCellHead, ss.tcTime]}>{t("dinner_break")}</Text>
+                  <Text style={[ss.tCellHead, ss.tcTransp]}>{t("transport_time")}</Text>
+                  <Text style={[ss.tCellHead, ss.tcHt]}>{t("label_ht")}</Text>
+                  {isWide && (
+                    <>
+                      <Text style={[ss.tCellHead, ss.tcExtra]}>{t("label_hea")}</Text>
+                      <Text style={[ss.tCellHead, ss.tcExtra]}>{t("label_heb")}</Text>
+                      <Text style={[ss.tCellHead, ss.tcExtra]}>{t("label_hr")}</Text>
+                    </>
+                  )}
+                  <Text style={[ss.tCellHead, ss.tcTotal]}>{t("day_total")}</Text>
+                  <Text style={[ss.tCellHead, ss.tcAct]} />
                 </View>
-              </ScrollView>
-            ) : (
-              project.dias.map((d, i) => {
-                const c = calculos[i];
-                const isCollapsed = !!collapsed[i];
-                return (
-                  <View key={i} style={ss.dayCard}>
-                    <View style={ss.dayHeader}>
-                      <Pressable
-                        onPress={() => toggleCollapse(i)}
-                        hitSlop={8}
-                        style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: 8 }}
-                      >
-                        <Text style={ss.dayChevron}>{isCollapsed ? "▸" : "▾"}</Text>
-                        <Text style={ss.dayHeaderTitle}>{t("day_n", { n: i + 1 })}</Text>
-                        {isCollapsed && (
-                          <Text style={ss.daySummary} numberOfLines={1}>
-                            {(formatDateDisplay(d.data, i18n.language) || d.data || "—")} · {d.inicio}–{d.fim} · {CURRENCY} {(c?.totalDia ?? 0).toFixed(2)}
-                          </Text>
-                        )}
-                      </Pressable>
-                      <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
-                        <Pressable
-                          onPress={() => duplicateDia(i)}
-                          style={({ pressed }) => [ss.pillGhost, pressed && { opacity: 0.85 }]}
-                        >
-                          <Text style={ss.pillGhostText}>{t("duplicate_day")}</Text>
+                {project.dias.map((d, i) => {
+                  const c = calculos[i];
+                  return (
+                    <View key={i} style={[ss.tRow, i % 2 === 1 && ss.tRowAlt]}>
+                      <Text style={[ss.tCellNum, ss.tcNum]}>{i + 1}</Text>
+                      <View style={ss.tcDate}>
+                        <DateField compact value={d.data} onChangeText={(v) => updateDia(i, { data: v })} />
+                      </View>
+                      <View style={ss.tcDesc}>
+                        <Input compact value={d.descricao || ""} onChangeText={(v) => updateDia(i, { descricao: v })} />
+                      </View>
+                      <View style={ss.tcTime}>
+                        <TimeField compact value={d.inicio} onChangeText={(v) => updateDia(i, { inicio: v })} />
+                      </View>
+                      <View style={ss.tcTime}>
+                        <TimeField compact value={d.fim} onChangeText={(v) => updateDia(i, { fim: v })} />
+                      </View>
+                      <View style={ss.tcTime}>
+                        <TimeField compact value={d.refeicaoTrabalho} onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })} />
+                      </View>
+                      <View style={ss.tcTime}>
+                        <TimeField compact value={d.jantarTrabalho} onChangeText={(v) => updateDia(i, { jantarTrabalho: v })} />
+                      </View>
+                      <View style={ss.tcTransp}>
+                        <Num compact value={d.tempoTransporteMin ?? 0} onChange={(n) => updateDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })} />
+                      </View>
+                      <Text style={[ss.tCellVal, ss.tcHt]}>{minutesToHM(c?.HT_min ?? 0)}</Text>
+                      {isWide && (
+                        <>
+                          <Text style={[ss.tCellVal, ss.tcExtra]}>{minutesToHM(c?.HEA_min ?? 0)}</Text>
+                          <Text style={[ss.tCellVal, ss.tcExtra]}>{minutesToHM(c?.HEB_min ?? 0)}</Text>
+                          <Text style={[ss.tCellVal, ss.tcExtra]}>{minutesToHM(c?.HR_min ?? 0)}</Text>
+                        </>
+                      )}
+                      <Text style={[ss.tCellVal, ss.tcTotal, { fontWeight: "900" }]}>{CURRENCY} {(c?.totalDia ?? 0).toFixed(2)}</Text>
+                      <View style={[ss.tcAct, { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 }]}>
+                        <Pressable onPress={() => duplicateDia(i)} hitSlop={6} style={ss.tIconBtn}>
+                          <Text style={ss.tIconText}>⧉</Text>
                         </Pressable>
                         {i > 0 && (
-                          <Pressable
-                            onPress={() => removeDia(i)}
-                            style={({ pressed }) => [ss.pillDanger, pressed && { opacity: 0.85 }]}
-                          >
-                            <Text style={ss.pillDangerText}>{t("remove")}</Text>
+                          <Pressable onPress={() => removeDia(i)} hitSlop={6} style={ss.tIconBtn}>
+                            <Text style={[ss.tIconText, { color: COLORS.danger }]}>✕</Text>
                           </Pressable>
                         )}
                       </View>
                     </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
 
-                    {!isCollapsed && (
-                      <>
-                        <Grid2>
-                          <DateField label={t("date")} value={d.data} onChangeText={(v) => updateDia(i, { data: v })} />
-                          <Input label={t("description")} value={d.descricao || ""} onChangeText={(v) => updateDia(i, { descricao: v })} />
-                        </Grid2>
-                        <Grid2>
-                          <TimeField label={t("start_time")} value={d.inicio} onChangeText={(v) => updateDia(i, { inicio: v })} />
-                          <TimeField label={t("end_time")} value={d.fim} onChangeText={(v) => updateDia(i, { fim: v })} />
-                        </Grid2>
-                        <Grid3>
-                          <TimeField label={t("meal_break")} value={d.refeicaoTrabalho} onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })} />
-                          <TimeField label={t("dinner_break")} value={d.jantarTrabalho} onChangeText={(v) => updateDia(i, { jantarTrabalho: v })} />
-                          <Num
-                            label={t("transport_time")}
-                            value={d.tempoTransporteMin ?? 0}
-                            onChange={(n) => updateDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })}
-                          />
-                        </Grid3>
-                        <Text style={ss.fieldHint}>{t("break_helper")}</Text>
-                        <View style={ss.metricsRow}>
-                          <Metric label={t("label_ht")} value={minutesToHM(c?.HT_min ?? 0)} />
-                          <Metric label={t("label_hea")} value={minutesToHM(c?.HEA_min ?? 0)} />
-                          <Metric label={t("label_heb")} value={minutesToHM(c?.HEB_min ?? 0)} />
-                          <Metric label={t("label_hr")} value={minutesToHM(c?.HR_min ?? 0)} />
-                          <Metric label={t("day_total")} value={`${CURRENCY} ${(c?.totalDia ?? 0).toFixed(2)}`} highlight />
-                        </View>
-                      </>
-                    )}
-                  </View>
-                );
-              })
-            )}
+            <Text style={ss.fieldHint}>{t("break_helper")}</Text>
+
+            <Pressable onPress={addDia} style={({ pressed }) => [ss.addRowBtn, pressed && { opacity: 0.85 }]}>
+              <Text style={ss.addRowText}>+ {t("add_day")}</Text>
+            </Pressable>
           </Section>
 
           </View>
@@ -1364,18 +1277,40 @@ function Section({
   title,
   children,
   right,
+  collapsible,
+  defaultCollapsed,
+  summary,
 }: {
   title: string;
   children: React.ReactNode;
   right?: React.ReactNode;
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
+  summary?: string;
 }) {
+  const [open, setOpen] = useState(!defaultCollapsed);
+  const showBody = collapsible ? open : true;
   return (
     <View style={ss.section}>
       <View style={ss.sectionHeader}>
-        <Text style={ss.sectionTitle}>{title}</Text>
+        {collapsible ? (
+          <Pressable
+            onPress={() => setOpen((v) => !v)}
+            hitSlop={8}
+            style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: 8 }}
+          >
+            <Text style={ss.sectionChevron}>{open ? "▾" : "▸"}</Text>
+            <Text style={ss.sectionTitle} numberOfLines={1}>{title}</Text>
+            {!open && summary ? (
+              <Text style={ss.sectionSummary} numberOfLines={1}>{summary}</Text>
+            ) : null}
+          </Pressable>
+        ) : (
+          <Text style={ss.sectionTitle}>{title}</Text>
+        )}
         {right}
       </View>
-      {children}
+      {showBody && children}
     </View>
   );
 }
@@ -2213,4 +2148,22 @@ const ss = StyleSheet.create({
   tcHt: { width: 72 },
   tcTotal: { width: 104 },
   tcAct: { width: 76 },
+  tcExtra: { width: 60 },
+
+  /* ---- Section collapse ---- */
+  sectionChevron: { fontSize: 13, color: COLORS.sub, fontWeight: "900", width: 14 },
+  sectionSummary: { fontSize: 13, color: COLORS.sub, fontWeight: "600", flexShrink: 1 },
+
+  /* ---- Add day (grid footer) ---- */
+  addRowBtn: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: COLORS.text,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.card,
+  },
+  addRowText: { color: COLORS.text, fontWeight: "900", fontSize: 14 },
 });

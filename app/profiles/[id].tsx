@@ -33,6 +33,8 @@ function ProfileField({
   placeholder,
   keyboardType,
   autoCapitalize,
+  multiline,
+  hint,
   COLORS,
   styles,
 }: {
@@ -43,21 +45,25 @@ function ProfileField({
   placeholder?: string;
   keyboardType?: any;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  multiline?: boolean;
+  hint?: string;
   COLORS: any;
   styles: any;
 }) {
   return (
     <View style={styles.fieldWrapper}>
       <Text style={styles.fieldLabel}>{label}</Text>
+      {hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
       {editing ? (
         <TextInput
           value={value ?? ""}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={COLORS.sub}
-          style={styles.fieldInput}
+          style={[styles.fieldInput, multiline && { minHeight: 90, textAlignVertical: "top" }]}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          multiline={multiline}
         />
       ) : (
         <Text style={styles.fieldValue}>{value || "—"}</Text>
@@ -234,6 +240,18 @@ export default function ProfileEditScreen() {
           <ProfileField label={t("nif", { defaultValue: "NIF" })} value={p.nif} editing={editing} onChangeText={(v) => setP({ ...p, nif: v })} placeholder={t("nif_placeholder")} keyboardType="number-pad" autoCapitalize="none" COLORS={COLORS} styles={s} />
           <ProfileField label={t("iban", { defaultValue: "IBAN" })} value={p.iban} editing={editing} onChangeText={(v) => setP({ ...p, iban: v })} placeholder={t("iban_placeholder")} autoCapitalize="characters" COLORS={COLORS} styles={s} />
           <ProfileField label={t("swift", { defaultValue: "SWIFT / BIC" })} value={p.swift} editing={editing} onChangeText={(v) => setP({ ...p, swift: v })} placeholder={t("swift_placeholder")} autoCapitalize="characters" COLORS={COLORS} styles={s} />
+          <ProfileField
+            label={t("conditions_profile", { defaultValue: "Condições de trabalho (predefinição)" })}
+            hint={t("conditions_profile_hint", { defaultValue: "Aplicam-se automaticamente a cada projeto novo. Podes editá-las por projeto." })}
+            value={p.condicoes}
+            editing={editing}
+            onChangeText={(v) => setP({ ...p, condicoes: v })}
+            placeholder={t("conditions_pdf_placeholder")}
+            autoCapitalize="sentences"
+            multiline
+            COLORS={COLORS}
+            styles={s}
+          />
         </View>
 
         {!editing && (
@@ -289,6 +307,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
 
     fieldWrapper: { marginBottom: 10 },
     fieldLabel: { color: COLORS.sub, fontSize: 12, fontWeight: "900", marginBottom: 6 },
+    fieldHint: { color: COLORS.sub, fontSize: 11, marginBottom: 6, fontStyle: "italic" },
     fieldValue: {
       fontSize: 16,
       color: COLORS.text,

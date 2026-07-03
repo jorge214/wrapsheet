@@ -12,6 +12,7 @@ export type Profile = {
   nif?: string;
   iban?: string;
   swift?: string;
+  condicoes?: string;
 };
 
 /* ---------- Keys ---------- */
@@ -31,6 +32,7 @@ function BLANK(): Profile {
     nif: "",
     iban: "",
     swift: "",
+    condicoes: "",
   };
 }
 
