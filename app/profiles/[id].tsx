@@ -316,6 +316,20 @@ export default function ProfileEditScreen() {
           <NumField label={`${gs.perDiem} (€)`} value={fixas.perDiem} editing={editing} onChange={(n) => setFixas({ perDiem: n })} COLORS={COLORS} styles={s} />
         </View>
 
+        {/* Regras de horas extra (a partir de que hora se cobra o quê) */}
+        <View style={s.card}>
+          <Text style={s.fieldLabel}>
+            {t("overtime_rules_title", { defaultValue: "Regras de horas extra" })}
+          </Text>
+          <Text style={s.fieldHint}>
+            {t("overtime_rules_hint", { defaultValue: "A partir de que hora se cobra cada coisa. Predefinição igual ao PDF." })}
+          </Text>
+          <NumField label={t("cond_base_hours", { defaultValue: "Horas do dia base" })} value={fixas.hDia} editing={editing} onChange={(n) => setFixas({ hDia: n })} COLORS={COLORS} styles={s} />
+          <NumField label={t("cond_hea_from_hour", { defaultValue: "HE-A a partir da hora" })} value={fixas.heaFromHour} editing={editing} onChange={(n) => setFixas({ heaFromHour: n })} COLORS={COLORS} styles={s} />
+          <NumField label={t("cond_heb_from_hour", { defaultValue: "HE-B a partir da hora" })} value={fixas.hebFromHour} editing={editing} onChange={(n) => setFixas({ hebFromHour: n })} COLORS={COLORS} styles={s} />
+          <NumField label={t("cond_hr_rest_below", { defaultValue: "Recuperação se descanso inferior a (h)" })} value={fixas.hrRestBelow} editing={editing} onChange={(n) => setFixas({ hrRestBelow: n })} COLORS={COLORS} styles={s} />
+        </View>
+
         {!editing && (
           <Pressable onPress={handleDelete} style={({ pressed }) => [s.deleteBtn, pressed && { opacity: 0.85 }]}>
             <Text style={s.deleteBtnText}>

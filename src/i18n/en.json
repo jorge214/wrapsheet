@@ -331,5 +331,11 @@
   "open_fullscreen": "Open sheet in full screen",
   "open_fullscreen_hint": "Rotate your phone to fill in the table more easily.",
   "rotate_hint": "Rotate your phone to landscape to see the sheet bigger.",
-  "open_sheet_edit": "Open sheet (view & edit)"
+  "open_sheet_edit": "Open sheet (view & edit)",
+  "overtime_rules_title": "Overtime rules",
+  "overtime_rules_hint": "From which hour each is charged. Defaults match the PDF.",
+  "cond_base_hours": "Base day hours",
+  "cond_hea_from_hour": "Overtime A from hour",
+  "cond_heb_from_hour": "Overtime B from hour",
+  "cond_hr_rest_below": "Recovery if rest below (h)"
 }

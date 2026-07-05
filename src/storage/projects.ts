@@ -41,6 +41,7 @@ export type Tabela = {
   rateHR?: number;
   limiar_A?: number;
   limiar_B?: number;
+  limiar_HR?: number;
   ajudas?: Ajudas;
 };
 
@@ -333,6 +334,11 @@ export async function createProject(): Promise<string> {
     rateHEA: fixas.rateHEA,
     rateHEB: fixas.rateHEB,
     rateHR: fixas.rateHR,
+    // Regras de horas extra (predefinição = como no PDF: HE-A 12ª h, HE-B 19ª h, HR < 10h)
+    H_dia: fixas.hDia ?? baseTabela.H_dia,
+    limiar_A: (fixas.heaFromHour ?? 12) - 1,
+    limiar_B: (fixas.hebFromHour ?? 19) - 1,
+    limiar_HR: fixas.hrRestBelow ?? 10,
     ajudas: {
       ...baseTabela.ajudas!,
       refeicao: fixas.refeicao ?? baseTabela.ajudas!.refeicao,

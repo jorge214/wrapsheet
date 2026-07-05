@@ -458,6 +458,10 @@ export default function ProjectEditor() {
     if (fx.rateHEA != null) patch.rateHEA = fx.rateHEA;
     if (fx.rateHEB != null) patch.rateHEB = fx.rateHEB;
     if (fx.rateHR != null) patch.rateHR = fx.rateHR;
+    if (fx.hDia != null) patch.H_dia = fx.hDia;
+    if (fx.heaFromHour != null) patch.limiar_A = fx.heaFromHour - 1;
+    if (fx.hebFromHour != null) patch.limiar_B = fx.hebFromHour - 1;
+    if (fx.hrRestBelow != null) patch.limiar_HR = fx.hrRestBelow;
     if (fx.refeicao != null) patch.ajudas.refeicao = fx.refeicao;
     if (fx.telefone != null) patch.ajudas.telefone = fx.telefone;
     if (fx.viatura != null) patch.ajudas.viatura = fx.viatura;

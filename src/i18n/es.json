@@ -331,5 +331,11 @@
   "open_fullscreen": "Abrir hoja en pantalla completa",
   "open_fullscreen_hint": "Gira el teléfono para rellenar mejor la tabla.",
   "rotate_hint": "Gira el teléfono en horizontal para ver la hoja más grande.",
-  "open_sheet_edit": "Abrir hoja (ver y editar)"
+  "open_sheet_edit": "Abrir hoja (ver y editar)",
+  "overtime_rules_title": "Reglas de horas extra",
+  "overtime_rules_hint": "Desde qué hora se cobra cada cosa. Los valores por defecto son como el PDF.",
+  "cond_base_hours": "Horas del día base",
+  "cond_hea_from_hour": "HE-A desde la hora",
+  "cond_heb_from_hour": "HE-B desde la hora",
+  "cond_hr_rest_below": "Recuperación si descanso inferior a (h)"
 }

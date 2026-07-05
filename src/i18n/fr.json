@@ -331,5 +331,11 @@
   "open_fullscreen": "Ouvrir la feuille en plein écran",
   "open_fullscreen_hint": "Tournez le téléphone pour mieux remplir le tableau.",
   "rotate_hint": "Tournez le téléphone à l'horizontale pour voir la feuille en plus grand.",
-  "open_sheet_edit": "Ouvrir la feuille (voir et modifier)"
+  "open_sheet_edit": "Ouvrir la feuille (voir et modifier)",
+  "overtime_rules_title": "Règles d'heures supplémentaires",
+  "overtime_rules_hint": "À partir de quelle heure chaque élément est facturé. Valeurs par défaut comme le PDF.",
+  "cond_base_hours": "Heures du jour de base",
+  "cond_hea_from_hour": "HS-A à partir de l'heure",
+  "cond_heb_from_hour": "HS-B à partir de l'heure",
+  "cond_hr_rest_below": "Récupération si repos inférieur à (h)"
 }

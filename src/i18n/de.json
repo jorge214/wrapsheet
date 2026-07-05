@@ -331,5 +331,11 @@
   "open_fullscreen": "Blatt im Vollbild öffnen",
   "open_fullscreen_hint": "Drehe das Telefon, um die Tabelle besser auszufüllen.",
   "rotate_hint": "Drehe das Telefon ins Querformat, um das Blatt größer zu sehen.",
-  "open_sheet_edit": "Blatt öffnen (ansehen & bearbeiten)"
+  "open_sheet_edit": "Blatt öffnen (ansehen & bearbeiten)",
+  "overtime_rules_title": "Überstundenregeln",
+  "overtime_rules_hint": "Ab welcher Stunde was berechnet wird. Standardwerte wie im PDF.",
+  "cond_base_hours": "Stunden des Basistags",
+  "cond_hea_from_hour": "Überstunden A ab Stunde",
+  "cond_heb_from_hour": "Überstunden B ab Stunde",
+  "cond_hr_rest_below": "Erholung wenn Ruhe unter (Std.)"
 }

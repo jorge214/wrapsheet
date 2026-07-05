@@ -36,15 +36,15 @@ const C = {
 
 /* ---------------- Day-table column widths ---------------- */
 const W = {
-  desc: 130, data: 104, sal: 72,
-  ini: 56, ref: 56, fim: 56, jan: 56, tra: 62,
+  desc: 130, data: 104, sal: 78,
+  ini: 60, ref: 60, fim: 60, tra: 64,
   ht: 78, hd: 78,
   aRef: 64, aPer: 64, aTel: 64, aViat: 64, aMat: 64,
   heaT: 46, heaV: 60, hebT: 46, hebV: 60, hrT: 46, hrV: 60,
   tot: 86,
 };
 export const SHEET_W =
-  W.desc + W.data + W.sal + W.ini + W.ref + W.fim + W.jan + W.tra + W.ht + W.hd +
+  W.desc + W.data + W.sal + W.ini + W.ref + W.fim + W.tra + W.ht + W.hd +
   W.aRef + W.aPer + W.aTel + W.aViat + W.aMat + W.heaT + W.heaV + W.hebT + W.hebV + W.hrT + W.hrV + W.tot;
 
 /* row heights (fixed → keeps every column aligned) */
@@ -229,37 +229,40 @@ function CellNum({ value, onChange }: { value: number; onChange: (n: number) => 
     />
   );
 }
-function CellMoney({ value, onChange, align = "right", placeholder }: { value: number; onChange: (n: number) => void; align?: "left" | "right" | "center"; placeholder?: string }) {
+function CellMoney({ value, onChange, align = "right", placeholder, unit }: { value: number; onChange: (n: number) => void; align?: "left" | "right" | "center"; placeholder?: string; unit?: string }) {
   const [text, setText] = useState(String(value ?? 0));
   const focused = React.useRef(false);
   useEffect(() => {
     if (!focused.current && Number(text.replace(",", ".")) !== Number(value)) setText(String(value ?? 0));
   }, [value]);
   return (
-    <TextInput
-      style={[sh.cellInput, { textAlign: align }]}
-      value={text}
-      onFocus={() => { focused.current = true; }}
-      // Ao sair do campo, um valor vazio volta a 0 (não fica em branco)
-      onBlur={() => { focused.current = false; setText(String(Number(text.replace(",", ".")) || 0)); }}
-      onChangeText={(v) => { setText(v); onChange(Number(v.replace(",", ".")) || 0); }}
-      keyboardType="numeric"
-      placeholder={placeholder}
-      placeholderTextColor={C.sub}
-    />
+    <View style={sh.moneyRow}>
+      <TextInput
+        style={[sh.cellInput, { textAlign: align, flex: 1 }]}
+        value={text}
+        onFocus={() => { focused.current = true; }}
+        // Ao sair do campo, um valor vazio volta a 0 (não fica em branco)
+        onBlur={() => { focused.current = false; setText(String(Number(text.replace(",", ".")) || 0)); }}
+        onChangeText={(v) => { setText(v); onChange(Number(v.replace(",", ".")) || 0); }}
+        keyboardType="numeric"
+        placeholder={placeholder}
+        placeholderTextColor={C.sub}
+      />
+      {unit ? <Text style={sh.curSuffix}>{unit}</Text> : null}
+    </View>
   );
 }
 /** Salário global (linha de taxas). Semeia as taxas €/h ao sair do campo. */
-function SalaryRateCell({ value, onChange, onCommit }: { value: number; onChange: (n: number) => void; onCommit: (n: number) => void }) {
+function SalaryRateCell({ value, onChange, onCommit, unit }: { value: number; onChange: (n: number) => void; onCommit: (n: number) => void; unit?: string }) {
   const [text, setText] = useState(String(value ?? 0));
   const focused = React.useRef(false);
   useEffect(() => {
     if (!focused.current && Number(text.replace(",", ".")) !== Number(value)) setText(String(value ?? 0));
   }, [value]);
   return (
-    <View style={sh.rateCell}>
+    <View style={[sh.rateCell, sh.moneyRow]}>
       <TextInput
-        style={[sh.cellInput, { textAlign: "center" }]}
+        style={[sh.cellInput, { textAlign: "center", flex: 1 }]}
         value={text}
         onFocus={() => { focused.current = true; }}
         onBlur={() => {
@@ -272,29 +275,33 @@ function SalaryRateCell({ value, onChange, onCommit }: { value: number; onChange
         keyboardType="numeric"
         placeholderTextColor={C.sub}
       />
+      {unit ? <Text style={sh.curSuffix}>{unit}</Text> : null}
     </View>
   );
 }
 /** Salário por dia: editável. Vazio = herda o salário global (mostrado em cinzento). */
-function DaySalaryCell({ override, placeholder, onChange }: { override?: number; placeholder: string; onChange: (n: number | undefined) => void }) {
+function DaySalaryCell({ override, placeholder, onChange, unit }: { override?: number; placeholder: string; onChange: (n: number | undefined) => void; unit?: string }) {
   const [text, setText] = useState(override != null ? String(override) : "");
   const focused = React.useRef(false);
   useEffect(() => { if (!focused.current) setText(override != null ? String(override) : ""); }, [override]);
   return (
-    <TextInput
-      style={[sh.cellInput, { textAlign: "right" }]}
-      value={text}
-      placeholder={placeholder}
-      placeholderTextColor={C.sub}
-      onFocus={() => { focused.current = true; }}
-      onBlur={() => { focused.current = false; setText(override != null ? String(override) : ""); }}
-      onChangeText={(v) => {
-        setText(v);
-        if (v.trim() === "") onChange(undefined);
-        else onChange(Number(v.replace(",", ".")) || 0);
-      }}
-      keyboardType="numeric"
-    />
+    <View style={sh.moneyRow}>
+      <TextInput
+        style={[sh.cellInput, { textAlign: "right", flex: 1 }]}
+        value={text}
+        placeholder={placeholder}
+        placeholderTextColor={C.sub}
+        onFocus={() => { focused.current = true; }}
+        onBlur={() => { focused.current = false; setText(override != null ? String(override) : ""); }}
+        onChangeText={(v) => {
+          setText(v);
+          if (v.trim() === "") onChange(undefined);
+          else onChange(Number(v.replace(",", ".")) || 0);
+        }}
+        keyboardType="numeric"
+      />
+      {unit ? <Text style={sh.curSuffix}>{unit}</Text> : null}
+    </View>
   );
 }
 function CellDate({ value, lang, onChangeText }: { value: string; lang: string; onChangeText: (v: string) => void }) {
@@ -418,12 +425,13 @@ export default function EditableSheet(props: Props) {
   const emitidoA = `${String(today.getDate()).padStart(2, "0")}-${String(today.getMonth() + 1).padStart(2, "0")}-${today.getFullYear()}`;
   const mesNome = monthName(projeto.mes, locale);
 
-  const dinnerLabel = locale.startsWith("en") ? "DINNER" : locale.startsWith("es") ? "CENA" : locale.startsWith("fr") ? "DÎNER" : locale.startsWith("de") ? "ABEND" : locale.startsWith("it") ? "CENA" : "JANTAR";
   const transpLabel = "TRANSP.";
+  // Símbolo da moeda (€ por defeito, £ se a região fiscal for GBP/UK)
+  const curSym = currency === "GBP" ? "£" : currency === "USD" ? "$" : "€";
 
-  // Rate cell: editable money value
+  // Rate cell: editable money value com símbolo da moeda
   const RateEdit = ({ value, onChange }: { value: number; onChange: (n: number) => void }) => (
-    <View style={sh.rateCell}><CellMoney value={value} onChange={onChange} align="center" /></View>
+    <View style={sh.rateCell}><CellMoney value={value} onChange={onChange} align="center" unit={curSym} /></View>
   );
   return (
     <View style={{ width: SHEET_W }}>
@@ -492,6 +500,7 @@ export default function EditableSheet(props: Props) {
         <View style={{ flexDirection: "row" }}>
           <SalaryRateCell
             value={salarioDia}
+            unit={curSym}
             onChange={(n) => onTabela({ salarioDia: n })}
             onCommit={(n) => {
               // Semeia as taxas €/h a partir do salário APENAS na 1.ª vez (se ainda
@@ -523,7 +532,7 @@ export default function EditableSheet(props: Props) {
           <HCell w={W.desc} h={H_HEAD1} label={s.day} />
           <HCell w={W.data} h={H_HEAD1} label={s.date} />
           <HCell w={W.sal} h={H_HEAD1} label={s.salary} />
-          <HCell w={W.ini + W.ref + W.fim + W.jan + W.tra} h={H_HEAD1} label={s.schedule} />
+          <HCell w={W.ini + W.ref + W.fim + W.tra} h={H_HEAD1} label={s.schedule} />
           <HCell w={W.ht + W.hd} h={H_HEAD1} label={s.totalHours} />
           <HCell w={W.aRef} h={H_HEAD1} label={s.meal} />
           <HCell w={W.aPer} h={H_HEAD1} label={s.perDiem} />
@@ -543,7 +552,6 @@ export default function EditableSheet(props: Props) {
           <HCell w={W.ini} h={H_HEAD2} label={s.start} bg={C.subGrey} color={C.text} small />
           <HCell w={W.ref} h={H_HEAD2} label={s.mealBreak} bg={C.subGrey} color={C.text} small />
           <HCell w={W.fim} h={H_HEAD2} label={s.end} bg={C.subGrey} color={C.text} small />
-          <HCell w={W.jan} h={H_HEAD2} label={dinnerLabel} bg={C.subGrey} color={C.text} small />
           <HCell w={W.tra} h={H_HEAD2} label={transpLabel} bg={C.subGrey} color={C.text} small />
           <HCell w={W.ht} h={H_HEAD2} label={s.workHours} bg={C.subGrey} color={C.text} small />
           <HCell w={W.hd} h={H_HEAD2} label={s.restHours} bg={C.subBlue} color={C.blueTxt} small />
@@ -578,11 +586,10 @@ export default function EditableSheet(props: Props) {
                 </View>
               </TD>
               <TD w={W.data}><CellDate value={d.data} lang={locale} onChangeText={(v) => onDia(i, { data: v })} /></TD>
-              <TD w={W.sal}><DaySalaryCell override={d.salarioDia} placeholder={money(salarioDia)} onChange={(n) => onDia(i, { salarioDia: n })} /></TD>
+              <TD w={W.sal}><DaySalaryCell override={d.salarioDia} placeholder={money(salarioDia)} unit={curSym} onChange={(n) => onDia(i, { salarioDia: n })} /></TD>
               <TD w={W.ini}><CellTime value={d.inicio} onChangeText={(v) => onDia(i, { inicio: v })} /></TD>
               <TD w={W.ref}><CellTime value={d.refeicaoTrabalho} onChangeText={(v) => onDia(i, { refeicaoTrabalho: v })} /></TD>
               <TD w={W.fim}><CellTime value={d.fim} onChangeText={(v) => onDia(i, { fim: v })} /></TD>
-              <TD w={W.jan}><CellTime value={d.jantarTrabalho} onChangeText={(v) => onDia(i, { jantarTrabalho: v })} /></TD>
               <TD w={W.tra}><CellNum value={d.tempoTransporteMin ?? 0} onChange={(n) => onDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })} /></TD>
               <TD w={W.ht} calc><CalcTxt>{minutesToHM(c?.HT_min ?? 0)}</CalcTxt></TD>
               <TD w={W.hd} calc><CalcTxt blue>{minutesToHM(c?.HD_min ?? 0)}</CalcTxt></TD>
@@ -683,6 +690,8 @@ const sh = StyleSheet.create({
   calcTxt: { fontSize: 11, color: C.text, paddingHorizontal: 4 },
   calcStrong: { fontWeight: "900" },
 
+  moneyRow: { flexDirection: "row", alignItems: "center", flex: 1 },
+  curSuffix: { fontSize: 10, fontWeight: "700", color: C.sub, paddingRight: 4, paddingLeft: 1 },
   cellInput: { paddingHorizontal: 4, paddingVertical: 6, fontSize: 11, color: C.text },
   cellInputBad: { backgroundColor: "#FFF0F0", color: C.danger, fontWeight: "700" },
   cellDate: { paddingHorizontal: 4, justifyContent: "center", flex: 1 },

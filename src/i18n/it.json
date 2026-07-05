@@ -331,5 +331,11 @@
   "open_fullscreen": "Apri il foglio a schermo intero",
   "open_fullscreen_hint": "Ruota il telefono per compilare meglio la tabella.",
   "rotate_hint": "Ruota il telefono in orizzontale per vedere il foglio più grande.",
-  "open_sheet_edit": "Apri il foglio (vedi e modifica)"
+  "open_sheet_edit": "Apri il foglio (vedi e modifica)",
+  "overtime_rules_title": "Regole degli straordinari",
+  "overtime_rules_hint": "Da quale ora si addebita ciascuna voce. I valori predefiniti sono come nel PDF.",
+  "cond_base_hours": "Ore della giornata base",
+  "cond_hea_from_hour": "Straordinario A dall'ora",
+  "cond_heb_from_hour": "Straordinario B dall'ora",
+  "cond_hr_rest_below": "Recupero se riposo inferiore a (h)"
 }

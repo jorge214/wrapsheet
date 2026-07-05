@@ -24,6 +24,11 @@ export type Profile = {
     viatura?: number;
     material?: number;
     perDiem?: number;
+    // Regras de horas extra (a partir de que hora se cobra o quê)
+    hDia?: number;      // horas do dia base (default 11)
+    heaFromHour?: number; // HE-A a partir desta hora de trabalho (default 12)
+    hebFromHour?: number; // HE-B a partir desta hora de trabalho (default 19)
+    hrRestBelow?: number; // Recuperação se descanso entre dias < N horas (default 10)
   };
 };
 

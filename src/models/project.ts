@@ -25,6 +25,7 @@ export type Tabela = {
   rateHR?: number;
   limiar_A?: number;
   limiar_B?: number;
+  limiar_HR?: number;
   arredondarMeiasHoras?: boolean;
   ajudas?: { refeicao?: number; viatura?: number; material?: number; telefone?: number; perDiem?: number };
 };
