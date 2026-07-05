@@ -323,5 +323,6 @@
   "pick_date": "Escolher data",
   "today": "Hoje",
   "conditions_profile": "Condições de trabalho (predefinição)",
-  "conditions_profile_hint": "Aplicam-se automaticamente a cada projeto novo. Podes editá-las por projeto."
+  "conditions_profile_hint": "Aplicam-se automaticamente a cada projeto novo. Podes editá-las por projeto.",
+  "title_placeholder": "Título"
 }

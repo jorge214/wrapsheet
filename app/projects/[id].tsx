@@ -138,7 +138,7 @@ export default function ProjectEditor() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [fsPreview, setFsPreview] = useState(false);
-  const [sheetZoom, setSheetZoom] = useState(1);
+  const [sheetZoom, setSheetZoom] = useState(() => (isWide ? 1 : 0.4));
   const fsIframeRef = useRef<any>(null);
   const { setPreviewHtml, clearPreview, zoom, setZoom, actualZoom } = useLivePreview();
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
@@ -545,9 +545,9 @@ export default function ProjectEditor() {
       region={regionCode}
       currency={getPreset(regionCode).currency}
       taxDisclaimer={t("tax_disclaimer")}
-      isWide={isWide}
       applyLabel={t("apply_profile")}
       addLabel={t("add_day")}
+      titlePlaceholder={t("title_placeholder", { defaultValue: "Título" })}
       onPerfil={(patch) => setP("perfil", { ...project!.perfil, ...patch })}
       onProjeto={(patch) => setP("projeto", { ...project!.projeto, ...patch })}
       onTabela={(patch) => setP("tabela", { ...project!.tabela, ...patch })}
@@ -588,7 +588,7 @@ export default function ProjectEditor() {
               {/* Zoom da folha */}
               <View style={ss.zoomRow}>
                 <Pressable
-                  onPress={() => setSheetZoom((z) => Math.max(0.4, Math.round((z - 0.1) * 10) / 10))}
+                  onPress={() => setSheetZoom((z) => Math.max(0.25, Math.round((z - 0.1) * 10) / 10))}
                   style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
                 >
                   <Text style={ss.zoomBtnText}>−</Text>
@@ -639,7 +639,9 @@ export default function ProjectEditor() {
         </View>
 
         <View style={{ paddingHorizontal: PAGE_X }}>
-          <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
+          <ScrollView horizontal showsHorizontalScrollIndicator>
+            <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
+          </ScrollView>
 
           <View style={{ marginTop: 12 }}>
             <Section title={t("table_params")} collapsible defaultCollapsed>
@@ -733,7 +735,7 @@ export default function ProjectEditor() {
             </Text>
             <View style={ss.zoomRow}>
               <Pressable
-                onPress={() => setSheetZoom((z) => Math.max(0.4, Math.round((z - 0.1) * 10) / 10))}
+                onPress={() => setSheetZoom((z) => Math.max(0.25, Math.round((z - 0.1) * 10) / 10))}
                 style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
               >
                 <Text style={ss.zoomBtnText}>−</Text>
@@ -760,7 +762,9 @@ export default function ProjectEditor() {
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={{ padding: 16 }}>
-            <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
+            <ScrollView horizontal>
+              <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
+            </ScrollView>
           </ScrollView>
         </SafeAreaView>
       </Modal>

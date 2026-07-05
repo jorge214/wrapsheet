@@ -323,5 +323,6 @@
   "pick_date": "Datum wählen",
   "today": "Heute",
   "conditions_profile": "Arbeitsbedingungen (Standard)",
-  "conditions_profile_hint": "Werden automatisch auf jedes neue Projekt angewendet. Pro Projekt anpassbar."
+  "conditions_profile_hint": "Werden automatisch auf jedes neue Projekt angewendet. Pro Projekt anpassbar.",
+  "title_placeholder": "Titel"
 }

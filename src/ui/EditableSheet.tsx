@@ -1,9 +1,10 @@
 // src/ui/EditableSheet.tsx
 // WYSIWYG editor: the editing surface IS the payslip sheet (same layout/colors
 // as the exported PDF). White cells = editable; grey/green cells = computed.
+// The whole sheet is ONE fixed-width document so zoom scales it uniformly.
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { minutesToHM } from "../calc/engine";
 import { CalcDia, Dia } from "../calc/types";
@@ -32,6 +33,25 @@ const C = {
   sub: "#8E8E93",
   danger: "#FF3B30",
 };
+
+/* ---------------- Day-table column widths ---------------- */
+const W = {
+  act: 50,
+  desc: 120, data: 104, sal: 72,
+  ini: 56, ref: 56, fim: 56, jan: 56, tra: 62,
+  ht: 78, hd: 78,
+  aRef: 64, aPer: 64, aTel: 64, aViat: 64, aMat: 64,
+  heaT: 46, heaV: 60, hebT: 46, hebV: 60, hrT: 46, hrV: 60,
+  tot: 86,
+};
+const SHEET_W =
+  W.act + W.desc + W.data + W.sal + W.ini + W.ref + W.fim + W.jan + W.tra + W.ht + W.hd +
+  W.aRef + W.aPer + W.aTel + W.aViat + W.aMat + W.heaT + W.heaV + W.hebT + W.hebV + W.hrT + W.hrV + W.tot;
+
+/* row heights (fixed → keeps every column aligned) */
+const H_HEAD1 = 32;
+const H_HEAD2 = 30;
+const H_ROW = 40;
 
 /* ---------------- Time / date helpers ---------------- */
 function parseTimeToMinutes(str: string): number | null {
@@ -143,14 +163,7 @@ function CalendarModal({
 
 /* ---------------- Cell field primitives ---------------- */
 function CellText({ value, onChangeText, align = "left" }: { value: string; onChangeText: (v: string) => void; align?: "left" | "right" | "center" }) {
-  return (
-    <TextInput
-      style={[sh.cellInput, { textAlign: align }]}
-      value={value}
-      onChangeText={onChangeText}
-      placeholderTextColor={C.sub}
-    />
-  );
+  return <TextInput style={[sh.cellInput, { textAlign: align }]} value={value} onChangeText={onChangeText} placeholderTextColor={C.sub} />;
 }
 function CellTime({ value, onChangeText }: { value: string; onChangeText: (v: string) => void }) {
   const [text, setText] = useState(value ?? "");
@@ -169,32 +182,14 @@ function CellTime({ value, onChangeText }: { value: string; onChangeText: (v: st
   );
 }
 function CellNum({ value, onChange }: { value: number; onChange: (n: number) => void }) {
-  return (
-    <TextInput
-      style={[sh.cellInput, { textAlign: "center" }]}
-      value={String(value ?? 0)}
-      onChangeText={(v) => onChange(Number(v) || 0)}
-      keyboardType="numeric"
-      placeholderTextColor={C.sub}
-    />
-  );
+  return <TextInput style={[sh.cellInput, { textAlign: "center" }]} value={String(value ?? 0)} onChangeText={(v) => onChange(Number(v) || 0)} keyboardType="numeric" placeholderTextColor={C.sub} />;
 }
-function CellMoney({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+function CellMoney({ value, onChange, align = "right" }: { value: number; onChange: (n: number) => void; align?: "left" | "right" | "center" }) {
   const [text, setText] = useState(String(value ?? 0));
   useEffect(() => {
-    // Only resync from the prop when it no longer matches what's typed
-    // (avoids the comma→dot jump while entering decimals).
     if (Number(text.replace(",", ".")) !== Number(value)) setText(String(value ?? 0));
   }, [value]);
-  return (
-    <TextInput
-      style={[sh.cellInput, { textAlign: "right" }]}
-      value={text}
-      onChangeText={(v) => { setText(v); onChange(Number(v.replace(",", ".")) || 0); }}
-      keyboardType="numeric"
-      placeholderTextColor={C.sub}
-    />
-  );
+  return <TextInput style={[sh.cellInput, { textAlign: align }]} value={text} onChangeText={(v) => { setText(v); onChange(Number(v.replace(",", ".")) || 0); }} keyboardType="numeric" placeholderTextColor={C.sub} />;
 }
 function CellDate({ value, lang, onChangeText }: { value: string; lang: string; onChangeText: (v: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -209,7 +204,7 @@ function CellDate({ value, lang, onChangeText }: { value: string; lang: string; 
   );
 }
 
-/* ---------------- Layout helpers ---------------- */
+/* ---------------- Header-box helpers ---------------- */
 function Box({ children, style }: { children: React.ReactNode; style?: any }) {
   return <View style={[sh.box, style]}>{children}</View>;
 }
@@ -221,20 +216,18 @@ function BoxTitle({ children, right }: { children: React.ReactNode; right?: Reac
     </View>
   );
 }
-/** Editable key/value row inside a header box. */
-function KV({ label, value, onChangeText, labelW = 120, keyboardType, last }: {
-  label: string; value: string; onChangeText: (v: string) => void; labelW?: number; keyboardType?: any; last?: boolean;
+function KV({ label, value, onChangeText, keyboardType, last }: {
+  label: string; value: string; onChangeText: (v: string) => void; keyboardType?: any; last?: boolean;
 }) {
   return (
     <View style={[sh.kvRow, last && { borderBottomWidth: 0 }]}>
-      <View style={[sh.kCell, { width: labelW }]}><Text style={sh.kTxt}>{label}</Text></View>
+      <View style={sh.kCell}><Text style={sh.kTxt}>{label}</Text></View>
       <View style={sh.vCell}>
         <TextInput style={sh.vInput} value={value} onChangeText={onChangeText} keyboardType={keyboardType} placeholderTextColor={C.sub} />
       </View>
     </View>
   );
 }
-/** Computed key/value row (green totals). */
 function KVCalc({ label, value, mini }: { label: string; value: string; mini?: boolean }) {
   return (
     <View style={sh.kvRow}>
@@ -244,30 +237,16 @@ function KVCalc({ label, value, mini }: { label: string; value: string; mini?: b
   );
 }
 
-/* ---------------- Day-table column widths ---------------- */
-const W = {
-  desc: 120, data: 100, sal: 72,
-  ini: 58, ref: 58, fim: 58, jan: 58, tra: 64,
-  ht: 78, hd: 78,
-  aRef: 64, aPer: 64, aTel: 64, aViat: 64, aMat: 64,
-  heaT: 46, heaV: 60, hebT: 46, hebV: 60, hrT: 46, hrV: 60,
-  tot: 84, act: 56,
-};
-const DAY_TABLE_W =
-  W.desc + W.data + W.sal + W.ini + W.ref + W.fim + W.jan + W.tra + W.ht + W.hd +
-  W.aRef + W.aPer + W.aTel + W.aViat + W.aMat + W.heaT + W.heaV + W.hebT + W.hebV + W.hrT + W.hrV + W.tot + W.act;
-
-/** Header cell (row 1 group / row 2 sub). */
-function HCell({ w, label, bg = C.th, color = "#fff", small }: { w: number; label: string; bg?: string; color?: string; small?: boolean }) {
+/* ---------------- Day-table cell helpers ---------------- */
+function HCell({ w, h, label, bg = C.th, color = "#fff", small }: { w: number; h: number; label: string; bg?: string; color?: string; small?: boolean }) {
   return (
-    <View style={[sh.hCell, { width: w, backgroundColor: bg }]}>
+    <View style={[sh.hCell, { width: w, height: h, backgroundColor: bg }]}>
       <Text style={[sh.hTxt, { color }, small && sh.hTxtSmall]} numberOfLines={2}>{label}</Text>
     </View>
   );
 }
-/** Body cell wrapper. */
 function TD({ w, children, calc, tint }: { w: number; children: React.ReactNode; calc?: boolean; tint?: string }) {
-  return <View style={[sh.td, { width: w }, calc && sh.tdCalc, tint ? { backgroundColor: tint } : null]}>{children}</View>;
+  return <View style={[sh.td, { width: w, height: H_ROW }, calc && sh.tdCalc, tint ? { backgroundColor: tint } : null]}>{children}</View>;
 }
 function CalcTxt({ children, align = "center", strong, blue }: { children: React.ReactNode; align?: "left" | "right" | "center"; strong?: boolean; blue?: boolean }) {
   return <Text style={[sh.calcTxt, { textAlign: align }, strong && sh.calcStrong, blue && { color: C.blueTxt, fontWeight: "800" }]} numberOfLines={1}>{children}</Text>;
@@ -292,9 +271,9 @@ type Props = {
   region: string;
   currency: string;
   taxDisclaimer: string;
-  isWide: boolean;
   applyLabel: string;
   addLabel: string;
+  titlePlaceholder: string;
   onPerfil: (patch: Partial<Perfil>) => void;
   onProjeto: (patch: Partial<Projeto>) => void;
   onTabela: (patch: Partial<Tabela>) => void;
@@ -310,7 +289,7 @@ type Props = {
 export default function EditableSheet(props: Props) {
   const {
     perfil, projeto, tabela, dias, calculos, totais, notas, condicoes,
-    locale, region, currency, taxDisclaimer, isWide, applyLabel, addLabel,
+    locale, region, currency, taxDisclaimer, applyLabel, addLabel, titlePlaceholder,
     onPerfil, onProjeto, onTabela, onDia, onAddDia, onDuplicateDia, onRemoveDia, onNotas, onCondicoes, onApplyProfile,
   } = props;
 
@@ -330,31 +309,37 @@ export default function EditableSheet(props: Props) {
   const emitidoA = `${String(today.getDate()).padStart(2, "0")}-${String(today.getMonth() + 1).padStart(2, "0")}-${today.getFullYear()}`;
   const mesNome = monthName(projeto.mes, locale);
 
-  const perHour = s.perHour;
-  const perDayUnit = s.perDayUnit;
-
-  // App-only columns (not on the PDF) — minimal localization
   const dinnerLabel = locale.startsWith("en") ? "DINNER" : locale.startsWith("es") ? "CENA" : locale.startsWith("fr") ? "DÎNER" : locale.startsWith("de") ? "ABEND" : locale.startsWith("it") ? "CENA" : "JANTAR";
   const transpLabel = "TRANSP.";
 
+  // Rate cell: editable money value
+  const RateEdit = ({ value, onChange }: { value: number; onChange: (n: number) => void }) => (
+    <View style={sh.rateCell}><CellMoney value={value} onChange={onChange} align="center" /></View>
+  );
+  // Rate cell: computed €/hour, value + unit stacked (legible)
+  const RateCalc = ({ v }: { v: number }) => (
+    <View style={[sh.rateCell, sh.tdCalc, { alignItems: "center", justifyContent: "center" }]}>
+      <Text style={sh.rateVal}>{money(v)}</Text>
+      <Text style={sh.rateUnit}>{s.perHour}</Text>
+    </View>
+  );
+
   return (
-    <View>
-      {/* ── Title bar (editable project title) ─────── */}
+    <View style={{ width: SHEET_W }}>
+      {/* ── Title bar (editable) ─────────────────────── */}
       <View style={sh.titleBar}>
         <TextInput
           style={sh.titleInput}
           value={projeto.filme}
           onChangeText={(v) => onProjeto({ filme: v })}
-          placeholder={s.title}
-          placeholderTextColor="rgba(255,255,255,0.75)"
+          placeholder={titlePlaceholder}
+          placeholderTextColor="rgba(255,255,255,0.85)"
         />
-        <Text style={sh.subTitleTxt}>{s.subtitle}</Text>
       </View>
 
-      {/* ── Header grid ───────────────────────────── */}
-      <View style={[sh.headGrid, isWide ? { flexDirection: "row" } : { flexDirection: "column" }]}>
-        {/* Personal data */}
-        <View style={isWide ? { flex: 1.55 } : {}}>
+      {/* ── Header grid ─────────────────────────────── */}
+      <View style={sh.headGrid}>
+        <View style={{ flex: 1.55 }}>
           <Box>
             <BoxTitle right={<Pressable onPress={onApplyProfile} style={({ pressed }) => [sh.applyBtn, pressed && { opacity: 0.85 }]}><Text style={sh.applyTxt}>{applyLabel} ⤓</Text></Pressable>}>
               {s.personalData}
@@ -369,9 +354,7 @@ export default function EditableSheet(props: Props) {
             <KV label={s.companyLabel} value={perfil.empresa ?? ""} onChangeText={(v) => onPerfil({ empresa: v })} last />
           </Box>
         </View>
-
-        {/* Producer + totals */}
-        <View style={isWide ? { flex: 1, gap: 10 } : { gap: 10, marginTop: 10 }}>
+        <View style={{ flex: 1, gap: 10 }}>
           <Box>
             <BoxTitle>{s.productionSection}</BoxTitle>
             <KV label={s.film} value={projeto.filme} onChangeText={(v) => onProjeto({ filme: v })} />
@@ -393,140 +376,129 @@ export default function EditableSheet(props: Props) {
       </View>
 
       {/* ── Rates row (editable salary + allowances) ─── */}
-      <ScrollView horizontal showsHorizontalScrollIndicator style={{ marginTop: 10 }}>
-        <View style={{ minWidth: isWide ? 0 : 720, flexGrow: 1 }}>
-          <View style={sh.ratesHead}>
-            <HCell w={rateW()} label={s.salary} />
-            <HCell w={rateW()} label={s.overtimeA} />
-            <HCell w={rateW()} label={s.overtimeB} />
-            <HCell w={rateW()} label={s.recoveryHours} bg={C.blue} />
-            <HCell w={rateW()} label={s.meal} />
-            <HCell w={rateW()} label={s.telephone} />
-            <HCell w={rateW()} label={s.vehicle} bg={C.olive} />
-            <HCell w={rateW()} label={s.material} bg={C.purple} />
-            <HCell w={rateW()} label={s.perDiem} />
-          </View>
-          <View style={sh.ratesRow}>
-            <TD w={rateW()}><CellMoney value={salarioDia} onChange={(n) => onTabela({ salarioDia: n })} /></TD>
-            <TD w={rateW()} calc><CalcTxt align="right">{money(vHEA)} <Text style={sh.unit}>{perHour}</Text></CalcTxt></TD>
-            <TD w={rateW()} calc><CalcTxt align="right">{money(vHEB)} <Text style={sh.unit}>{perHour}</Text></CalcTxt></TD>
-            <TD w={rateW()} calc><CalcTxt align="right">{money(vHR)} <Text style={sh.unit}>{perHour}</Text></CalcTxt></TD>
-            <TD w={rateW()}><CellMoney value={Number(aj.refeicao ?? 0)} onChange={(n) => setAj({ refeicao: n })} /></TD>
-            <TD w={rateW()}><CellMoney value={Number(aj.telefone ?? 0)} onChange={(n) => setAj({ telefone: n })} /></TD>
-            <TD w={rateW()}><CellMoney value={Number(aj.viatura ?? 0)} onChange={(n) => setAj({ viatura: n })} /></TD>
-            <TD w={rateW()}><CellMoney value={Number(aj.material ?? 0)} onChange={(n) => setAj({ material: n })} /></TD>
-            <TD w={rateW()}><CellMoney value={Number(aj.perDiem ?? 0)} onChange={(n) => setAj({ perDiem: n })} /></TD>
-          </View>
+      <View style={sh.ratesBlock}>
+        <View style={{ flexDirection: "row" }}>
+          <View style={[sh.rateHead]}><Text style={sh.hTxt}>{s.salary}</Text></View>
+          <View style={[sh.rateHead]}><Text style={sh.hTxt}>{s.overtimeA}</Text></View>
+          <View style={[sh.rateHead]}><Text style={sh.hTxt}>{s.overtimeB}</Text></View>
+          <View style={[sh.rateHead, { backgroundColor: C.blue }]}><Text style={sh.hTxt}>{s.recoveryHours}</Text></View>
+          <View style={[sh.rateHead]}><Text style={sh.hTxt}>{s.meal}</Text></View>
+          <View style={[sh.rateHead]}><Text style={sh.hTxt}>{s.telephone}</Text></View>
+          <View style={[sh.rateHead, { backgroundColor: C.olive }]}><Text style={sh.hTxt}>{s.vehicle}</Text></View>
+          <View style={[sh.rateHead, { backgroundColor: C.purple }]}><Text style={sh.hTxt}>{s.material}</Text></View>
+          <View style={[sh.rateHead]}><Text style={sh.hTxt}>{s.perDiem}</Text></View>
         </View>
-      </ScrollView>
+        <View style={{ flexDirection: "row" }}>
+          <RateEdit value={salarioDia} onChange={(n) => onTabela({ salarioDia: n })} />
+          <RateCalc v={vHEA} />
+          <RateCalc v={vHEB} />
+          <RateCalc v={vHR} />
+          <RateEdit value={Number(aj.refeicao ?? 0)} onChange={(n) => setAj({ refeicao: n })} />
+          <RateEdit value={Number(aj.telefone ?? 0)} onChange={(n) => setAj({ telefone: n })} />
+          <RateEdit value={Number(aj.viatura ?? 0)} onChange={(n) => setAj({ viatura: n })} />
+          <RateEdit value={Number(aj.material ?? 0)} onChange={(n) => setAj({ material: n })} />
+          <RateEdit value={Number(aj.perDiem ?? 0)} onChange={(n) => setAj({ perDiem: n })} />
+        </View>
+      </View>
 
       {/* ── Day table ─────────────────────────────── */}
-      <ScrollView horizontal showsHorizontalScrollIndicator style={{ marginTop: 10 }}>
-        <View style={{ width: DAY_TABLE_W }}>
-          {/* header row 1 (groups) */}
-          <View style={{ flexDirection: "row" }}>
-            <HCell w={W.desc} label={s.day} />
-            <HCell w={W.data} label={s.date} />
-            <HCell w={W.sal} label={s.salary} />
-            <HCell w={W.ini + W.ref + W.fim + W.jan + W.tra} label={s.schedule} />
-            <HCell w={W.ht + W.hd} label={s.totalHours} />
-            <HCell w={W.aRef} label={s.meal} />
-            <HCell w={W.aPer} label={s.perDiem} />
-            <HCell w={W.aTel} label={s.telephone} />
-            <HCell w={W.aViat} label={s.vehicle} bg={C.olive} />
-            <HCell w={W.aMat} label={s.material} bg={C.purple} />
-            <HCell w={W.heaT + W.heaV} label={s.overtimeAFull} />
-            <HCell w={W.hebT + W.hebV} label={s.overtimeBFull} />
-            <HCell w={W.hrT + W.hrV} label={s.recoveryFull} bg={C.blue} />
-            <HCell w={W.tot} label={s.total} bg={C.gold} />
-            <HCell w={W.act} label="" />
-          </View>
-          {/* header row 2 (subheads) */}
-          <View style={{ flexDirection: "row" }}>
-            <HCell w={W.desc} label={s.description} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.data} label="" bg={C.subGrey} color={C.text} small />
-            <HCell w={W.sal} label={s.day} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.ini} label={s.start} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.ref} label={s.mealBreak} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.fim} label={s.end} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.jan} label={dinnerLabel} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.tra} label={transpLabel} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.ht} label={s.workHours} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.hd} label={s.restHours} bg={C.subBlue} color={C.blueTxt} small />
-            <HCell w={W.aRef} label={s.perDay} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.aPer} label={s.perDay} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.aTel} label={s.perDay} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.aViat} label={s.perDay} bg={C.subOlive} color={C.text} small />
-            <HCell w={W.aMat} label={s.perDay} bg={C.subPurple} color={C.text} small />
-            <HCell w={W.heaT} label={s.total} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.heaV} label={s.value} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.hebT} label={s.total} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.hebV} label={s.value} bg={C.subGrey} color={C.text} small />
-            <HCell w={W.hrT} label={s.total} bg={C.subBlue} color={C.blueTxt} small />
-            <HCell w={W.hrV} label={s.value} bg={C.subBlue} color={C.blueTxt} small />
-            <HCell w={W.tot} label={s.day} bg={C.subGold} color={C.text} small />
-            <HCell w={W.act} label="" bg={C.subGrey} color={C.text} small />
-          </View>
-          {/* body rows */}
-          {dias.map((d, i) => {
-            const c = calculos[i];
-            return (
-              <View key={i} style={{ flexDirection: "row" }}>
-                <TD w={W.desc}><CellText value={d.descricao || ""} onChangeText={(v) => onDia(i, { descricao: v })} align="left" /></TD>
-                <TD w={W.data}><CellDate value={d.data} lang={locale} onChangeText={(v) => onDia(i, { data: v })} /></TD>
-                <TD w={W.sal} calc><CalcTxt align="right">{money(salarioDia)}</CalcTxt></TD>
-                <TD w={W.ini}><CellTime value={d.inicio} onChangeText={(v) => onDia(i, { inicio: v })} /></TD>
-                <TD w={W.ref}><CellTime value={d.refeicaoTrabalho} onChangeText={(v) => onDia(i, { refeicaoTrabalho: v })} /></TD>
-                <TD w={W.fim}><CellTime value={d.fim} onChangeText={(v) => onDia(i, { fim: v })} /></TD>
-                <TD w={W.jan}><CellTime value={d.jantarTrabalho} onChangeText={(v) => onDia(i, { jantarTrabalho: v })} /></TD>
-                <TD w={W.tra}><CellNum value={d.tempoTransporteMin ?? 0} onChange={(n) => onDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })} /></TD>
-                <TD w={W.ht} calc><CalcTxt>{minutesToHM(c?.HT_min ?? 0)}</CalcTxt></TD>
-                <TD w={W.hd} calc><CalcTxt blue>{minutesToHM(c?.HD_min ?? 0)}</CalcTxt></TD>
-                <TD w={W.aRef} calc><CalcTxt align="right">{money(Number(aj.refeicao ?? 0))}</CalcTxt></TD>
-                <TD w={W.aPer} calc><CalcTxt align="right">{money(Number(aj.perDiem ?? 0))}</CalcTxt></TD>
-                <TD w={W.aTel} calc><CalcTxt align="right">{money(Number(aj.telefone ?? 0))}</CalcTxt></TD>
-                <TD w={W.aViat} calc><CalcTxt align="right">{money(Number(aj.viatura ?? 0))}</CalcTxt></TD>
-                <TD w={W.aMat} calc><CalcTxt align="right">{money(Number(aj.material ?? 0))}</CalcTxt></TD>
-                <TD w={W.heaT} calc><CalcTxt align="right">{((c?.HEA_min ?? 0) / 60).toFixed(1).replace(".", ",")}</CalcTxt></TD>
-                <TD w={W.heaV} calc><CalcTxt align="right">{money(c?.HEA_valor ?? 0)}</CalcTxt></TD>
-                <TD w={W.hebT} calc><CalcTxt align="right">{((c?.HEB_min ?? 0) / 60).toFixed(1).replace(".", ",")}</CalcTxt></TD>
-                <TD w={W.hebV} calc><CalcTxt align="right">{money(c?.HEB_valor ?? 0)}</CalcTxt></TD>
-                <TD w={W.hrT} calc><CalcTxt align="right">{((c?.HR_min ?? 0) / 60).toFixed(1).replace(".", ",")}</CalcTxt></TD>
-                <TD w={W.hrV} calc><CalcTxt align="right">{money(c?.HR_valor ?? 0)}</CalcTxt></TD>
-                <TD w={W.tot} calc tint={C.subGold}><CalcTxt align="right" strong>{money(c?.totalDia ?? 0)}</CalcTxt></TD>
-                <TD w={W.act}>
-                  <View style={sh.actRow}>
-                    <Pressable onPress={() => onDuplicateDia(i)} hitSlop={6} style={sh.iconBtn}><Text style={sh.iconTxt}>⧉</Text></Pressable>
-                    {i > 0 && <Pressable onPress={() => onRemoveDia(i)} hitSlop={6} style={sh.iconBtn}><Text style={[sh.iconTxt, { color: C.danger }]}>✕</Text></Pressable>}
-                  </View>
-                </TD>
-              </View>
-            );
-          })}
-          {/* add-day footer row */}
-          <Pressable onPress={onAddDia} style={({ pressed }) => [sh.addRow, pressed && { opacity: 0.85 }]}>
-            <Text style={sh.addTxt}>+ {addLabel}</Text>
-          </Pressable>
+      <View style={{ marginTop: 10 }}>
+        {/* header row 1 (groups) */}
+        <View style={{ flexDirection: "row" }}>
+          <HCell w={W.act} h={H_HEAD1} label="" bg={C.th} />
+          <HCell w={W.desc} h={H_HEAD1} label={s.day} />
+          <HCell w={W.data} h={H_HEAD1} label={s.date} />
+          <HCell w={W.sal} h={H_HEAD1} label={s.salary} />
+          <HCell w={W.ini + W.ref + W.fim + W.jan + W.tra} h={H_HEAD1} label={s.schedule} />
+          <HCell w={W.ht + W.hd} h={H_HEAD1} label={s.totalHours} />
+          <HCell w={W.aRef} h={H_HEAD1} label={s.meal} />
+          <HCell w={W.aPer} h={H_HEAD1} label={s.perDiem} />
+          <HCell w={W.aTel} h={H_HEAD1} label={s.telephone} />
+          <HCell w={W.aViat} h={H_HEAD1} label={s.vehicle} bg={C.olive} />
+          <HCell w={W.aMat} h={H_HEAD1} label={s.material} bg={C.purple} />
+          <HCell w={W.heaT + W.heaV} h={H_HEAD1} label={s.overtimeAFull} />
+          <HCell w={W.hebT + W.hebV} h={H_HEAD1} label={s.overtimeBFull} />
+          <HCell w={W.hrT + W.hrV} h={H_HEAD1} label={s.recoveryFull} bg={C.blue} />
+          <HCell w={W.tot} h={H_HEAD1} label={s.total} bg={C.gold} />
         </View>
-      </ScrollView>
+        {/* header row 2 (subheads) */}
+        <View style={{ flexDirection: "row" }}>
+          <HCell w={W.act} h={H_HEAD2} label="" bg={C.subGrey} color={C.text} small />
+          <HCell w={W.desc} h={H_HEAD2} label={s.description} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.data} h={H_HEAD2} label="" bg={C.subGrey} color={C.text} small />
+          <HCell w={W.sal} h={H_HEAD2} label={s.day} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.ini} h={H_HEAD2} label={s.start} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.ref} h={H_HEAD2} label={s.mealBreak} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.fim} h={H_HEAD2} label={s.end} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.jan} h={H_HEAD2} label={dinnerLabel} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.tra} h={H_HEAD2} label={transpLabel} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.ht} h={H_HEAD2} label={s.workHours} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.hd} h={H_HEAD2} label={s.restHours} bg={C.subBlue} color={C.blueTxt} small />
+          <HCell w={W.aRef} h={H_HEAD2} label={s.perDay} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.aPer} h={H_HEAD2} label={s.perDay} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.aTel} h={H_HEAD2} label={s.perDay} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.aViat} h={H_HEAD2} label={s.perDay} bg={C.subOlive} color={C.text} small />
+          <HCell w={W.aMat} h={H_HEAD2} label={s.perDay} bg={C.subPurple} color={C.text} small />
+          <HCell w={W.heaT} h={H_HEAD2} label={s.total} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.heaV} h={H_HEAD2} label={s.value} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.hebT} h={H_HEAD2} label={s.total} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.hebV} h={H_HEAD2} label={s.value} bg={C.subGrey} color={C.text} small />
+          <HCell w={W.hrT} h={H_HEAD2} label={s.total} bg={C.subBlue} color={C.blueTxt} small />
+          <HCell w={W.hrV} h={H_HEAD2} label={s.value} bg={C.subBlue} color={C.blueTxt} small />
+          <HCell w={W.tot} h={H_HEAD2} label={s.day} bg={C.subGold} color={C.text} small />
+        </View>
+        {/* body rows */}
+        {dias.map((d, i) => {
+          const c = calculos[i];
+          return (
+            <View key={i} style={{ flexDirection: "row" }}>
+              <View style={[sh.td, { width: W.act, height: H_ROW }, sh.tdCalc]}>
+                <View style={sh.actRow}>
+                  <Pressable onPress={() => onDuplicateDia(i)} hitSlop={6} style={sh.iconBtn}><Text style={sh.iconTxt}>⧉</Text></Pressable>
+                  {i > 0 && <Pressable onPress={() => onRemoveDia(i)} hitSlop={6} style={sh.iconBtn}><Text style={[sh.iconTxt, { color: C.danger }]}>✕</Text></Pressable>}
+                </View>
+              </View>
+              <TD w={W.desc}><CellText value={d.descricao || ""} onChangeText={(v) => onDia(i, { descricao: v })} align="left" /></TD>
+              <TD w={W.data}><CellDate value={d.data} lang={locale} onChangeText={(v) => onDia(i, { data: v })} /></TD>
+              <TD w={W.sal} calc><CalcTxt align="right">{money(salarioDia)}</CalcTxt></TD>
+              <TD w={W.ini}><CellTime value={d.inicio} onChangeText={(v) => onDia(i, { inicio: v })} /></TD>
+              <TD w={W.ref}><CellTime value={d.refeicaoTrabalho} onChangeText={(v) => onDia(i, { refeicaoTrabalho: v })} /></TD>
+              <TD w={W.fim}><CellTime value={d.fim} onChangeText={(v) => onDia(i, { fim: v })} /></TD>
+              <TD w={W.jan}><CellTime value={d.jantarTrabalho} onChangeText={(v) => onDia(i, { jantarTrabalho: v })} /></TD>
+              <TD w={W.tra}><CellNum value={d.tempoTransporteMin ?? 0} onChange={(n) => onDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })} /></TD>
+              <TD w={W.ht} calc><CalcTxt>{minutesToHM(c?.HT_min ?? 0)}</CalcTxt></TD>
+              <TD w={W.hd} calc><CalcTxt blue>{minutesToHM(c?.HD_min ?? 0)}</CalcTxt></TD>
+              <TD w={W.aRef} calc><CalcTxt align="right">{money(Number(aj.refeicao ?? 0))}</CalcTxt></TD>
+              <TD w={W.aPer} calc><CalcTxt align="right">{money(Number(aj.perDiem ?? 0))}</CalcTxt></TD>
+              <TD w={W.aTel} calc><CalcTxt align="right">{money(Number(aj.telefone ?? 0))}</CalcTxt></TD>
+              <TD w={W.aViat} calc><CalcTxt align="right">{money(Number(aj.viatura ?? 0))}</CalcTxt></TD>
+              <TD w={W.aMat} calc><CalcTxt align="right">{money(Number(aj.material ?? 0))}</CalcTxt></TD>
+              <TD w={W.heaT} calc><CalcTxt align="right">{((c?.HEA_min ?? 0) / 60).toFixed(1).replace(".", ",")}</CalcTxt></TD>
+              <TD w={W.heaV} calc><CalcTxt align="right">{money(c?.HEA_valor ?? 0)}</CalcTxt></TD>
+              <TD w={W.hebT} calc><CalcTxt align="right">{((c?.HEB_min ?? 0) / 60).toFixed(1).replace(".", ",")}</CalcTxt></TD>
+              <TD w={W.hebV} calc><CalcTxt align="right">{money(c?.HEB_valor ?? 0)}</CalcTxt></TD>
+              <TD w={W.hrT} calc><CalcTxt align="right">{((c?.HR_min ?? 0) / 60).toFixed(1).replace(".", ",")}</CalcTxt></TD>
+              <TD w={W.hrV} calc><CalcTxt align="right">{money(c?.HR_valor ?? 0)}</CalcTxt></TD>
+              <TD w={W.tot} calc tint={C.subGold}><CalcTxt align="right" strong>{money(c?.totalDia ?? 0)}</CalcTxt></TD>
+            </View>
+          );
+        })}
+        {/* add-day footer */}
+        <Pressable onPress={onAddDia} style={({ pressed }) => [sh.addRow, pressed && { opacity: 0.85 }]}>
+          <Text style={sh.addTxt}>+ {addLabel}</Text>
+        </Pressable>
+      </View>
 
       {/* ── Notes + totals ────────────────────────── */}
-      <View style={[sh.bottomGrid, isWide ? { flexDirection: "row" } : { flexDirection: "column" }]}>
-        <View style={isWide ? { flex: 2.2 } : {}}>
+      <View style={sh.bottomGrid}>
+        <View style={{ flex: 2.2 }}>
           <Box>
             <BoxTitle>{s.notes}</BoxTitle>
-            <TextInput
-              style={sh.notesInput}
-              value={notas}
-              onChangeText={onNotas}
-              multiline
-              placeholder="…"
-              placeholderTextColor={C.sub}
-            />
+            <TextInput style={sh.notesInput} value={notas} onChangeText={onNotas} multiline placeholder="…" placeholderTextColor={C.sub} />
             {taxDisclaimer ? <Text style={sh.disclaimer}>{taxDisclaimer}</Text> : null}
           </Box>
         </View>
-        <View style={isWide ? { flex: 1 } : { marginTop: 10 }}>
+        <View style={{ flex: 1 }}>
           <Box>
             <KVCalc label={s.gross} value={money(totais.ValorBruto)} />
             <KVCalc label={s.irs} value={money(totais.IRS_valor)} />
@@ -540,45 +512,28 @@ export default function EditableSheet(props: Props) {
       <View style={{ marginTop: 10 }}>
         <Box>
           <BoxTitle>{s.workConditions}</BoxTitle>
-          <TextInput
-            style={sh.notesInput}
-            value={condicoes}
-            onChangeText={onCondicoes}
-            multiline
-            placeholder="…"
-            placeholderTextColor={C.sub}
-          />
+          <TextInput style={sh.notesInput} value={condicoes} onChangeText={onCondicoes} multiline placeholder="…" placeholderTextColor={C.sub} />
         </Box>
       </View>
     </View>
   );
 }
 
-function rateW() { return 150; }
-
 /* ---------------- Styles ---------------- */
 const sh = StyleSheet.create({
-  titleBar: {
-    borderWidth: 2, borderColor: C.ink, backgroundColor: C.red,
-    paddingVertical: 10, alignItems: "center",
-  },
-  titleTxt: { color: "#fff", fontWeight: "800", fontSize: 16, letterSpacing: 0.5 },
+  titleBar: { borderWidth: 2, borderColor: C.ink, backgroundColor: C.red, paddingVertical: 10, paddingHorizontal: 12, alignItems: "center" },
   titleInput: { color: "#fff", fontWeight: "800", fontSize: 16, letterSpacing: 0.5, textAlign: "center", alignSelf: "stretch", paddingVertical: 0 },
-  subTitleTxt: { color: "#fff", fontWeight: "600", fontSize: 11, marginTop: 2 },
 
-  headGrid: { marginTop: 10, gap: 10, alignItems: "stretch" },
+  headGrid: { marginTop: 10, flexDirection: "row", gap: 10, alignItems: "flex-start" },
 
   box: { borderWidth: 2, borderColor: C.ink, backgroundColor: "#fff" },
-  boxTitleRow: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    borderBottomWidth: 2, borderColor: C.ink, backgroundColor: C.boxTitleBg,
-  },
+  boxTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: 2, borderColor: C.ink, backgroundColor: C.boxTitleBg },
   boxTitle: { paddingVertical: 6, paddingHorizontal: 8, fontWeight: "800", fontSize: 12, color: C.text },
   applyBtn: { marginRight: 6, borderWidth: 1, borderColor: C.ink, borderRadius: 6, paddingVertical: 3, paddingHorizontal: 8, backgroundColor: "#fff" },
   applyTxt: { fontSize: 11, fontWeight: "800", color: C.text },
 
   kvRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: C.ink, minHeight: 30, alignItems: "stretch" },
-  kCell: { justifyContent: "center", paddingHorizontal: 8, borderRightWidth: 1, borderColor: C.ink },
+  kCell: { width: 120, justifyContent: "center", paddingHorizontal: 8, borderRightWidth: 1, borderColor: C.ink },
   kTxt: { fontSize: 11, fontWeight: "700", color: C.text },
   vCell: { flex: 1, justifyContent: "center" },
   vInput: { paddingHorizontal: 8, paddingVertical: 6, fontSize: 12, color: C.text },
@@ -587,44 +542,34 @@ const sh = StyleSheet.create({
   vCellHalf: { flex: 1, justifyContent: "center", paddingHorizontal: 8, paddingVertical: 6 },
   vCalc: { fontSize: 12, fontWeight: "700", color: C.text, textAlign: "right" },
 
-  /* rates */
-  ratesHead: { flexDirection: "row" },
-  ratesRow: { flexDirection: "row" },
+  ratesBlock: { marginTop: 10 },
+  rateHead: { flex: 1, borderWidth: 1, borderColor: C.ink, alignItems: "center", justifyContent: "center", paddingVertical: 5, paddingHorizontal: 2, minHeight: 30, backgroundColor: C.th },
+  rateCell: { flex: 1, borderWidth: 1, borderColor: C.ink, backgroundColor: "#fff", minHeight: 40, justifyContent: "center" },
+  rateVal: { fontSize: 12, fontWeight: "700", color: C.text },
+  rateUnit: { fontSize: 10, color: C.sub, marginTop: 1 },
 
-  /* generic table header cell */
-  hCell: {
-    borderWidth: 1, borderColor: C.ink, alignItems: "center", justifyContent: "center",
-    paddingVertical: 5, paddingHorizontal: 2, minHeight: 30,
-  },
-  hTxt: { fontSize: 10, fontWeight: "800", textAlign: "center" },
+  hCell: { borderWidth: 1, borderColor: C.ink, alignItems: "center", justifyContent: "center", paddingHorizontal: 2 },
+  hTxt: { fontSize: 10, fontWeight: "800", textAlign: "center", color: "#fff" },
   hTxtSmall: { fontSize: 9, fontWeight: "700" },
 
-  /* body cell */
-  td: {
-    borderWidth: 1, borderColor: C.ink, backgroundColor: "#fff",
-    justifyContent: "center", minHeight: 34,
-  },
+  td: { borderWidth: 1, borderColor: C.ink, backgroundColor: "#fff", justifyContent: "center" },
   tdCalc: { backgroundColor: C.calcBg },
   calcTxt: { fontSize: 11, color: C.text, paddingHorizontal: 4 },
   calcStrong: { fontWeight: "900" },
-  unit: { fontSize: 9, color: C.sub },
 
   cellInput: { paddingHorizontal: 4, paddingVertical: 6, fontSize: 11, color: C.text },
   cellInputBad: { backgroundColor: "#FFF0F0", color: C.danger, fontWeight: "700" },
-  cellDate: { paddingHorizontal: 4, paddingVertical: 8, justifyContent: "center" },
+  cellDate: { paddingHorizontal: 4, justifyContent: "center", flex: 1 },
   cellDateTxt: { fontSize: 11, color: C.text, textAlign: "center" },
 
-  actRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 },
-  iconBtn: { width: 24, height: 24, borderRadius: 6, borderWidth: 1, borderColor: C.ink, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
-  iconTxt: { fontSize: 11, fontWeight: "900", color: C.text },
+  actRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3 },
+  iconBtn: { width: 20, height: 22, borderRadius: 5, borderWidth: 1, borderColor: C.ink, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
+  iconTxt: { fontSize: 10, fontWeight: "900", color: C.text },
 
-  addRow: {
-    borderWidth: 1, borderColor: C.ink, borderTopWidth: 0,
-    paddingVertical: 9, alignItems: "center", backgroundColor: C.boxTitleBg,
-  },
+  addRow: { borderWidth: 1, borderColor: C.ink, borderTopWidth: 0, paddingVertical: 9, alignItems: "center", backgroundColor: C.boxTitleBg },
   addTxt: { fontSize: 12, fontWeight: "900", color: C.text },
 
-  bottomGrid: { marginTop: 10, gap: 10, alignItems: "stretch" },
+  bottomGrid: { marginTop: 10, flexDirection: "row", gap: 10, alignItems: "flex-start" },
   notesInput: { padding: 10, fontSize: 12, color: C.text, minHeight: 64, textAlignVertical: "top" },
   disclaimer: { paddingHorizontal: 10, paddingVertical: 6, fontSize: 10, color: "#888", borderTopWidth: 1, borderColor: "#ddd" },
 });

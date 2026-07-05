@@ -649,7 +649,6 @@ export function buildPdfHtml(
     <body>
       <div class="titleBox">
         ${escapeHtml(projeto.filme || s.title)}
-        <div class="subTitle">${escapeHtml(s.subtitle)}</div>
       </div>
 
       <div class="headgrid">
