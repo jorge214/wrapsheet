@@ -330,5 +330,6 @@
   "mult_writethrough_hint": "Ao alterar um multiplicador, a taxa €/h correspondente é recalculada a partir do salário atual.",
   "open_fullscreen": "Abrir planilha em tela cheia",
   "open_fullscreen_hint": "Gire o celular para preencher melhor a tabela.",
-  "rotate_hint": "Gire o celular na horizontal para ver a planilha maior."
+  "rotate_hint": "Gire o celular na horizontal para ver a planilha maior.",
+  "open_sheet_edit": "Abrir planilha (ver e editar)"
 }

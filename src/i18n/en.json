@@ -330,5 +330,6 @@
   "mult_writethrough_hint": "Changing a multiplier recalculates the matching €/h rate from the current salary.",
   "open_fullscreen": "Open sheet in full screen",
   "open_fullscreen_hint": "Rotate your phone to fill in the table more easily.",
-  "rotate_hint": "Rotate your phone to landscape to see the sheet bigger."
+  "rotate_hint": "Rotate your phone to landscape to see the sheet bigger.",
+  "open_sheet_edit": "Open sheet (view & edit)"
 }

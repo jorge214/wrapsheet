@@ -330,5 +330,6 @@
   "mult_writethrough_hint": "Modifier un multiplicateur recalcule le taux €/h correspondant à partir du salaire actuel.",
   "open_fullscreen": "Ouvrir la feuille en plein écran",
   "open_fullscreen_hint": "Tournez le téléphone pour mieux remplir le tableau.",
-  "rotate_hint": "Tournez le téléphone à l'horizontale pour voir la feuille en plus grand."
+  "rotate_hint": "Tournez le téléphone à l'horizontale pour voir la feuille en plus grand.",
+  "open_sheet_edit": "Ouvrir la feuille (voir et modifier)"
 }

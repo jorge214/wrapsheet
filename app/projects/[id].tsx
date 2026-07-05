@@ -25,7 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engine";
 import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
-import { buildPdfHtml } from "../../src/export/buildPdfHtml";
+import { buildPdfHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
 import { exportPDF } from "../../src/export/pdf";
 import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
@@ -187,15 +187,6 @@ export default function ProjectEditor() {
 
   // Reload from storage when returning from the table editor page
   useFocusEffect(useCallback(() => { loadProject(); }, [loadProject]));
-
-  // Telemóvel: abre a folha em ecrã inteiro automaticamente (uma vez)
-  const autoOpenedRef = useRef(false);
-  useEffect(() => {
-    if (!isWide && project && !autoOpenedRef.current) {
-      autoOpenedRef.current = true;
-      setFsPreview(true);
-    }
-  }, [isWide, project]);
 
   // Ajusta o zoom para caber tudo em ecrã inteiro (e ao rodar o telemóvel)
   useEffect(() => {
@@ -612,6 +603,74 @@ export default function ProjectEditor() {
   }
 
 
+  // Definições avançadas (parâmetros de horas + fiscal). No telemóvel vão
+  // para dentro do ecrã inteiro; no desktop ficam por baixo da folha.
+  const renderAdvanced = () => (
+    <>
+      <Section title={t("table_params")} collapsible defaultCollapsed>
+        <Grid2>
+          <Num label={t("hours_day")} value={project!.tabela.H_dia} onChange={(n) => setP("tabela", { ...project!.tabela, H_dia: n })} />
+          <Num label={t("min_rest")} value={project!.tabela.descanso_min} onChange={(n) => setP("tabela", { ...project!.tabela, descanso_min: n })} />
+        </Grid2>
+        <Text style={ss.helperTitle}>{t("base_hour_mult")}</Text>
+        <Text style={ss.fieldHint}>{t("mult_writethrough_hint", { defaultValue: "Ao alterar um multiplicador, a taxa €/h correspondente é recalculada a partir do salário atual." })}</Text>
+        <Grid3>
+          <Num label={t("mult_hea")} value={project!.tabela.multHEA ?? 1.5} onChange={(n) => applyMult("multHEA", "rateHEA", n || 1.5)} />
+          <Num label={t("mult_heb")} value={project!.tabela.multHEB ?? 2.0} onChange={(n) => applyMult("multHEB", "rateHEB", n || 2.0)} />
+          <Num label={t("mult_hr")} value={project!.tabela.multHR ?? 3.0} onChange={(n) => applyMult("multHR", "rateHR", n || 3.0)} />
+        </Grid3>
+        <Text style={ss.helperTitle}>{t("threshold_ab")}</Text>
+        <Grid3>
+          <Num label={t("threshold_a")} value={project!.tabela.limiar_A ?? 11} onChange={(n) => setP("tabela", { ...project!.tabela, limiar_A: n || 11 })} />
+          <Num label={t("threshold_b")} value={project!.tabela.limiar_B ?? 18} onChange={(n) => setP("tabela", { ...project!.tabela, limiar_B: n || 18 })} />
+          <Num label={t("threshold_hr")} value={(project!.tabela as any).limiar_HR ?? project!.tabela.descanso_min ?? 11} onChange={(n) => setP("tabela", { ...project!.tabela, limiar_HR: n || 11 } as any)} />
+        </Grid3>
+      </Section>
+
+      <Section title={t("fiscal_section")} collapsible defaultCollapsed>
+        <Grid3>
+          <Num label={taxLabels.incomeTax} value={project!.fiscal.IRS_percent} onChange={(n) => setP("fiscal", { ...project!.fiscal, IRS_percent: n })} />
+          <Num label={taxLabels.vat} value={project!.fiscal.IVA_percent} onChange={(n) => setP("fiscal", { ...project!.fiscal, IVA_percent: n })} />
+        </Grid3>
+        <View style={{ marginTop: 4 }}>
+          <Text style={ss.label}>{t("observation")}</Text>
+          <TextInput style={ss.input} placeholder={t("fiscal_note_placeholder")} placeholderTextColor={COLORS.sub} value={project!.fiscal.nota ?? ""} onChangeText={(v) => setP("fiscal", { ...project!.fiscal, nota: v })} />
+        </View>
+        <View style={ss.disclaimerBox}><Text style={ss.disclaimerText}>{t("tax_disclaimer")}</Text></View>
+      </Section>
+    </>
+  );
+
+  // Página do projeto no telemóvel: só os stats + botão para abrir a folha
+  const renderMobileStats = () => {
+    const gs = getStrings(i18n.language, regionCode);
+    const currency = getPreset(regionCode).currency;
+    const money = (n: number) => fmtMoney(Number(n) || 0, currency);
+    const mName = new Intl.DateTimeFormat(i18n.language, { month: "long" }).format(new Date(2000, (project!.projeto.mes || 1) - 1, 1));
+    const monthCap = mName.charAt(0).toUpperCase() + mName.slice(1);
+    return (
+      <View>
+        <Text style={ss.mStatsTitle} numberOfLines={2}>
+          {project!.projeto.titulo || project!.projeto.filme || t("unnamed_project")}
+        </Text>
+        <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
+
+        <Pressable onPress={openFullscreenSheet} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
+          <Text style={ss.mOpenBtnText}>⛶ {t("open_sheet_edit", { defaultValue: "Abrir folha (ver e editar)" })}</Text>
+          <Text style={ss.mOpenBtnHint}>{t("open_fullscreen_hint", { defaultValue: "Roda o telemóvel para a horizontal." })}</Text>
+        </Pressable>
+
+        <View style={ss.mStatsPanel}>
+          <StatLine label={gs.totalDays} value={String(totalDias)} />
+          <StatLine label={gs.vb} value={money(totais.ValorBruto)} />
+          <StatLine label={gs.irs} value={money(totais.IRS_valor)} />
+          <StatLine label={gs.iva} value={money(totais.IVA_valor)} />
+          <StatLine label={gs.vf} value={money(totais.ValorFinal)} strong last />
+        </View>
+      </View>
+    );
+  };
+
   const renderSheet = () => (
     <EditableSheet
       perfil={project!.perfil as any}
@@ -692,12 +751,14 @@ export default function ProjectEditor() {
                 </View>
               )}
 
-              <Pressable
-                onPress={() => setFsPreview(true)}
-                style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
-              >
-                <Text style={ss.exportBtnText}>⛶</Text>
-              </Pressable>
+              {isWide && (
+                <Pressable
+                  onPress={() => setFsPreview(true)}
+                  style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
+                >
+                  <Text style={ss.exportBtnText}>⛶</Text>
+                </Pressable>
+              )}
 
               <Pressable
                 onPress={handleExportPDF}
@@ -723,61 +784,15 @@ export default function ProjectEditor() {
 
         <View style={{ paddingHorizontal: PAGE_X }}>
           {isWide ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator>
-              <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
-            </ScrollView>
-          ) : (
             <>
-              <Pressable
-                onPress={openFullscreenSheet}
-                style={({ pressed }) => [ss.fsCta, pressed && { opacity: 0.9 }]}
-              >
-                <Text style={ss.fsCtaText}>
-                  ⛶ {t("open_fullscreen", { defaultValue: "Abrir folha em ecrã inteiro" })}
-                </Text>
-                <Text style={ss.fsCtaHint}>
-                  {t("open_fullscreen_hint", { defaultValue: "Roda o telemóvel para veres a folha na horizontal." })}
-                </Text>
-              </Pressable>
               <ScrollView horizontal showsHorizontalScrollIndicator>
                 <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
               </ScrollView>
+              <View style={{ marginTop: 12 }}>{renderAdvanced()}</View>
             </>
+          ) : (
+            renderMobileStats()
           )}
-
-          <View style={{ marginTop: 12 }}>
-            <Section title={t("table_params")} collapsible defaultCollapsed>
-              <Grid2>
-                <Num label={t("hours_day")} value={project.tabela.H_dia} onChange={(n) => setP("tabela", { ...project.tabela, H_dia: n })} />
-                <Num label={t("min_rest")} value={project.tabela.descanso_min} onChange={(n) => setP("tabela", { ...project.tabela, descanso_min: n })} />
-              </Grid2>
-              <Text style={ss.helperTitle}>{t("base_hour_mult")}</Text>
-              <Text style={ss.fieldHint}>{t("mult_writethrough_hint", { defaultValue: "Ao alterar um multiplicador, a taxa €/h correspondente é recalculada a partir do salário atual." })}</Text>
-              <Grid3>
-                <Num label={t("mult_hea")} value={project.tabela.multHEA ?? 1.5} onChange={(n) => applyMult("multHEA", "rateHEA", n || 1.5)} />
-                <Num label={t("mult_heb")} value={project.tabela.multHEB ?? 2.0} onChange={(n) => applyMult("multHEB", "rateHEB", n || 2.0)} />
-                <Num label={t("mult_hr")} value={project.tabela.multHR ?? 3.0} onChange={(n) => applyMult("multHR", "rateHR", n || 3.0)} />
-              </Grid3>
-              <Text style={ss.helperTitle}>{t("threshold_ab")}</Text>
-              <Grid3>
-                <Num label={t("threshold_a")} value={project.tabela.limiar_A ?? 11} onChange={(n) => setP("tabela", { ...project.tabela, limiar_A: n || 11 })} />
-                <Num label={t("threshold_b")} value={project.tabela.limiar_B ?? 18} onChange={(n) => setP("tabela", { ...project.tabela, limiar_B: n || 18 })} />
-                <Num label={t("threshold_hr")} value={(project.tabela as any).limiar_HR ?? project.tabela.descanso_min ?? 11} onChange={(n) => setP("tabela", { ...project.tabela, limiar_HR: n || 11 } as any)} />
-              </Grid3>
-            </Section>
-
-            <Section title={t("fiscal_section")} collapsible defaultCollapsed>
-              <Grid3>
-                <Num label={taxLabels.incomeTax} value={project.fiscal.IRS_percent} onChange={(n) => setP("fiscal", { ...project.fiscal, IRS_percent: n })} />
-                <Num label={taxLabels.vat} value={project.fiscal.IVA_percent} onChange={(n) => setP("fiscal", { ...project.fiscal, IVA_percent: n })} />
-              </Grid3>
-              <View style={{ marginTop: 4 }}>
-                <Text style={ss.label}>{t("observation")}</Text>
-                <TextInput style={ss.input} placeholder={t("fiscal_note_placeholder")} placeholderTextColor={COLORS.sub} value={project.fiscal.nota ?? ""} onChangeText={(v) => setP("fiscal", { ...project.fiscal, nota: v })} />
-              </View>
-              <View style={ss.disclaimerBox}><Text style={ss.disclaimerText}>{t("tax_disclaimer")}</Text></View>
-            </Section>
-          </View>
         </View>
       </ScrollView>
 
@@ -874,6 +889,7 @@ export default function ProjectEditor() {
             <ScrollView horizontal>
               <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
             </ScrollView>
+            {!isWide && <View style={{ marginTop: 16 }}>{renderAdvanced()}</View>}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -926,6 +942,25 @@ function ZoomWrap({ zoom, children }: { zoom: number; children: React.ReactNode 
     return <div style={{ zoom: String(zoom) }}>{children}</div>;
   }
   return <View style={{ transform: [{ scale: zoom }] }}>{children}</View>;
+}
+
+function StatLine({
+  label,
+  value,
+  strong,
+  last,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <View style={[ss.mStatRow, last && { borderBottomWidth: 0 }]}>
+      <Text style={ss.mStatLabel}>{label}</Text>
+      <Text style={[ss.mStatValue, strong && ss.mStatValueStrong]}>{value}</Text>
+    </View>
+  );
 }
 
 function MenuItem({
@@ -1880,6 +1915,18 @@ const ss = StyleSheet.create({
   fsCtaText: { color: COLORS.text, fontWeight: "900", fontSize: 15 },
   fsCtaHint: { color: COLORS.sub, fontSize: 12, marginTop: 3, textAlign: "center" },
   rotateHint: { color: COLORS.sub, fontSize: 12, textAlign: "center", paddingHorizontal: 16, paddingBottom: 6 },
+
+  /* ---- Mobile project stats ---- */
+  mStatsTitle: { color: COLORS.text, fontSize: 22, fontWeight: "900", marginTop: 4 },
+  mStatsSub: { color: COLORS.sub, fontSize: 14, fontWeight: "700", marginBottom: 14 },
+  mOpenBtn: { backgroundColor: COLORS.text, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 16, alignItems: "center", marginBottom: 16 },
+  mOpenBtnText: { color: "#fff", fontWeight: "900", fontSize: 16 },
+  mOpenBtnHint: { color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 3 },
+  mStatsPanel: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 16, backgroundColor: COLORS.card, paddingHorizontal: 14 },
+  mStatRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 13, borderBottomWidth: 1, borderColor: COLORS.border },
+  mStatLabel: { color: COLORS.sub, fontSize: 14, fontWeight: "700" },
+  mStatValue: { color: COLORS.text, fontSize: 16, fontWeight: "800" },
+  mStatValueStrong: { fontSize: 18, fontWeight: "900" },
 
   /* ---- Add day (grid footer) ---- */
   addRowBtn: {
