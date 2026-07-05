@@ -9,7 +9,7 @@ export type Perfil = {
 };
 
 export type Projeto = {
-  filme: string; produtora: string; nifProdutora?: string;
+  titulo?: string; filme: string; produtora: string; nifProdutora?: string;
   semana?: string; mes: number; ano: number;
 };
 

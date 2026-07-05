@@ -18,6 +18,7 @@ export type PdfPerfil = {
 };
 
 export type PdfProjeto = {
+  titulo?: string;
   filme: string;
   produtora: string;
   nifProdutora?: string;
@@ -523,7 +524,7 @@ export function buildPdfHtml(
         <tr>
           <td class="left">${escapeHtml(d.descricao || "")}</td>
           <td>${escapeHtml(formatDatePT(d.data))}</td>
-          <td class="right">${fmt(salarioDia)}</td>
+          <td class="right">${fmt((d as any).salarioDia ?? salarioDia)}</td>
           <td>${escapeHtml(d.inicio || "")}</td>
           <td>${escapeHtml(d.refeicaoTrabalho || "")}</td>
           <td>${escapeHtml(d.fim || "")}</td>
@@ -651,7 +652,7 @@ export function buildPdfHtml(
     </head>
     <body>
       <div class="titleBox">
-        ${escapeHtml(projeto.filme || s.title)}
+        ${escapeHtml(projeto.titulo || projeto.filme || s.title)}
       </div>
 
       <div class="headgrid">

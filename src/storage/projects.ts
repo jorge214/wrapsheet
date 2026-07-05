@@ -11,6 +11,7 @@ export type Dia = {
   descricao: string;
   data: string; // YYYY-MM-DD
   continuo: boolean;
+  salarioDia?: number; // override do salário só deste dia (vazio = usa o global)
   inicio: string; // "HH:MM"
   refeicaoTrabalho: string; // "HH:MM"
   jantarTrabalho: string; // "HH:MM"
@@ -62,6 +63,7 @@ export type Perfil = {
 };
 
 export type ProjetoInfo = {
+  titulo?: string;
   filme: string;
   produtora: string;
   nifProdutora?: string;
@@ -117,7 +119,7 @@ async function writeIndex(key: string, list: ProjectListItem[]) {
 
 function defaultDia(date: string): Dia {
   return {
-    descricao: "Filmagem",
+    descricao: i18n.t("day_description_default", { defaultValue: "Filmagem" }),
     data: date,
     continuo: false,
     inicio: "08:00",
@@ -209,6 +211,7 @@ function upgradeProject(raw: any, id: string): ProjectState {
   const perfil = blankPerfil(raw.perfil);
 
   const projeto: ProjetoInfo = {
+    titulo: raw.projeto?.titulo || "",
     filme: raw.projeto?.filme || raw.nome || "",
     produtora: raw.projeto?.produtora || raw.cliente || "",
     nifProdutora: raw.projeto?.nifProdutora || "",
@@ -273,7 +276,7 @@ export async function saveProject(p: ProjectState): Promise<void> {
 
   const summary: ProjectListItem = {
     id: p.id,
-    nome: toSave.projeto.filme || "",
+    nome: toSave.projeto.titulo || toSave.projeto.filme || "",
     cliente: toSave.projeto.produtora || "",
     mes: `${String(toSave.projeto.mes).padStart(2, "0")}/${toSave.projeto.ano}`,
     updatedAt,
@@ -307,8 +310,10 @@ export async function createProject(): Promise<string> {
   const active = await getActiveProfile();
   const perfil = active ? blankPerfil(active as any) : blankPerfil();
   const condicoesFromProfile = (active as any)?.condicoes || "";
+  const fixas = (active as any)?.fixas || {};
 
   const projeto: ProjetoInfo = {
+    titulo: "",
     filme: "",
     produtora: "",
     nifProdutora: "",
@@ -320,11 +325,29 @@ export async function createProject(): Promise<string> {
   const settings = await getSettings();
   const preset = getPreset(settings.region);
 
+  // Aplica as condições fixas do perfil (salário + taxas €/h + ajudas)
+  const baseTabela = { ...defaultTabela(), ...preset.tabela };
+  const tabela: Tabela = {
+    ...baseTabela,
+    salarioDia: fixas.salarioDia ?? baseTabela.salarioDia,
+    rateHEA: fixas.rateHEA,
+    rateHEB: fixas.rateHEB,
+    rateHR: fixas.rateHR,
+    ajudas: {
+      ...baseTabela.ajudas!,
+      refeicao: fixas.refeicao ?? baseTabela.ajudas!.refeicao,
+      telefone: fixas.telefone ?? baseTabela.ajudas!.telefone,
+      viatura: fixas.viatura ?? baseTabela.ajudas!.viatura,
+      material: fixas.material ?? baseTabela.ajudas!.material,
+      perDiem: fixas.perDiem ?? baseTabela.ajudas!.perDiem,
+    },
+  };
+
   const novo: ProjectState = {
     id,
     perfil,
     projeto,
-    tabela: { ...defaultTabela(), ...preset.tabela },
+    tabela,
     fiscal: { ...defaultFiscal(), ...preset.fiscal },
     dias: [defaultDia(today)],
     notas: "",

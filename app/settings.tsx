@@ -8,7 +8,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { getPreset } from "../src/constants/countryPresets";
 import { getSettings } from "../src/storage/appSettings";
-import { exportBackup } from "../src/storage/backup";
 
 export default function SettingsScreen() {
   const { COLORS, mode, setMode } = useTheme();
@@ -16,7 +15,6 @@ export default function SettingsScreen() {
   const isWide = useIsWide();
   const darkOn = mode === "dark";
 
-  const [exporting, setExporting] = React.useState(false);
   const [regionCode, setRegionCode] = React.useState<string>("pt");
 
   useFocusEffect(
@@ -26,16 +24,6 @@ export default function SettingsScreen() {
   );
 
   const preset = getPreset(regionCode);
-
-  const handleExportBackup = async () => {
-    if (exporting) return;
-    try {
-      setExporting(true);
-      await exportBackup();
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -124,33 +112,6 @@ export default function SettingsScreen() {
               trackColor={{ false: "#ccc", true: COLORS.accent }}
             />
           </View>
-        </Section>
-
-        {/* Exportação */}
-        <Section title={t("settings_section_export", { defaultValue: "Exportação" })} COLORS={COLORS}>
-          {/* NOVO BOTÃO — Exportar Backup */}
-          <Pressable onPress={handleExportBackup} style={[ss.row, { borderColor: COLORS.border }]}>
-            <Text style={[ss.rowLabel, { color: COLORS.text }]}>
-              {t("settings_export_backup", { defaultValue: "Exportar Backup" })}
-            </Text>
-
-            {exporting ? (
-              <Text style={{ color: COLORS.sub }}>...</Text>
-            ) : (
-              <Ionicons name="cloud-download-outline" size={20} color={COLORS.sub} />
-            )}
-          </Pressable>
-
-          {/* Botão já existente */}
-          <Pressable
-            onPress={() => router.push("/settings/backup")}
-            style={[ss.row, { borderColor: COLORS.border }]}
-          >
-            <Text style={[ss.rowLabel, { color: COLORS.text }]}>
-              {t("settings_backup_import", { defaultValue: "Backup e importação" })}
-            </Text>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.sub} />
-          </Pressable>
         </Section>
 
         {/* Subscrição */}

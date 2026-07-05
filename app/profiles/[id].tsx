@@ -23,6 +23,8 @@ import {
   setActiveProfileId,
   upsertProfile,
 } from "../../src/storage/profile";
+import { getStrings } from "../../src/export/buildPdfHtml";
+import i18n from "../../src/i18n/i18n";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 function ProfileField({
@@ -67,6 +69,42 @@ function ProfileField({
         />
       ) : (
         <Text style={styles.fieldValue}>{value || "—"}</Text>
+      )}
+    </View>
+  );
+}
+
+function NumField({
+  label,
+  value,
+  editing,
+  onChange,
+  unit,
+  COLORS,
+  styles,
+}: {
+  label: string;
+  value?: number;
+  editing: boolean;
+  onChange: (n: number | undefined) => void;
+  unit?: string;
+  COLORS: any;
+  styles: any;
+}) {
+  return (
+    <View style={styles.fieldWrapper}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      {editing ? (
+        <TextInput
+          value={value != null ? String(value) : ""}
+          onChangeText={(v) => onChange(v.trim() === "" ? undefined : Number(v.replace(",", ".")) || 0)}
+          placeholder="0"
+          placeholderTextColor={COLORS.sub}
+          style={styles.fieldInput}
+          keyboardType="numeric"
+        />
+      ) : (
+        <Text style={styles.fieldValue}>{value != null ? `${value}${unit ? " " + unit : ""}` : "—"}</Text>
       )}
     </View>
   );
@@ -192,6 +230,11 @@ export default function ProfileEditScreen() {
 
   if (!p) return null;
 
+  const gs = getStrings(i18n.language);
+  const fixas = p.fixas ?? {};
+  const setFixas = (patch: Partial<NonNullable<Profile["fixas"]>>) =>
+    setP({ ...p, fixas: { ...fixas, ...patch } });
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <View style={s.header}>
@@ -252,6 +295,25 @@ export default function ProfileEditScreen() {
             COLORS={COLORS}
             styles={s}
           />
+        </View>
+
+        {/* Condições fixas (a linha de taxas): aplicadas a projetos novos */}
+        <View style={s.card}>
+          <Text style={s.fieldLabel}>
+            {t("fixed_conditions", { defaultValue: "Condições fixas (taxas)" })}
+          </Text>
+          <Text style={s.fieldHint}>
+            {t("fixed_conditions_hint", { defaultValue: "Aplicam-se automaticamente a projetos novos. Podes editá-las por projeto." })}
+          </Text>
+          <NumField label={gs.salary} unit="€" value={fixas.salarioDia} editing={editing} onChange={(n) => setFixas({ salarioDia: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.overtimeA} (€/h)`} value={fixas.rateHEA} editing={editing} onChange={(n) => setFixas({ rateHEA: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.overtimeB} (€/h)`} value={fixas.rateHEB} editing={editing} onChange={(n) => setFixas({ rateHEB: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.recoveryHours} (€/h)`} value={fixas.rateHR} editing={editing} onChange={(n) => setFixas({ rateHR: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.meal} (€)`} value={fixas.refeicao} editing={editing} onChange={(n) => setFixas({ refeicao: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.telephone} (€)`} value={fixas.telefone} editing={editing} onChange={(n) => setFixas({ telefone: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.vehicle} (€)`} value={fixas.viatura} editing={editing} onChange={(n) => setFixas({ viatura: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.material} (€)`} value={fixas.material} editing={editing} onChange={(n) => setFixas({ material: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.perDiem} (€)`} value={fixas.perDiem} editing={editing} onChange={(n) => setFixas({ perDiem: n })} COLORS={COLORS} styles={s} />
         </View>
 
         {!editing && (

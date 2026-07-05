@@ -408,6 +408,35 @@ export default function ProjectEditor() {
       iban: act.iban ?? "",
       swift: act.swift ?? "",
     });
+
+    // Condições de trabalho (texto)
+    if ((act as any).condicoes) setP("condicoes", (act as any).condicoes);
+
+    // Condições fixas (linha de taxas): salário, taxas HE €/h e ajudas
+    const fx = (act as any).fixas || {};
+    const cur = projectRef.current!.tabela;
+    const patch: any = { ...cur, ajudas: { ...cur.ajudas } };
+    if (fx.salarioDia != null) patch.salarioDia = fx.salarioDia;
+    if (fx.rateHEA != null) patch.rateHEA = fx.rateHEA;
+    if (fx.rateHEB != null) patch.rateHEB = fx.rateHEB;
+    if (fx.rateHR != null) patch.rateHR = fx.rateHR;
+    if (fx.refeicao != null) patch.ajudas.refeicao = fx.refeicao;
+    if (fx.telefone != null) patch.ajudas.telefone = fx.telefone;
+    if (fx.viatura != null) patch.ajudas.viatura = fx.viatura;
+    if (fx.material != null) patch.ajudas.material = fx.material;
+    if (fx.perDiem != null) patch.ajudas.perDiem = fx.perDiem;
+    setP("tabela", patch);
+  }
+
+  // Write-through: editar um multiplicador recalcula a taxa €/h a partir do salário atual
+  function applyMult(
+    multKey: "multHEA" | "multHEB" | "multHR",
+    rateKey: "rateHEA" | "rateHEB" | "rateHR",
+    m: number
+  ) {
+    const cur = projectRef.current!.tabela;
+    const base = (cur.salarioDia || 0) / (cur.H_dia || 11);
+    setP("tabela", { ...cur, [multKey]: m, [rateKey]: Math.round(base * m * 100) / 100 });
   }
 
   function addDia() {
@@ -612,14 +641,12 @@ export default function ProjectEditor() {
                 </Pressable>
               </View>
 
-              {isWide && Platform.OS === "web" && (
-                <Pressable
-                  onPress={() => setFsPreview(true)}
-                  style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
-                >
-                  <Text style={ss.exportBtnText}>⛶</Text>
-                </Pressable>
-              )}
+              <Pressable
+                onPress={() => setFsPreview(true)}
+                style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={ss.exportBtnText}>⛶</Text>
+              </Pressable>
 
               <Pressable
                 onPress={handleExportPDF}
@@ -644,6 +671,19 @@ export default function ProjectEditor() {
         </View>
 
         <View style={{ paddingHorizontal: PAGE_X }}>
+          {!isWide && (
+            <Pressable
+              onPress={() => setFsPreview(true)}
+              style={({ pressed }) => [ss.fsCta, pressed && { opacity: 0.9 }]}
+            >
+              <Text style={ss.fsCtaText}>
+                ⛶ {t("open_fullscreen", { defaultValue: "Abrir folha em ecrã inteiro" })}
+              </Text>
+              <Text style={ss.fsCtaHint}>
+                {t("open_fullscreen_hint", { defaultValue: "Roda o telemóvel para preencheres melhor a tabela." })}
+              </Text>
+            </Pressable>
+          )}
           <ScrollView horizontal showsHorizontalScrollIndicator>
             <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
           </ScrollView>
@@ -655,10 +695,11 @@ export default function ProjectEditor() {
                 <Num label={t("min_rest")} value={project.tabela.descanso_min} onChange={(n) => setP("tabela", { ...project.tabela, descanso_min: n })} />
               </Grid2>
               <Text style={ss.helperTitle}>{t("base_hour_mult")}</Text>
+              <Text style={ss.fieldHint}>{t("mult_writethrough_hint", { defaultValue: "Ao alterar um multiplicador, a taxa €/h correspondente é recalculada a partir do salário atual." })}</Text>
               <Grid3>
-                <Num label={t("mult_hea")} value={project.tabela.multHEA ?? 1.5} onChange={(n) => setP("tabela", { ...project.tabela, multHEA: n || 1.5 })} />
-                <Num label={t("mult_heb")} value={project.tabela.multHEB ?? 2.0} onChange={(n) => setP("tabela", { ...project.tabela, multHEB: n || 2.0 })} />
-                <Num label={t("mult_hr")} value={project.tabela.multHR ?? 3.0} onChange={(n) => setP("tabela", { ...project.tabela, multHR: n || 3.0 })} />
+                <Num label={t("mult_hea")} value={project.tabela.multHEA ?? 1.5} onChange={(n) => applyMult("multHEA", "rateHEA", n || 1.5)} />
+                <Num label={t("mult_heb")} value={project.tabela.multHEB ?? 2.0} onChange={(n) => applyMult("multHEB", "rateHEB", n || 2.0)} />
+                <Num label={t("mult_hr")} value={project.tabela.multHR ?? 3.0} onChange={(n) => applyMult("multHR", "rateHR", n || 3.0)} />
               </Grid3>
               <Text style={ss.helperTitle}>{t("threshold_ab")}</Text>
               <Grid3>
@@ -736,7 +777,7 @@ export default function ProjectEditor() {
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
-              {project.projeto.filme || t("unnamed_project")}
+              {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
             </Text>
             <View style={ss.zoomRow}>
               <Pressable
@@ -784,7 +825,7 @@ export default function ProjectEditor() {
         <View style={ss.previewOverlay}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
-              {project.projeto.filme || t("unnamed_project")}
+              {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
             </Text>
             <Pressable
               onPress={() => setShowPreview(false)}
@@ -1761,6 +1802,20 @@ const ss = StyleSheet.create({
   /* ---- Section collapse ---- */
   sectionChevron: { fontSize: 13, color: COLORS.sub, fontWeight: "900", width: 14 },
   sectionSummary: { fontSize: 13, color: COLORS.sub, fontWeight: "600", flexShrink: 1 },
+
+  /* ---- Mobile fullscreen CTA ---- */
+  fsCta: {
+    borderWidth: 1.5,
+    borderColor: COLORS.text,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.card,
+    marginBottom: 10,
+    alignItems: "center",
+  },
+  fsCtaText: { color: COLORS.text, fontWeight: "900", fontSize: 15 },
+  fsCtaHint: { color: COLORS.sub, fontSize: 12, marginTop: 3, textAlign: "center" },
 
   /* ---- Add day (grid footer) ---- */
   addRowBtn: {

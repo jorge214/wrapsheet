@@ -324,5 +324,10 @@
   "today": "Aujourd'hui",
   "conditions_profile": "Conditions de travail (par défaut)",
   "conditions_profile_hint": "Appliquées automatiquement à chaque nouveau projet. Modifiables par projet.",
-  "title_placeholder": "Titre"
+  "title_placeholder": "Titre",
+  "fixed_conditions": "Conditions fixes (taux)",
+  "fixed_conditions_hint": "Appliquées automatiquement aux nouveaux projets. Modifiables par projet.",
+  "mult_writethrough_hint": "Modifier un multiplicateur recalcule le taux €/h correspondant à partir du salaire actuel.",
+  "open_fullscreen": "Ouvrir la feuille en plein écran",
+  "open_fullscreen_hint": "Tournez le téléphone pour mieux remplir le tableau."
 }

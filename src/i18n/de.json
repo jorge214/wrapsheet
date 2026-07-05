@@ -324,5 +324,10 @@
   "today": "Heute",
   "conditions_profile": "Arbeitsbedingungen (Standard)",
   "conditions_profile_hint": "Werden automatisch auf jedes neue Projekt angewendet. Pro Projekt anpassbar.",
-  "title_placeholder": "Titel"
+  "title_placeholder": "Titel",
+  "fixed_conditions": "Feste Konditionen (Sätze)",
+  "fixed_conditions_hint": "Werden automatisch auf neue Projekte angewendet. Pro Projekt änderbar.",
+  "mult_writethrough_hint": "Beim Ändern eines Multiplikators wird der zugehörige €/h-Satz aus dem aktuellen Gehalt neu berechnet.",
+  "open_fullscreen": "Blatt im Vollbild öffnen",
+  "open_fullscreen_hint": "Drehe das Telefon, um die Tabelle besser auszufüllen."
 }

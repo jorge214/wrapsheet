@@ -13,6 +13,18 @@ export type Profile = {
   iban?: string;
   swift?: string;
   condicoes?: string;
+  // Condições fixas (a linha de taxas): aplicam-se automaticamente a projetos novos
+  fixas?: {
+    salarioDia?: number;
+    rateHEA?: number;
+    rateHEB?: number;
+    rateHR?: number;
+    refeicao?: number;
+    telefone?: number;
+    viatura?: number;
+    material?: number;
+    perDiem?: number;
+  };
 };
 
 /* ---------- Keys ---------- */
@@ -33,6 +45,7 @@ function BLANK(): Profile {
     iban: "",
     swift: "",
     condicoes: "",
+    fixas: {},
   };
 }
 

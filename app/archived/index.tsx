@@ -53,6 +53,7 @@ export default function ArchivedScreen() {
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [showAll, setShowAll] = useState<boolean>(false);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [optionsFor, setOptionsFor] = useState<ProjectListItem | null>(null);
 
   async function loadArchived() {
     const list = await listArchivedProjects();
@@ -76,25 +77,28 @@ export default function ArchivedScreen() {
     router.push(`/projects/${id}`);
   }
 
-  async function handleDelete(id: string) {
-    Alert.alert(
-      t("archived_delete_title", { defaultValue: "Apagar arquivado" }),
-      t("archived_delete_msg", {
-        defaultValue:
-          "Esta ação é definitiva. Queres mesmo apagar este projeto arquivado?",
-      }),
-      [
+  async function doDelete(id: string) {
+    await deleteArchivedProject(id);
+    await loadArchived();
+  }
+
+  function confirmDelete(p: ProjectListItem) {
+    const title = t("archived_delete_title", { defaultValue: "Apagar arquivado" });
+    const msg = t("archived_delete_msg", {
+      defaultValue: "Esta ação é definitiva. Queres mesmo apagar este projeto arquivado?",
+    });
+    if (Platform.OS === "web") {
+      if ((window as any).confirm(`${title}\n\n${msg}`)) doDelete(p.id);
+    } else {
+      Alert.alert(title, msg, [
         { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
         {
           text: t("delete", { defaultValue: "Apagar" }),
           style: "destructive",
-          onPress: async () => {
-            await deleteArchivedProject(id);
-            await loadArchived();
-          },
+          onPress: () => doDelete(p.id),
         },
-      ]
-    );
+      ]);
+    }
   }
 
   const selectedLabel = useMemo(() => {
@@ -150,29 +154,14 @@ export default function ArchivedScreen() {
         },
         (index) => {
           if (index === 0) handleOpen(p.id);
-          if (index === 1) handleDelete(p.id);
+          if (index === 1) confirmDelete(p);
         }
       );
       return;
     }
 
-    if (Platform.OS === "web") {
-      const ok = (window as any).confirm(
-        `${p.nome || t("unnamed_project", { defaultValue: "Projeto sem nome" })}\n\n${t("archived_delete_title", { defaultValue: "Apagar arquivado" })}?`
-      );
-      if (ok) handleDelete(p.id);
-      return;
-    }
-
-    Alert.alert(
-      t("options", { defaultValue: "Opções" }),
-      p.nome || t("unnamed_project", { defaultValue: "Projeto sem nome" }),
-      [
-        { text: optOpen, onPress: () => handleOpen(p.id) },
-        { text: optDelete, style: "destructive", onPress: () => handleDelete(p.id) },
-        { text: optCancel, style: "cancel" },
-      ]
-    );
+    // Web + Android: menu de opções (Abrir / Apagar), não apaga logo
+    setOptionsFor(p);
   }
 
   return (
@@ -389,6 +378,53 @@ export default function ArchivedScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal de opções do projeto arquivado (Web + Android) */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={!!optionsFor}
+        onRequestClose={() => setOptionsFor(null)}
+      >
+        <Pressable style={s.modalBackdrop} onPress={() => setOptionsFor(null)}>
+          <Pressable style={s.modalCard} onPress={() => {}}>
+            <Text style={s.modalTitle} numberOfLines={1}>
+              {optionsFor?.nome || t("unnamed_project", { defaultValue: "Projeto sem nome" })}
+            </Text>
+
+            <Pressable
+              style={({ pressed }) => [s.optionRow, pressed && { opacity: 0.85 }]}
+              onPress={() => {
+                const p = optionsFor;
+                setOptionsFor(null);
+                if (p) handleOpen(p.id);
+              }}
+            >
+              <Text style={s.optionText}>{t("open", { defaultValue: "Abrir" })}</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [s.optionRow, pressed && { opacity: 0.85 }]}
+              onPress={() => {
+                const p = optionsFor;
+                setOptionsFor(null);
+                if (p) confirmDelete(p);
+              }}
+            >
+              <Text style={[s.optionText, { color: COLORS.danger }]}>
+                {t("delete", { defaultValue: "Apagar" })}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [s.modalCloseBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => setOptionsFor(null)}
+            >
+              <Text style={s.modalCloseText}>{t("cancel", { defaultValue: "Cancelar" })}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -527,6 +563,17 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       marginBottom: 10,
       textAlign: "center",
     },
+
+    optionRow: {
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      marginBottom: 8,
+      alignItems: "center",
+    },
+    optionText: { fontSize: 15, fontWeight: "900", color: COLORS.text },
 
     monthOption: {
       paddingVertical: 10,

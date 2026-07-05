@@ -324,5 +324,10 @@
   "today": "Oggi",
   "conditions_profile": "Condizioni di lavoro (predefinito)",
   "conditions_profile_hint": "Applicate automaticamente a ogni nuovo progetto. Modificabili per progetto.",
-  "title_placeholder": "Titolo"
+  "title_placeholder": "Titolo",
+  "fixed_conditions": "Condizioni fisse (tariffe)",
+  "fixed_conditions_hint": "Si applicano automaticamente ai nuovi progetti. Puoi modificarle per progetto.",
+  "mult_writethrough_hint": "Modificando un moltiplicatore, la tariffa €/h corrispondente viene ricalcolata dal salario attuale.",
+  "open_fullscreen": "Apri il foglio a schermo intero",
+  "open_fullscreen_hint": "Ruota il telefono per compilare meglio la tabella."
 }

@@ -61,7 +61,8 @@ export function calcDay(dia: Dia, prox: Dia | undefined, tabela: Tabela): CalcDi
   const multHEB = tabela.multHEB ?? 2.0;
   const multHR  = tabela.multHR  ?? 3.0;
 
-  const salarioDiaEfetivo = tabela.salarioDia ?? 0;
+  // Salário do dia: usa o override por-dia se existir, senão o global da tabela
+  const salarioDiaEfetivo = (dia.salarioDia ?? tabela.salarioDia) ?? 0;
   const horaBase = H_dia_h > 0 ? salarioDiaEfetivo / H_dia_h : 0;
 
   // Se a taxa €/hora foi editada diretamente na folha, usa-a; senão deriva de salário/H × multiplicador
