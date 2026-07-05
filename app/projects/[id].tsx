@@ -547,6 +547,7 @@ export default function ProjectEditor() {
       taxDisclaimer={t("tax_disclaimer")}
       applyLabel={t("apply_profile")}
       addLabel={t("add_day")}
+      duplicateLabel={t("duplicate_day")}
       titlePlaceholder={t("title_placeholder", { defaultValue: "Título" })}
       onPerfil={(patch) => setP("perfil", { ...project!.perfil, ...patch })}
       onProjeto={(patch) => setP("projeto", { ...project!.projeto, ...patch })}

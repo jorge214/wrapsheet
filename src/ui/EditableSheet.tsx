@@ -36,8 +36,7 @@ const C = {
 
 /* ---------------- Day-table column widths ---------------- */
 const W = {
-  act: 50,
-  desc: 120, data: 104, sal: 72,
+  desc: 130, data: 104, sal: 72,
   ini: 56, ref: 56, fim: 56, jan: 56, tra: 62,
   ht: 78, hd: 78,
   aRef: 64, aPer: 64, aTel: 64, aViat: 64, aMat: 64,
@@ -45,7 +44,7 @@ const W = {
   tot: 86,
 };
 const SHEET_W =
-  W.act + W.desc + W.data + W.sal + W.ini + W.ref + W.fim + W.jan + W.tra + W.ht + W.hd +
+  W.desc + W.data + W.sal + W.ini + W.ref + W.fim + W.jan + W.tra + W.ht + W.hd +
   W.aRef + W.aPer + W.aTel + W.aViat + W.aMat + W.heaT + W.heaV + W.hebT + W.hebV + W.hrT + W.hrV + W.tot;
 
 /* row heights (fixed → keeps every column aligned) */
@@ -273,6 +272,7 @@ type Props = {
   taxDisclaimer: string;
   applyLabel: string;
   addLabel: string;
+  duplicateLabel: string;
   titlePlaceholder: string;
   onPerfil: (patch: Partial<Perfil>) => void;
   onProjeto: (patch: Partial<Projeto>) => void;
@@ -289,7 +289,7 @@ type Props = {
 export default function EditableSheet(props: Props) {
   const {
     perfil, projeto, tabela, dias, calculos, totais, notas, condicoes,
-    locale, region, currency, taxDisclaimer, applyLabel, addLabel, titlePlaceholder,
+    locale, region, currency, taxDisclaimer, applyLabel, addLabel, duplicateLabel, titlePlaceholder,
     onPerfil, onProjeto, onTabela, onDia, onAddDia, onDuplicateDia, onRemoveDia, onNotas, onCondicoes, onApplyProfile,
   } = props;
 
@@ -405,7 +405,6 @@ export default function EditableSheet(props: Props) {
       <View style={{ marginTop: 10 }}>
         {/* header row 1 (groups) */}
         <View style={{ flexDirection: "row" }}>
-          <HCell w={W.act} h={H_HEAD1} label="" bg={C.th} />
           <HCell w={W.desc} h={H_HEAD1} label={s.day} />
           <HCell w={W.data} h={H_HEAD1} label={s.date} />
           <HCell w={W.sal} h={H_HEAD1} label={s.salary} />
@@ -423,7 +422,6 @@ export default function EditableSheet(props: Props) {
         </View>
         {/* header row 2 (subheads) */}
         <View style={{ flexDirection: "row" }}>
-          <HCell w={W.act} h={H_HEAD2} label="" bg={C.subGrey} color={C.text} small />
           <HCell w={W.desc} h={H_HEAD2} label={s.description} bg={C.subGrey} color={C.text} small />
           <HCell w={W.data} h={H_HEAD2} label="" bg={C.subGrey} color={C.text} small />
           <HCell w={W.sal} h={H_HEAD2} label={s.day} bg={C.subGrey} color={C.text} small />
@@ -452,13 +450,18 @@ export default function EditableSheet(props: Props) {
           const c = calculos[i];
           return (
             <View key={i} style={{ flexDirection: "row" }}>
-              <View style={[sh.td, { width: W.act, height: H_ROW }, sh.tdCalc]}>
-                <View style={sh.actRow}>
-                  <Pressable onPress={() => onDuplicateDia(i)} hitSlop={6} style={sh.iconBtn}><Text style={sh.iconTxt}>⧉</Text></Pressable>
-                  {i > 0 && <Pressable onPress={() => onRemoveDia(i)} hitSlop={6} style={sh.iconBtn}><Text style={[sh.iconTxt, { color: C.danger }]}>✕</Text></Pressable>}
+              <TD w={W.desc}>
+                <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                  <View style={{ flex: 1 }}>
+                    <CellText value={d.descricao || ""} onChangeText={(v) => onDia(i, { descricao: v })} align="left" />
+                  </View>
+                  {i > 0 && (
+                    <Pressable onPress={() => onRemoveDia(i)} hitSlop={6} style={sh.delBtn}>
+                      <Text style={sh.delTxt}>✕</Text>
+                    </Pressable>
+                  )}
                 </View>
-              </View>
-              <TD w={W.desc}><CellText value={d.descricao || ""} onChangeText={(v) => onDia(i, { descricao: v })} align="left" /></TD>
+              </TD>
               <TD w={W.data}><CellDate value={d.data} lang={locale} onChangeText={(v) => onDia(i, { data: v })} /></TD>
               <TD w={W.sal} calc><CalcTxt align="right">{money(salarioDia)}</CalcTxt></TD>
               <TD w={W.ini}><CellTime value={d.inicio} onChangeText={(v) => onDia(i, { inicio: v })} /></TD>
@@ -483,10 +486,15 @@ export default function EditableSheet(props: Props) {
             </View>
           );
         })}
-        {/* add-day footer */}
-        <Pressable onPress={onAddDia} style={({ pressed }) => [sh.addRow, pressed && { opacity: 0.85 }]}>
-          <Text style={sh.addTxt}>+ {addLabel}</Text>
-        </Pressable>
+        {/* add / duplicate footer */}
+        <View style={{ flexDirection: "row" }}>
+          <Pressable onPress={onAddDia} style={({ pressed }) => [sh.footBtn, pressed && { opacity: 0.85 }]}>
+            <Text style={sh.addTxt}>+ {addLabel}</Text>
+          </Pressable>
+          <Pressable onPress={() => onDuplicateDia(Math.max(0, dias.length - 1))} style={({ pressed }) => [sh.footBtn, sh.footBtnRight, pressed && { opacity: 0.85 }]}>
+            <Text style={sh.addTxt}>⧉ {duplicateLabel}</Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* ── Notes + totals ────────────────────────── */}
@@ -568,6 +576,10 @@ const sh = StyleSheet.create({
 
   addRow: { borderWidth: 1, borderColor: C.ink, borderTopWidth: 0, paddingVertical: 9, alignItems: "center", backgroundColor: C.boxTitleBg },
   addTxt: { fontSize: 12, fontWeight: "900", color: C.text },
+  footBtn: { flex: 1, borderWidth: 1, borderColor: C.ink, borderTopWidth: 0, paddingVertical: 9, alignItems: "center", backgroundColor: C.boxTitleBg },
+  footBtnRight: { borderLeftWidth: 0 },
+  delBtn: { paddingHorizontal: 4, paddingVertical: 2 },
+  delTxt: { color: C.danger, fontWeight: "900", fontSize: 12 },
 
   bottomGrid: { marginTop: 10, flexDirection: "row", gap: 10, alignItems: "flex-start" },
   notesInput: { padding: 10, fontSize: 12, color: C.text, minHeight: 64, textAlignVertical: "top" },
