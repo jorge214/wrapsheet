@@ -329,5 +329,6 @@
   "fixed_conditions_hint": "Werden automatisch auf neue Projekte angewendet. Pro Projekt änderbar.",
   "mult_writethrough_hint": "Beim Ändern eines Multiplikators wird der zugehörige €/h-Satz aus dem aktuellen Gehalt neu berechnet.",
   "open_fullscreen": "Blatt im Vollbild öffnen",
-  "open_fullscreen_hint": "Drehe das Telefon, um die Tabelle besser auszufüllen."
+  "open_fullscreen_hint": "Drehe das Telefon, um die Tabelle besser auszufüllen.",
+  "rotate_hint": "Drehe das Telefon ins Querformat, um das Blatt größer zu sehen."
 }

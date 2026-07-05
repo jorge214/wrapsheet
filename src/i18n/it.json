@@ -329,5 +329,6 @@
   "fixed_conditions_hint": "Si applicano automaticamente ai nuovi progetti. Puoi modificarle per progetto.",
   "mult_writethrough_hint": "Modificando un moltiplicatore, la tariffa €/h corrispondente viene ricalcolata dal salario attuale.",
   "open_fullscreen": "Apri il foglio a schermo intero",
-  "open_fullscreen_hint": "Ruota il telefono per compilare meglio la tabella."
+  "open_fullscreen_hint": "Ruota il telefono per compilare meglio la tabella.",
+  "rotate_hint": "Ruota il telefono in orizzontale per vedere il foglio più grande."
 }

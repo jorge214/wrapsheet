@@ -25,7 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engine";
 import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
-import { buildPdfHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
+import { buildPdfHtml } from "../../src/export/buildPdfHtml";
 import { exportPDF } from "../../src/export/pdf";
 import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
@@ -188,6 +188,23 @@ export default function ProjectEditor() {
   // Reload from storage when returning from the table editor page
   useFocusEffect(useCallback(() => { loadProject(); }, [loadProject]));
 
+  // Telemóvel: abre a folha em ecrã inteiro automaticamente (uma vez)
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!isWide && project && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
+      setFsPreview(true);
+    }
+  }, [isWide, project]);
+
+  // Ajusta o zoom para caber tudo em ecrã inteiro (e ao rodar o telemóvel)
+  useEffect(() => {
+    if (fsPreview && !isWide) {
+      const fit = Math.max(0.2, Math.min(1, (winW - 24) / SHEET_W));
+      setSheetZoom(fit);
+    }
+  }, [fsPreview, winW, isWide]);
+
   async function persist(next: ProjectState) {
     setProject(next);
     projectRef.current = next;
@@ -306,6 +323,36 @@ export default function ProjectEditor() {
 
   function handleBack() {
     router.back();
+  }
+
+  // Ecrã inteiro + tentativa de bloquear em horizontal (best-effort na web).
+  // No iOS Safari o browser não permite forçar a orientação — aí o utilizador
+  // roda o telemóvel e a folha reajusta-se sozinha para caber tudo.
+  function enterLandscape() {
+    if (Platform.OS !== "web") return;
+    try {
+      const el: any = document.documentElement;
+      const so: any = (window.screen as any)?.orientation;
+      const lock = () => { try { so?.lock?.("landscape"); } catch {} };
+      const p = el?.requestFullscreen?.();
+      if (p && typeof p.then === "function") p.then(lock).catch(lock);
+      else lock();
+    } catch {}
+  }
+  function exitLandscape() {
+    if (Platform.OS !== "web") return;
+    try {
+      (window.screen as any)?.orientation?.unlock?.();
+      if ((document as any).fullscreenElement) (document as any).exitFullscreen?.();
+    } catch {}
+  }
+  function openFullscreenSheet() {
+    setFsPreview(true);
+    enterLandscape();
+  }
+  function closeFullscreenSheet() {
+    exitLandscape();
+    setFsPreview(false);
   }
 
   // ✅ Export robusto: usa SEMPRE o estado atual em memória (ref)
@@ -564,155 +611,6 @@ export default function ProjectEditor() {
     ]);
   }
 
-  // Formulário simplificado para telemóvel (edita o MESMO projeto; a folha
-  // real continua acessível pelo botão "Abrir folha em ecrã inteiro").
-  const renderMobileForm = () => {
-    const p = project!;
-    const gs = getStrings(i18n.language, regionCode);
-    const L = (x: string) => x.replace(/\s*:$/, "");
-    const currency = getPreset(regionCode).currency;
-    const money = (n: number) => fmtMoney(Number(n) || 0, currency);
-    const aj = p.tabela.ajudas ?? {};
-    const setTabela = (patch: any) => setP("tabela", { ...p.tabela, ...patch });
-    const setAj = (patch: any) => setP("tabela", { ...p.tabela, ajudas: { ...aj, ...patch } });
-    const salaryGlobal = Number(p.tabela.salarioDia || 0);
-    const hDia = p.tabela.H_dia || 11;
-    const vHEA = p.tabela.rateHEA ?? (salaryGlobal ? (salaryGlobal / hDia) * Number(p.tabela.multHEA ?? 1.5) : 0);
-    const vHEB = p.tabela.rateHEB ?? (salaryGlobal ? (salaryGlobal / hDia) * Number(p.tabela.multHEB ?? 2.0) : 0);
-    const vHR  = p.tabela.rateHR  ?? (salaryGlobal ? (salaryGlobal / hDia) * Number(p.tabela.multHR ?? 3.0) : 0);
-    const dinnerLabel = i18n.language.startsWith("en") ? "Dinner" : i18n.language.startsWith("es") ? "Cena" : i18n.language.startsWith("fr") ? "Dîner" : i18n.language.startsWith("de") ? "Abend" : i18n.language.startsWith("it") ? "Cena" : "Jantar";
-
-    return (
-      <View>
-        {/* Título da folha */}
-        <Section title={t("title_placeholder", { defaultValue: "Título" })}>
-          <Input value={p.projeto.titulo ?? ""} onChangeText={(v) => setP("projeto", { ...p.projeto, titulo: v })} placeholder={t("title_placeholder", { defaultValue: "Título" })} compact />
-        </Section>
-
-        {/* Dados pessoais */}
-        <Section
-          title={L(gs.personalData)}
-          collapsible
-          defaultCollapsed
-          right={
-            <Pressable onPress={handleApplyActiveProfile} style={({ pressed }) => [ss.pill, pressed && { opacity: 0.85 }]}>
-              <Text style={ss.pillText}>{t("apply_profile")} ⤓</Text>
-            </Pressable>
-          }
-        >
-          <Input label={L(gs.name)} value={p.perfil.nome} onChangeText={(v) => setP("perfil", { ...p.perfil, nome: v })} />
-          <Input label={L(gs.role)} value={p.perfil.funcao} onChangeText={(v) => setP("perfil", { ...p.perfil, funcao: v })} />
-          <Input label={L(gs.phone)} value={p.perfil.telefone} onChangeText={(v) => setP("perfil", { ...p.perfil, telefone: v })} />
-          <Input label={L(gs.email)} value={p.perfil.email} onChangeText={(v) => setP("perfil", { ...p.perfil, email: v })} />
-          <Input label={L(gs.nif)} value={p.perfil.nif ?? ""} onChangeText={(v) => setP("perfil", { ...p.perfil, nif: v })} />
-          <Input label={L(gs.iban)} value={p.perfil.iban ?? ""} onChangeText={(v) => setP("perfil", { ...p.perfil, iban: v })} />
-          <Input label={L(gs.swift)} value={p.perfil.swift ?? ""} onChangeText={(v) => setP("perfil", { ...p.perfil, swift: v })} />
-          <Input label={L(gs.companyLabel)} value={p.perfil.empresa ?? ""} onChangeText={(v) => setP("perfil", { ...p.perfil, empresa: v })} />
-        </Section>
-
-        {/* Produtora */}
-        <Section title={L(gs.productionSection)} collapsible defaultCollapsed>
-          <Input label={L(gs.film)} value={p.projeto.filme} onChangeText={(v) => setP("projeto", { ...p.projeto, filme: v })} />
-          <Input label={L(gs.productionLabel)} value={p.projeto.produtora} onChangeText={(v) => setP("projeto", { ...p.projeto, produtora: v })} />
-          <Input label={L(gs.productionNif)} value={p.projeto.nifProdutora ?? ""} onChangeText={(v) => setP("projeto", { ...p.projeto, nifProdutora: v })} />
-        </Section>
-
-        {/* Condições fixas (taxas) */}
-        <Section title={t("fixed_conditions", { defaultValue: "Condições fixas (taxas)" })} collapsible defaultCollapsed>
-          <Grid2>
-            <Num label={`${L(gs.salary)} (€)`} value={salaryGlobal} onChange={(n) => setTabela({ salarioDia: n })} />
-            <Num label={`${L(gs.overtimeA)} (€/h)`} value={vHEA} onChange={(n) => setTabela({ rateHEA: n })} />
-            <Num label={`${L(gs.overtimeB)} (€/h)`} value={vHEB} onChange={(n) => setTabela({ rateHEB: n })} />
-            <Num label={`${L(gs.recoveryHours)} (€/h)`} value={vHR} onChange={(n) => setTabela({ rateHR: n })} />
-            <Num label={`${L(gs.meal)} (€)`} value={Number(aj.refeicao ?? 0)} onChange={(n) => setAj({ refeicao: n })} />
-            <Num label={`${L(gs.telephone)} (€)`} value={Number(aj.telefone ?? 0)} onChange={(n) => setAj({ telefone: n })} />
-            <Num label={`${L(gs.vehicle)} (€)`} value={Number(aj.viatura ?? 0)} onChange={(n) => setAj({ viatura: n })} />
-            <Num label={`${L(gs.material)} (€)`} value={Number(aj.material ?? 0)} onChange={(n) => setAj({ material: n })} />
-            <Num label={`${L(gs.perDiem)} (€)`} value={Number(aj.perDiem ?? 0)} onChange={(n) => setAj({ perDiem: n })} />
-          </Grid2>
-        </Section>
-
-        {/* Dias */}
-        <Section title={t("days", { defaultValue: "Dias" })}>
-          {p.dias.map((d, i) => {
-            const c = calculos[i] ?? ({} as any);
-            return (
-              <View key={i} style={ss.dayCard}>
-                <View style={ss.dayHeader}>
-                  <Text style={ss.dayHeaderTitle}>
-                    {t("day", { defaultValue: "Dia" })} {i + 1}
-                    {d.data ? `  ·  ${formatDateDisplay(d.data, i18n.language)}` : ""}
-                  </Text>
-                  <View style={{ flexDirection: "row", gap: 6 }}>
-                    <Pressable onPress={() => duplicateDia(i)} style={({ pressed }) => [ss.pillGhost, pressed && { opacity: 0.85 }]}>
-                      <Text style={ss.pillGhostText}>⧉</Text>
-                    </Pressable>
-                    {p.dias.length > 1 && (
-                      <Pressable onPress={() => removeDia(i)} style={({ pressed }) => [ss.pillGhost, { borderColor: COLORS.danger }, pressed && { opacity: 0.85 }]}>
-                        <Text style={[ss.pillGhostText, { color: COLORS.danger }]}>✕</Text>
-                      </Pressable>
-                    )}
-                  </View>
-                </View>
-
-                <DateField label={L(gs.date)} value={d.data} onChangeText={(v) => updateDia(i, { data: v })} />
-                <Input label={L(gs.description)} value={d.descricao ?? ""} onChangeText={(v) => updateDia(i, { descricao: v })} />
-                <Grid3>
-                  <TimeField label={L(gs.start)} value={d.inicio} onChangeText={(v) => updateDia(i, { inicio: v })} />
-                  <TimeField label={L(gs.mealBreak)} value={d.refeicaoTrabalho} onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })} />
-                  <TimeField label={L(gs.end)} value={d.fim} onChangeText={(v) => updateDia(i, { fim: v })} />
-                </Grid3>
-                <Grid3>
-                  <TimeField label={dinnerLabel} value={d.jantarTrabalho} onChangeText={(v) => updateDia(i, { jantarTrabalho: v })} />
-                  <Num label="Transp. (min)" value={d.tempoTransporteMin ?? 0} onChange={(n) => updateDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })} />
-                  <Input
-                    label={`${L(gs.salary)}/${t("day", { defaultValue: "dia" }).toLowerCase()}`}
-                    keyboardType="numeric"
-                    value={d.salarioDia != null ? String(d.salarioDia) : ""}
-                    placeholder={money(salaryGlobal)}
-                    onChangeText={(v) => updateDia(i, { salarioDia: v.trim() === "" ? undefined : Number(v.replace(",", ".")) || 0 } as any)}
-                  />
-                </Grid3>
-
-                <View style={ss.metricsRow}>
-                  <Metric label={L(gs.workHours)} value={minutesToHM(c.HT_min ?? 0)} />
-                  <Metric label={L(gs.restHours)} value={minutesToHM(c.HD_min ?? 0)} />
-                  <Metric label={L(gs.overtimeA)} value={`${((c.HEA_min ?? 0) / 60).toFixed(1)}h · ${money(c.HEA_valor ?? 0)}`} />
-                  <Metric label={L(gs.overtimeB)} value={`${((c.HEB_min ?? 0) / 60).toFixed(1)}h · ${money(c.HEB_valor ?? 0)}`} />
-                  <Metric label={L(gs.recoveryHours)} value={`${((c.HR_min ?? 0) / 60).toFixed(1)}h · ${money(c.HR_valor ?? 0)}`} />
-                  <Metric label={L(gs.total)} value={money(c.totalDia ?? 0)} highlight />
-                </View>
-              </View>
-            );
-          })}
-
-          <Pressable onPress={addDia} style={({ pressed }) => [ss.addRowBtn, pressed && { opacity: 0.85 }]}>
-            <Text style={ss.addRowText}>+ {t("add_day")}</Text>
-          </Pressable>
-        </Section>
-
-        {/* Notas */}
-        <Section title={L(gs.notes)}>
-          <Input value={p.notas || ""} onChangeText={(v) => setP("notas", v)} multiline placeholder="…" compact />
-        </Section>
-
-        {/* Condições de trabalho */}
-        <Section title={L(gs.workConditions)}>
-          <Input value={p.condicoes || ""} onChangeText={(v) => setP("condicoes", v)} multiline placeholder="…" compact />
-        </Section>
-
-        {/* Totais */}
-        <Section title={t("totals", { defaultValue: "Totais" })}>
-          <View style={ss.metricsRow}>
-            <Metric label={L(gs.gross)} value={money(totais.ValorBruto)} />
-            <Metric label={gs.irs} value={money(totais.IRS_valor)} />
-            <Metric label={gs.iva} value={money(totais.IVA_valor)} />
-            <Metric label={L(gs.net)} value={money(totais.ValorFinal)} highlight />
-          </View>
-        </Section>
-      </View>
-    );
-  };
 
   const renderSheet = () => (
     <EditableSheet
@@ -830,17 +728,19 @@ export default function ProjectEditor() {
           ) : (
             <>
               <Pressable
-                onPress={() => setFsPreview(true)}
+                onPress={openFullscreenSheet}
                 style={({ pressed }) => [ss.fsCta, pressed && { opacity: 0.9 }]}
               >
                 <Text style={ss.fsCtaText}>
                   ⛶ {t("open_fullscreen", { defaultValue: "Abrir folha em ecrã inteiro" })}
                 </Text>
                 <Text style={ss.fsCtaHint}>
-                  {t("open_fullscreen_hint", { defaultValue: "Vê e edita a folha real; roda o telemóvel." })}
+                  {t("open_fullscreen_hint", { defaultValue: "Roda o telemóvel para veres a folha na horizontal." })}
                 </Text>
               </Pressable>
-              {renderMobileForm()}
+              <ScrollView horizontal showsHorizontalScrollIndicator>
+                <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
+              </ScrollView>
             </>
           )}
 
@@ -928,7 +828,8 @@ export default function ProjectEditor() {
       <Modal
         animationType="fade"
         visible={fsPreview}
-        onRequestClose={() => setFsPreview(false)}
+        supportedOrientations={["portrait", "landscape"]}
+        onRequestClose={closeFullscreenSheet}
       >
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
           <View style={ss.previewHeader}>
@@ -956,14 +857,19 @@ export default function ProjectEditor() {
               </Pressable>
             </View>
             <Pressable
-              onPress={() => setFsPreview(false)}
+              onPress={closeFullscreenSheet}
               hitSlop={12}
               style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}
             >
               <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
             </Pressable>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16 }}>
+          {!isWide && (
+            <Text style={ss.rotateHint}>
+              {t("rotate_hint", { defaultValue: "Roda o telemóvel para a horizontal para veres a folha maior." })}
+            </Text>
+          )}
+          <ScrollView contentContainerStyle={{ padding: 12 }}>
             <ScrollView horizontal>
               <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
             </ScrollView>
@@ -1972,6 +1878,7 @@ const ss = StyleSheet.create({
   },
   fsCtaText: { color: COLORS.text, fontWeight: "900", fontSize: 15 },
   fsCtaHint: { color: COLORS.sub, fontSize: 12, marginTop: 3, textAlign: "center" },
+  rotateHint: { color: COLORS.sub, fontSize: 12, textAlign: "center", paddingHorizontal: 16, paddingBottom: 6 },
 
   /* ---- Add day (grid footer) ---- */
   addRowBtn: {
