@@ -138,6 +138,7 @@ export default function ProjectEditor() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [fsPreview, setFsPreview] = useState(false);
+  const [sheetZoom, setSheetZoom] = useState(1);
   const fsIframeRef = useRef<any>(null);
   const { setPreviewHtml, clearPreview, zoom, setZoom, actualZoom } = useLivePreview();
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
@@ -228,7 +229,7 @@ export default function ProjectEditor() {
 
   const taxLabels = getPreset(regionCode).taxLabels;
 
-  const anyPreview = livePreview || showPreview || fsPreview;
+  const anyPreview = livePreview || showPreview;
 
   const previewHtml = useMemo(() => {
     if (!project || !anyPreview) return "";
@@ -530,6 +531,36 @@ export default function ProjectEditor() {
     ]);
   }
 
+  const renderSheet = () => (
+    <EditableSheet
+      perfil={project!.perfil as any}
+      projeto={project!.projeto as any}
+      tabela={project!.tabela as any}
+      dias={project!.dias}
+      calculos={calculos as any}
+      totais={totais as any}
+      notas={project!.notas || ""}
+      condicoes={project!.condicoes || ""}
+      locale={i18n.language}
+      region={regionCode}
+      currency={getPreset(regionCode).currency}
+      taxDisclaimer={t("tax_disclaimer")}
+      isWide={isWide}
+      applyLabel={t("apply_profile")}
+      addLabel={t("add_day")}
+      onPerfil={(patch) => setP("perfil", { ...project!.perfil, ...patch })}
+      onProjeto={(patch) => setP("projeto", { ...project!.projeto, ...patch })}
+      onTabela={(patch) => setP("tabela", { ...project!.tabela, ...patch })}
+      onDia={updateDia}
+      onAddDia={addDia}
+      onDuplicateDia={duplicateDia}
+      onRemoveDia={removeDia}
+      onNotas={(v) => setP("notas", v)}
+      onCondicoes={(v) => setP("condicoes", v)}
+      onApplyProfile={handleApplyActiveProfile}
+    />
+  );
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
@@ -553,25 +584,28 @@ export default function ProjectEditor() {
               )}
             </View>
 
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Pressable
-                onPress={() => {
-                  if (isWide && Platform.OS === "web") {
-                    setLivePreviewEnabled((v) => !v);
-                  } else {
-                    setShowPreview(true);
-                  }
-                }}
-                style={({ pressed }) => [
-                  ss.exportBtn,
-                  livePreview && { backgroundColor: COLORS.text, borderColor: COLORS.text },
-                  pressed && { opacity: 0.85 },
-                ]}
-              >
-                <Text style={[ss.exportBtnText, livePreview && { color: COLORS.bg }]}>
-                  {livePreview ? t("close") : t("preview", { defaultValue: "Preview" })}
-                </Text>
-              </Pressable>
+            <View style={{ flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {/* Zoom da folha */}
+              <View style={ss.zoomRow}>
+                <Pressable
+                  onPress={() => setSheetZoom((z) => Math.max(0.4, Math.round((z - 0.1) * 10) / 10))}
+                  style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
+                >
+                  <Text style={ss.zoomBtnText}>−</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setSheetZoom(1)}
+                  style={({ pressed }) => [ss.zoomBtnMid, pressed && { opacity: 0.7 }]}
+                >
+                  <Text style={ss.zoomBtnText}>{Math.round(sheetZoom * 100)}%</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setSheetZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}
+                  style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
+                >
+                  <Text style={ss.zoomBtnText}>+</Text>
+                </Pressable>
+              </View>
 
               {isWide && Platform.OS === "web" && (
                 <Pressable
@@ -580,35 +614,6 @@ export default function ProjectEditor() {
                 >
                   <Text style={ss.exportBtnText}>⛶</Text>
                 </Pressable>
-              )}
-
-              {livePreview && (
-                <View style={ss.zoomRow}>
-                  <Pressable
-                    onPress={() => {
-                      const base = zoom === null ? actualZoom : zoom;
-                      setZoom(Math.max(0.25, Math.round((base - 0.25) * 100) / 100));
-                    }}
-                    style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
-                  >
-                    <Text style={ss.zoomBtnText}>−</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setZoom(null)}
-                    style={({ pressed }) => [ss.zoomBtnMid, pressed && { opacity: 0.7 }]}
-                  >
-                    <Text style={ss.zoomBtnText}>{zoom === null ? "auto" : `${Math.round(zoom * 100)}%`}</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      const base = zoom === null ? actualZoom : zoom;
-                      setZoom(Math.min(3, Math.round((base + 0.25) * 100) / 100));
-                    }}
-                    style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
-                  >
-                    <Text style={ss.zoomBtnText}>+</Text>
-                  </Pressable>
-                </View>
               )}
 
               <Pressable
@@ -634,31 +639,7 @@ export default function ProjectEditor() {
         </View>
 
         <View style={{ paddingHorizontal: PAGE_X }}>
-          <EditableSheet
-            perfil={project.perfil as any}
-            projeto={project.projeto as any}
-            tabela={project.tabela as any}
-            dias={project.dias}
-            calculos={calculos as any}
-            totais={totais as any}
-            notas={project.notas || ""}
-            condicoes={project.condicoes || ""}
-            locale={i18n.language}
-            region={regionCode}
-            currency={getPreset(regionCode).currency}
-            taxDisclaimer={t("tax_disclaimer")}
-            isWide={isWide}
-            onPerfil={(patch) => setP("perfil", { ...project.perfil, ...patch })}
-            onProjeto={(patch) => setP("projeto", { ...project.projeto, ...patch })}
-            onTabela={(patch) => setP("tabela", { ...project.tabela, ...patch })}
-            onDia={updateDia}
-            onAddDia={addDia}
-            onDuplicateDia={duplicateDia}
-            onRemoveDia={removeDia}
-            onNotas={(v) => setP("notas", v)}
-            onCondicoes={(v) => setP("condicoes", v)}
-            onApplyProfile={handleApplyActiveProfile}
-          />
+          <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
 
           <View style={{ marginTop: 12 }}>
             <Section title={t("table_params")} collapsible defaultCollapsed>
@@ -739,32 +720,32 @@ export default function ProjectEditor() {
         </Pressable>
       </Modal>
 
-      {/* Fullscreen preview (desktop) */}
+      {/* Fullscreen editable sheet */}
       <Modal
         animationType="fade"
         visible={fsPreview}
         onRequestClose={() => setFsPreview(false)}
       >
-        <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
               {project.projeto.filme || t("unnamed_project")}
             </Text>
-            <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+            <View style={ss.zoomRow}>
               <Pressable
-                onPress={() => setZoom(zoom === null ? 0.75 : Math.max(0.25, zoom - 0.25))}
+                onPress={() => setSheetZoom((z) => Math.max(0.4, Math.round((z - 0.1) * 10) / 10))}
                 style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
               >
                 <Text style={ss.zoomBtnText}>−</Text>
               </Pressable>
               <Pressable
-                onPress={() => setZoom(null)}
+                onPress={() => setSheetZoom(1)}
                 style={({ pressed }) => [ss.zoomBtnMid, pressed && { opacity: 0.7 }]}
               >
-                <Text style={ss.zoomBtnText}>{zoom === null ? "auto" : `${Math.round(zoom * 100)}%`}</Text>
+                <Text style={ss.zoomBtnText}>{Math.round(sheetZoom * 100)}%</Text>
               </Pressable>
               <Pressable
-                onPress={() => setZoom(zoom === null ? 1.25 : Math.min(3, zoom + 0.25))}
+                onPress={() => setSheetZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}
                 style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
               >
                 <Text style={ss.zoomBtnText}>+</Text>
@@ -778,22 +759,10 @@ export default function ProjectEditor() {
               <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
             </Pressable>
           </View>
-          {Platform.OS === "web" ? (
-            // @ts-ignore — iframe is web-only
-            <iframe
-              ref={fsIframeRef}
-              srcDoc={previewHtml}
-              onLoad={() => {
-                const win = fsIframeRef.current?.contentWindow;
-                if (win && zoom !== null) {
-                  win.postMessage({ type: "wrapsheet:zoom", zoom }, "*");
-                }
-              }}
-              style={{ flex: 1, border: "none", width: "100%", height: "100%" } as any}
-              title="PDF Preview Fullscreen"
-            />
-          ) : null}
-        </View>
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
+            <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
 
       {/* Preview overlay */}
@@ -838,6 +807,14 @@ export default function ProjectEditor() {
 }
 
 /* ---------- UI helpers ---------- */
+function ZoomWrap({ zoom, children }: { zoom: number; children: React.ReactNode }) {
+  if (Platform.OS === "web") {
+    // @ts-ignore — raw div + CSS zoom is web-only and reflows the layout correctly
+    return <div style={{ zoom: String(zoom) }}>{children}</div>;
+  }
+  return <View style={{ transform: [{ scale: zoom }] }}>{children}</View>;
+}
+
 function MenuItem({
   label,
   onPress,

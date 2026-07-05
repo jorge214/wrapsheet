@@ -293,6 +293,8 @@ type Props = {
   currency: string;
   taxDisclaimer: string;
   isWide: boolean;
+  applyLabel: string;
+  addLabel: string;
   onPerfil: (patch: Partial<Perfil>) => void;
   onProjeto: (patch: Partial<Projeto>) => void;
   onTabela: (patch: Partial<Tabela>) => void;
@@ -308,7 +310,7 @@ type Props = {
 export default function EditableSheet(props: Props) {
   const {
     perfil, projeto, tabela, dias, calculos, totais, notas, condicoes,
-    locale, region, currency, taxDisclaimer, isWide,
+    locale, region, currency, taxDisclaimer, isWide, applyLabel, addLabel,
     onPerfil, onProjeto, onTabela, onDia, onAddDia, onDuplicateDia, onRemoveDia, onNotas, onCondicoes, onApplyProfile,
   } = props;
 
@@ -337,9 +339,15 @@ export default function EditableSheet(props: Props) {
 
   return (
     <View>
-      {/* ── Title bar ─────────────────────────────── */}
+      {/* ── Title bar (editable project title) ─────── */}
       <View style={sh.titleBar}>
-        <Text style={sh.titleTxt}>{s.title}</Text>
+        <TextInput
+          style={sh.titleInput}
+          value={projeto.filme}
+          onChangeText={(v) => onProjeto({ filme: v })}
+          placeholder={s.title}
+          placeholderTextColor="rgba(255,255,255,0.75)"
+        />
         <Text style={sh.subTitleTxt}>{s.subtitle}</Text>
       </View>
 
@@ -348,7 +356,7 @@ export default function EditableSheet(props: Props) {
         {/* Personal data */}
         <View style={isWide ? { flex: 1.55 } : {}}>
           <Box>
-            <BoxTitle right={<Pressable onPress={onApplyProfile} style={({ pressed }) => [sh.applyBtn, pressed && { opacity: 0.85 }]}><Text style={sh.applyTxt}>⤓ Perfil</Text></Pressable>}>
+            <BoxTitle right={<Pressable onPress={onApplyProfile} style={({ pressed }) => [sh.applyBtn, pressed && { opacity: 0.85 }]}><Text style={sh.applyTxt}>{applyLabel} ⤓</Text></Pressable>}>
               {s.personalData}
             </BoxTitle>
             <KV label={s.name} value={perfil.nome} onChangeText={(v) => onPerfil({ nome: v })} />
@@ -497,7 +505,7 @@ export default function EditableSheet(props: Props) {
           })}
           {/* add-day footer row */}
           <Pressable onPress={onAddDia} style={({ pressed }) => [sh.addRow, pressed && { opacity: 0.85 }]}>
-            <Text style={sh.addTxt}>+ {s.day}</Text>
+            <Text style={sh.addTxt}>+ {addLabel}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -555,6 +563,7 @@ const sh = StyleSheet.create({
     paddingVertical: 10, alignItems: "center",
   },
   titleTxt: { color: "#fff", fontWeight: "800", fontSize: 16, letterSpacing: 0.5 },
+  titleInput: { color: "#fff", fontWeight: "800", fontSize: 16, letterSpacing: 0.5, textAlign: "center", alignSelf: "stretch", paddingVertical: 0 },
   subTitleTxt: { color: "#fff", fontWeight: "600", fontSize: 11, marginTop: 2 },
 
   headGrid: { marginTop: 10, gap: 10, alignItems: "stretch" },
