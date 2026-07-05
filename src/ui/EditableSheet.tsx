@@ -380,6 +380,7 @@ type Props = {
   applyLabel: string;
   addLabel: string;
   duplicateLabel: string;
+  removeLabel: string;
   titlePlaceholder: string;
   onPerfil: (patch: Partial<Perfil>) => void;
   onProjeto: (patch: Partial<Projeto>) => void;
@@ -396,7 +397,7 @@ type Props = {
 export default function EditableSheet(props: Props) {
   const {
     perfil, projeto, tabela, dias, calculos, totais, notas, condicoes,
-    locale, region, currency, taxDisclaimer, applyLabel, addLabel, duplicateLabel, titlePlaceholder,
+    locale, region, currency, taxDisclaimer, applyLabel, addLabel, duplicateLabel, removeLabel, titlePlaceholder,
     onPerfil, onProjeto, onTabela, onDia, onAddDia, onDuplicateDia, onRemoveDia, onNotas, onCondicoes, onApplyProfile,
   } = props;
 
@@ -600,13 +601,16 @@ export default function EditableSheet(props: Props) {
             </View>
           );
         })}
-        {/* add / duplicate footer */}
+        {/* add / duplicate / delete footer */}
         <View style={{ flexDirection: "row" }}>
           <Pressable onPress={onAddDia} style={({ pressed }) => [sh.footBtn, pressed && { opacity: 0.85 }]}>
             <Text style={sh.addTxt}>+ {addLabel}</Text>
           </Pressable>
           <Pressable onPress={() => onDuplicateDia(Math.max(0, dias.length - 1))} style={({ pressed }) => [sh.footBtn, sh.footBtnRight, pressed && { opacity: 0.85 }]}>
             <Text style={sh.addTxt}>⧉ {duplicateLabel}</Text>
+          </Pressable>
+          <Pressable onPress={() => onRemoveDia(dias.length - 1)} style={({ pressed }) => [sh.footBtn, sh.footBtnRight, pressed && { opacity: 0.85 }]}>
+            <Text style={[sh.addTxt, { color: C.danger }]}>✕ {removeLabel}</Text>
           </Pressable>
         </View>
       </View>

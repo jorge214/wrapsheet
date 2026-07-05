@@ -629,6 +629,7 @@ export default function ProjectEditor() {
       applyLabel={t("apply_profile")}
       addLabel={t("add_day")}
       duplicateLabel={t("duplicate_day")}
+      removeLabel={t("remove_day")}
       titlePlaceholder={t("title_placeholder", { defaultValue: "Título" })}
       onPerfil={(patch) => setP("perfil", { ...project!.perfil, ...patch })}
       onProjeto={(patch) => setP("projeto", { ...project!.projeto, ...patch })}
