@@ -33,6 +33,9 @@ export type PdfTabela = {
   multHEA?: number;
   multHEB?: number;
   multHR?: number;
+  rateHEA?: number;
+  rateHEB?: number;
+  rateHR?: number;
   limiar_A?: number;
   limiar_B?: number;
   ajudas?: {
@@ -491,9 +494,9 @@ export function buildPdfHtml(
   const multHEB = Number(tabela.multHEB ?? 2.0);
   const multHR  = Number(tabela.multHR  ?? 3.0);
 
-  const vHEA = salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHEA : 0;
-  const vHEB = salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHEB : 0;
-  const vHR  = salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHR  : 0;
+  const vHEA = tabela.rateHEA ?? (salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHEA : 0);
+  const vHEB = tabela.rateHEB ?? (salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHEB : 0);
+  const vHR  = tabela.rateHR  ?? (salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHR  : 0);
 
   const aj = tabela.ajudas ?? {};
   const valRef  = Number(aj.refeicao  ?? 0);

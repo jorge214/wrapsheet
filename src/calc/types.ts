@@ -34,6 +34,12 @@ export type Tabela = {
   multHEB?: number;        // default 2.0
   multHR?: number;         // default 3.0
 
+  // Overrides opcionais da taxa €/hora (editáveis na folha). Se definidos,
+  // o motor usa-os em vez de salário/H × multiplicador.
+  rateHEA?: number;
+  rateHEB?: number;
+  rateHR?: number;
+
   H_dia: number;            // horas contratuais do dia (default 11)
   limiar_A?: number;        // início das HE-A em horas acumuladas (default 11 => 12.ª hora)
   limiar_B?: number;        // início das HE-B (default 18 => 19.ª hora)

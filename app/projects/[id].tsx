@@ -17,6 +17,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -32,7 +33,7 @@ import { getSettings } from "../../src/storage/appSettings";
 import { canExportPdf, incrementPdfExportCount } from "../../src/storage/freeTier";
 import { getActiveProfile } from "../../src/storage/profile";
 import { getProject, saveProject } from "../../src/storage/projects";
-import EditableSheet from "../../src/ui/EditableSheet";
+import EditableSheet, { SHEET_W } from "../../src/ui/EditableSheet";
 
 /* ---------- Paleta (manual, neutra) ---------- */
 const COLORS = {
@@ -123,6 +124,7 @@ export default function ProjectEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const isWide = useIsWide();
+  const { width: winW } = useWindowDimensions();
   const { t } = useTranslation();
   const { user } = useAuth();
 
@@ -138,7 +140,9 @@ export default function ProjectEditor() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [fsPreview, setFsPreview] = useState(false);
-  const [sheetZoom, setSheetZoom] = useState(() => (isWide ? 1 : 0.4));
+  const [sheetZoom, setSheetZoom] = useState(() =>
+    isWide ? 1 : Math.max(0.25, Math.min(1, (winW - 2 * PAGE_X) / SHEET_W))
+  );
   const fsIframeRef = useRef<any>(null);
   const { setPreviewHtml, clearPreview, zoom, setZoom, actualZoom } = useLivePreview();
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);

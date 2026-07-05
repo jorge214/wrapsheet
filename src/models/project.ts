@@ -20,6 +20,9 @@ export type Tabela = {
   multHEA?: number;
   multHEB?: number;
   multHR?: number;
+  rateHEA?: number;
+  rateHEB?: number;
+  rateHR?: number;
   limiar_A?: number;
   limiar_B?: number;
   arredondarMeiasHoras?: boolean;

@@ -64,9 +64,10 @@ export function calcDay(dia: Dia, prox: Dia | undefined, tabela: Tabela): CalcDi
   const salarioDiaEfetivo = tabela.salarioDia ?? 0;
   const horaBase = H_dia_h > 0 ? salarioDiaEfetivo / H_dia_h : 0;
 
-  const rateHEA = horaBase * multHEA;
-  const rateHEB = horaBase * multHEB;
-  const rateHR  = horaBase * multHR;
+  // Se a taxa €/hora foi editada diretamente na folha, usa-a; senão deriva de salário/H × multiplicador
+  const rateHEA = tabela.rateHEA ?? (horaBase * multHEA);
+  const rateHEB = tabela.rateHEB ?? (horaBase * multHEB);
+  const rateHR  = tabela.rateHR  ?? (horaBase * multHR);
 
   const ini = hmToMinutes(dia.inicio);
   const fim = hmToMinutes(dia.fim);

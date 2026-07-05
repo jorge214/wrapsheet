@@ -43,7 +43,7 @@ const W = {
   heaT: 46, heaV: 60, hebT: 46, hebV: 60, hrT: 46, hrV: 60,
   tot: 86,
 };
-const SHEET_W =
+export const SHEET_W =
   W.desc + W.data + W.sal + W.ini + W.ref + W.fim + W.jan + W.tra + W.ht + W.hd +
   W.aRef + W.aPer + W.aTel + W.aViat + W.aMat + W.heaT + W.heaV + W.hebT + W.hebV + W.hrT + W.hrV + W.tot;
 
@@ -255,7 +255,7 @@ function CalcTxt({ children, align = "center", strong, blue }: { children: React
 type Perfil = { nome: string; email: string; telefone: string; departamento: string; funcao: string; empresa?: string; nif?: string; iban?: string; swift?: string };
 type Projeto = { filme: string; produtora: string; nifProdutora?: string; semana?: string; mes: number; ano: number };
 type Ajudas = { refeicao?: number; viatura?: number; material?: number; telefone?: number; perDiem?: number };
-type Tabela = { salarioDia?: number; H_dia: number; multHEA?: number; multHEB?: number; multHR?: number; ajudas?: Ajudas };
+type Tabela = { salarioDia?: number; H_dia: number; multHEA?: number; multHEB?: number; multHR?: number; rateHEA?: number; rateHEB?: number; rateHR?: number; ajudas?: Ajudas };
 
 type Props = {
   perfil: Perfil;
@@ -300,9 +300,10 @@ export default function EditableSheet(props: Props) {
 
   const salarioDia = Number(tabela.salarioDia || 0);
   const hDia = tabela.H_dia || 8;
-  const vHEA = salarioDia ? (salarioDia / hDia) * Number(tabela.multHEA ?? 1.5) : 0;
-  const vHEB = salarioDia ? (salarioDia / hDia) * Number(tabela.multHEB ?? 2.0) : 0;
-  const vHR = salarioDia ? (salarioDia / hDia) * Number(tabela.multHR ?? 3.0) : 0;
+  // Taxa efetiva: override editado na folha, senão salário/H × multiplicador
+  const vHEA = tabela.rateHEA ?? (salarioDia ? (salarioDia / hDia) * Number(tabela.multHEA ?? 1.5) : 0);
+  const vHEB = tabela.rateHEB ?? (salarioDia ? (salarioDia / hDia) * Number(tabela.multHEB ?? 2.0) : 0);
+  const vHR = tabela.rateHR ?? (salarioDia ? (salarioDia / hDia) * Number(tabela.multHR ?? 3.0) : 0);
 
   const totalDias = dias.reduce((acc, d) => acc + (d.diaSemTrabalho ? 0 : d.meioDia ? 0.5 : 1), 0);
   const today = new Date();
@@ -316,14 +317,6 @@ export default function EditableSheet(props: Props) {
   const RateEdit = ({ value, onChange }: { value: number; onChange: (n: number) => void }) => (
     <View style={sh.rateCell}><CellMoney value={value} onChange={onChange} align="center" /></View>
   );
-  // Rate cell: computed €/hour, value + unit stacked (legible)
-  const RateCalc = ({ v }: { v: number }) => (
-    <View style={[sh.rateCell, sh.tdCalc, { alignItems: "center", justifyContent: "center" }]}>
-      <Text style={sh.rateVal}>{money(v)}</Text>
-      <Text style={sh.rateUnit}>{s.perHour}</Text>
-    </View>
-  );
-
   return (
     <View style={{ width: SHEET_W }}>
       {/* ── Title bar (editable) ─────────────────────── */}
@@ -390,9 +383,9 @@ export default function EditableSheet(props: Props) {
         </View>
         <View style={{ flexDirection: "row" }}>
           <RateEdit value={salarioDia} onChange={(n) => onTabela({ salarioDia: n })} />
-          <RateCalc v={vHEA} />
-          <RateCalc v={vHEB} />
-          <RateCalc v={vHR} />
+          <RateEdit value={vHEA} onChange={(n) => onTabela({ rateHEA: n })} />
+          <RateEdit value={vHEB} onChange={(n) => onTabela({ rateHEB: n })} />
+          <RateEdit value={vHR} onChange={(n) => onTabela({ rateHR: n })} />
           <RateEdit value={Number(aj.refeicao ?? 0)} onChange={(n) => setAj({ refeicao: n })} />
           <RateEdit value={Number(aj.telefone ?? 0)} onChange={(n) => setAj({ telefone: n })} />
           <RateEdit value={Number(aj.viatura ?? 0)} onChange={(n) => setAj({ viatura: n })} />
