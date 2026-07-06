@@ -884,7 +884,7 @@ export function buildEditableSheetHtml(
       <style>
         * { box-sizing: border-box; }
         html, body { margin: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 12px; color: #111; background: #fff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
         .titleBox .ei { color: #fff; text-align: center; font-weight: 800; letter-spacing: .5px; }
         .titleBox .ei::placeholder { color: rgba(255,255,255,.85); }
@@ -904,7 +904,7 @@ export function buildEditableSheetHtml(
         .mini { font-size: 11px; }
         .muted { opacity: .8; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 2px solid #2b2b2b; padding: 4px; font-size: 11px; text-align: center; vertical-align: middle; }
+        th, td { border: 2px solid #2b2b2b; padding: 6px; font-size: 11px; text-align: center; vertical-align: middle; }
         th { background: #7f7f7f; color: #fff; font-weight: 800; }
         th.h-blue { background: #2e75b6; color: #fff; }
         th.h-olive { background: #7f7f2e; color: #fff; }
@@ -930,15 +930,15 @@ export function buildEditableSheetHtml(
         .totalsMini th { background: #f2f2f2; color: #1f7a37; text-align: left; }
         .totalsMini .val { text-align: right; font-weight: 800; }
         .conditions { margin-top: 10px; }
-        /* Editable fields */
-        .ei { border: 1px solid transparent; background: #fffdf2; width: 100%; font-size: inherit; font-family: inherit; color: #111; padding: 3px 4px; text-align: center; border-radius: 3px; }
+        /* Editable fields — blend into the cells (mesmo formato do "Ver") */
+        .ei { border: none; background: #fffdf2; width: 100%; font-size: inherit; font-family: inherit; color: #111; padding: 0; margin: 0; text-align: center; }
         .ei.left { text-align: left; }
-        .ei:focus { outline: none; border-color: #1b5fbf; background: #eef4ff; }
-        .row .v .ei { background: #fffdf2; text-align: left; }
-        td .ei { min-width: 40px; }
-        .money { text-align: right; width: 62px; display: inline-block; }
-        .time { width: 70px; }
-        textarea.ei { width: 100%; min-height: 60px; resize: vertical; text-align: left; font-size: 12px; }
+        .ei:focus { outline: 2px solid #1b5fbf; outline-offset: -2px; background: #eef4ff; }
+        .row .v .ei { text-align: left; }
+        td .ei { min-width: 0; }
+        .money { text-align: right; width: 58px; display: inline-block; }
+        .time { width: 100%; }
+        textarea.ei { width: 100%; min-height: 54px; resize: vertical; text-align: left; }
       </style>
     </head>
     <body>
@@ -1067,10 +1067,10 @@ export function buildEditableSheetHtml(
             document.documentElement.style.zoom = String(d.zoom);
           }
         });
-        function fit(){ var w=document.body.scrollWidth; var z = w>0 ? Math.min(1, window.innerWidth / w) : 1; document.documentElement.style.zoom = String(z); }
+        function fit(){ var w = document.documentElement.scrollWidth; var z = w>0 ? Math.min(1, window.innerWidth / w) : 1; document.documentElement.style.zoom = String(z); }
         window.addEventListener('resize', fit);
-        document.addEventListener('DOMContentLoaded', fit);
-        fit(); post({ type:'ws:ready' });
+        document.addEventListener('DOMContentLoaded', function(){ fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
+        fit(); setTimeout(fit, 60); post({ type:'ws:ready' });
       })();
       </script>
     </body>

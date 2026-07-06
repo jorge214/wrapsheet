@@ -246,40 +246,37 @@ function CellNum({ value, onChange }: { value: number; onChange: (n: number) => 
     />
   );
 }
-function CellMoney({ value, onChange, align = "right", placeholder, unit }: { value: number; onChange: (n: number) => void; align?: "left" | "right" | "center"; placeholder?: string; unit?: string }) {
+function CellMoney({ value, onChange, align = "right", placeholder }: { value: number; onChange: (n: number) => void; align?: "left" | "right" | "center"; placeholder?: string }) {
   const [text, setText] = useState(String(value ?? 0));
   const focused = React.useRef(false);
   useEffect(() => {
     if (!focused.current && Number(text.replace(",", ".")) !== Number(value)) setText(String(value ?? 0));
   }, [value]);
   return (
-    <View style={sh.moneyRow}>
-      <TextInput
-        style={[sh.cellInput, { textAlign: align, flex: 1 }]}
-        value={text}
-        onFocus={() => { focused.current = true; }}
-        // Ao sair do campo, um valor vazio volta a 0 (não fica em branco)
-        onBlur={() => { focused.current = false; setText(String(Number(text.replace(",", ".")) || 0)); }}
-        onChangeText={(v) => { setText(v); onChange(Number(v.replace(",", ".")) || 0); }}
-        keyboardType="numeric"
-        placeholder={placeholder}
-        placeholderTextColor={C.sub}
-      />
-      {unit ? <Text style={sh.curSuffix}>{unit}</Text> : null}
-    </View>
+    <TextInput
+      style={[sh.cellInput, { textAlign: align }]}
+      value={text}
+      onFocus={() => { focused.current = true; }}
+      // Ao sair do campo, um valor vazio volta a 0 (não fica em branco)
+      onBlur={() => { focused.current = false; setText(String(Number(text.replace(",", ".")) || 0)); }}
+      onChangeText={(v) => { setText(v); onChange(Number(v.replace(",", ".")) || 0); }}
+      keyboardType="numeric"
+      placeholder={placeholder}
+      placeholderTextColor={C.sub}
+    />
   );
 }
 /** Salário global (linha de taxas). Semeia as taxas €/h ao sair do campo. */
-function SalaryRateCell({ value, onChange, onCommit, unit }: { value: number; onChange: (n: number) => void; onCommit: (n: number) => void; unit?: string }) {
+function SalaryRateCell({ value, onChange, onCommit }: { value: number; onChange: (n: number) => void; onCommit: (n: number) => void }) {
   const [text, setText] = useState(String(value ?? 0));
   const focused = React.useRef(false);
   useEffect(() => {
     if (!focused.current && Number(text.replace(",", ".")) !== Number(value)) setText(String(value ?? 0));
   }, [value]);
   return (
-    <View style={[sh.rateCell, sh.moneyRow]}>
+    <View style={sh.rateCell}>
       <TextInput
-        style={[sh.cellInput, { textAlign: "center", flex: 1 }]}
+        style={[sh.cellInput, { textAlign: "center" }]}
         value={text}
         onFocus={() => { focused.current = true; }}
         onBlur={() => {
@@ -292,34 +289,29 @@ function SalaryRateCell({ value, onChange, onCommit, unit }: { value: number; on
         keyboardType="numeric"
         placeholderTextColor={C.sub}
       />
-      {unit ? <Text style={sh.curSuffix}>{unit}</Text> : null}
     </View>
   );
 }
 /** Salário por dia: mostra o salário efetivo (override do dia ou global).
  *  Editar cria um override só desse dia; apagar volta a herdar o global. */
-function DaySalaryCell({ override, effective, onChange, unit }: { override?: number; effective: number; onChange: (n: number | undefined) => void; unit?: string }) {
-  const shown = override ?? effective ?? 0;
-  const [text, setText] = useState(String(shown));
+function DaySalaryCell({ override, effective, onChange }: { override?: number; effective: number; onChange: (n: number | undefined) => void }) {
+  const [text, setText] = useState(String(override ?? effective ?? 0));
   const focused = React.useRef(false);
   useEffect(() => { if (!focused.current) setText(String(override ?? effective ?? 0)); }, [override, effective]);
   return (
-    <View style={sh.moneyRow}>
-      <TextInput
-        style={[sh.cellInput, { textAlign: "right", flex: 1 }]}
-        value={text}
-        placeholderTextColor={C.sub}
-        onFocus={() => { focused.current = true; }}
-        onBlur={() => { focused.current = false; setText(String(override ?? effective ?? 0)); }}
-        onChangeText={(v) => {
-          setText(v);
-          if (v.trim() === "") onChange(undefined);
-          else onChange(Number(v.replace(",", ".")) || 0);
-        }}
-        keyboardType="numeric"
-      />
-      {unit ? <Text style={sh.curSuffix}>{unit}</Text> : null}
-    </View>
+    <TextInput
+      style={[sh.cellInput, { textAlign: "right" }]}
+      value={text}
+      placeholderTextColor={C.sub}
+      onFocus={() => { focused.current = true; }}
+      onBlur={() => { focused.current = false; setText(String(override ?? effective ?? 0)); }}
+      onChangeText={(v) => {
+        setText(v);
+        if (v.trim() === "") onChange(undefined);
+        else onChange(Number(v.replace(",", ".")) || 0);
+      }}
+      keyboardType="numeric"
+    />
   );
 }
 function CellDate({ value, lang, onChangeText }: { value: string; lang: string; onChangeText: (v: string) => void }) {
@@ -444,12 +436,10 @@ export default function EditableSheet(props: Props) {
   const mesNome = monthName(projeto.mes, locale);
 
   const transpLabel = "TRANSP.";
-  // Símbolo da moeda (€ por defeito, £ se a região fiscal for GBP/UK)
-  const curSym = currency === "GBP" ? "£" : currency === "USD" ? "$" : "€";
 
-  // Rate cell: editable money value com símbolo da moeda
+  // Rate cell: editable money value
   const RateEdit = ({ value, onChange }: { value: number; onChange: (n: number) => void }) => (
-    <View style={sh.rateCell}><CellMoney value={value} onChange={onChange} align="center" unit={curSym} /></View>
+    <View style={sh.rateCell}><CellMoney value={value} onChange={onChange} align="center" /></View>
   );
   return (
     <View style={{ width: SHEET_W }}>
@@ -518,7 +508,6 @@ export default function EditableSheet(props: Props) {
         <View style={{ flexDirection: "row" }}>
           <SalaryRateCell
             value={salarioDia}
-            unit={curSym}
             onChange={(n) => onTabela({ salarioDia: n })}
             onCommit={(n) => {
               // Semeia as taxas €/h a partir do salário APENAS na 1.ª vez (se ainda
@@ -604,7 +593,7 @@ export default function EditableSheet(props: Props) {
                 </View>
               </TD>
               <TD w={W.data}><CellDate value={d.data} lang={locale} onChangeText={(v) => onDia(i, { data: v })} /></TD>
-              <TD w={W.sal}><DaySalaryCell override={d.salarioDia} effective={salarioDia} unit={curSym} onChange={(n) => onDia(i, { salarioDia: n })} /></TD>
+              <TD w={W.sal}><DaySalaryCell override={d.salarioDia} effective={salarioDia} onChange={(n) => onDia(i, { salarioDia: n })} /></TD>
               <TD w={W.ini}><CellTime value={d.inicio} onChangeText={(v) => onDia(i, { inicio: v })} /></TD>
               <TD w={W.ref}><CellTime value={d.refeicaoTrabalho} onChangeText={(v) => onDia(i, { refeicaoTrabalho: v })} /></TD>
               <TD w={W.fim}><CellTime value={d.fim} onChangeText={(v) => onDia(i, { fim: v })} /></TD>
