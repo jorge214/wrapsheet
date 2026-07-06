@@ -25,7 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engine";
 import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
-import { buildPdfHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
+import { buildPdfHtml, buildEditableSheetHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
 import { exportPDF } from "../../src/export/pdf";
 import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
@@ -145,6 +145,9 @@ export default function ProjectEditor() {
   const [showPreview, setShowPreview] = useState(false);
   const [fsPreview, setFsPreview] = useState(false);
   const [editForm, setEditForm] = useState(false);
+  const [editHtml, setEditHtml] = useState(false);
+  const [editHtmlContent, setEditHtmlContent] = useState("");
+  const editIframeRef = useRef<any>(null);
   const [sheetZoom, setSheetZoom] = useState(() =>
     isPhone ? Math.max(0.25, Math.min(1, (winW - 2 * PAGE_X) / SHEET_W)) : 1
   );
@@ -202,6 +205,14 @@ export default function ProjectEditor() {
       setSheetZoom(fit);
     }
   }, [fsPreview, winW]);
+
+  // Editor HTML (formato PDF, editável): ouve as edições vindas do iframe
+  useEffect(() => {
+    if (!editHtml || Platform.OS !== "web") return;
+    const handler = (e: any) => handleEditMessage(e);
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [editHtml]);
 
   async function persist(next: ProjectState) {
     setProject(next);
@@ -351,6 +362,81 @@ export default function ProjectEditor() {
   function closeFullscreenSheet() {
     exitLandscape();
     setFsPreview(false);
+  }
+
+  // ── Editor HTML (formato do PDF, editável) ──────────────────────────────────
+  function postEditCalc(p: ProjectState) {
+    if (Platform.OS !== "web") return;
+    const win = editIframeRef.current?.contentWindow;
+    if (!win) return;
+    const calc = calcAll(p.dias, p.tabela);
+    const tot = calcTotals(calc, p.fiscal as any);
+    const cur = getPreset(regionCode).currency;
+    const fmt = (n: number) => fmtMoney(Number(n) || 0, cur);
+    const aj: any = p.tabela.ajudas || {};
+    const salG = Number(p.tabela.salarioDia || 0);
+    const totalDias = p.dias.reduce((a, x) => a + (x.diaSemTrabalho ? 0 : x.meioDia ? 0.5 : 1), 0);
+    const dec = (min: number) => (Math.max(0, min) / 60).toFixed(1).replace(".", ",");
+    const days = p.dias.map((x: any, i) => {
+      const c: any = calc[i] || {};
+      return {
+        sal: fmt(x.salarioDia ?? salG),
+        ht: minutesToHM(c.HT_min || 0), hd: minutesToHM(c.HD_min || 0),
+        d_ref: fmt(aj.refeicao || 0), d_per: fmt(aj.perDiem || 0), d_tel: fmt(aj.telefone || 0), d_viat: fmt(aj.viatura || 0), d_mat: fmt(aj.material || 0),
+        hea_h: dec(c.HEA_min || 0), hea_v: fmt(c.HEA_valor || 0),
+        heb_h: dec(c.HEB_min || 0), heb_v: fmt(c.HEB_valor || 0),
+        hr_h: dec(c.HR_min || 0), hr_v: fmt(c.HR_valor || 0),
+        tot: fmt(c.totalDia || 0),
+      };
+    });
+    win.postMessage({ type: "ws:calc", totalDias: String(totalDias), vb: fmt(tot.ValorBruto), irs: fmt(tot.IRS_valor), iva: fmt(tot.IVA_valor), vf: fmt(tot.ValorFinal), days }, "*");
+  }
+
+  function openEditHtml() {
+    const p0 = projectRef.current;
+    if (!p0) return;
+    // Semeia as taxas HE se ainda não existirem, para o input e o cálculo
+    // coincidirem (e mudar o salário depois já não as altera).
+    const base = Number(p0.tabela.salarioDia || 0) / (p0.tabela.H_dia || 11);
+    const patch: any = {};
+    if (p0.tabela.rateHEA == null) patch.rateHEA = Math.round(base * Number(p0.tabela.multHEA ?? 1.5) * 100) / 100;
+    if (p0.tabela.rateHEB == null) patch.rateHEB = Math.round(base * Number(p0.tabela.multHEB ?? 2.0) * 100) / 100;
+    if (p0.tabela.rateHR == null) patch.rateHR = Math.round(base * Number(p0.tabela.multHR ?? 3.0) * 100) / 100;
+    let p = p0;
+    if (Object.keys(patch).length) { p = { ...p0, tabela: { ...p0.tabela, ...patch } }; persist(p); }
+
+    const rPreset = getPreset(regionCode);
+    const calc = calcAll(p.dias, p.tabela);
+    const tot = calcTotals(calc, p.fiscal as any);
+    const html = buildEditableSheetHtml(
+      p.perfil as any, p.projeto as any, p.dias, calc as any, tot as any, p.tabela as any,
+      p.notas, i18n.language, regionCode, rPreset.currency, t("tax_disclaimer"), p.condicoes
+    );
+    setEditHtmlContent(html);
+    setEditHtml(true);
+  }
+
+  function handleEditMessage(ev: MessageEvent) {
+    const d: any = ev.data;
+    if (!d || !d.type) return;
+    const p = projectRef.current;
+    if (!p) return;
+    if (d.type === "ws:ready") { postEditCalc(p); return; }
+    if (d.type !== "ws:edit") return;
+    const num = (v: any) => Number(String(v).replace(",", ".")) || 0;
+    let next: ProjectState = p;
+    switch (d.k) {
+      case "perfil": next = { ...p, perfil: { ...p.perfil, [d.f]: d.value } }; break;
+      case "projeto": next = { ...p, projeto: { ...p.projeto, [d.f]: d.value } }; break;
+      case "tabela": next = { ...p, tabela: { ...p.tabela, [d.f]: num(d.value) } }; break;
+      case "ajudas": next = { ...p, tabela: { ...p.tabela, ajudas: { ...(p.tabela.ajudas as any), [d.f]: num(d.value) } } }; break;
+      case "dia": next = { ...p, dias: p.dias.map((x, ix) => (ix === d.i ? { ...x, [d.f]: d.value } : x)) }; break;
+      case "notas": next = { ...p, notas: d.value }; break;
+      case "condicoes": next = { ...p, condicoes: d.value }; break;
+      default: return;
+    }
+    persist(next);
+    postEditCalc(next);
   }
 
   // ✅ Export robusto: usa SEMPRE o estado atual em memória (ref)
@@ -666,7 +752,7 @@ export default function ProjectEditor() {
         </Text>
         <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
 
-        <Pressable onPress={() => setEditForm(true)} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
+        <Pressable onPress={() => (Platform.OS === "web" ? openEditHtml() : setEditForm(true))} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
           <Text style={ss.mOpenBtnText}>✏️ {t("edit_sheet", { defaultValue: "Editar folha" })}</Text>
         </Pressable>
 
@@ -1081,6 +1167,53 @@ export default function ProjectEditor() {
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
             {renderMobileForm()}
           </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Editar no formato do PDF (iframe editável) — web */}
+      <Modal
+        animationType="slide"
+        visible={editHtml}
+        supportedOrientations={["portrait", "landscape"]}
+        onRequestClose={() => setEditHtml(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+          <View style={ss.previewHeader}>
+            <Text style={ss.previewTitle} numberOfLines={1}>
+              {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              {saveStatus !== "idle" && (
+                <Text style={[ss.saveStatus, saveStatus === "saved" && { color: "#1a9c4e" }]} numberOfLines={1}>
+                  {saveStatus === "saving" ? t("saving") : `✓ ${t("saved")}`}
+                </Text>
+              )}
+              <Pressable onPress={handleExportPDF} hitSlop={8} style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}>
+                <Text style={ss.exportBtnText}>{t("export_pdf")}</Text>
+              </Pressable>
+              <Pressable onPress={() => setEditHtml(false)} hitSlop={12} style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}>
+                <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
+              </Pressable>
+            </View>
+          </View>
+          {isPhone && isPortrait && (
+            <Text style={ss.rotateHint}>
+              {t("rotate_hint", { defaultValue: "Roda o telemóvel para a horizontal para veres a folha maior." })}
+            </Text>
+          )}
+          {Platform.OS === "web" ? (
+            // @ts-ignore — iframe é web-only
+            <iframe
+              ref={editIframeRef}
+              srcDoc={editHtmlContent}
+              style={{ flex: 1, border: "none", width: "100%", height: "100%" } as any}
+              title="Editar folha"
+            />
+          ) : (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
+              <Text style={{ color: COLORS.sub, textAlign: "center" }}>{t("preview_web_only", { defaultValue: "Disponível na versão web." })}</Text>
+            </View>
+          )}
         </SafeAreaView>
       </Modal>
 
