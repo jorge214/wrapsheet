@@ -214,6 +214,19 @@ export default function ProjectEditor() {
     return () => window.removeEventListener("message", handler);
   }, [editHtml]);
 
+  // Web: o "voltar" do telemóvel/browser fecha o editor em vez de sair da
+  // página (senão o gesto de recuar levava-te para a lista de projetos).
+  useEffect(() => {
+    if (Platform.OS !== "web" || !editHtml) return;
+    window.history.pushState({ wsEditor: true }, "");
+    const onPop = () => setEditHtml(false);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      if ((window.history.state as any)?.wsEditor) window.history.back();
+    };
+  }, [editHtml]);
+
   async function persist(next: ProjectState) {
     setProject(next);
     projectRef.current = next;

@@ -888,17 +888,17 @@ export function buildEditableSheetHtml(
         html, body { margin: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
-        .titleBox .ei { color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; min-width: 60px; }
+        .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
         .titleBox .ei:focus { background: rgba(255,255,255,.18); box-shadow: none; }
         .headgrid { margin-top: 10px; display: grid; grid-template-columns: 1.55fr 1fr; gap: 10px; align-items: start; }
         .stack { display: flex; flex-direction: column; gap: 10px; }
         .box { border: 2px solid #2b2b2b; background: #fff; }
         .boxTitle { padding: 6px 8px; font-weight: 800; font-size: 12px; border-bottom: 2px solid #2b2b2b; background: #f2f2f2; text-transform: uppercase; }
-        .row { display: grid; grid-template-columns: 140px 1fr; border-top: 1px solid #2b2b2b; }
+        .row { display: grid; grid-template-columns: 140px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
         .row:first-of-type { border-top: 0; }
-        .k, .v { padding: 6px 8px; font-size: 12px; border-right: 1px solid #2b2b2b; }
+        .k, .v { padding: 6px 8px; font-size: 12px; border-right: 1px solid #2b2b2b; min-width: 0; overflow: hidden; }
         .v { border-right: 0; }
-        .totalsRight .row { grid-template-columns: 1fr 1fr; }
+        .totalsRight .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
         .totalsRight .k { font-weight: 700; color: #1f7a37; }
         .totalsRight .v { text-align: right; font-weight: 700; }
         .miniRow .k { border-right: 0; }
@@ -1092,7 +1092,9 @@ export function buildEditableSheetHtml(
           var z = w>0 ? Math.min(1, window.innerWidth / w) : 1;
           document.documentElement.style.zoom = String(z);
         }
-        window.addEventListener('resize', fit);
+        // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
+        // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
+        window.addEventListener('orientationchange', function(){ setTimeout(fit, 250); });
         document.addEventListener('DOMContentLoaded', function(){ fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
         fit(); setTimeout(fit, 60); post({ type:'ws:ready' });
       })();
