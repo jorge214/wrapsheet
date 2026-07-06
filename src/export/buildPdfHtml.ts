@@ -849,7 +849,7 @@ export function buildEditableSheetHtml(
       const eff = (d as any).salarioDia ?? salarioDia;
       return `
         <tr>
-          <td class="left">${di(i, "descricao", d.descricao || "", "left")}</td>
+          <td class="left">${di(i, "descricao", d.descricao || "", "left desc")}</td>
           <td>${di(i, "data", d.data || "", "", 'type="date"')}</td>
           <td class="right calc" data-c="sal" data-i="${i}">${fmt(eff)}</td>
           <td>${di(i, "inicio", d.inicio || "", "time", 'inputmode="numeric" maxlength="5" placeholder="00:00"')}</td>
@@ -930,14 +930,16 @@ export function buildEditableSheetHtml(
         .totalsMini th { background: #f2f2f2; color: #1f7a37; text-align: left; }
         .totalsMini .val { text-align: right; font-weight: 800; }
         .conditions { margin-top: 10px; }
-        /* Editable fields — blend into the cells (mesmo formato do "Ver") */
-        .ei { border: none; background: #fffdf2; width: 100%; font-size: inherit; font-family: inherit; color: #111; padding: 0; margin: 0; text-align: center; }
+        /* Editable fields — larguras estreitas como o texto do "Ver", senão os
+           inputs pedem a largura por defeito (~170px) e a folha não cabe. */
+        .ei { border: none; background: #fffdf2; font-size: inherit; font-family: inherit; color: #111; padding: 0; margin: 0; text-align: center; min-width: 0; box-sizing: border-box; }
         .ei.left { text-align: left; }
         .ei:focus { outline: 2px solid #1b5fbf; outline-offset: -2px; background: #eef4ff; }
-        .row .v .ei { text-align: left; }
-        td .ei { min-width: 0; }
-        .money { text-align: right; width: 58px; display: inline-block; }
-        .time { width: 100%; }
+        .row .v .ei { width: 100%; text-align: left; }
+        .money { width: 50px; text-align: right; }
+        .time { width: 42px; text-align: center; }
+        .desc { width: 108px; text-align: left; }
+        input[type=date].ei { width: 100px; }
         textarea.ei { width: 100%; min-height: 54px; resize: vertical; text-align: left; }
       </style>
     </head>
