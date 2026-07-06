@@ -888,8 +888,8 @@ export function buildEditableSheetHtml(
         html, body { margin: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
-        .titleBox .ei { color: #fff; text-align: center; font-weight: 800; letter-spacing: .5px; }
-        .titleBox .ei::placeholder { color: rgba(255,255,255,.85); }
+        .titleBox .ei { color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; min-width: 60px; }
+        .titleBox .ei:focus { background: rgba(255,255,255,.18); box-shadow: none; }
         .headgrid { margin-top: 10px; display: grid; grid-template-columns: 1.55fr 1fr; gap: 10px; align-items: start; }
         .stack { display: flex; flex-direction: column; gap: 10px; }
         .box { border: 2px solid #2b2b2b; background: #fff; }
@@ -934,7 +934,7 @@ export function buildEditableSheetHtml(
         .conditions { margin-top: 10px; }
         /* Campos editáveis (contenteditable): texto que se edita no sítio e
            dimensiona-se como no "Ver" — nada de larguras fixas que cortam. */
-        .ei { background: #fffdf2; color: #111; cursor: text; outline: none; min-width: 10px; display: inline-block; }
+        .ei { background: transparent; color: #111; cursor: text; outline: none; min-width: 10px; display: inline-block; }
         .ei:focus { background: #eef4ff; box-shadow: inset 0 0 0 1px #1b5fbf; }
         .ei:empty { min-width: 24px; min-height: 1em; }
         .row .v .ei { display: block; width: 100%; min-height: 1.1em; }
@@ -1084,7 +1084,14 @@ export function buildEditableSheetHtml(
             document.documentElement.style.zoom = String(d.zoom);
           }
         });
-        function fit(){ var w = document.documentElement.scrollWidth; var z = w>0 ? Math.min(1, window.innerWidth / w) : 1; document.documentElement.style.zoom = String(z); }
+        function fit(){
+          // Repõe zoom a 1 antes de medir (senão media-se no espaço já ampliado
+          // e a folha larga fica cortada na vertical).
+          document.documentElement.style.zoom = '1';
+          var w = Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0);
+          var z = w>0 ? Math.min(1, window.innerWidth / w) : 1;
+          document.documentElement.style.zoom = String(z);
+        }
         window.addEventListener('resize', fit);
         document.addEventListener('DOMContentLoaded', function(){ fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
         fit(); setTimeout(fit, 60); post({ type:'ws:ready' });
