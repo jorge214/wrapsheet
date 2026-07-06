@@ -337,5 +337,9 @@
   "cond_base_hours": "Horas do dia base",
   "cond_hea_from_hour": "HE-A a partir da hora",
   "cond_heb_from_hour": "HE-B a partir da hora",
-  "cond_hr_rest_below": "Recuperação se descanso inferior a (h)"
+  "cond_hr_rest_below": "Recuperação se descanso inferior a (h)",
+  "edit_sheet": "Editar planilha",
+  "view_sheet": "Ver / exportar (PDF)",
+  "view_sheet_short": "Ver",
+  "transport_min": "Transporte (min)"
 }

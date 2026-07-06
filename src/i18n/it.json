@@ -337,5 +337,9 @@
   "cond_base_hours": "Ore della giornata base",
   "cond_hea_from_hour": "Straordinario A dall'ora",
   "cond_heb_from_hour": "Straordinario B dall'ora",
-  "cond_hr_rest_below": "Recupero se riposo inferiore a (h)"
+  "cond_hr_rest_below": "Recupero se riposo inferiore a (h)",
+  "edit_sheet": "Modifica foglio",
+  "view_sheet": "Vedi / esporta (PDF)",
+  "view_sheet_short": "Vedi",
+  "transport_min": "Trasporto (min)"
 }

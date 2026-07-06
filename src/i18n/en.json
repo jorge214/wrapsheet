@@ -337,5 +337,9 @@
   "cond_base_hours": "Base day hours",
   "cond_hea_from_hour": "Overtime A from hour",
   "cond_heb_from_hour": "Overtime B from hour",
-  "cond_hr_rest_below": "Recovery if rest below (h)"
+  "cond_hr_rest_below": "Recovery if rest below (h)",
+  "edit_sheet": "Edit sheet",
+  "view_sheet": "View / export (PDF)",
+  "view_sheet_short": "View",
+  "transport_min": "Transport (min)"
 }

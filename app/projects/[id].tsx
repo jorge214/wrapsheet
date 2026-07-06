@@ -144,6 +144,7 @@ export default function ProjectEditor() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [fsPreview, setFsPreview] = useState(false);
+  const [editForm, setEditForm] = useState(false);
   const [sheetZoom, setSheetZoom] = useState(() =>
     isPhone ? Math.max(0.25, Math.min(1, (winW - 2 * PAGE_X) / SHEET_W)) : 1
   );
@@ -665,9 +666,12 @@ export default function ProjectEditor() {
         </Text>
         <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
 
-        <Pressable onPress={openFullscreenSheet} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
-          <Text style={ss.mOpenBtnText}>⛶ {t("open_sheet_edit", { defaultValue: "Abrir folha (ver e editar)" })}</Text>
-          <Text style={ss.mOpenBtnHint}>{t("open_fullscreen_hint", { defaultValue: "Roda o telemóvel para a horizontal." })}</Text>
+        <Pressable onPress={() => setEditForm(true)} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
+          <Text style={ss.mOpenBtnText}>✏️ {t("edit_sheet", { defaultValue: "Editar folha" })}</Text>
+        </Pressable>
+
+        <Pressable onPress={() => setShowPreview(true)} style={({ pressed }) => [ss.mOpenBtnGhost, pressed && { opacity: 0.9 }]}>
+          <Text style={ss.mOpenBtnGhostText}>👁 {t("view_sheet", { defaultValue: "Ver / exportar (PDF)" })}</Text>
         </Pressable>
 
         <View style={ss.mStatsPanel}>
@@ -677,6 +681,148 @@ export default function ProjectEditor() {
           <StatLine label={gs.iva} value={money(totais.IVA_valor)} />
           <StatLine label={gs.vf} value={money(totais.ValorFinal)} strong last />
         </View>
+      </View>
+    );
+  };
+
+  // Formulário de edição para telemóvel (tátil, sem tabela/zoom).
+  const renderMobileForm = () => {
+    const p = project!;
+    const gs = getStrings(i18n.language, regionCode);
+    const L = (x: string) => x.replace(/\s*:$/, "");
+    const currency = getPreset(regionCode).currency;
+    const money = (n: number) => fmtMoney(Number(n) || 0, currency);
+    const curSym = currency === "GBP" ? "£" : currency === "USD" ? "$" : "€";
+    const aj = p.tabela.ajudas ?? {};
+    const setTabela = (patch: any) => setP("tabela", { ...p.tabela, ...patch });
+    const setAj = (patch: any) => setP("tabela", { ...p.tabela, ajudas: { ...aj, ...patch } });
+    const salaryGlobal = Number(p.tabela.salarioDia || 0);
+    const hDia = p.tabela.H_dia || 11;
+    const vHEA = p.tabela.rateHEA ?? (salaryGlobal ? (salaryGlobal / hDia) * Number(p.tabela.multHEA ?? 1.5) : 0);
+    const vHEB = p.tabela.rateHEB ?? (salaryGlobal ? (salaryGlobal / hDia) * Number(p.tabela.multHEB ?? 2.0) : 0);
+    const vHR = p.tabela.rateHR ?? (salaryGlobal ? (salaryGlobal / hDia) * Number(p.tabela.multHR ?? 3.0) : 0);
+
+    return (
+      <View>
+        <Section title={t("title_placeholder", { defaultValue: "Título" })}>
+          <Input value={p.projeto.titulo ?? ""} onChangeText={(v) => setP("projeto", { ...p.projeto, titulo: v })} placeholder={t("title_placeholder", { defaultValue: "Título" })} compact />
+        </Section>
+
+        <Section
+          title={L(gs.personalData)}
+          collapsible
+          defaultCollapsed
+          right={
+            <Pressable onPress={handleApplyActiveProfile} style={({ pressed }) => [ss.pill, pressed && { opacity: 0.85 }]}>
+              <Text style={ss.pillText}>{t("apply_profile")} ⤓</Text>
+            </Pressable>
+          }
+        >
+          <Input label={L(gs.name)} value={p.perfil.nome} onChangeText={(v) => setP("perfil", { ...p.perfil, nome: v })} />
+          <Input label={L(gs.role)} value={p.perfil.funcao} onChangeText={(v) => setP("perfil", { ...p.perfil, funcao: v })} />
+          <Input label={L(gs.phone)} value={p.perfil.telefone} onChangeText={(v) => setP("perfil", { ...p.perfil, telefone: v })} />
+          <Input label={L(gs.email)} value={p.perfil.email} onChangeText={(v) => setP("perfil", { ...p.perfil, email: v })} />
+          <Input label={L(gs.nif)} value={p.perfil.nif ?? ""} onChangeText={(v) => setP("perfil", { ...p.perfil, nif: v })} />
+          <Input label={L(gs.iban)} value={p.perfil.iban ?? ""} onChangeText={(v) => setP("perfil", { ...p.perfil, iban: v })} />
+          <Input label={L(gs.swift)} value={p.perfil.swift ?? ""} onChangeText={(v) => setP("perfil", { ...p.perfil, swift: v })} />
+          <Input label={L(gs.companyLabel)} value={p.perfil.empresa ?? ""} onChangeText={(v) => setP("perfil", { ...p.perfil, empresa: v })} />
+        </Section>
+
+        <Section title={L(gs.productionSection)} collapsible defaultCollapsed>
+          <Input label={L(gs.film)} value={p.projeto.filme} onChangeText={(v) => setP("projeto", { ...p.projeto, filme: v })} />
+          <Input label={L(gs.productionLabel)} value={p.projeto.produtora} onChangeText={(v) => setP("projeto", { ...p.projeto, produtora: v })} />
+          <Input label={L(gs.productionNif)} value={p.projeto.nifProdutora ?? ""} onChangeText={(v) => setP("projeto", { ...p.projeto, nifProdutora: v })} />
+        </Section>
+
+        <Section title={t("fixed_conditions", { defaultValue: "Condições fixas (taxas)" })} collapsible defaultCollapsed>
+          <Grid2>
+            <Num label={`${L(gs.salary)} (${curSym})`} value={salaryGlobal} onChange={(n) => setTabela({ salarioDia: n })} />
+            <Num label={`${L(gs.overtimeA)} (${curSym}/h)`} value={vHEA} onChange={(n) => setTabela({ rateHEA: n })} />
+            <Num label={`${L(gs.overtimeB)} (${curSym}/h)`} value={vHEB} onChange={(n) => setTabela({ rateHEB: n })} />
+            <Num label={`${L(gs.recoveryHours)} (${curSym}/h)`} value={vHR} onChange={(n) => setTabela({ rateHR: n })} />
+            <Num label={`${L(gs.meal)} (${curSym})`} value={Number(aj.refeicao ?? 0)} onChange={(n) => setAj({ refeicao: n })} />
+            <Num label={`${L(gs.telephone)} (${curSym})`} value={Number(aj.telefone ?? 0)} onChange={(n) => setAj({ telefone: n })} />
+            <Num label={`${L(gs.vehicle)} (${curSym})`} value={Number(aj.viatura ?? 0)} onChange={(n) => setAj({ viatura: n })} />
+            <Num label={`${L(gs.material)} (${curSym})`} value={Number(aj.material ?? 0)} onChange={(n) => setAj({ material: n })} />
+            <Num label={`${L(gs.perDiem)} (${curSym})`} value={Number(aj.perDiem ?? 0)} onChange={(n) => setAj({ perDiem: n })} />
+          </Grid2>
+        </Section>
+
+        <Section title={t("days", { defaultValue: "Dias" })}>
+          {p.dias.map((d, i) => {
+            const c = calculos[i] ?? ({} as any);
+            return (
+              <View key={i} style={ss.dayCard}>
+                <View style={ss.dayHeader}>
+                  <Text style={ss.dayHeaderTitle}>
+                    {t("day", { defaultValue: "Dia" })} {i + 1}
+                    {d.data ? `  ·  ${formatDateDisplay(d.data, i18n.language)}` : ""}
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 6 }}>
+                    <Pressable onPress={() => duplicateDia(i)} style={({ pressed }) => [ss.pillGhost, pressed && { opacity: 0.85 }]}>
+                      <Text style={ss.pillGhostText}>⧉</Text>
+                    </Pressable>
+                    {p.dias.length > 1 && (
+                      <Pressable onPress={() => removeDia(i)} style={({ pressed }) => [ss.pillGhost, { borderColor: COLORS.danger }, pressed && { opacity: 0.85 }]}>
+                        <Text style={[ss.pillGhostText, { color: COLORS.danger }]}>✕</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+
+                <DateField label={L(gs.date)} value={d.data} onChangeText={(v) => updateDia(i, { data: v })} />
+                <Input label={L(gs.description)} value={d.descricao ?? ""} onChangeText={(v) => updateDia(i, { descricao: v })} />
+                <Grid3>
+                  <TimeField label={L(gs.start)} value={d.inicio} onChangeText={(v) => updateDia(i, { inicio: v })} />
+                  <TimeField label={L(gs.mealBreak)} value={d.refeicaoTrabalho} onChangeText={(v) => updateDia(i, { refeicaoTrabalho: v })} />
+                  <TimeField label={L(gs.end)} value={d.fim} onChangeText={(v) => updateDia(i, { fim: v })} />
+                </Grid3>
+                <Grid2>
+                  <Num label={t("transport_min", { defaultValue: "Transporte (min)" })} value={d.tempoTransporteMin ?? 0} onChange={(n) => updateDia(i, { tempoTransporteMin: Math.max(0, Math.round(n)) })} />
+                  <Input
+                    label={`${L(gs.salary)}/${t("day", { defaultValue: "dia" }).toLowerCase()} (${curSym})`}
+                    keyboardType="numeric"
+                    value={d.salarioDia != null ? String(d.salarioDia) : ""}
+                    placeholder={money(salaryGlobal)}
+                    onChangeText={(v) => updateDia(i, { salarioDia: v.trim() === "" ? undefined : Number(v.replace(",", ".")) || 0 } as any)}
+                  />
+                </Grid2>
+
+                <View style={ss.metricsRow}>
+                  <Metric label={L(gs.workHours)} value={minutesToHM(c.HT_min ?? 0)} />
+                  <Metric label={L(gs.restHours)} value={minutesToHM(c.HD_min ?? 0)} />
+                  <Metric label={L(gs.overtimeA)} value={`${((c.HEA_min ?? 0) / 60).toFixed(1)}h · ${money(c.HEA_valor ?? 0)}`} />
+                  <Metric label={L(gs.overtimeB)} value={`${((c.HEB_min ?? 0) / 60).toFixed(1)}h · ${money(c.HEB_valor ?? 0)}`} />
+                  <Metric label={L(gs.recoveryHours)} value={`${((c.HR_min ?? 0) / 60).toFixed(1)}h · ${money(c.HR_valor ?? 0)}`} />
+                  <Metric label={L(gs.total)} value={money(c.totalDia ?? 0)} highlight />
+                </View>
+              </View>
+            );
+          })}
+
+          <Pressable onPress={addDia} style={({ pressed }) => [ss.addRowBtn, pressed && { opacity: 0.85 }]}>
+            <Text style={ss.addRowText}>+ {t("add_day")}</Text>
+          </Pressable>
+        </Section>
+
+        <Section title={L(gs.notes)}>
+          <Input value={p.notas || ""} onChangeText={(v) => setP("notas", v)} multiline placeholder="…" compact />
+        </Section>
+
+        <Section title={L(gs.workConditions)}>
+          <Input value={p.condicoes || ""} onChangeText={(v) => setP("condicoes", v)} multiline placeholder="…" compact />
+        </Section>
+
+        {renderAdvanced()}
+
+        <Section title={t("totals", { defaultValue: "Totais" })}>
+          <View style={ss.metricsRow}>
+            <Metric label={L(gs.gross)} value={money(totais.ValorBruto)} />
+            <Metric label={gs.irs} value={money(totais.IRS_valor)} />
+            <Metric label={gs.iva} value={money(totais.IVA_valor)} />
+            <Metric label={L(gs.net)} value={money(totais.ValorFinal)} highlight />
+          </View>
+        </Section>
       </View>
     );
   };
@@ -904,6 +1050,40 @@ export default function ProjectEditor() {
         </SafeAreaView>
       </Modal>
 
+      {/* Editar (formulário tátil) — telemóvel */}
+      <Modal
+        animationType="slide"
+        visible={editForm}
+        onRequestClose={() => setEditForm(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+          <View style={ss.previewHeader}>
+            <Text style={ss.previewTitle} numberOfLines={1}>
+              {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Pressable
+                onPress={() => setShowPreview(true)}
+                hitSlop={10}
+                style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={ss.previewCloseText}>👁 {t("view_sheet_short", { defaultValue: "Ver" })}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setEditForm(false)}
+                hitSlop={12}
+                style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
+              </Pressable>
+            </View>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
+            {renderMobileForm()}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
       {/* Preview overlay */}
       <Modal
         transparent
@@ -916,13 +1096,22 @@ export default function ProjectEditor() {
             <Text style={ss.previewTitle} numberOfLines={1}>
               {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
             </Text>
-            <Pressable
-              onPress={() => setShowPreview(false)}
-              hitSlop={12}
-              style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}
-            >
-              <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
-            </Pressable>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Pressable
+                onPress={handleExportPDF}
+                hitSlop={8}
+                style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={ss.exportBtnText}>{t("export_pdf")}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setShowPreview(false)}
+                hitSlop={12}
+                style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
+              </Pressable>
+            </View>
           </View>
 
           {Platform.OS === "web" ? (
@@ -1929,9 +2118,11 @@ const ss = StyleSheet.create({
   /* ---- Mobile project stats ---- */
   mStatsTitle: { color: COLORS.text, fontSize: 22, fontWeight: "900", marginTop: 4 },
   mStatsSub: { color: COLORS.sub, fontSize: 14, fontWeight: "700", marginBottom: 14 },
-  mOpenBtn: { backgroundColor: COLORS.text, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 16, alignItems: "center", marginBottom: 16 },
+  mOpenBtn: { backgroundColor: COLORS.text, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 16, alignItems: "center", marginBottom: 10 },
   mOpenBtnText: { color: "#fff", fontWeight: "900", fontSize: 16 },
   mOpenBtnHint: { color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 3 },
+  mOpenBtnGhost: { borderWidth: 1.5, borderColor: COLORS.text, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, alignItems: "center", marginBottom: 16, backgroundColor: COLORS.card },
+  mOpenBtnGhostText: { color: COLORS.text, fontWeight: "900", fontSize: 15 },
   mStatsPanel: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 16, backgroundColor: COLORS.card, paddingHorizontal: 14 },
   mStatRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 13, borderBottomWidth: 1, borderColor: COLORS.border },
   mStatLabel: { color: COLORS.sub, fontSize: 14, fontWeight: "700" },

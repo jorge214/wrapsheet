@@ -337,5 +337,9 @@
   "cond_base_hours": "Stunden des Basistags",
   "cond_hea_from_hour": "Überstunden A ab Stunde",
   "cond_heb_from_hour": "Überstunden B ab Stunde",
-  "cond_hr_rest_below": "Erholung wenn Ruhe unter (Std.)"
+  "cond_hr_rest_below": "Erholung wenn Ruhe unter (Std.)",
+  "edit_sheet": "Blatt bearbeiten",
+  "view_sheet": "Ansehen / exportieren (PDF)",
+  "view_sheet_short": "Ansehen",
+  "transport_min": "Transport (Min.)"
 }
