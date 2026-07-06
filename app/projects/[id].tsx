@@ -1490,36 +1490,11 @@ function TimeField({
   const focused = useRef(false);
   useEffect(() => { if (!focused.current) setText(value ?? ""); }, [value]);
   const showError = invalid ?? (text.trim().length > 0 && !isValidTimeStr(text));
-
-  // Web: usa o seletor de hora nativo (<input type="time">) — dá para editar
-  // um dígito à vontade, sem máscara a atrapalhar.
-  if (Platform.OS === "web") {
-    const m = /^(\d{1,2}):(\d{2})$/.exec(value ?? "");
-    const timeVal = m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
-    return (
-      <View style={{ marginBottom: compact ? 0 : 8, flex: 1 }}>
-        {label ? <Text style={ss.label}>{label}</Text> : null}
-        {/* @ts-ignore — input nativo é web-only */}
-        <input
-          type="time"
-          value={timeVal}
-          onChange={(e: any) => onChangeText(e.target.value)}
-          style={{
-            width: "100%",
-            backgroundColor: COLORS.bg,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 12,
-            padding: "10px 12px",
-            color: COLORS.text,
-            fontSize: 15,
-            boxSizing: "border-box",
-          } as any}
-        />
-      </View>
-    );
-  }
-
-  // Nativo (app): edição livre; só formata para HH:MM ao sair do campo
+  // Campo de texto (00:00, sem relógio). Edição dígito a dígito; formata ao sair.
+  const norm = (t: string) => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(t.trim());
+    return m ? `${m[1].padStart(2, "0")}:${m[2]}` : maskTime(t);
+  };
   return (
     <View style={{ marginBottom: compact ? 0 : 8, flex: 1 }}>
       {label ? <Text style={ss.label}>{label}</Text> : null}
@@ -1527,8 +1502,8 @@ function TimeField({
         style={[ss.input, { width: "100%" }, showError && ss.inputError]}
         value={text}
         onFocus={() => { focused.current = true; }}
-        onBlur={() => { focused.current = false; const m2 = maskTime(text); setText(m2); onChangeText(m2); }}
-        onChangeText={(v) => setText(v)}
+        onBlur={() => { focused.current = false; const n = norm(text); setText(n); onChangeText(n); }}
+        onChangeText={(v) => { setText(v); onChangeText(v); }}
         keyboardType="numbers-and-punctuation"
         placeholder={placeholder ?? "00:00"}
         placeholderTextColor={COLORS.sub}

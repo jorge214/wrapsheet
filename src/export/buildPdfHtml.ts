@@ -852,9 +852,9 @@ export function buildEditableSheetHtml(
           <td class="left">${di(i, "descricao", d.descricao || "", "left")}</td>
           <td>${di(i, "data", d.data || "", "", 'type="date"')}</td>
           <td class="right calc" data-c="sal" data-i="${i}">${fmt(eff)}</td>
-          <td>${di(i, "inicio", padTime(d.inicio), "time", 'type="time"')}</td>
-          <td>${di(i, "refeicaoTrabalho", padTime(d.refeicaoTrabalho), "time", 'type="time"')}</td>
-          <td>${di(i, "fim", padTime(d.fim), "time", 'type="time"')}</td>
+          <td>${di(i, "inicio", d.inicio || "", "time", 'inputmode="numeric" maxlength="5" placeholder="00:00"')}</td>
+          <td>${di(i, "refeicaoTrabalho", d.refeicaoTrabalho || "", "time", 'inputmode="numeric" maxlength="5" placeholder="00:00"')}</td>
+          <td>${di(i, "fim", d.fim || "", "time", 'inputmode="numeric" maxlength="5" placeholder="00:00"')}</td>
           <td class="calc" data-c="ht" data-i="${i}">${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
           <td class="blue calc" data-c="hd" data-i="${i}">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
           <td class="right calc" data-c="d_ref" data-i="${i}">${fmt(valRef)}</td>
@@ -1050,6 +1050,17 @@ export function buildEditableSheetHtml(
           if(!el.classList || !el.classList.contains('ei')) return;
           var i = el.getAttribute('data-i');
           post({ type:'ws:edit', k: el.getAttribute('data-k'), f: el.getAttribute('data-f'), i: i===null? null : parseInt(i,10), value: el.value });
+        }, true);
+        // Normaliza as horas para HH:MM só ao sair do campo (edição livre dígito a dígito)
+        document.addEventListener('blur', function(e){
+          var el = e.target;
+          if(!el.classList || !el.classList.contains('time')) return;
+          var v = (el.value||'').replace(/[.;,hH\\s]/g, ':');
+          var m = /^(\\d{1,2}):(\\d{2})$/.exec(v.trim());
+          if(m){ el.value = ('0'+m[1]).slice(-2)+':'+m[2]; }
+          else { var d = (el.value||'').replace(/\\D/g,'').slice(0,4); el.value = d.length<=2 ? d : d.slice(0,2)+':'+d.slice(2); }
+          var i = el.getAttribute('data-i');
+          post({ type:'ws:edit', k:'dia', f: el.getAttribute('data-f'), i: i===null?null:parseInt(i,10), value: el.value });
         }, true);
         window.addEventListener('message', function(e){
           var d = e.data; if(!d) return;
