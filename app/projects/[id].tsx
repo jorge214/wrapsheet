@@ -1278,6 +1278,10 @@ function Input({
   placeholder?: string;
   compact?: boolean;
 }) {
+  // Estado local + tracking de foco → mantém o cursor estável e não fica em branco
+  const [text, setText] = useState(value ?? "");
+  const focused = useRef(false);
+  useEffect(() => { if (!focused.current && (value ?? "") !== text) setText(value ?? ""); }, [value]);
   return (
     <View style={{ marginBottom: compact ? 0 : 8, flex: 1 }}>
       {label ? <Text style={ss.label}>{label}</Text> : null}
@@ -1287,8 +1291,10 @@ function Input({
           { width: "100%" },
           multiline && { minHeight: 90, textAlignVertical: "top" },
         ]}
-        value={value}
-        onChangeText={onChangeText}
+        value={text}
+        onFocus={() => { focused.current = true; }}
+        onBlur={() => { focused.current = false; setText(value ?? ""); }}
+        onChangeText={(v) => { setText(v); onChangeText(v); }}
         keyboardType={keyboardType}
         multiline={multiline}
         placeholder={placeholder}
@@ -1309,14 +1315,22 @@ function Num({
   onChange: (n: number) => void;
   compact?: boolean;
 }) {
+  // Estado local: dá para apagar o "0" e escrever à vontade; normaliza ao sair
+  const [text, setText] = useState(String(value ?? 0));
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current && Number(text.replace(",", ".")) !== Number(value)) setText(String(value ?? 0));
+  }, [value]);
   return (
     <View style={{ marginBottom: compact ? 0 : 8, flex: 1 }}>
       {label ? <Text style={ss.label}>{label}</Text> : null}
       <TextInput
         style={[ss.input, { width: "100%" }]}
         keyboardType="numeric"
-        value={String(value)}
-        onChangeText={(v) => onChange(Number(v) || 0)}
+        value={text}
+        onFocus={() => { focused.current = true; }}
+        onBlur={() => { focused.current = false; setText(String(Number(text.replace(",", ".")) || 0)); }}
+        onChangeText={(v) => { setText(v); onChange(Number(v.replace(",", ".")) || 0); }}
         placeholderTextColor={COLORS.sub}
       />
     </View>
@@ -1340,22 +1354,49 @@ function TimeField({
   placeholder?: string;
 }) {
   const [text, setText] = useState(value ?? "");
-  useEffect(() => {
-    setText(value ?? "");
-  }, [value]);
+  const focused = useRef(false);
+  useEffect(() => { if (!focused.current) setText(value ?? ""); }, [value]);
   const showError = invalid ?? (text.trim().length > 0 && !isValidTimeStr(text));
+
+  // Web: usa o seletor de hora nativo (<input type="time">) — dá para editar
+  // um dígito à vontade, sem máscara a atrapalhar.
+  if (Platform.OS === "web") {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(value ?? "");
+    const timeVal = m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
+    return (
+      <View style={{ marginBottom: compact ? 0 : 8, flex: 1 }}>
+        {label ? <Text style={ss.label}>{label}</Text> : null}
+        {/* @ts-ignore — input nativo é web-only */}
+        <input
+          type="time"
+          value={timeVal}
+          onChange={(e: any) => onChangeText(e.target.value)}
+          style={{
+            width: "100%",
+            backgroundColor: COLORS.bg,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 12,
+            padding: "10px 12px",
+            color: COLORS.text,
+            fontSize: 15,
+            boxSizing: "border-box",
+          } as any}
+        />
+      </View>
+    );
+  }
+
+  // Nativo (app): edição livre; só formata para HH:MM ao sair do campo
   return (
     <View style={{ marginBottom: compact ? 0 : 8, flex: 1 }}>
       {label ? <Text style={ss.label}>{label}</Text> : null}
       <TextInput
         style={[ss.input, { width: "100%" }, showError && ss.inputError]}
         value={text}
-        onChangeText={(v) => {
-          const m = maskTime(v);
-          setText(m);
-          onChangeText(m);
-        }}
-        keyboardType="numeric"
+        onFocus={() => { focused.current = true; }}
+        onBlur={() => { focused.current = false; const m2 = maskTime(text); setText(m2); onChangeText(m2); }}
+        onChangeText={(v) => setText(v)}
+        keyboardType="numbers-and-punctuation"
         placeholder={placeholder ?? "00:00"}
         placeholderTextColor={COLORS.sub}
         maxLength={5}
