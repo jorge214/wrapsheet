@@ -430,7 +430,16 @@ export default function ProjectEditor() {
       case "projeto": next = { ...p, projeto: { ...p.projeto, [d.f]: d.value } }; break;
       case "tabela": next = { ...p, tabela: { ...p.tabela, [d.f]: num(d.value) } }; break;
       case "ajudas": next = { ...p, tabela: { ...p.tabela, ajudas: { ...(p.tabela.ajudas as any), [d.f]: num(d.value) } } }; break;
-      case "dia": next = { ...p, dias: p.dias.map((x, ix) => (ix === d.i ? { ...x, [d.f]: d.value } : x)) }; break;
+      case "dia": {
+        let val: any = d.value;
+        if (d.f === "data") {
+          const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(d.value).trim());
+          if (!m) return; // data incompleta/ inválida — não guarda parcial
+          val = `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+        }
+        next = { ...p, dias: p.dias.map((x, ix) => (ix === d.i ? { ...x, [d.f]: val } : x)) };
+        break;
+      }
       case "notas": next = { ...p, notas: d.value }; break;
       case "condicoes": next = { ...p, condicoes: d.value }; break;
       default: return;

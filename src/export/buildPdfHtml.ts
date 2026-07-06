@@ -833,13 +833,15 @@ export function buildEditableSheetHtml(
   const mesNome = getMonthName(projeto.mes, locale);
   const mesAnoLabel = `${mesNome} ${projeto.ano}`;
 
-  // input helpers
+  // Campos editáveis: contenteditable (texto que se edita no sítio, dimensiona-se
+  // exatamente como no "Ver" — sem larguras fixas que cortam/quebram).
+  const CE = 'contenteditable="true" autocapitalize="off" autocorrect="off" spellcheck="false"';
   const ti = (k: string, f: string, val: string, extra = "") =>
-    `<input class="ei" data-k="${k}" data-f="${f}" value="${escapeHtml(val)}" ${extra}>`;
+    `<span class="ei" ${CE} data-k="${k}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
   const di = (i: number, f: string, val: string, cls = "", extra = "") =>
-    `<input class="ei ${cls}" data-k="dia" data-i="${i}" data-f="${f}" value="${escapeHtml(val)}" ${extra}>`;
+    `<span class="ei ${cls}" ${CE} data-k="dia" data-i="${i}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
   const mi = (k: string, f: string, val: number) =>
-    `<input class="ei money" data-k="${k}" data-f="${f}" inputmode="decimal" value="${escapeHtml(String(val ?? 0))}">`;
+    `<span class="ei money" ${CE} inputmode="decimal" data-k="${k}" data-f="${f}">${escapeHtml(String(val ?? 0))}</span>`;
   const kvEdit = (label: string, k: string, f: string, val: string) =>
     `<div class="row"><div class="k">${escapeHtml(label)}</div><div class="v">${ti(k, f, val)}</div></div>`;
 
@@ -849,12 +851,12 @@ export function buildEditableSheetHtml(
       const eff = (d as any).salarioDia ?? salarioDia;
       return `
         <tr>
-          <td class="left">${di(i, "descricao", d.descricao || "", "left desc")}</td>
-          <td>${di(i, "data", d.data || "", "", 'type="date"')}</td>
+          <td class="left">${di(i, "descricao", d.descricao || "", "left")}</td>
+          <td>${di(i, "data", formatDatePT(d.data), "date", 'inputmode="numeric"')}</td>
           <td class="right calc" data-c="sal" data-i="${i}">${fmt(eff)}</td>
-          <td>${di(i, "inicio", d.inicio || "", "time", 'inputmode="numeric" maxlength="5" placeholder="00:00"')}</td>
-          <td>${di(i, "refeicaoTrabalho", d.refeicaoTrabalho || "", "time", 'inputmode="numeric" maxlength="5" placeholder="00:00"')}</td>
-          <td>${di(i, "fim", d.fim || "", "time", 'inputmode="numeric" maxlength="5" placeholder="00:00"')}</td>
+          <td>${di(i, "inicio", d.inicio || "", "time", 'inputmode="numeric"')}</td>
+          <td>${di(i, "refeicaoTrabalho", d.refeicaoTrabalho || "", "time", 'inputmode="numeric"')}</td>
+          <td>${di(i, "fim", d.fim || "", "time", 'inputmode="numeric"')}</td>
           <td class="calc" data-c="ht" data-i="${i}">${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
           <td class="blue calc" data-c="hd" data-i="${i}">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
           <td class="right calc" data-c="d_ref" data-i="${i}">${fmt(valRef)}</td>
@@ -930,17 +932,13 @@ export function buildEditableSheetHtml(
         .totalsMini th { background: #f2f2f2; color: #1f7a37; text-align: left; }
         .totalsMini .val { text-align: right; font-weight: 800; }
         .conditions { margin-top: 10px; }
-        /* Editable fields — larguras estreitas como o texto do "Ver", senão os
-           inputs pedem a largura por defeito (~170px) e a folha não cabe. */
-        .ei { border: none; background: #fffdf2; font-size: inherit; font-family: inherit; color: #111; padding: 0; margin: 0; text-align: center; min-width: 0; box-sizing: border-box; }
-        .ei.left { text-align: left; }
-        .ei:focus { outline: 2px solid #1b5fbf; outline-offset: -2px; background: #eef4ff; }
-        .row .v .ei { width: 100%; text-align: left; }
-        .money { width: 50px; text-align: right; }
-        .time { width: 42px; text-align: center; }
-        .desc { width: 108px; text-align: left; }
-        input[type=date].ei { width: 100px; }
-        textarea.ei { width: 100%; min-height: 54px; resize: vertical; text-align: left; }
+        /* Campos editáveis (contenteditable): texto que se edita no sítio e
+           dimensiona-se como no "Ver" — nada de larguras fixas que cortam. */
+        .ei { background: #fffdf2; color: #111; cursor: text; outline: none; min-width: 10px; display: inline-block; }
+        .ei:focus { background: #eef4ff; box-shadow: inset 0 0 0 1px #1b5fbf; }
+        .ei:empty { min-width: 24px; min-height: 1em; }
+        .row .v .ei { display: block; width: 100%; min-height: 1.1em; }
+        .notes { display: block; width: 100%; min-height: 48px; white-space: pre-wrap; text-align: left; }
       </style>
     </head>
     <body>
@@ -1026,7 +1024,7 @@ export function buildEditableSheetHtml(
       <div class="bottomGrid">
         <div class="box">
           <div class="boxTitle">${escapeHtml(s.notes)}</div>
-          <div class="notesBody"><textarea class="ei" data-k="notas" data-f="notas">${escapeHtml(notas || "")}</textarea></div>
+          <div class="notesBody"><div class="ei notes" ${CE} data-k="notas" data-f="notas">${escapeHtml(notas || "")}</div></div>
           ${taxDisclaimer ? `<div style="padding:6px 10px;font-size:10px;color:#888;border-top:1px solid #ddd;">${escapeHtml(taxDisclaimer)}</div>` : ""}
         </div>
         <div class="box totalsMini">
@@ -1041,28 +1039,34 @@ export function buildEditableSheetHtml(
 
       <div class="box conditions">
         <div class="boxTitle">${escapeHtml(s.workConditions)}</div>
-        <div class="notesBody"><textarea class="ei" data-k="condicoes" data-f="condicoes">${escapeHtml(condicoes || "")}</textarea></div>
+        <div class="notesBody"><div class="ei notes" ${CE} data-k="condicoes" data-f="condicoes">${escapeHtml(condicoes || "")}</div></div>
       </div>
 
       <script>
       (function(){
         function post(m){ try{ if(window.parent && window.parent!==window) window.parent.postMessage(m,'*'); }catch(e){} }
+        function di(el){ var i = el.getAttribute('data-i'); return i===null? null : parseInt(i,10); }
         document.addEventListener('input', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('ei')) return;
-          var i = el.getAttribute('data-i');
-          post({ type:'ws:edit', k: el.getAttribute('data-k'), f: el.getAttribute('data-f'), i: i===null? null : parseInt(i,10), value: el.value });
+          post({ type:'ws:edit', k: el.getAttribute('data-k'), f: el.getAttribute('data-f'), i: di(el), value: el.textContent });
         }, true);
-        // Normaliza as horas para HH:MM só ao sair do campo (edição livre dígito a dígito)
+        // Enter não cria nova linha em campos de uma linha
+        document.addEventListener('keydown', function(e){
+          var el = e.target;
+          if(e.key==='Enter' && el.classList && el.classList.contains('ei') && !el.classList.contains('notes')){ e.preventDefault(); el.blur(); }
+        }, true);
+        // Normaliza as horas para HH:MM ao sair do campo (edição livre dígito a dígito)
         document.addEventListener('blur', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('time')) return;
-          var v = (el.value||'').replace(/[.;,hH\\s]/g, ':');
-          var m = /^(\\d{1,2}):(\\d{2})$/.exec(v.trim());
-          if(m){ el.value = ('0'+m[1]).slice(-2)+':'+m[2]; }
-          else { var d = (el.value||'').replace(/\\D/g,'').slice(0,4); el.value = d.length<=2 ? d : d.slice(0,2)+':'+d.slice(2); }
-          var i = el.getAttribute('data-i');
-          post({ type:'ws:edit', k:'dia', f: el.getAttribute('data-f'), i: i===null?null:parseInt(i,10), value: el.value });
+          var v = (el.textContent||'').replace(/[.;,hH\\s]/g, ':').trim();
+          var m = /^(\\d{1,2}):(\\d{2})$/.exec(v);
+          var out;
+          if(m){ out = ('0'+m[1]).slice(-2)+':'+m[2]; }
+          else { var d = (el.textContent||'').replace(/\\D/g,'').slice(0,4); out = d.length<=2 ? d : d.slice(0,2)+':'+d.slice(2); }
+          if(out !== el.textContent){ el.textContent = out; }
+          post({ type:'ws:edit', k:'dia', f: el.getAttribute('data-f'), i: di(el), value: out });
         }, true);
         window.addEventListener('message', function(e){
           var d = e.data; if(!d) return;
