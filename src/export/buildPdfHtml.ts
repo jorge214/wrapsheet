@@ -1044,7 +1044,10 @@ export function buildEditableSheetHtml(
 
       <script>
       (function(){
-        function post(m){ try{ if(window.parent && window.parent!==window) window.parent.postMessage(m,'*'); }catch(e){} }
+        function post(m){ try{
+          if(window.ReactNativeWebView){ window.ReactNativeWebView.postMessage(JSON.stringify(m)); }
+          else if(window.parent && window.parent!==window){ window.parent.postMessage(m,'*'); }
+        }catch(e){} }
         function di(el){ var i = el.getAttribute('data-i'); return i===null? null : parseInt(i,10); }
         document.addEventListener('input', function(e){
           var el = e.target;
@@ -1068,21 +1071,23 @@ export function buildEditableSheetHtml(
           if(out !== el.textContent){ el.textContent = out; }
           post({ type:'ws:edit', k:'dia', f: el.getAttribute('data-f'), i: di(el), value: out });
         }, true);
+        function applyCalc(d){
+          function set(sel,val){ var n=document.querySelector(sel); if(n!=null && val!=null) n.textContent = val; }
+          set('[data-c="totalDias"]', d.totalDias);
+          set('[data-c="vb"]', d.vb); set('[data-c="gross"]', d.vb);
+          set('[data-c="irs"]', d.irs); set('[data-c="birs"]', d.irs);
+          set('[data-c="iva"]', d.iva); set('[data-c="biva"]', d.iva);
+          set('[data-c="vf"]', d.vf); set('[data-c="net"]', d.vf);
+          (d.days||[]).forEach(function(row,i){
+            for(var key in row){ set('[data-c="'+key+'"][data-i="'+i+'"]', row[key]); }
+          });
+        }
+        // RN (WebView) chama isto diretamente; a web usa postMessage
+        window.__wsApply = applyCalc;
         window.addEventListener('message', function(e){
           var d = e.data; if(!d) return;
-          if(d.type === 'ws:calc'){
-            function set(sel,val){ var n=document.querySelector(sel); if(n!=null && val!=null) n.textContent = val; }
-            set('[data-c="totalDias"]', d.totalDias);
-            set('[data-c="vb"]', d.vb); set('[data-c="gross"]', d.vb);
-            set('[data-c="irs"]', d.irs); set('[data-c="birs"]', d.irs);
-            set('[data-c="iva"]', d.iva); set('[data-c="biva"]', d.iva);
-            set('[data-c="vf"]', d.vf); set('[data-c="net"]', d.vf);
-            (d.days||[]).forEach(function(row,i){
-              for(var key in row){ set('[data-c="'+key+'"][data-i="'+i+'"]', row[key]); }
-            });
-          } else if(d.type === 'ws:zoom'){
-            document.documentElement.style.zoom = String(d.zoom);
-          }
+          if(d.type === 'ws:calc'){ applyCalc(d); }
+          else if(d.type === 'ws:zoom'){ document.documentElement.style.zoom = String(d.zoom); }
         });
         function fit(){
           // Repõe zoom a 1 antes de medir (senão media-se no espaço já ampliado

@@ -26,6 +26,10 @@ import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engin
 import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml, buildEditableSheetHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
+import * as ScreenOrientation from "expo-screen-orientation";
+
+// WebView só no nativo (na web usamos <iframe>); evita puxá-lo para o bundle web
+const WebView: any = Platform.OS === "web" ? null : require("react-native-webview").WebView;
 import { exportPDF } from "../../src/export/pdf";
 import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
@@ -148,6 +152,7 @@ export default function ProjectEditor() {
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
   const editIframeRef = useRef<any>(null);
+  const editWebViewRef = useRef<any>(null);
   const [sheetZoom, setSheetZoom] = useState(() =>
     isPhone ? Math.max(0.25, Math.min(1, (winW - 2 * PAGE_X) / SHEET_W)) : 1
   );
@@ -225,6 +230,13 @@ export default function ProjectEditor() {
       window.removeEventListener("popstate", onPop);
       if ((window.history.state as any)?.wsEditor) window.history.back();
     };
+  }, [editHtml]);
+
+  // Nativo (app): bloqueia o editor em horizontal; volta ao normal ao fechar
+  useEffect(() => {
+    if (Platform.OS === "web" || !editHtml) return;
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
+    return () => { ScreenOrientation.unlockAsync().catch(() => {}); };
   }, [editHtml]);
 
   async function persist(next: ProjectState) {
@@ -377,11 +389,8 @@ export default function ProjectEditor() {
     setFsPreview(false);
   }
 
-  // ── Editor HTML (formato do PDF, editável) ──────────────────────────────────
+  // ── Editor HTML (formato do PDF, editável): web = <iframe>, nativo = WebView ──
   function postEditCalc(p: ProjectState) {
-    if (Platform.OS !== "web") return;
-    const win = editIframeRef.current?.contentWindow;
-    if (!win) return;
     const calc = calcAll(p.dias, p.tabela);
     const tot = calcTotals(calc, p.fiscal as any);
     const cur = getPreset(regionCode).currency;
@@ -402,7 +411,12 @@ export default function ProjectEditor() {
         tot: fmt(c.totalDia || 0),
       };
     });
-    win.postMessage({ type: "ws:calc", totalDias: String(totalDias), vb: fmt(tot.ValorBruto), irs: fmt(tot.IRS_valor), iva: fmt(tot.IVA_valor), vf: fmt(tot.ValorFinal), days }, "*");
+    const payload = { type: "ws:calc", totalDias: String(totalDias), vb: fmt(tot.ValorBruto), irs: fmt(tot.IRS_valor), iva: fmt(tot.IVA_valor), vf: fmt(tot.ValorFinal), days };
+    if (Platform.OS === "web") {
+      editIframeRef.current?.contentWindow?.postMessage(payload, "*");
+    } else {
+      editWebViewRef.current?.injectJavaScript(`window.__wsApply(${JSON.stringify(payload)}); true;`);
+    }
   }
 
   function openEditHtml() {
@@ -774,7 +788,7 @@ export default function ProjectEditor() {
         </Text>
         <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
 
-        <Pressable onPress={() => (Platform.OS === "web" ? openEditHtml() : setEditForm(true))} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
+        <Pressable onPress={openEditHtml} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
           <Text style={ss.mOpenBtnText}>✏️ {t("edit_sheet", { defaultValue: "Editar folha" })}</Text>
         </Pressable>
 
@@ -1231,11 +1245,19 @@ export default function ProjectEditor() {
               style={{ flex: 1, border: "none", width: "100%", height: "100%" } as any}
               title="Editar folha"
             />
-          ) : (
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
-              <Text style={{ color: COLORS.sub, textAlign: "center" }}>{t("preview_web_only", { defaultValue: "Disponível na versão web." })}</Text>
-            </View>
-          )}
+          ) : WebView ? (
+            <WebView
+              ref={editWebViewRef}
+              originWhitelist={["*"]}
+              source={{ html: editHtmlContent }}
+              onMessage={(e: any) => {
+                try { handleEditMessage({ data: JSON.parse(e.nativeEvent.data) } as any); } catch {}
+              }}
+              keyboardDisplayRequiresUserAction={false}
+              hideKeyboardAccessoryView
+              style={{ flex: 1, backgroundColor: "#fff" }}
+            />
+          ) : null}
         </SafeAreaView>
       </Modal>
 
