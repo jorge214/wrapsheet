@@ -124,7 +124,11 @@ export default function ProjectEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const isWide = useIsWide();
-  const { width: winW } = useWindowDimensions();
+  const { width: winW, height: winH } = useWindowDimensions();
+  // "Telemóvel" = menor dimensão < 600px (distingue telemóvel de tablet/desktop
+  // independentemente da orientação; um telemóvel na horizontal continua telemóvel).
+  const isPhone = Math.min(winW, winH) < 600;
+  const isPortrait = winH >= winW;
   const { t } = useTranslation();
   const { user } = useAuth();
 
@@ -141,7 +145,7 @@ export default function ProjectEditor() {
   const [showPreview, setShowPreview] = useState(false);
   const [fsPreview, setFsPreview] = useState(false);
   const [sheetZoom, setSheetZoom] = useState(() =>
-    isWide ? 1 : Math.max(0.25, Math.min(1, (winW - 2 * PAGE_X) / SHEET_W))
+    isPhone ? Math.max(0.25, Math.min(1, (winW - 2 * PAGE_X) / SHEET_W)) : 1
   );
   const fsIframeRef = useRef<any>(null);
   const { setPreviewHtml, clearPreview, zoom, setZoom, actualZoom } = useLivePreview();
@@ -188,13 +192,15 @@ export default function ProjectEditor() {
   // Reload from storage when returning from the table editor page
   useFocusEffect(useCallback(() => { loadProject(); }, [loadProject]));
 
-  // Ajusta o zoom para caber tudo em ecrã inteiro (e ao rodar o telemóvel)
+  // Ajusta o zoom para caber a tabela toda em ecrã inteiro — em qualquer
+  // orientação (ao rodar para horizontal, o telemóvel fica >= 768px e passava
+  // a "wide", deixando de reajustar; por isso NÃO dependemos de isWide aqui).
   useEffect(() => {
-    if (fsPreview && !isWide) {
+    if (fsPreview) {
       const fit = Math.max(0.2, Math.min(1, (winW - 24) / SHEET_W));
       setSheetZoom(fit);
     }
-  }, [fsPreview, winW, isWide]);
+  }, [fsPreview, winW]);
 
   async function persist(next: ProjectState) {
     setProject(next);
@@ -732,7 +738,7 @@ export default function ProjectEditor() {
 
             <View style={{ flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
               {/* Zoom da folha (só quando a folha está visível inline) */}
-              {isWide && (
+              {!isPhone && (
                 <View style={ss.zoomRow}>
                   <Pressable
                     onPress={() => setSheetZoom((z) => Math.max(0.25, Math.round((z - 0.1) * 10) / 10))}
@@ -755,7 +761,7 @@ export default function ProjectEditor() {
                 </View>
               )}
 
-              {isWide && (
+              {!isPhone && (
                 <Pressable
                   onPress={() => setFsPreview(true)}
                   style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
@@ -787,15 +793,15 @@ export default function ProjectEditor() {
         </View>
 
         <View style={{ paddingHorizontal: PAGE_X }}>
-          {isWide ? (
+          {isPhone ? (
+            renderMobileStats()
+          ) : (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator>
                 <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
               </ScrollView>
               <View style={{ marginTop: 12 }}>{renderAdvanced()}</View>
             </>
-          ) : (
-            renderMobileStats()
           )}
         </View>
       </ScrollView>
@@ -884,7 +890,7 @@ export default function ProjectEditor() {
               <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
             </Pressable>
           </View>
-          {!isWide && (
+          {isPhone && isPortrait && (
             <Text style={ss.rotateHint}>
               {t("rotate_hint", { defaultValue: "Roda o telemóvel para a horizontal para veres a folha maior." })}
             </Text>
@@ -893,7 +899,7 @@ export default function ProjectEditor() {
             <ScrollView horizontal>
               <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
             </ScrollView>
-            {!isWide && <View style={{ marginTop: 16 }}>{renderAdvanced()}</View>}
+            {isPhone && <View style={{ marginTop: 16 }}>{renderAdvanced()}</View>}
           </ScrollView>
         </SafeAreaView>
       </Modal>
