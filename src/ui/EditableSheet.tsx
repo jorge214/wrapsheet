@@ -4,7 +4,7 @@
 // The whole sheet is ONE fixed-width document so zoom scales it uniformly.
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { minutesToHM, round2 } from "../calc/engine";
 import { CalcDia, Dia } from "../calc/types";
@@ -199,14 +199,31 @@ function CellTime({ value, onChangeText }: { value: string; onChangeText: (v: st
   const focused = React.useRef(false);
   useEffect(() => { if (!focused.current) setText(normalizeTimeSep(value ?? "")); }, [value]);
   const bad = text.trim().length > 0 && !isValidTime(text);
+
+  // Web: seletor de hora nativo — dá para editar dígito a dígito
+  if (Platform.OS === "web") {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(value ?? "");
+    const tv = m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
+    return (
+      // @ts-ignore — input nativo é web-only
+      <input
+        type="time"
+        value={tv}
+        onChange={(e: any) => onChangeText(e.target.value)}
+        style={{ width: "100%", border: "none", background: "transparent", textAlign: "center", fontSize: 11, color: C.text, fontFamily: "inherit", padding: "5px 2px" } as any}
+      />
+    );
+  }
+
+  // Nativo: edição livre, formata só ao sair do campo
   return (
     <TextInput
       style={[sh.cellInput, { textAlign: "center" }, bad && sh.cellInputBad]}
       value={text}
       onFocus={() => { focused.current = true; }}
-      onBlur={() => { focused.current = false; setText(normalizeTimeSep(value ?? "")); }}
-      onChangeText={(v) => { const m = maskTime(normalizeTimeSep(v)); setText(m); onChangeText(m); }}
-      keyboardType="numeric"
+      onBlur={() => { focused.current = false; const m2 = maskTime(normalizeTimeSep(text)); setText(m2); onChangeText(m2); }}
+      onChangeText={(v) => setText(v)}
+      keyboardType="numbers-and-punctuation"
       placeholder="00:00"
       placeholderTextColor={C.sub}
       maxLength={5}
@@ -279,20 +296,21 @@ function SalaryRateCell({ value, onChange, onCommit, unit }: { value: number; on
     </View>
   );
 }
-/** Salário por dia: editável. Vazio = herda o salário global (mostrado em cinzento). */
-function DaySalaryCell({ override, placeholder, onChange, unit }: { override?: number; placeholder: string; onChange: (n: number | undefined) => void; unit?: string }) {
-  const [text, setText] = useState(override != null ? String(override) : "");
+/** Salário por dia: mostra o salário efetivo (override do dia ou global).
+ *  Editar cria um override só desse dia; apagar volta a herdar o global. */
+function DaySalaryCell({ override, effective, onChange, unit }: { override?: number; effective: number; onChange: (n: number | undefined) => void; unit?: string }) {
+  const shown = override ?? effective ?? 0;
+  const [text, setText] = useState(String(shown));
   const focused = React.useRef(false);
-  useEffect(() => { if (!focused.current) setText(override != null ? String(override) : ""); }, [override]);
+  useEffect(() => { if (!focused.current) setText(String(override ?? effective ?? 0)); }, [override, effective]);
   return (
     <View style={sh.moneyRow}>
       <TextInput
         style={[sh.cellInput, { textAlign: "right", flex: 1 }]}
         value={text}
-        placeholder={placeholder}
         placeholderTextColor={C.sub}
         onFocus={() => { focused.current = true; }}
-        onBlur={() => { focused.current = false; setText(override != null ? String(override) : ""); }}
+        onBlur={() => { focused.current = false; setText(String(override ?? effective ?? 0)); }}
         onChangeText={(v) => {
           setText(v);
           if (v.trim() === "") onChange(undefined);
@@ -586,7 +604,7 @@ export default function EditableSheet(props: Props) {
                 </View>
               </TD>
               <TD w={W.data}><CellDate value={d.data} lang={locale} onChangeText={(v) => onDia(i, { data: v })} /></TD>
-              <TD w={W.sal}><DaySalaryCell override={d.salarioDia} placeholder={money(salarioDia)} unit={curSym} onChange={(n) => onDia(i, { salarioDia: n })} /></TD>
+              <TD w={W.sal}><DaySalaryCell override={d.salarioDia} effective={salarioDia} unit={curSym} onChange={(n) => onDia(i, { salarioDia: n })} /></TD>
               <TD w={W.ini}><CellTime value={d.inicio} onChangeText={(v) => onDia(i, { inicio: v })} /></TD>
               <TD w={W.ref}><CellTime value={d.refeicaoTrabalho} onChangeText={(v) => onDia(i, { refeicaoTrabalho: v })} /></TD>
               <TD w={W.fim}><CellTime value={d.fim} onChangeText={(v) => onDia(i, { fim: v })} /></TD>
