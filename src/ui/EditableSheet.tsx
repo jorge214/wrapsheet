@@ -711,7 +711,7 @@ const sh = StyleSheet.create({
 
   moneyWrap: { flex: 1, position: "relative", justifyContent: "center" },
   curOverlay: { position: "absolute", right: 3, top: 0, bottom: 0, justifyContent: "center" },
-  curOverlayTxt: { fontSize: 9, fontWeight: "700", color: C.sub },
+  curOverlayTxt: { fontSize: 9, fontWeight: "700", color: C.text },
   cellInput: { paddingHorizontal: 4, paddingVertical: 6, fontSize: 11, color: C.text },
   cellInputBad: { backgroundColor: "#FFF0F0", color: C.danger, fontWeight: "700" },
   cellDate: { paddingHorizontal: 4, justifyContent: "center", flex: 1 },
