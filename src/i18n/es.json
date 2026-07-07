@@ -344,5 +344,8 @@
   "transport_min": "Transporte (min)",
   "paid": "Pagado",
   "mark_paid": "Marcar como pagado",
-  "mark_unpaid": "Marcar como no pagado"
+  "mark_unpaid": "Marcar como no pagado",
+  "unpaid": "No pagado",
+  "paid_plural": "Pagados",
+  "unpaid_plural": "No pagados"
 }

@@ -480,9 +480,10 @@ export async function archiveProject(id: string): Promise<void> {
   const archivedIndex = await readIndex(KEY_ARCHIVED_INDEX);
   archivedIndex.push({
     id,
-    nome: project.projeto.filme || "",
+    nome: project.projeto.titulo || project.projeto.filme || "",
     cliente: project.projeto.produtora || "",
     mes: `${String(project.projeto.mes).padStart(2, "0")}/${project.projeto.ano}`,
+    pago: !!project.pago,
     updatedAt: new Date().toISOString(),
   });
   await writeIndex(KEY_ARCHIVED_INDEX, archivedIndex);

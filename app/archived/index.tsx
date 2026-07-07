@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   deleteArchivedProject,
   listArchivedProjects,
+  setProjectPaid,
   ProjectListItem,
 } from "../../src/storage/projects";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -54,6 +55,7 @@ export default function ArchivedScreen() {
   const [showAll, setShowAll] = useState<boolean>(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [optionsFor, setOptionsFor] = useState<ProjectListItem | null>(null);
+  const [paidFilter, setPaidFilter] = useState<"all" | "paid" | "unpaid">("all");
 
   async function loadArchived() {
     const list = await listArchivedProjects();
@@ -61,6 +63,11 @@ export default function ArchivedScreen() {
       (b.updatedAt || "").localeCompare(a.updatedAt || "")
     );
     setProjects(sorted);
+  }
+
+  async function togglePaid(p: ProjectListItem) {
+    await setProjectPaid(p.id, !p.pago);
+    await loadArchived();
   }
 
   useEffect(() => {
@@ -124,20 +131,24 @@ export default function ArchivedScreen() {
     setPickerVisible(false);
   }
 
-  // filtro combinado: mês + pesquisa
+  // filtro combinado: mês + pesquisa + pago/não pago
   const filteredProjects = useMemo(() => {
     const q = filterClient.trim().toLowerCase();
     const mmYYYY = toMMYYYY(mes, ano);
 
     return projects.filter((p) => {
       const monthOk = showAll ? true : (p.mes || "") === mmYYYY;
-
-      if (!q) return monthOk;
-
+      const paidOk =
+        paidFilter === "all" ? true : paidFilter === "paid" ? !!p.pago : !p.pago;
+      if (!monthOk || !paidOk) return false;
+      if (!q) return true;
       const text = `${p.cliente || ""} ${p.nome || ""}`.toLowerCase();
-      return monthOk && text.includes(q);
+      return text.includes(q);
     });
-  }, [projects, filterClient, showAll, mes, ano]);
+  }, [projects, filterClient, showAll, mes, ano, paidFilter]);
+
+  const paidCount = useMemo(() => projects.filter((p) => p.pago).length, [projects]);
+  const unpaidCount = projects.length - paidCount;
 
   function openOptions(p: ProjectListItem) {
     const optOpen = t("open", { defaultValue: "Abrir" });
@@ -228,6 +239,28 @@ export default function ArchivedScreen() {
         />
       </View>
 
+      {/* Pastas: Todos / Pagos / Não pagos */}
+      <View style={s.folderRow}>
+        {([
+          { key: "all", label: t("all_months", { defaultValue: "Todos" }), n: projects.length },
+          { key: "unpaid", label: t("unpaid_plural", { defaultValue: "Não pagos" }), n: unpaidCount },
+          { key: "paid", label: t("paid_plural", { defaultValue: "Pagos" }), n: paidCount },
+        ] as const).map((f) => {
+          const on = paidFilter === f.key;
+          return (
+            <Pressable
+              key={f.key}
+              onPress={() => setPaidFilter(f.key)}
+              style={({ pressed }) => [s.folderTab, on && s.folderTabOn, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={[s.folderTabText, on && s.folderTabTextOn]} numberOfLines={1}>
+                {f.label} ({f.n})
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {filteredProjects.length === 0 ? (
         <View style={s.emptyBox}>
           <Text style={s.emptyTitle}>
@@ -260,6 +293,7 @@ export default function ArchivedScreen() {
                 onPress={() => handleOpen(p.id)}
                 style={({ pressed, hovered }: any) => [
                   s.card,
+                  p.pago && s.cardPaid,
                   Platform.OS === "web" && hovered && { borderColor: COLORS.text, opacity: 1 },
                   pressed && { opacity: 0.96 },
                 ]}
@@ -283,20 +317,35 @@ export default function ArchivedScreen() {
                     </Text>
                   </View>
 
-                  <Pressable
-                    hitSlop={12}
-                    onPress={(e: any) => {
-                      e?.stopPropagation?.();
-                      openOptions(p);
-                    }}
-                    style={({ pressed, hovered }: any) => [
-                      s.moreBtn,
-                      Platform.OS === "web" && hovered && { borderColor: COLORS.text },
-                      pressed && { opacity: 0.7 },
-                    ]}
-                  >
-                    <Text style={s.moreText}>⋯</Text>
-                  </Pressable>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Pressable
+                      hitSlop={8}
+                      onPress={(e: any) => {
+                        e?.stopPropagation?.();
+                        togglePaid(p);
+                      }}
+                      style={({ pressed }) => [s.payBtn, p.pago && s.payBtnOn, pressed && { opacity: 0.7 }]}
+                    >
+                      <Text style={[s.payBtnText, p.pago && s.payBtnTextOn]}>
+                        {p.pago ? `✓ ${t("paid", { defaultValue: "Pago" })}` : t("unpaid", { defaultValue: "Não pago" })}
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      hitSlop={12}
+                      onPress={(e: any) => {
+                        e?.stopPropagation?.();
+                        openOptions(p);
+                      }}
+                      style={({ pressed, hovered }: any) => [
+                        s.moreBtn,
+                        Platform.OS === "web" && hovered && { borderColor: COLORS.text },
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text style={s.moreText}>⋯</Text>
+                    </Pressable>
+                  </View>
                 </View>
               </Pressable>
             );
@@ -501,6 +550,41 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       shadowOpacity: mode === "dark" ? 0.28 : 0.12,
       shadowRadius: 6,
     },
+    cardPaid: { borderLeftWidth: 5, borderLeftColor: "#1a9c4e" },
+
+    /* Pastas (Todos / Pagos / Não pagos) */
+    folderRow: {
+      flexDirection: "row",
+      gap: 8,
+      paddingHorizontal: 16,
+      marginBottom: 10,
+    },
+    folderTab: {
+      flex: 1,
+      paddingVertical: 8,
+      paddingHorizontal: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.card,
+      alignItems: "center",
+    },
+    folderTabOn: { backgroundColor: COLORS.text, borderColor: COLORS.text },
+    folderTabText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
+    folderTabTextOn: { color: COLORS.bg },
+
+    /* Botão pago/não pago no cartão */
+    payBtn: {
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.card,
+    },
+    payBtnOn: { borderColor: "#1a9c4e", backgroundColor: "#e4f6ea" },
+    payBtnText: { color: COLORS.sub, fontWeight: "900", fontSize: 12 },
+    payBtnTextOn: { color: "#137a3a" },
 
     cardTopRow: {
       flexDirection: "row",
