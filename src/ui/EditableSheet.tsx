@@ -26,6 +26,8 @@ const C = {
   subPurple: "#e4d6f0",
   subGold: "#f2e2b3",
   green: "#1f7a37",
+  paidBg: "#e4f6ea",
+  paidGreen: "#137a3a",
   blueTxt: "#1b5fbf",
   calcBg: "#f7f7f7",
   white: "#fff",
@@ -592,8 +594,11 @@ export default function EditableSheet(props: Props) {
           const c = calculos[i];
           return (
             <View key={i} style={{ flexDirection: "row" }}>
-              <TD w={W.desc}>
+              <TD w={W.desc} tint={d.pago ? C.paidBg : undefined}>
                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                  <Pressable onPress={() => onDia(i, { pago: !d.pago })} hitSlop={4} style={sh.pagoBox}>
+                    <Text style={[sh.pagoTxt, d.pago && sh.pagoTxtOn]}>{d.pago ? "☑" : "☐"}</Text>
+                  </Pressable>
                   <View style={{ flex: 1 }}>
                     <CellText value={d.descricao || ""} onChangeText={(v) => onDia(i, { descricao: v })} align="left" />
                   </View>
@@ -623,7 +628,7 @@ export default function EditableSheet(props: Props) {
               <TD w={W.hebV} calc><CalcTxt align="right">{money(c?.HEB_valor ?? 0)}</CalcTxt></TD>
               <TD w={W.hrT} calc><CalcTxt align="right">{((c?.HR_min ?? 0) / 60).toFixed(1).replace(".", ",")}</CalcTxt></TD>
               <TD w={W.hrV} calc><CalcTxt align="right">{money(c?.HR_valor ?? 0)}</CalcTxt></TD>
-              <TD w={W.tot} calc tint={C.subGold}><CalcTxt align="right" strong>{money(c?.totalDia ?? 0)}</CalcTxt></TD>
+              <TD w={W.tot} calc tint={d.pago ? C.paidBg : C.subGold}><CalcTxt align="right" strong>{money(c?.totalDia ?? 0)}</CalcTxt></TD>
             </View>
           );
         })}
@@ -727,6 +732,9 @@ const sh = StyleSheet.create({
   footBtnRight: { borderLeftWidth: 0 },
   delBtn: { paddingHorizontal: 4, paddingVertical: 2 },
   delTxt: { color: C.danger, fontWeight: "900", fontSize: 12 },
+  pagoBox: { paddingHorizontal: 2, paddingVertical: 2 },
+  pagoTxt: { color: C.sub, fontSize: 13 },
+  pagoTxtOn: { color: C.paidGreen, fontWeight: "900" },
 
   bottomGrid: { marginTop: 10, flexDirection: "row", gap: 10, alignItems: "flex-start" },
   notesInput: { padding: 10, fontSize: 12, color: C.text, minHeight: 64, textAlignVertical: "top" },

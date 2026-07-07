@@ -19,6 +19,7 @@ export type Dia = {
   meioDia: boolean;
   tempoTransporteMin: number;
   diaSemTrabalho: boolean;
+  pago?: boolean; // dia já pago
 };
 
 export type Ajudas = {
@@ -82,6 +83,7 @@ export type ProjectState = {
   dias: Dia[];
   notas: string;
   condicoes?: string;
+  pago?: boolean; // projeto já pago
   updatedAt: string;
 };
 
@@ -90,6 +92,7 @@ export type ProjectListItem = {
   nome: string;
   cliente: string;
   mes: string;
+  pago?: boolean;
   updatedAt: string;
 };
 
@@ -241,6 +244,7 @@ function upgradeProject(raw: any, id: string): ProjectState {
     dias,
     notas: raw.notas || "",
     condicoes: raw.condicoes || "",
+    pago: !!raw.pago,
     updatedAt: raw.updatedAt || new Date().toISOString(),
   };
 }
@@ -280,6 +284,7 @@ export async function saveProject(p: ProjectState): Promise<void> {
     nome: toSave.projeto.titulo || toSave.projeto.filme || "",
     cliente: toSave.projeto.produtora || "",
     mes: `${String(toSave.projeto.mes).padStart(2, "0")}/${toSave.projeto.ano}`,
+    pago: !!toSave.pago,
     updatedAt,
   };
 
@@ -491,6 +496,12 @@ export async function listArchivedProjects(): Promise<ProjectListItem[]> {
 }
 
 /* ------------ NOVO: RENOMEAR PROJETO ------------ */
+
+export async function setProjectPaid(id: string, pago: boolean): Promise<void> {
+  const project = await getProject(id);
+  if (!project) return;
+  await saveProject({ ...project, pago });
+}
 
 export async function renameProject(id: string, newName: string): Promise<void> {
   const project = await getProject(id);

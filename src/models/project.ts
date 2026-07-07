@@ -39,5 +39,6 @@ export type ProjectState = {
   dias: Dia[];
   notas?: string;
   condicoes?: string;
+  pago?: boolean;
   updatedAt?: number;
 };

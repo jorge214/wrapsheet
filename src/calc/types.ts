@@ -20,6 +20,7 @@ export type Dia = {
   meioDia: boolean;
   tempoTransporteMin: number; // minutos (total do dia)
   diaSemTrabalho: boolean;
+  pago?: boolean;             // dia já pago pela produtora
 };
 
 // Tipo canónico — valores sempre em percentagem (ex: 25 significa 25%)

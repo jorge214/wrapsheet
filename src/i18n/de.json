@@ -341,5 +341,8 @@
   "edit_sheet": "Blatt bearbeiten",
   "view_sheet": "Ansehen / exportieren (PDF)",
   "view_sheet_short": "Ansehen",
-  "transport_min": "Transport (Min.)"
+  "transport_min": "Transport (Min.)",
+  "paid": "Bezahlt",
+  "mark_paid": "Als bezahlt markieren",
+  "mark_unpaid": "Als unbezahlt markieren"
 }

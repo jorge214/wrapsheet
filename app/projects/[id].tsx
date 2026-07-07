@@ -467,6 +467,8 @@ export default function ProjectEditor() {
           const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(d.value).trim());
           if (!m) return; // data incompleta/ inválida — não guarda parcial
           val = `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+        } else if (d.f === "pago") {
+          val = !!d.value;
         }
         next = { ...p, dias: p.dias.map((x, ix) => (ix === d.i ? { ...x, [d.f]: val } : x)) };
         break;
@@ -878,13 +880,16 @@ export default function ProjectEditor() {
           {p.dias.map((d, i) => {
             const c = calculos[i] ?? ({} as any);
             return (
-              <View key={i} style={ss.dayCard}>
+              <View key={i} style={[ss.dayCard, d.pago && ss.dayCardPaid]}>
                 <View style={ss.dayHeader}>
                   <Text style={ss.dayHeaderTitle}>
                     {t("day", { defaultValue: "Dia" })} {i + 1}
                     {d.data ? `  ·  ${formatDateDisplay(d.data, i18n.language)}` : ""}
                   </Text>
-                  <View style={{ flexDirection: "row", gap: 6 }}>
+                  <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+                    <Pressable onPress={() => updateDia(i, { pago: !d.pago } as any)} style={[ss.pagoChip, d.pago && ss.pagoChipOn]}>
+                      <Text style={[ss.pagoChipText, d.pago && ss.pagoChipTextOn]}>{d.pago ? "✓ " : ""}{t("paid", { defaultValue: "Pago" })}</Text>
+                    </Pressable>
                     <Pressable onPress={() => duplicateDia(i)} style={({ pressed }) => [ss.pillGhost, pressed && { opacity: 0.85 }]}>
                       <Text style={ss.pillGhostText}>⧉</Text>
                     </Pressable>
@@ -1094,6 +1099,16 @@ export default function ProjectEditor() {
             onPress={() => {}}
           >
             <Text style={ss.menuTitle}>{t("options")}</Text>
+
+            <MenuItem
+              label={project.pago
+                ? t("mark_unpaid", { defaultValue: "Marcar como não pago" })
+                : t("mark_paid", { defaultValue: "Marcar como pago" })}
+              onPress={() => {
+                setMenuOpen(false);
+                setP("pago", !project.pago as any);
+              }}
+            />
 
             <MenuItem
               label={t("apply_active_profile")}
@@ -2298,6 +2313,13 @@ const ss = StyleSheet.create({
   /* ---- Section collapse ---- */
   sectionChevron: { fontSize: 13, color: COLORS.sub, fontWeight: "900", width: 14 },
   sectionSummary: { fontSize: 13, color: COLORS.sub, fontWeight: "600", flexShrink: 1 },
+
+  /* ---- Pago (dia) ---- */
+  dayCardPaid: { borderLeftWidth: 4, borderLeftColor: "#1a9c4e" },
+  pagoChip: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: COLORS.card },
+  pagoChipOn: { borderColor: "#1a9c4e", backgroundColor: "#e4f6ea" },
+  pagoChipText: { fontSize: 12, fontWeight: "900", color: COLORS.sub },
+  pagoChipTextOn: { color: "#137a3a" },
 
   /* ---- Mobile fullscreen CTA ---- */
   fsCta: {

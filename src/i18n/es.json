@@ -341,5 +341,8 @@
   "edit_sheet": "Editar hoja",
   "view_sheet": "Ver / exportar (PDF)",
   "view_sheet_short": "Ver",
-  "transport_min": "Transporte (min)"
+  "transport_min": "Transporte (min)",
+  "paid": "Pagado",
+  "mark_paid": "Marcar como pagado",
+  "mark_unpaid": "Marcar como no pagado"
 }

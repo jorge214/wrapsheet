@@ -850,8 +850,8 @@ export function buildEditableSheetHtml(
       const c = calculos[i] ?? ({} as CalcDia);
       const eff = (d as any).salarioDia ?? salarioDia;
       return `
-        <tr>
-          <td class="left">${di(i, "descricao", d.descricao || "", "left")}</td>
+        <tr${d.pago ? ' class="paid"' : ""}>
+          <td class="left"><span class="pago" data-i="${i}">${d.pago ? "☑" : "☐"}</span> ${di(i, "descricao", d.descricao || "", "left")}</td>
           <td>${di(i, "data", formatDatePT(d.data), "date", 'inputmode="numeric"')}</td>
           <td class="right calc" data-c="sal" data-i="${i}">${fmt(eff)}</td>
           <td>${di(i, "inicio", d.inicio || "", "time", 'inputmode="numeric"')}</td>
@@ -939,6 +939,9 @@ export function buildEditableSheetHtml(
         .ei:empty { min-width: 24px; min-height: 1em; }
         .row .v .ei { display: block; width: 100%; min-height: 1.1em; }
         .notes { display: block; width: 100%; min-height: 48px; white-space: pre-wrap; text-align: left; }
+        .pago { cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 12px; color: #888; }
+        tr.paid .pago { color: #137a3a; }
+        .days tr.paid td:first-child, .days tr.paid td:last-child { background: #e4f6ea; }
       </style>
     </head>
     <body>
@@ -1053,6 +1056,16 @@ export function buildEditableSheetHtml(
           var el = e.target;
           if(!el.classList || !el.classList.contains('ei')) return;
           post({ type:'ws:edit', k: el.getAttribute('data-k'), f: el.getAttribute('data-f'), i: di(el), value: el.textContent });
+        }, true);
+        // Marcar/desmarcar dia como pago
+        document.addEventListener('click', function(e){
+          var el = e.target;
+          if(!el.classList || !el.classList.contains('pago')) return;
+          var tr = el.closest('tr');
+          var paid = tr.classList.toggle('paid');
+          el.textContent = paid ? '☑' : '☐';
+          var i = el.getAttribute('data-i');
+          post({ type:'ws:edit', k:'dia', f:'pago', i: i===null?null:parseInt(i,10), value: paid });
         }, true);
         // Enter não cria nova linha em campos de uma linha
         document.addEventListener('keydown', function(e){

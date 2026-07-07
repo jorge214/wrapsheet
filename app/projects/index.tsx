@@ -28,6 +28,7 @@ import {
   duplicateProjectToMonth,
   listProjects,
   renameProject,
+  setProjectPaid,
 } from "../../src/storage/projects";
 import { useAuth } from "../../src/auth/AuthContext";
 import { deleteProjectFromCloud } from "../../src/sync/syncService";
@@ -112,6 +113,11 @@ export default function ProjectsScreen() {
 
   async function confirmArchive(id: string) {
     await archiveProject(id);
+    await loadProjects();
+  }
+
+  async function togglePaid(project: Project) {
+    await setProjectPaid(project.id, !project.pago);
     await loadProjects();
   }
 
@@ -289,19 +295,23 @@ export default function ProjectsScreen() {
 
   // ------- OPÇÕES DO CARD -------
   function openProjectOptions(project: Project) {
+    const paidLabel = project.pago
+      ? t("mark_unpaid", { defaultValue: "Marcar como não pago" })
+      : t("mark_paid", { defaultValue: "Marcar como pago" });
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           title: project.nome || t("unnamed_project"),
-          options: [t("rename"), t("duplicate"), t("archive"), t("delete"), t("cancel")],
-          cancelButtonIndex: 4,
-          destructiveButtonIndex: 3,
+          options: [paidLabel, t("rename"), t("duplicate"), t("archive"), t("delete"), t("cancel")],
+          cancelButtonIndex: 5,
+          destructiveButtonIndex: 4,
         },
         (index) => {
-          if (index === 0) openRenameDialog(project);
-          if (index === 1) openDuplicateDialog(project);
-          if (index === 2) confirmArchive(project.id);
-          if (index === 3) confirmDelete(project.id);
+          if (index === 0) togglePaid(project);
+          if (index === 1) openRenameDialog(project);
+          if (index === 2) openDuplicateDialog(project);
+          if (index === 3) confirmArchive(project.id);
+          if (index === 4) confirmDelete(project.id);
         }
       );
       return;
@@ -357,18 +367,26 @@ export default function ProjectsScreen() {
               onPress={() => openProject(p.id)}
               style={({ pressed, hovered }: any) => [
                 s.card,
+                p.pago && s.cardPaid,
                 Platform.OS === "web" && hovered && { borderColor: COLORS.text, opacity: 1 },
                 pressed && { opacity: 0.96 },
               ]}
             >
               <View style={s.cardTopRow}>
                 <View style={{ flex: 1, paddingRight: 10 }}>
-                  <Text style={s.title} numberOfLines={1}>
-                    {p.nome ||
-                      t("unnamed_project", {
-                        defaultValue: "Projeto sem nome",
-                      })}
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Text style={[s.title, { flexShrink: 1 }]} numberOfLines={1}>
+                      {p.nome ||
+                        t("unnamed_project", {
+                          defaultValue: "Projeto sem nome",
+                        })}
+                    </Text>
+                    {p.pago && (
+                      <View style={s.paidBadge}>
+                        <Text style={s.paidBadgeText}>✓ {t("paid", { defaultValue: "Pago" })}</Text>
+                      </View>
+                    )}
+                  </View>
 
                   <Text style={s.subtitle} numberOfLines={1}>
                     {(p.cliente || "—") + " · " + (p.mes || "--/----")}
@@ -444,6 +462,12 @@ export default function ProjectsScreen() {
             {!deleteConfirm ? (
               <>
                 {[
+                  {
+                    label: optsProject?.pago
+                      ? t("mark_unpaid", { defaultValue: "Marcar como não pago" })
+                      : t("mark_paid", { defaultValue: "Marcar como pago" }),
+                    onPress: () => { const proj = optsProject!; setOptsProject(null); togglePaid(proj); },
+                  },
                   { label: t("rename"), onPress: () => { setOptsProject(null); openRenameDialog(optsProject!); } },
                   { label: t("duplicate"), onPress: () => { setOptsProject(null); openDuplicateDialog(optsProject!); } },
                   { label: t("archive"), onPress: () => { const id = optsProject!.id; setOptsProject(null); confirmArchive(id); } },
@@ -728,6 +752,17 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       alignItems: "flex-start",
       justifyContent: "space-between",
     },
+
+    cardPaid: { borderLeftWidth: 5, borderLeftColor: "#1a9c4e" },
+    paidBadge: {
+      backgroundColor: "#e4f6ea",
+      borderColor: "#1a9c4e",
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    },
+    paidBadgeText: { color: "#137a3a", fontSize: 11, fontWeight: "900" },
 
     title: { color: COLORS.text, fontSize: 18, fontWeight: "900" },
     subtitle: { color: COLORS.sub, fontSize: 13, marginTop: 4 },
