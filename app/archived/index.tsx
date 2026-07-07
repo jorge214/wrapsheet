@@ -568,6 +568,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       borderColor: COLORS.border,
       backgroundColor: COLORS.card,
       alignItems: "center",
+      ...(Platform.OS === "web" ? ({ cursor: "pointer", userSelect: "none" } as any) : {}),
     },
     folderTabOn: { backgroundColor: COLORS.text, borderColor: COLORS.text },
     folderTabText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
@@ -581,6 +582,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       borderWidth: 1,
       borderColor: COLORS.border,
       backgroundColor: COLORS.card,
+      ...(Platform.OS === "web" ? ({ cursor: "pointer", userSelect: "none" } as any) : {}),
     },
     payBtnOn: { borderColor: "#1a9c4e", backgroundColor: "#e4f6ea" },
     payBtnText: { color: COLORS.sub, fontWeight: "900", fontSize: 12 },
@@ -605,6 +607,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: mode === "dark" ? COLORS.bg : "#F1F3F6",
+      ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
     },
     moreText: {
       color: COLORS.text,

@@ -1268,7 +1268,7 @@ export default function ProjectEditor() {
             <WebView
               ref={editWebViewRef}
               originWhitelist={["*"]}
-              source={{ html: editHtmlContent, baseUrl: "" }}
+              source={{ html: editHtmlContent }}
               onMessage={(e: any) => {
                 try { handleEditMessage({ data: JSON.parse(e.nativeEvent.data) } as any); } catch {}
               }}
@@ -1278,7 +1278,12 @@ export default function ProjectEditor() {
               hideKeyboardAccessoryView
               style={{ flex: 1, backgroundColor: "#fff" }}
             />
-          ) : null}
+          ) : (
+            // Fallback (WebView indisponível): formulário tátil
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
+              {renderMobileForm()}
+            </ScrollView>
+          )}
         </SafeAreaView>
       </Modal>
 
@@ -1318,6 +1323,13 @@ export default function ProjectEditor() {
               srcDoc={previewHtml}
               style={{ flex: 1, border: "none", width: "100%", height: "100%" } as any}
               title="PDF Preview"
+            />
+          ) : WebView ? (
+            <WebView
+              originWhitelist={["*"]}
+              source={{ html: previewHtml }}
+              javaScriptEnabled
+              style={{ flex: 1, backgroundColor: "#fff" }}
             />
           ) : (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
