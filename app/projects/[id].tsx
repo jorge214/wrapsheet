@@ -28,8 +28,12 @@ import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml, buildEditableSheetHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
 import * as ScreenOrientation from "expo-screen-orientation";
 
-// WebView só no nativo (na web usamos <iframe>); evita puxá-lo para o bundle web
-const WebView: any = Platform.OS === "web" ? null : require("react-native-webview").WebView;
+// WebView só no nativo (na web usamos <iframe>); evita puxá-lo para o bundle web.
+// Protegido: se o módulo não estiver disponível, a app não rebenta.
+let WebView: any = null;
+if (Platform.OS !== "web") {
+  try { WebView = require("react-native-webview").WebView; } catch { WebView = null; }
+}
 import { exportPDF } from "../../src/export/pdf";
 import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
@@ -1249,10 +1253,12 @@ export default function ProjectEditor() {
             <WebView
               ref={editWebViewRef}
               originWhitelist={["*"]}
-              source={{ html: editHtmlContent }}
+              source={{ html: editHtmlContent, baseUrl: "" }}
               onMessage={(e: any) => {
                 try { handleEditMessage({ data: JSON.parse(e.nativeEvent.data) } as any); } catch {}
               }}
+              javaScriptEnabled
+              domStorageEnabled
               keyboardDisplayRequiresUserAction={false}
               hideKeyboardAccessoryView
               style={{ flex: 1, backgroundColor: "#fff" }}
