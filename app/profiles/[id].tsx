@@ -127,6 +127,7 @@ export default function ProfileEditScreen() {
   const [original, setOriginal] = useState<Profile | null>(null);
   const [editing, setEditing] = useState(edit === "1");
   const [saving, setSaving] = useState(false);
+  const [savedToast, setSavedToast] = useState(false);
   const [preset, setPreset] = useState<{ IRS_percent: number; IVA_percent: number }>({ IRS_percent: 0, IVA_percent: 0 });
 
   useEffect(() => {
@@ -210,6 +211,8 @@ export default function ProfileEditScreen() {
       if (user) syncProfileToCloud(user.id, updated);
       setOriginal(updated);
       setEditing(false);
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2400);
     } catch (e) {
       console.error("Erro ao guardar perfil", e);
       Alert.alert(
@@ -524,6 +527,12 @@ export default function ProfileEditScreen() {
 
         <View style={{ height: 24 }} />
       </ScrollView>
+
+      {savedToast && (
+        <View style={s.savedToast} pointerEvents="none">
+          <Text style={s.savedToastText}>✓ {t("saved", { defaultValue: "Guardado" })}</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -640,4 +649,20 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
     },
     condAddBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
+
+    savedToast: {
+      position: "absolute",
+      bottom: 28,
+      left: 16,
+      right: 16,
+      backgroundColor: "#137a3a",
+      borderRadius: 12,
+      paddingVertical: 12,
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    savedToastText: { color: "#fff", fontWeight: "900", fontSize: 14 },
   });

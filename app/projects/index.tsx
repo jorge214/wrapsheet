@@ -2,7 +2,7 @@
 import dayjs from "dayjs";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useIsWide } from "../../src/ui/useBreakpoint";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "../../src/i18n/i18n";
 import {
@@ -68,6 +68,16 @@ export default function ProjectsScreen() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [archived, setArchived] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Mensagem de sucesso (toast) após uma ação
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<any>(null);
+  function showToast(msg: string) {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  }
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   // pasta ativa: todos / a receber / arquivados (pagos)
   const [tab, setTab] = useState<"todos" | "areceber" | "arquivados">("todos");
@@ -153,6 +163,7 @@ export default function ProjectsScreen() {
         await markProjectPaidAndArchive(row.id);
         setTab("arquivados");
         await loadProjects();
+        showToast(t("toast_paid_archived", { defaultValue: "✓ Projeto marcado como pago e arquivado" }));
       },
       t("mark_paid", { defaultValue: "Marcar como pago" })
     );
@@ -169,6 +180,7 @@ export default function ProjectsScreen() {
         await unarchiveProject(row.id);
         setTab("areceber");
         await loadProjects();
+        showToast(t("toast_unarchived", { defaultValue: "✓ Projeto de volta a 'A Receber'" }));
       },
       t("unarchive", { defaultValue: "Desarquivar" })
     );
@@ -181,7 +193,8 @@ export default function ProjectsScreen() {
       await deleteProject(row.id);
     }
     if (user) await deleteProjectFromCloud(user.id, row.id);
-    loadProjects();
+    await loadProjects();
+    showToast(t("toast_deleted", { defaultValue: "Projeto apagado" }));
   }
 
   async function confirmDelete(row: Row) {
@@ -241,6 +254,7 @@ export default function ProjectsScreen() {
     try {
       await renameProject(renameId, name);
       await loadProjects();
+      showToast(t("toast_renamed", { defaultValue: "✓ Projeto renomeado" }));
     } catch (e) {
       console.error("Erro ao renomear projeto", e);
       Alert.alert(
@@ -304,6 +318,7 @@ export default function ProjectsScreen() {
     try {
       await duplicateProjectToMonth(dupId, mesNum, anoNum);
       await loadProjects();
+      showToast(t("toast_duplicated", { defaultValue: "✓ Projeto duplicado" }));
     } catch (e) {
       console.error("Erro ao duplicar projeto", e);
       Alert.alert(
@@ -608,6 +623,13 @@ export default function ProjectsScreen() {
 
         <View style={{ height: 110 }} />
       </ScrollView>
+
+      {/* Toast de sucesso */}
+      {toast && (
+        <View style={s.toast} pointerEvents="none">
+          <Text style={s.toastText}>{toast}</Text>
+        </View>
+      )}
 
       {/* FAB (neutro) */}
       <TouchableOpacity
@@ -1018,6 +1040,23 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       shadowRadius: 8,
     },
     fabText: { color: COLORS.text, fontWeight: "900", fontSize: 14 },
+
+    toast: {
+      position: "absolute",
+      bottom: 92,
+      left: 16,
+      right: 16,
+      backgroundColor: "#137a3a",
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    toastText: { color: "#fff", fontWeight: "900", fontSize: 14 },
 
     emptyBox: { paddingTop: 20, alignItems: "center" },
     emptyTitle: { color: COLORS.text, fontWeight: "900", fontSize: 16 },
