@@ -117,9 +117,14 @@ export default function DashboardScreen() {
       if (m) set.add(m);
     }
 
-    // adiciona sempre uma gama de meses navegável
-    const startYear = ano - 3;
-    const endYear = ano + 1;
+    // gama navegável limitada ao histórico real (do ano mais antigo com dados
+    // até ao ano seguinte) — evita andar até anos vazios
+    const nowY = new Date().getFullYear();
+    const dataYears = [...projects, ...archived]
+      .map((p) => Number((p.mes || "").split("/")[1]))
+      .filter((y) => !!y);
+    const startYear = Math.min(nowY, ...(dataYears.length ? dataYears : [nowY]));
+    const endYear = Math.max(nowY, ano) + 1;
     for (let y = endYear; y >= startYear; y--) {
       for (let m = 12; m >= 1; m--) {
         set.add(toMMYYYY(m, y));
@@ -178,6 +183,8 @@ export default function DashboardScreen() {
     diasTrabalhoMes: dias,
     valorBrutoMes: monthSummary?.totalValorBruto ?? 0,
     valorLiquidoMes: monthSummary?.totalValorFinal ?? 0,
+    receberMes: monthSummary?.totalReceber ?? 0,
+    pagoMes: monthSummary?.totalPago ?? 0,
     irsMes: monthSummary?.totalIRS ?? 0,
     ivaMes: monthSummary?.totalIVA ?? 0,
     horasExtraMes: monthSummary?.totalHorasExtra ?? 0,
@@ -186,6 +193,8 @@ export default function DashboardScreen() {
     horasAno: yearSummary?.totalHoras ?? 0,
     valorBrutoAno: yearSummary?.totalValorBruto ?? 0,
     valorLiquidoAno: yearSummary?.totalValorFinal ?? 0,
+    receberAno: yearSummary?.totalReceber ?? 0,
+    pagoAno: yearSummary?.totalPago ?? 0,
   };
 }, [projects, archived, monthSummary, yearSummary, ano, monthKey]);
 
@@ -289,6 +298,18 @@ export default function DashboardScreen() {
           />
           <StatCard
             s={s}
+            value={formatMoneyPT(stats.receberMes)}
+            label={t("dash_receive_month", { defaultValue: "A Receber (mês)" })}
+            isMoney
+          />
+          <StatCard
+            s={s}
+            value={formatMoneyPT(stats.pagoMes)}
+            label={t("dash_paid_month", { defaultValue: "Pago (mês)" })}
+            isMoney
+          />
+          <StatCard
+            s={s}
             value={formatMoneyPT(stats.irsMes)}
             label={t("dash_irs_month", { defaultValue: "IRS retido (mês)" })}
             isMoney
@@ -331,6 +352,18 @@ export default function DashboardScreen() {
             s={s}
             value={formatMoneyPT(stats.valorLiquidoAno)}
             label={t("dash_net_year", { defaultValue: "Valor líquido (ano)" })}
+            isMoney
+          />
+          <StatCard
+            s={s}
+            value={formatMoneyPT(stats.receberAno)}
+            label={t("dash_receive_year", { defaultValue: "A Receber (ano)" })}
+            isMoney
+          />
+          <StatCard
+            s={s}
+            value={formatMoneyPT(stats.pagoAno)}
+            label={t("dash_paid_year", { defaultValue: "Pago (ano)" })}
             isMoney
           />
         </View>
