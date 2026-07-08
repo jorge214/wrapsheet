@@ -605,7 +605,7 @@ export function buildPdfHtml(
         .mini { font-size: 11px; }
         .muted { opacity: .8; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 2px solid #2b2b2b; padding: 6px; font-size: 11px; text-align: center; vertical-align: middle; }
+        th, td { border: 2px solid #2b2b2b; padding: 6px; font-size: 12px; text-align: center; vertical-align: middle; }
         th { background: #7f7f7f; color: #fff; font-weight: 800; }
         /* Column colours matching the original sheet */
         th.h-blue   { background: #2e75b6; color: #fff; }
@@ -617,9 +617,9 @@ export function buildPdfHtml(
         .days .subhead th.h-olive  { background: #e6e6c8; color: #111; }
         .days .subhead th.h-purple { background: #e4d6f0; color: #111; }
         .days .subhead th.h-total  { background: #f2e2b3; color: #111; }
-        .days th { font-size: 10px; }
-        .days td { font-size: 10px; }
-        .days .mini { font-size: 9px; font-weight: 700; }
+        .days th { font-size: 11px; }
+        .days td { font-size: 11px; }
+        .days .mini { font-size: 10px; font-weight: 700; }
         .left { text-align: left; }
         .right { text-align: right; }
         .strong { font-weight: 900; }
@@ -758,21 +758,7 @@ export function buildPdfHtml(
         ${dayRows}
       </table>
 
-      <div class="bottomGrid">
-        <div class="box">
-          <div class="boxTitle">${escapeHtml(s.notes)}</div>
-          <div class="notesBody">${escapeHtml(notas || "")}</div>
-          ${taxDisclaimer ? `<div style="padding:6px 10px;font-size:10px;color:#888;border-top:1px solid #ddd;">${escapeHtml(taxDisclaimer)}</div>` : ""}
-        </div>
-        <div class="box totalsMini">
-          <table>
-            <tr><th>${escapeHtml(s.gross)}</th><td class="val">${fmt(totais.ValorBruto)}</td></tr>
-            <tr><th>${escapeHtml(s.irs)}</th><td class="val">${fmt(totais.IRS_valor)}</td></tr>
-            <tr><th>${escapeHtml(s.iva)}</th><td class="val">${fmt(totais.IVA_valor)}</td></tr>
-            <tr><th>${escapeHtml(s.net)}</th><td class="val">${fmt(totais.ValorFinal)}</td></tr>
-          </table>
-        </div>
-      </div>
+      ${taxDisclaimer ? `<div style="margin-top:8px;font-size:9px;color:#999;">${escapeHtml(taxDisclaimer)}</div>` : ""}
 
       ${condicoes && condicoes.trim()
         ? `<div class="box conditions">
@@ -906,7 +892,7 @@ export function buildEditableSheetHtml(
         .mini { font-size: 11px; }
         .muted { opacity: .8; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 2px solid #2b2b2b; padding: 6px; font-size: 11px; text-align: center; vertical-align: middle; }
+        th, td { border: 2px solid #2b2b2b; padding: 6px; font-size: 12px; text-align: center; vertical-align: middle; }
         th { background: #7f7f7f; color: #fff; font-weight: 800; }
         th.h-blue { background: #2e75b6; color: #fff; }
         th.h-olive { background: #7f7f2e; color: #fff; }
@@ -917,9 +903,9 @@ export function buildEditableSheetHtml(
         .days .subhead th.h-olive { background: #e6e6c8; color: #111; }
         .days .subhead th.h-purple { background: #e4d6f0; color: #111; }
         .days .subhead th.h-total { background: #f2e2b3; color: #111; }
-        .days th { font-size: 10px; }
-        .days td { font-size: 10px; }
-        .days .mini { font-size: 9px; font-weight: 700; }
+        .days th { font-size: 11px; }
+        .days td { font-size: 11px; }
+        .days .mini { font-size: 10px; font-weight: 700; }
         .left { text-align: left; }
         .right { text-align: right; }
         .strong { font-weight: 900; }
@@ -1024,12 +1010,7 @@ export function buildEditableSheetHtml(
         ${dayRows}
       </table>
 
-      <div class="bottomGrid">
-        <div class="box">
-          <div class="boxTitle">${escapeHtml(s.notes)}</div>
-          <div class="notesBody"><div class="ei notes" ${CE} data-k="notas" data-f="notas">${escapeHtml(notas || "")}</div></div>
-          ${taxDisclaimer ? `<div style="padding:6px 10px;font-size:10px;color:#888;border-top:1px solid #ddd;">${escapeHtml(taxDisclaimer)}</div>` : ""}
-        </div>
+      <div class="bottomGrid" style="grid-template-columns:1fr;">
         <div class="box totalsMini">
           <table>
             <tr><th>${escapeHtml(s.gross)}</th><td class="val" data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
