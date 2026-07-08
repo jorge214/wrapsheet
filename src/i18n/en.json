@@ -347,5 +347,16 @@
   "mark_unpaid": "Mark as unpaid",
   "unpaid": "Unpaid",
   "paid_plural": "Paid",
-  "unpaid_plural": "Unpaid"
+  "unpaid_plural": "Unpaid",
+  "to_receive": "To receive",
+  "mark_paid_short": "Paid",
+  "mark_paid_title": "Mark as paid",
+  "mark_paid_archive_msg": "The project becomes Paid and moves to Archived. You can revert it in Archived › Unarchive.",
+  "unarchive": "Unarchive",
+  "unarchive_title": "Unarchive",
+  "unarchive_msg": "It goes back to 'To receive' as unpaid. You can mark it as paid again later.",
+  "tax_regime": "Tax regime",
+  "tax_regime_hint": "Percentages applied to the values. Set to 0% if not applicable (e.g. sole proprietorship). Default comes from the country in Settings › Region.",
+  "irs": "Income tax",
+  "iva": "VAT"
 }

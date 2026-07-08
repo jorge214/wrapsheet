@@ -347,5 +347,16 @@
   "mark_unpaid": "Marcar como não pago",
   "unpaid": "Não pago",
   "paid_plural": "Pagos",
-  "unpaid_plural": "Não pagos"
+  "unpaid_plural": "Não pagos",
+  "to_receive": "A Receber",
+  "mark_paid_short": "Pago",
+  "mark_paid_title": "Marcar como pago",
+  "mark_paid_archive_msg": "O projeto passa a Pago e vai para Arquivados. Você pode reverter em Arquivados › Desarquivar.",
+  "unarchive": "Desarquivar",
+  "unarchive_title": "Desarquivar",
+  "unarchive_msg": "Volta para 'A Receber' como não pago. Você pode marcar como pago novamente depois.",
+  "tax_regime": "Regime Fiscal",
+  "tax_regime_hint": "Percentagens aplicadas aos valores. Deixe em 0% se não aplicável (ex.: empresa individual). Padrão pelo país em Definições › Região.",
+  "irs": "IR",
+  "iva": "IVA"
 }

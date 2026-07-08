@@ -502,6 +502,49 @@ export async function listArchivedProjects(): Promise<ProjectListItem[]> {
   return await readIndex(KEY_ARCHIVED_INDEX);
 }
 
+// desarquivar: volta o projeto para a lista ativa e marca como NÃO pago ("A Receber")
+export async function unarchiveProject(id: string): Promise<void> {
+  const raw = await AsyncStorage.getItem(KEY_ARCHIVED_PREFIX + id);
+  if (!raw) return;
+
+  let project: ProjectState;
+  try {
+    project = upgradeProject(JSON.parse(raw), id);
+  } catch {
+    return;
+  }
+
+  const restored: ProjectState = {
+    ...project,
+    pago: false,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await AsyncStorage.setItem(KEY_PROJECT_PREFIX + id, JSON.stringify(restored));
+
+  const index = await readIndex(KEY_INDEX);
+  const summary: ProjectListItem = {
+    id,
+    nome: restored.projeto.titulo || restored.projeto.filme || "",
+    cliente: restored.projeto.produtora || "",
+    mes: `${String(restored.projeto.mes).padStart(2, "0")}/${restored.projeto.ano}`,
+    pago: false,
+    updatedAt: restored.updatedAt,
+  };
+  const existing = index.findIndex((i) => i.id === id);
+  if (existing >= 0) index[existing] = summary;
+  else index.push(summary);
+  await writeIndex(KEY_INDEX, index);
+
+  await deleteArchivedProject(id);
+}
+
+// marcar como pago E arquivar num só passo (pago ⟺ arquivado)
+export async function markProjectPaidAndArchive(id: string): Promise<void> {
+  await setProjectPaid(id, true);
+  await archiveProject(id);
+}
+
 /* ------------ NOVO: RENOMEAR PROJETO ------------ */
 
 export async function setProjectPaid(id: string, pago: boolean): Promise<void> {

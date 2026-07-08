@@ -53,14 +53,6 @@ export default function HomeHub() {
           onPress={() => router.push("/projects")}
         />
         <Row
-          icon="archive-outline"
-          title={t("home_archived", { defaultValue: "Arquivados" })}
-          subtitle={t("home_archived_sub", {
-            defaultValue: "Relatórios guardados",
-          })}
-          onPress={() => router.push("/archived")}
-        />
-        <Row
           icon="stats-chart-outline"
           title={t("home_dashboard", { defaultValue: "Dashboard" })}
           subtitle={t("home_dashboard_sub", {

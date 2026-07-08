@@ -134,12 +134,6 @@ function Sidebar() {
       match: "/projects",
     },
     {
-      label: t("home.archived", { defaultValue: "Archived" }),
-      icon: "archive-outline",
-      route: "/archived",
-      match: "/archived",
-    },
-    {
       label: t("home.dashboard", { defaultValue: "Dashboard" }),
       icon: "stats-chart-outline",
       route: "/dashboard",

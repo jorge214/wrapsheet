@@ -22,14 +22,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ProjectListItem as Project } from "../../src/storage/projects";
 import {
-  archiveProject,
   createProject,
   deleteProject,
+  deleteArchivedProject,
   duplicateProjectToMonth,
   listProjects,
+  listArchivedProjects,
+  markProjectPaidAndArchive,
   renameProject,
-  setProjectPaid,
+  unarchiveProject,
 } from "../../src/storage/projects";
+
+type Row = Project & { archived?: boolean };
 import { useAuth } from "../../src/auth/AuthContext";
 import { deleteProjectFromCloud } from "../../src/sync/syncService";
 import { FREE_PROJECT_LIMIT } from "../../src/storage/freeTier";
@@ -62,7 +66,11 @@ export default function ProjectsScreen() {
 
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [archived, setArchived] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // pasta ativa: todos / a receber / arquivados (pagos)
+  const [tab, setTab] = useState<"todos" | "areceber" | "arquivados">("todos");
 
   // filtro mês
   const now = new Date();
@@ -72,7 +80,7 @@ export default function ProjectsScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
 
   // modal opções (web)
-  const [optsProject, setOptsProject] = useState<Project | null>(null);
+  const [optsProject, setOptsProject] = useState<Row | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   // modal renomear
@@ -87,11 +95,14 @@ export default function ProjectsScreen() {
   const loadProjects = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await listProjects();
-      const sorted = [...list].sort((a, b) =>
-        (b.updatedAt || "").localeCompare(a.updatedAt || "")
-      );
-      setProjects(sorted);
+      const [list, arch] = await Promise.all([
+        listProjects(),
+        listArchivedProjects(),
+      ]);
+      const byDate = (a: Project, b: Project) =>
+        (b.updatedAt || "").localeCompare(a.updatedAt || "");
+      setProjects([...list].sort(byDate));
+      setArchived([...arch].sort(byDate));
     } finally {
       setLoading(false);
     }
@@ -111,26 +122,74 @@ export default function ProjectsScreen() {
     router.push(`/projects/${id}`);
   }
 
-  async function confirmArchive(id: string) {
-    await archiveProject(id);
-    await loadProjects();
+  // Confirmação genérica (web confirm / Alert nativo), sempre reversível
+  function askConfirm(
+    title: string,
+    msg: string,
+    onYes: () => void,
+    yesLabel?: string,
+    destructive?: boolean
+  ) {
+    const yes = yesLabel || t("confirm", { defaultValue: "Confirmar" });
+    if (Platform.OS === "web") {
+      if ((window as any).confirm(`${title}\n\n${msg}`)) onYes();
+      return;
+    }
+    Alert.alert(title, msg, [
+      { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
+      { text: yes, style: destructive ? "destructive" : "default", onPress: onYes },
+    ]);
   }
 
-  async function togglePaid(project: Project) {
-    await setProjectPaid(project.id, !project.pago);
-    await loadProjects();
+  // Marcar como pago → arquiva automaticamente (reversível via "Desarquivar")
+  function markPaidArchive(row: Row) {
+    askConfirm(
+      t("mark_paid_title", { defaultValue: "Marcar como pago" }),
+      t("mark_paid_archive_msg", {
+        defaultValue:
+          "O projeto passa a Pago e vai para Arquivados. Podes reverter em Arquivados › Desarquivar.",
+      }),
+      async () => {
+        await markProjectPaidAndArchive(row.id);
+        setTab("arquivados");
+        await loadProjects();
+      },
+      t("mark_paid", { defaultValue: "Marcar como pago" })
+    );
   }
 
-  async function confirmDelete(id: string) {
+  // Desarquivar → volta a "A Receber" (não pago)
+  function unarchiveRow(row: Row) {
+    askConfirm(
+      t("unarchive_title", { defaultValue: "Desarquivar" }),
+      t("unarchive_msg", {
+        defaultValue: "Volta para 'A Receber' como não pago. Podes voltar a marcar como pago depois.",
+      }),
+      async () => {
+        await unarchiveProject(row.id);
+        setTab("areceber");
+        await loadProjects();
+      },
+      t("unarchive", { defaultValue: "Desarquivar" })
+    );
+  }
+
+  async function doDelete(row: Row) {
+    if (row.archived) {
+      await deleteArchivedProject(row.id);
+    } else {
+      await deleteProject(row.id);
+    }
+    if (user) await deleteProjectFromCloud(user.id, row.id);
+    loadProjects();
+  }
+
+  async function confirmDelete(row: Row) {
     if (Platform.OS === "web") {
       const ok = (window as any).confirm(
         `${t("delete_project_title")}\n${t("delete_project_msg")}`
       );
-      if (ok) {
-        await deleteProject(id);
-        if (user) await deleteProjectFromCloud(user.id, id);
-        loadProjects();
-      }
+      if (ok) await doDelete(row);
       return;
     }
     Alert.alert(
@@ -141,11 +200,7 @@ export default function ProjectsScreen() {
         {
           text: t("delete"),
           style: "destructive",
-          onPress: async () => {
-            await deleteProject(id);
-            if (user) await deleteProjectFromCloud(user.id, id);
-            loadProjects();
-          },
+          onPress: () => doDelete(row),
         },
       ]
     );
@@ -268,23 +323,54 @@ export default function ProjectsScreen() {
     return fmtMonthLabel(mes, ano, locale);
   }, [showAll, mes, ano, t]);
 
-  const filteredProjects = useMemo(() => {
-    if (showAll) return projects;
-    const mmYYYY = toMMYYYY(mes, ano);
-    return projects.filter((p) => (p.mes || "") === mmYYYY);
-  }, [projects, showAll, mes, ano]);
+  // Todos os itens: ativos (A Receber) + arquivados (Pagos)
+  const allItems = useMemo<Row[]>(() => {
+    const merged: Row[] = [
+      ...projects.map((p) => ({ ...p, archived: false })),
+      ...archived.map((p) => ({ ...p, archived: true })),
+    ];
+    return merged.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+  }, [projects, archived]);
 
-  // opções (jan 3 anos atrás até 1 ano à frente)
+  // Recorte pelo mês selecionado (ou todos)
+  const monthScope = useMemo(() => {
+    if (showAll) return allItems;
+    const mmYYYY = toMMYYYY(mes, ano);
+    return allItems.filter((p) => (p.mes || "") === mmYYYY);
+  }, [allItems, showAll, mes, ano]);
+
+  const counts = useMemo(
+    () => ({
+      todos: monthScope.length,
+      areceber: monthScope.filter((p) => !p.archived && !p.pago).length,
+      arquivados: monthScope.filter((p) => p.archived).length,
+    }),
+    [monthScope]
+  );
+
+  const filteredProjects = useMemo(() => {
+    if (tab === "areceber") return monthScope.filter((p) => !p.archived && !p.pago);
+    if (tab === "arquivados") return monthScope.filter((p) => p.archived);
+    return monthScope;
+  }, [monthScope, tab]);
+
+  // Limite do range de meses: do ano mais antigo com dados até ao ano seguinte
+  const yearBounds = useMemo(() => {
+    const nowY = new Date().getFullYear();
+    const years = allItems
+      .map((p) => parseMMYYYY(p.mes || "")?.y)
+      .filter((y): y is number => !!y);
+    const minY = years.length ? Math.min(...years, nowY) : nowY;
+    return { minY, maxY: nowY + 1 };
+  }, [allItems]);
+
   const monthOptions = useMemo(() => {
     const options: { m: number; y: number }[] = [];
-    const startYear = ano - 3;
-    const endYear = ano + 1;
-
-    for (let y = endYear; y >= startYear; y--) {
+    for (let y = yearBounds.maxY; y >= yearBounds.minY; y--) {
       for (let m = 12; m >= 1; m--) options.push({ m, y });
     }
     return options;
-  }, [ano]);
+  }, [yearBounds]);
 
   function selectMonth(m: number, y: number) {
     setShowAll(false);
@@ -293,27 +379,52 @@ export default function ProjectsScreen() {
     setPickerVisible(false);
   }
 
+  function stepMonth(delta: number) {
+    setShowAll(false);
+    let m = mes + delta;
+    let y = ano;
+    if (m < 1) { m = 12; y -= 1; }
+    if (m > 12) { m = 1; y += 1; }
+    if (y < yearBounds.minY || y > yearBounds.maxY) return; // não passa dos limites
+    setMes(m);
+    setAno(y);
+  }
+
   // ------- OPÇÕES DO CARD -------
-  function openProjectOptions(project: Project) {
-    const paidLabel = project.pago
-      ? t("mark_unpaid", { defaultValue: "Marcar como não pago" })
-      : t("mark_paid", { defaultValue: "Marcar como pago" });
+  function openProjectOptions(project: Row) {
+    const title = project.nome || t("unnamed_project");
     if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          title: project.nome || t("unnamed_project"),
-          options: [paidLabel, t("rename"), t("duplicate"), t("archive"), t("delete"), t("cancel")],
-          cancelButtonIndex: 5,
-          destructiveButtonIndex: 4,
-        },
-        (index) => {
-          if (index === 0) togglePaid(project);
-          if (index === 1) openRenameDialog(project);
-          if (index === 2) openDuplicateDialog(project);
-          if (index === 3) confirmArchive(project.id);
-          if (index === 4) confirmDelete(project.id);
-        }
-      );
+      if (project.archived) {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            title,
+            options: [t("unarchive", { defaultValue: "Desarquivar" }), t("rename"), t("duplicate"), t("delete"), t("cancel")],
+            cancelButtonIndex: 4,
+            destructiveButtonIndex: 3,
+          },
+          (index) => {
+            if (index === 0) unarchiveRow(project);
+            if (index === 1) openRenameDialog(project);
+            if (index === 2) openDuplicateDialog(project);
+            if (index === 3) confirmDelete(project);
+          }
+        );
+      } else {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            title,
+            options: [t("mark_paid", { defaultValue: "Marcar como pago" }), t("rename"), t("duplicate"), t("delete"), t("cancel")],
+            cancelButtonIndex: 4,
+            destructiveButtonIndex: 3,
+          },
+          (index) => {
+            if (index === 0) markPaidArchive(project);
+            if (index === 1) openRenameDialog(project);
+            if (index === 2) openDuplicateDialog(project);
+            if (index === 3) confirmDelete(project);
+          }
+        );
+      }
       return;
     }
     // Android e web: modal customizado
@@ -337,18 +448,55 @@ export default function ProjectsScreen() {
         {!isWide && <View style={{ width: 70 }} />}
       </View>
 
-      {/* MÊS */}
-      <Pressable
-        style={({ pressed }) => [s.monthDisplay, pressed && { opacity: 0.88 }]}
-        onPress={() => setPickerVisible(true)}
-      >
-        <Text style={s.monthLabel}>{selectedLabel}</Text>
-        <Text style={s.monthHint}>
-          {Platform.OS === "web"
-            ? t("click_to_select_month", { defaultValue: "Clique para selecionar o mês" })
-            : t("tap_to_select_month", { defaultValue: "Toque para selecionar o mês" })}
-        </Text>
-      </Pressable>
+      {/* MÊS com setas de navegação */}
+      <View style={s.monthNav}>
+        <Pressable
+          hitSlop={12}
+          onPress={() => stepMonth(-1)}
+          style={({ pressed }) => [s.navArrow, pressed && { opacity: 0.5 }]}
+        >
+          <Text style={s.navArrowText}>‹</Text>
+        </Pressable>
+
+        <Pressable onPress={() => setPickerVisible(true)} style={s.monthCenter}>
+          <Text style={s.monthLabel}>{selectedLabel}</Text>
+          <Text style={s.monthHint}>
+            {Platform.OS === "web"
+              ? t("click_to_select_month", { defaultValue: "Clique para selecionar o mês" })
+              : t("tap_to_select_month", { defaultValue: "Toque para selecionar o mês" })}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          hitSlop={12}
+          onPress={() => stepMonth(1)}
+          style={({ pressed }) => [s.navArrow, pressed && { opacity: 0.5 }]}
+        >
+          <Text style={s.navArrowText}>›</Text>
+        </Pressable>
+      </View>
+
+      {/* Pastas: Todos / A Receber / Arquivados (Pagos) */}
+      <View style={s.folderRow}>
+        {([
+          { key: "todos", label: t("all_months", { defaultValue: "Todos" }), n: counts.todos },
+          { key: "areceber", label: t("to_receive", { defaultValue: "A Receber" }), n: counts.areceber },
+          { key: "arquivados", label: t("archived_title", { defaultValue: "Arquivados" }), n: counts.arquivados },
+        ] as const).map((f) => {
+          const on = tab === f.key;
+          return (
+            <Pressable
+              key={f.key}
+              onPress={() => setTab(f.key)}
+              style={({ pressed }) => [s.folderTab, on && s.folderTabOn, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={[s.folderTabText, on && s.folderTabTextOn]} numberOfLines={1}>
+                {f.label} ({f.n})
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <ScrollView
         contentContainerStyle={s.list}
@@ -398,20 +546,40 @@ export default function ProjectsScreen() {
                   </Text>
                 </View>
 
-                <Pressable
-                  hitSlop={12}
-                  onPress={(e: any) => {
-                    e?.stopPropagation?.();
-                    openProjectOptions(p);
-                  }}
-                  style={({ pressed, hovered }: any) => [
-                    s.moreBtn,
-                    Platform.OS === "web" && hovered && { borderColor: COLORS.text },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                >
-                  <Text style={s.moreText}>⋯</Text>
-                </Pressable>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  {p.archived ? (
+                    <Pressable
+                      hitSlop={8}
+                      onPress={(e: any) => { e?.stopPropagation?.(); unarchiveRow(p); }}
+                      style={({ pressed }) => [s.payBtn, s.payBtnOn, pressed && { opacity: 0.7 }]}
+                    >
+                      <Text style={[s.payBtnText, s.payBtnTextOn]}>↩ {t("to_receive", { defaultValue: "A Receber" })}</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      hitSlop={8}
+                      onPress={(e: any) => { e?.stopPropagation?.(); markPaidArchive(p); }}
+                      style={({ pressed }) => [s.payBtn, pressed && { opacity: 0.7 }]}
+                    >
+                      <Text style={s.payBtnText}>{t("mark_paid_short", { defaultValue: "Pago" })}</Text>
+                    </Pressable>
+                  )}
+
+                  <Pressable
+                    hitSlop={12}
+                    onPress={(e: any) => {
+                      e?.stopPropagation?.();
+                      openProjectOptions(p);
+                    }}
+                    style={({ pressed, hovered }: any) => [
+                      s.moreBtn,
+                      Platform.OS === "web" && hovered && { borderColor: COLORS.text },
+                      pressed && { opacity: 0.7 },
+                    ]}
+                  >
+                    <Text style={s.moreText}>⋯</Text>
+                  </Pressable>
+                </View>
               </View>
             </Pressable>
           );
@@ -462,15 +630,17 @@ export default function ProjectsScreen() {
             {!deleteConfirm ? (
               <>
                 {[
-                  {
-                    label: optsProject?.pago
-                      ? t("mark_unpaid", { defaultValue: "Marcar como não pago" })
-                      : t("mark_paid", { defaultValue: "Marcar como pago" }),
-                    onPress: () => { const proj = optsProject!; setOptsProject(null); togglePaid(proj); },
-                  },
+                  optsProject?.archived
+                    ? {
+                        label: t("unarchive", { defaultValue: "Desarquivar" }),
+                        onPress: () => { const proj = optsProject!; setOptsProject(null); unarchiveRow(proj); },
+                      }
+                    : {
+                        label: t("mark_paid", { defaultValue: "Marcar como pago" }),
+                        onPress: () => { const proj = optsProject!; setOptsProject(null); markPaidArchive(proj); },
+                      },
                   { label: t("rename"), onPress: () => { setOptsProject(null); openRenameDialog(optsProject!); } },
                   { label: t("duplicate"), onPress: () => { setOptsProject(null); openDuplicateDialog(optsProject!); } },
-                  { label: t("archive"), onPress: () => { const id = optsProject!.id; setOptsProject(null); confirmArchive(id); } },
                 ].map((opt) => (
                   <Pressable key={opt.label} style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]} onPress={opt.onPress}>
                     <Text style={s.optText}>{opt.label}</Text>
@@ -494,12 +664,10 @@ export default function ProjectsScreen() {
                 <Pressable
                   style={({ pressed }) => [s.optRow, { backgroundColor: COLORS.danger }, pressed && { opacity: 0.85 }]}
                   onPress={async () => {
-                    const id = optsProject!.id;
+                    const row = optsProject!;
                     setOptsProject(null);
                     setDeleteConfirm(false);
-                    await deleteProject(id);
-                    if (user) await deleteProjectFromCloud(user.id, id);
-                    loadProjects();
+                    await doDelete(row);
                   }}
                 >
                   <Text style={[s.optText, { color: "#fff" }]}>{t("delete")}</Text>
@@ -728,6 +896,56 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     monthDisplay: { alignItems: "center", marginTop: 10, marginBottom: 6 },
     monthLabel: { fontSize: 18, fontWeight: "900", color: COLORS.text },
     monthHint: { marginTop: 2, color: COLORS.sub, fontSize: 12 },
+
+    monthNav: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 8,
+      marginTop: 8,
+      marginBottom: 8,
+    },
+    navArrow: {
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      ...(Platform.OS === "web" ? ({ cursor: "pointer", userSelect: "none" } as any) : {}),
+    },
+    navArrowText: { fontSize: 28, fontWeight: "900", color: COLORS.text, lineHeight: 32 },
+    monthCenter: { alignItems: "center", flex: 1 },
+
+    folderRow: {
+      flexDirection: "row",
+      gap: 8,
+      paddingHorizontal: 16,
+      marginBottom: 10,
+    },
+    folderTab: {
+      flex: 1,
+      paddingVertical: 8,
+      paddingHorizontal: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.card,
+      alignItems: "center",
+      ...(Platform.OS === "web" ? ({ cursor: "pointer", userSelect: "none" } as any) : {}),
+    },
+    folderTabOn: { backgroundColor: COLORS.text, borderColor: COLORS.text },
+    folderTabText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
+    folderTabTextOn: { color: COLORS.bg },
+
+    payBtn: {
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.card,
+      ...(Platform.OS === "web" ? ({ cursor: "pointer", userSelect: "none" } as any) : {}),
+    },
+    payBtnOn: { borderColor: "#1a9c4e", backgroundColor: "#e4f6ea" },
+    payBtnText: { color: COLORS.sub, fontWeight: "900", fontSize: 12 },
+    payBtnTextOn: { color: "#137a3a" },
 
     list: {
       paddingHorizontal: 16,
