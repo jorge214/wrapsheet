@@ -317,6 +317,7 @@ export async function createProject(): Promise<string> {
   const perfil = active ? blankPerfil(active as any) : blankPerfil();
   const condicoesFromProfile = (active as any)?.condicoes || "";
   const fixas = (active as any)?.fixas || {};
+  const profFiscal = (active as any)?.fiscal || {};
 
   const projeto: ProjetoInfo = {
     titulo: "",
@@ -359,7 +360,12 @@ export async function createProject(): Promise<string> {
     perfil,
     projeto,
     tabela,
-    fiscal: { ...defaultFiscal(), ...preset.fiscal },
+    fiscal: {
+      ...defaultFiscal(),
+      ...preset.fiscal,
+      ...(profFiscal.IRS_percent != null ? { IRS_percent: Number(profFiscal.IRS_percent) } : {}),
+      ...(profFiscal.IVA_percent != null ? { IVA_percent: Number(profFiscal.IVA_percent) } : {}),
+    },
     dias: [defaultDia(today)],
     notas: "",
     condicoes: condicoesFromProfile,

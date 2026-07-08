@@ -23,6 +23,8 @@ import {
   setActiveProfileId,
   upsertProfile,
 } from "../../src/storage/profile";
+import { getSettings } from "../../src/storage/appSettings";
+import { getPreset } from "../../src/constants/countryPresets";
 import { getStrings } from "../../src/export/buildPdfHtml";
 import i18n from "../../src/i18n/i18n";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -121,6 +123,20 @@ export default function ProfileEditScreen() {
   const [original, setOriginal] = useState<Profile | null>(null);
   const [editing, setEditing] = useState(edit === "1");
   const [saving, setSaving] = useState(false);
+  const [preset, setPreset] = useState<{ IRS_percent: number; IVA_percent: number }>({ IRS_percent: 0, IVA_percent: 0 });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await getSettings();
+        const pr: any = getPreset((s as any).region);
+        setPreset({
+          IRS_percent: Number(pr?.fiscal?.IRS_percent ?? 0),
+          IVA_percent: Number(pr?.fiscal?.IVA_percent ?? 0),
+        });
+      } catch {}
+    })();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -234,6 +250,9 @@ export default function ProfileEditScreen() {
   const fixas = p.fixas ?? {};
   const setFixas = (patch: Partial<NonNullable<Profile["fixas"]>>) =>
     setP({ ...p, fixas: { ...fixas, ...patch } });
+  const fiscalV = p.fiscal ?? {};
+  const setFiscal = (patch: Partial<NonNullable<Profile["fiscal"]>>) =>
+    setP({ ...p, fiscal: { ...fiscalV, ...patch } });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -283,6 +302,53 @@ export default function ProfileEditScreen() {
           <ProfileField label={t("nif", { defaultValue: "NIF" })} value={p.nif} editing={editing} onChangeText={(v) => setP({ ...p, nif: v })} placeholder={t("nif_placeholder")} keyboardType="number-pad" autoCapitalize="none" COLORS={COLORS} styles={s} />
           <ProfileField label={t("iban", { defaultValue: "IBAN" })} value={p.iban} editing={editing} onChangeText={(v) => setP({ ...p, iban: v })} placeholder={t("iban_placeholder")} autoCapitalize="characters" COLORS={COLORS} styles={s} />
           <ProfileField label={t("swift", { defaultValue: "SWIFT / BIC" })} value={p.swift} editing={editing} onChangeText={(v) => setP({ ...p, swift: v })} placeholder={t("swift_placeholder")} autoCapitalize="characters" COLORS={COLORS} styles={s} />
+        </View>
+
+        {/* Condições fixas (a linha de taxas): aplicadas a projetos novos */}
+        <View style={s.card}>
+          <Text style={s.fieldLabel}>
+            {t("fixed_conditions", { defaultValue: "Condições fixas (taxas)" })}
+          </Text>
+          <Text style={s.fieldHint}>
+            {t("fixed_conditions_hint", { defaultValue: "Aplicam-se automaticamente a projetos novos. Podes editá-las por projeto." })}
+          </Text>
+          <NumField label={gs.salary} unit="€" value={fixas.salarioDia} editing={editing} onChange={(n) => setFixas({ salarioDia: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`HEA · ${gs.overtimeA} (€/h)`} value={fixas.rateHEA} editing={editing} onChange={(n) => setFixas({ rateHEA: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`HEB · ${gs.overtimeB} (€/h)`} value={fixas.rateHEB} editing={editing} onChange={(n) => setFixas({ rateHEB: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`HR · ${gs.recoveryHours} (€/h)`} value={fixas.rateHR} editing={editing} onChange={(n) => setFixas({ rateHR: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.meal} (€)`} value={fixas.refeicao} editing={editing} onChange={(n) => setFixas({ refeicao: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.telephone} (€)`} value={fixas.telefone} editing={editing} onChange={(n) => setFixas({ telefone: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.vehicle} (€)`} value={fixas.viatura} editing={editing} onChange={(n) => setFixas({ viatura: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.material} (€)`} value={fixas.material} editing={editing} onChange={(n) => setFixas({ material: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.perDiem} (€)`} value={fixas.perDiem} editing={editing} onChange={(n) => setFixas({ perDiem: n })} COLORS={COLORS} styles={s} />
+        </View>
+
+        {/* Regime Fiscal (movido de Definições) — percentagens editáveis, incl. 0% */}
+        <View style={s.card}>
+          <Text style={s.fieldLabel}>
+            {t("tax_regime", { defaultValue: "Regime Fiscal" })}
+          </Text>
+          <Text style={s.fieldHint}>
+            {t("tax_regime_hint", { defaultValue: "Percentagens aplicadas aos valores. Deixa a 0% se não aplicável (ex.: empresa unipessoal). Predefinição pelo país em Definições › Região." })}
+          </Text>
+          <NumField label={t("irs", { defaultValue: "IRS" })} unit="%" value={fiscalV.IRS_percent ?? preset.IRS_percent} editing={editing} onChange={(n) => setFiscal({ IRS_percent: n ?? 0 })} COLORS={COLORS} styles={s} />
+          <NumField label={t("iva", { defaultValue: "IVA" })} unit="%" value={fiscalV.IVA_percent ?? preset.IVA_percent} editing={editing} onChange={(n) => setFiscal({ IVA_percent: n ?? 0 })} COLORS={COLORS} styles={s} />
+        </View>
+
+        {/* Regras de horas extra + Condições de trabalho (última secção) */}
+        <View style={s.card}>
+          <Text style={s.fieldLabel}>
+            {t("overtime_rules_title", { defaultValue: "Regras de horas extra" })}
+          </Text>
+          <Text style={s.fieldHint}>
+            {t("overtime_rules_hint", { defaultValue: "A partir de que hora se cobra cada coisa. Predefinição igual ao PDF." })}
+          </Text>
+          <NumField label={t("cond_base_hours", { defaultValue: "Horário Base" })} value={fixas.hDia} editing={editing} onChange={(n) => setFixas({ hDia: n })} COLORS={COLORS} styles={s} />
+          <NumField label={t("cond_hea_from_hour", { defaultValue: "HE-A a partir do início da hora" })} value={fixas.heaFromHour} editing={editing} onChange={(n) => setFixas({ heaFromHour: n })} COLORS={COLORS} styles={s} />
+          <NumField label={t("cond_heb_from_hour", { defaultValue: "HE-B a partir do início da hora" })} value={fixas.hebFromHour} editing={editing} onChange={(n) => setFixas({ hebFromHour: n })} COLORS={COLORS} styles={s} />
+          <NumField label={t("cond_hr_rest_below", { defaultValue: "HR — se descanso inferior a (h)" })} value={fixas.hrRestBelow} editing={editing} onChange={(n) => setFixas({ hrRestBelow: n })} COLORS={COLORS} styles={s} />
+
+          <View style={{ height: 8 }} />
           <ProfileField
             label={t("conditions_profile", { defaultValue: "Condições de trabalho (predefinição)" })}
             hint={t("conditions_profile_hint", { defaultValue: "Aplicam-se automaticamente a cada projeto novo. Podes editá-las por projeto." })}
@@ -295,39 +361,6 @@ export default function ProfileEditScreen() {
             COLORS={COLORS}
             styles={s}
           />
-        </View>
-
-        {/* Condições fixas (a linha de taxas): aplicadas a projetos novos */}
-        <View style={s.card}>
-          <Text style={s.fieldLabel}>
-            {t("fixed_conditions", { defaultValue: "Condições fixas (taxas)" })}
-          </Text>
-          <Text style={s.fieldHint}>
-            {t("fixed_conditions_hint", { defaultValue: "Aplicam-se automaticamente a projetos novos. Podes editá-las por projeto." })}
-          </Text>
-          <NumField label={gs.salary} unit="€" value={fixas.salarioDia} editing={editing} onChange={(n) => setFixas({ salarioDia: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.overtimeA} (€/h)`} value={fixas.rateHEA} editing={editing} onChange={(n) => setFixas({ rateHEA: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.overtimeB} (€/h)`} value={fixas.rateHEB} editing={editing} onChange={(n) => setFixas({ rateHEB: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.recoveryHours} (€/h)`} value={fixas.rateHR} editing={editing} onChange={(n) => setFixas({ rateHR: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.meal} (€)`} value={fixas.refeicao} editing={editing} onChange={(n) => setFixas({ refeicao: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.telephone} (€)`} value={fixas.telefone} editing={editing} onChange={(n) => setFixas({ telefone: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.vehicle} (€)`} value={fixas.viatura} editing={editing} onChange={(n) => setFixas({ viatura: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.material} (€)`} value={fixas.material} editing={editing} onChange={(n) => setFixas({ material: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.perDiem} (€)`} value={fixas.perDiem} editing={editing} onChange={(n) => setFixas({ perDiem: n })} COLORS={COLORS} styles={s} />
-        </View>
-
-        {/* Regras de horas extra (a partir de que hora se cobra o quê) */}
-        <View style={s.card}>
-          <Text style={s.fieldLabel}>
-            {t("overtime_rules_title", { defaultValue: "Regras de horas extra" })}
-          </Text>
-          <Text style={s.fieldHint}>
-            {t("overtime_rules_hint", { defaultValue: "A partir de que hora se cobra cada coisa. Predefinição igual ao PDF." })}
-          </Text>
-          <NumField label={t("cond_base_hours", { defaultValue: "Horas do dia base" })} value={fixas.hDia} editing={editing} onChange={(n) => setFixas({ hDia: n })} COLORS={COLORS} styles={s} />
-          <NumField label={t("cond_hea_from_hour", { defaultValue: "HE-A a partir da hora" })} value={fixas.heaFromHour} editing={editing} onChange={(n) => setFixas({ heaFromHour: n })} COLORS={COLORS} styles={s} />
-          <NumField label={t("cond_heb_from_hour", { defaultValue: "HE-B a partir da hora" })} value={fixas.hebFromHour} editing={editing} onChange={(n) => setFixas({ hebFromHour: n })} COLORS={COLORS} styles={s} />
-          <NumField label={t("cond_hr_rest_below", { defaultValue: "Recuperação se descanso inferior a (h)" })} value={fixas.hrRestBelow} editing={editing} onChange={(n) => setFixas({ hrRestBelow: n })} COLORS={COLORS} styles={s} />
         </View>
 
         {!editing && (

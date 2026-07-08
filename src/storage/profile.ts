@@ -13,6 +13,12 @@ export type Profile = {
   iban?: string;
   swift?: string;
   condicoes?: string;
+  // Regime fiscal do utilizador (percentagens aplicadas aos valores).
+  // Se um campo ficar vazio, usa-se o default do país (Definições › Região).
+  fiscal?: {
+    IRS_percent?: number;
+    IVA_percent?: number;
+  };
   // Condições fixas (a linha de taxas): aplicam-se automaticamente a projetos novos
   fixas?: {
     salarioDia?: number;
