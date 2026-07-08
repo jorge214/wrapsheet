@@ -7,6 +7,7 @@
 import { CalcDia, Dia } from "../calc/types";
 import {
   buildPdfHtml,
+  PdfExtra,
   PdfPerfil,
   PdfProjeto,
   PdfTabela,
@@ -26,11 +27,12 @@ export async function exportPDF(
   region?: string,
   currency: string = "EUR",
   taxDisclaimer?: string,
-  condicoes?: string
+  condicoes?: string,
+  extra?: PdfExtra
 ): Promise<void> {
   const html = buildPdfHtml(
     perfil, projeto, dias, calculos, totais, tabela,
-    notas, locale, region, currency, taxDisclaimer, condicoes
+    notas, locale, region, currency, taxDisclaimer, condicoes, extra
   );
 
   // iOS Safari: iframe.contentWindow.print() prints the parent app page, not the iframe.

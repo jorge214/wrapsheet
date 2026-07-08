@@ -305,7 +305,8 @@ export default function ProjectEditor() {
       regionCode,
       rPreset.currency,
       t("tax_disclaimer"),
-      project.condicoes
+      project.condicoes,
+      { fiscal: project.fiscal as any, condTitulo: project.condTitulo, condBoxes: project.condBoxes }
     );
     return html.replace(
       "</body>",
@@ -423,6 +424,17 @@ export default function ProjectEditor() {
     }
   }
 
+  function buildEditSheet(p: ProjectState) {
+    const rPreset = getPreset(regionCode);
+    const calc = calcAll(p.dias, p.tabela as any);
+    const tot = calcTotals(calc, p.fiscal as any);
+    return buildEditableSheetHtml(
+      p.perfil as any, p.projeto as any, p.dias, calc as any, tot as any, p.tabela as any,
+      p.notas, i18n.language, regionCode, rPreset.currency, t("tax_disclaimer"), p.condicoes,
+      { fiscal: p.fiscal as any, condTitulo: p.condTitulo, condBoxes: p.condBoxes }
+    );
+  }
+
   function openEditHtml() {
     const p0 = projectRef.current;
     if (!p0) return;
@@ -436,14 +448,7 @@ export default function ProjectEditor() {
     let p = p0;
     if (Object.keys(patch).length) { p = { ...p0, tabela: { ...p0.tabela, ...patch } }; persist(p); }
 
-    const rPreset = getPreset(regionCode);
-    const calc = calcAll(p.dias, p.tabela);
-    const tot = calcTotals(calc, p.fiscal as any);
-    const html = buildEditableSheetHtml(
-      p.perfil as any, p.projeto as any, p.dias, calc as any, tot as any, p.tabela as any,
-      p.notas, i18n.language, regionCode, rPreset.currency, t("tax_disclaimer"), p.condicoes
-    );
-    setEditHtmlContent(html);
+    setEditHtmlContent(buildEditSheet(p));
     setEditHtml(true);
   }
 
@@ -453,12 +458,33 @@ export default function ProjectEditor() {
     const p = projectRef.current;
     if (!p) return;
     if (d.type === "ws:ready") { postEditCalc(p); return; }
+    if (d.type === "ws:addDay") {
+      // Novo dia a seguir ao último (mesmos horários, data +1, não pago)
+      const last = p.dias[p.dias.length - 1];
+      const nextDate =
+        last?.data && dayjs(last.data).isValid()
+          ? dayjs(last.data).add(1, "day").format("YYYY-MM-DD")
+          : dayjs().format("YYYY-MM-DD");
+      const novo: Dia = last
+        ? ({ ...last, data: nextDate, pago: false } as Dia)
+        : ({
+            descricao: t("day_description_default", { defaultValue: "Filmagem" }),
+            data: nextDate, continuo: false, inicio: "08:00", refeicaoTrabalho: "00:30",
+            jantarTrabalho: "00:00", fim: "20:00", meioDia: false,
+            tempoTransporteMin: 0, diaSemTrabalho: false,
+          } as Dia);
+      const next = { ...p, dias: [...p.dias, novo] };
+      persist(next);
+      setEditHtmlContent(buildEditSheet(next)); // recarrega a folha com a linha nova
+      return;
+    }
     if (d.type !== "ws:edit") return;
     const num = (v: any) => Number(String(v).replace(",", ".")) || 0;
     let next: ProjectState = p;
     switch (d.k) {
       case "perfil": next = { ...p, perfil: { ...p.perfil, [d.f]: d.value } }; break;
       case "projeto": next = { ...p, projeto: { ...p.projeto, [d.f]: d.value } }; break;
+      case "fiscal": next = { ...p, fiscal: { ...p.fiscal, [d.f]: num(d.value) } }; break;
       case "tabela": next = { ...p, tabela: { ...p.tabela, [d.f]: num(d.value) } }; break;
       case "ajudas": next = { ...p, tabela: { ...p.tabela, ajudas: { ...(p.tabela.ajudas as any), [d.f]: num(d.value) } } }; break;
       case "dia": {
@@ -555,7 +581,8 @@ export default function ProjectEditor() {
         regionCode,
         rPreset.currency,
         t("tax_disclaimer"),
-        p.condicoes
+        p.condicoes,
+        { fiscal: p.fiscal as any, condTitulo: p.condTitulo, condBoxes: p.condBoxes }
       );
       await incrementPdfExportCount();
     } catch (e) {
@@ -582,8 +609,21 @@ export default function ProjectEditor() {
       swift: act.swift ?? "",
     });
 
-    // Condições de trabalho (texto)
+    // Condições de trabalho (texto + caixas + título anual)
     if ((act as any).condicoes) setP("condicoes", (act as any).condicoes);
+    if (Array.isArray((act as any).condBoxes)) setP("condBoxes", (act as any).condBoxes);
+    if ((act as any).condTitulo) setP("condTitulo", (act as any).condTitulo);
+
+    // Regime fiscal do perfil (IRS/IVA %)
+    const pf = (act as any).fiscal || {};
+    if (pf.IRS_percent != null || pf.IVA_percent != null) {
+      const curFiscal = projectRef.current!.fiscal as any;
+      setP("fiscal", {
+        ...curFiscal,
+        ...(pf.IRS_percent != null ? { IRS_percent: Number(pf.IRS_percent) } : {}),
+        ...(pf.IVA_percent != null ? { IVA_percent: Number(pf.IVA_percent) } : {}),
+      });
+    }
 
     // Condições fixas (linha de taxas): salário, taxas HE €/h e ajudas
     const fx = (act as any).fixas || {};

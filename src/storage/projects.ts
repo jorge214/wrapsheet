@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import i18n from "../i18n/i18n";
 import { getPreset } from "../constants/countryPresets";
 import { getSettings } from "./appSettings";
-import { getActiveProfile } from "./profile";
+import { CondBox, getActiveProfile } from "./profile";
 
 /* ------------ Tipos internos ------------ */
 
@@ -83,6 +83,8 @@ export type ProjectState = {
   dias: Dia[];
   notas: string;
   condicoes?: string;
+  condTitulo?: string;
+  condBoxes?: CondBox[];
   pago?: boolean; // projeto já pago
   updatedAt: string;
 };
@@ -244,6 +246,8 @@ function upgradeProject(raw: any, id: string): ProjectState {
     dias,
     notas: raw.notas || "",
     condicoes: raw.condicoes || "",
+    condTitulo: raw.condTitulo || "",
+    condBoxes: Array.isArray(raw.condBoxes) ? raw.condBoxes : undefined,
     pago: !!raw.pago,
     updatedAt: raw.updatedAt || new Date().toISOString(),
   };
@@ -369,6 +373,8 @@ export async function createProject(): Promise<string> {
     dias: [defaultDia(today)],
     notas: "",
     condicoes: condicoesFromProfile,
+    condTitulo: (active as any)?.condTitulo || "",
+    condBoxes: Array.isArray((active as any)?.condBoxes) ? (active as any).condBoxes : undefined,
     updatedAt: new Date().toISOString(),
   };
 

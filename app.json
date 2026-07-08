@@ -52,6 +52,12 @@
           }
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "A app acede às tuas fotos para adicionares imagens às condições de trabalho da folha."
+        }
+      ],
       "react-native-localize"
     ],
     "experiments": {

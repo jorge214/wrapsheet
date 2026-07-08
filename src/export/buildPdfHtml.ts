@@ -78,6 +78,8 @@ const STRINGS = {
     totalDays: "Total Dias",
     issuedOn: "Emitido a",
     month: "Mês",
+    week: "Semana",
+    addDay: "Adicionar dia",
     year: "Ano",
     vb: "Valor Bruto",
     vf: "Valor Final",
@@ -135,6 +137,8 @@ const STRINGS = {
     totalDays: "Total Days",
     issuedOn: "Issued on",
     month: "Month",
+    week: "Week",
+    addDay: "Add day",
     year: "Year",
     vb: "Gross",
     vf: "Net",
@@ -192,6 +196,8 @@ const STRINGS = {
     totalDays: "Total Días",
     issuedOn: "Emitido el",
     month: "Mes",
+    week: "Semana",
+    addDay: "Añadir día",
     year: "Año",
     vb: "Valor Bruto",
     vf: "Valor Final",
@@ -249,6 +255,8 @@ const STRINGS = {
     totalDays: "Total Jours",
     issuedOn: "Émis le",
     month: "Mois",
+    week: "Semaine",
+    addDay: "Ajouter un jour",
     year: "Année",
     vb: "Brut",
     vf: "Net",
@@ -306,6 +314,8 @@ const STRINGS = {
     totalDays: "Gesamttage",
     issuedOn: "Ausgestellt am",
     month: "Monat",
+    week: "Woche",
+    addDay: "Tag hinzufügen",
     year: "Jahr",
     vb: "Brutto",
     vf: "Netto",
@@ -363,6 +373,8 @@ const STRINGS = {
     totalDays: "Total Days",
     issuedOn: "Issued on",
     month: "Month",
+    week: "Week",
+    addDay: "Add day",
     year: "Year",
     vb: "Gross",
     vf: "Net",
@@ -473,6 +485,53 @@ function headerRow(label: string, value: string) {
 
 // ── Main builder ──────────────────────────────────────────────────────────────
 
+// Extras opcionais da folha (percentagens fiscais + condições em caixas)
+export type PdfExtra = {
+  fiscal?: { IRS_percent?: number; IVA_percent?: number };
+  condTitulo?: string;
+  condBoxes?: { titulo: string; texto: string; img?: string }[];
+};
+
+// Secção de condições de trabalho: caixas (título | texto + imagem) como na
+// folha de referência; cai para o texto corrido antigo se não houver caixas.
+function conditionsHtml(
+  s: any,
+  perfilNome: string,
+  condicoes?: string,
+  extra?: PdfExtra,
+  editableAttr?: string
+): string {
+  const boxes = (extra?.condBoxes ?? []).filter((b) => b && (b.titulo || b.texto || b.img));
+  const mainTitle =
+    (extra?.condTitulo || "").trim() ||
+    `${s.workConditions}${perfilNome ? " - " + perfilNome.toUpperCase() : ""}`;
+
+  if (boxes.length === 0) {
+    if (!condicoes || !condicoes.trim()) return "";
+    const body = editableAttr
+      ? `<div class="ei notes" ${editableAttr} data-k="condicoes" data-f="condicoes">${escapeHtml(condicoes)}</div>`
+      : escapeHtml(condicoes);
+    return `<div class="condWrap conditions">
+      <div class="condMain">${escapeHtml(mainTitle)}</div>
+      <div class="conditionsBody">${body}</div>
+    </div>`;
+  }
+
+  const rows = boxes
+    .map(
+      (b) => `<div class="condRow">
+        <div class="condT">${escapeHtml(b.titulo || "")}</div>
+        <div class="condB">${escapeHtml(b.texto || "")}${b.img ? `<div><img class="condImg" src="${b.img}" /></div>` : ""}</div>
+      </div>`
+    )
+    .join("");
+
+  return `<div class="condWrap conditions">
+    <div class="condMain">${escapeHtml(mainTitle)}</div>
+    ${rows}
+  </div>`;
+}
+
 export function buildPdfHtml(
   perfil: PdfPerfil,
   projeto: PdfProjeto,
@@ -485,7 +544,8 @@ export function buildPdfHtml(
   region?: string,
   currency: string = "EUR",
   taxDisclaimer?: string,
-  condicoes?: string
+  condicoes?: string,
+  extra?: PdfExtra
 ): string {
   const s = getStrings(locale, region);
   const fmt = (n: number) => fmtMoney(n, currency);
@@ -516,6 +576,10 @@ export function buildPdfHtml(
 
   const mesNome     = getMonthName(projeto.mes, locale);
   const mesAnoLabel = `${mesNome} ${projeto.ano}`;
+
+  const pct = (v?: number) => (v == null ? "—" : `${fmtNum(Number(v), 2)}%`);
+  const irsPct = extra?.fiscal?.IRS_percent;
+  const ivaPct = extra?.fiscal?.IVA_percent;
 
   const dayRows = dias
     .map((d, i) => {
@@ -638,6 +702,36 @@ export function buildPdfHtml(
           white-space: pre-wrap;
           word-break: break-word;
         }
+        /* Dados pessoais/produtora: sem caixas — só uma linha por baixo (clean) */
+        .secTitle { font-weight: 900; font-size: 12px; margin: 8px 0 2px; text-transform: uppercase; }
+        .uRow { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; align-items: end; }
+        .uk { font-size: 11px; font-weight: 800; padding: 5px 0 3px; }
+        .uv { font-size: 12px; border-bottom: 1px solid #2b2b2b; padding: 5px 2px 3px; min-height: 1.25em; }
+        /* Caixa lateral (Emitido a / IRS / IVA / Valor Final) — tamanhos uniformes */
+        .sideBox .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+        .sideBox .k { font-weight: 800; }
+        .sideBox .v { text-align: right; font-weight: 700; }
+        .sideBox .vfRow .v { background: #fff3bf; font-weight: 900; }
+        /* Tabela de valores (rates): colunas uniformes */
+        table.rates { table-layout: fixed; }
+        table.rates td { word-break: break-word; }
+        td.tdias { background: #fff3bf; font-weight: 900; }
+        /* Condições de trabalho em caixas (como na folha de referência) */
+        .condWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
+        .condMain {
+          background: #ffd400; color: #7a0000; font-weight: 900; text-align: center;
+          padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase;
+        }
+        .condRow { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
+        .condRow:first-of-type { border-top: 0; }
+        .condT {
+          background: #e8e8e8; font-weight: 900; font-size: 10px; text-transform: uppercase;
+          display: flex; align-items: center; justify-content: center; text-align: center;
+          padding: 6px; border-right: 1px solid #2b2b2b;
+        }
+        .condB { padding: 6px 8px; font-size: 10px; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+        .condImg { max-width: 240px; max-height: 170px; margin-top: 6px; border: 1px solid #999; }
+        .condRow { break-inside: avoid; page-break-inside: avoid; }
         /* Keep table rows and the closing blocks from being split across pages */
         tr { break-inside: avoid; page-break-inside: avoid; }
         .bottomGrid, .bottomGrid .box, .conditions {
@@ -657,42 +751,46 @@ export function buildPdfHtml(
 
       <div class="headgrid">
         <div class="stack">
-          <div class="box">
-            <div class="boxTitle">${escapeHtml(s.personalData)}</div>
-            ${headerRow(s.name, safeStr(perfil.nome))}
-            ${headerRow(s.role, safeStr(perfil.funcao))}
-            ${headerRow(s.phone, safeStr(perfil.telefone))}
-            ${headerRow(s.email, safeStr(perfil.email))}
-            ${headerRow(s.nif, safeStr(perfil.nif ?? ""))}
-            ${headerRow(s.iban, safeStr(perfil.iban ?? ""))}
-            ${headerRow(s.swift, safeStr(perfil.swift ?? ""))}
-            ${perfil.empresa ? headerRow(s.companyLabel, safeStr(perfil.empresa)) : ""}
+          <div class="secTitle">${escapeHtml(s.personalData)}</div>
+          <div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.name)}</div><div class="uv">${escapeHtml(safeStr(perfil.nome))}</div></div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.role)}</div><div class="uv">${escapeHtml(safeStr(perfil.funcao))}</div></div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.companyLabel)}</div><div class="uv">${escapeHtml(safeStr(perfil.empresa ?? ""))}</div></div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.phone)}</div><div class="uv">${escapeHtml(safeStr(perfil.telefone))}</div></div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.email)}</div><div class="uv">${escapeHtml(safeStr(perfil.email))}</div></div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.nif)}</div><div class="uv">${escapeHtml(safeStr(perfil.nif ?? ""))}</div></div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.iban)}</div><div class="uv">${escapeHtml(safeStr(perfil.iban ?? ""))}</div></div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.swift)}</div><div class="uv">${escapeHtml(safeStr(perfil.swift ?? ""))}</div></div>
+          </div>
+          <div class="secTitle">${escapeHtml(s.productionSection)}</div>
+          <div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.film)}</div><div class="uv">${escapeHtml(safeStr(projeto.filme))}</div></div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.productionLabel)}</div><div class="uv">${escapeHtml(safeStr(projeto.produtora))}</div></div>
+            <div class="uRow"><div class="uk">${escapeHtml(s.productionNif)}</div><div class="uv">${escapeHtml(safeStr(projeto.nifProdutora ?? ""))}</div></div>
           </div>
         </div>
 
         <div class="stack">
-          <div class="box">
-            <div class="boxTitle">${escapeHtml(s.productionSection)}</div>
-            ${headerRow(s.film, safeStr(projeto.filme))}
-            ${headerRow(s.productionLabel, safeStr(projeto.produtora))}
-            ${headerRow(s.productionNif, safeStr(projeto.nifProdutora ?? ""))}
-          </div>
-          <div class="box totalsRight">
-            <div class="row"><div class="k">${escapeHtml(s.totalDays)}</div><div class="v">${fmtNum(totalDias, 0)}</div></div>
+          <div class="box sideBox">
             <div class="row"><div class="k">${escapeHtml(s.issuedOn)}</div><div class="v">${escapeHtml(emitidoA)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.month)}</div><div class="v">${escapeHtml(mesNome)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.year)}</div><div class="v">${escapeHtml(String(projeto.ano))}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.irs)} %</div><div class="v">${pct(irsPct)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.iva)} %</div><div class="v">${pct(ivaPct)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.vb)}</div><div class="v">${fmt(totais.ValorBruto)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.irs)}</div><div class="v">${fmt(totais.IRS_valor)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.iva)}</div><div class="v">${fmt(totais.IVA_valor)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.vf)}</div><div class="v">${fmt(totais.ValorFinal)}</div></div>
-            <div class="row miniRow"><div class="k"></div><div class="v mini muted">${escapeHtml(mesAnoLabel)}</div></div>
+            <div class="row vfRow"><div class="k">${escapeHtml(s.vf)}</div><div class="v">${fmt(totais.ValorFinal)}</div></div>
+          </div>
+          <div class="box sideBox">
+            <div class="row"><div class="k">${escapeHtml(s.week)}</div><div class="v">${escapeHtml(safeStr(projeto.semana ?? ""))}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.month)}</div><div class="v">${escapeHtml(mesNome)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.year)}</div><div class="v">${escapeHtml(String(projeto.ano))}</div></div>
           </div>
         </div>
       </div>
 
       <table class="rates">
         <tr>
+          <th class="h-total">${escapeHtml(s.totalDays)}</th>
           <th>${escapeHtml(s.salary)}</th>
           <th>${escapeHtml(s.overtimeA)}</th>
           <th>${escapeHtml(s.overtimeB)}</th>
@@ -704,6 +802,7 @@ export function buildPdfHtml(
           <th>${escapeHtml(s.perDiem)}</th>
         </tr>
         <tr>
+          <td class="tdias">${fmtNum(totalDias, 1)}</td>
           <td>${fmt(salarioDia)}</td>
           <td>${fmt(vHEA)} <span class="mini">${escapeHtml(s.perHour)}</span></td>
           <td>${fmt(vHEB)} <span class="mini">${escapeHtml(s.perHour)}</span></td>
@@ -758,14 +857,9 @@ export function buildPdfHtml(
         ${dayRows}
       </table>
 
-      ${taxDisclaimer ? `<div style="margin-top:8px;font-size:9px;color:#999;">${escapeHtml(taxDisclaimer)}</div>` : ""}
+      ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra)}
 
-      ${condicoes && condicoes.trim()
-        ? `<div class="box conditions">
-          <div class="boxTitle">${escapeHtml(s.workConditions)}</div>
-          <div class="conditionsBody">${escapeHtml(condicoes)}</div>
-        </div>`
-        : ""}
+      ${taxDisclaimer ? `<div style="margin-top:8px;font-size:9px;color:#999;">${escapeHtml(taxDisclaimer)}</div>` : ""}
     </body>
   </html>
   `;
@@ -792,7 +886,8 @@ export function buildEditableSheetHtml(
   region?: string,
   currency: string = "EUR",
   taxDisclaimer?: string,
-  condicoes?: string
+  condicoes?: string,
+  extra?: PdfExtra
 ): string {
   const s = getStrings(locale, region);
   const fmt = (n: number) => fmtMoney(n, currency);
@@ -830,6 +925,14 @@ export function buildEditableSheetHtml(
     `<span class="ei money" ${CE} inputmode="decimal" data-k="${k}" data-f="${f}">${escapeHtml(String(val ?? 0))}</span>`;
   const kvEdit = (label: string, k: string, f: string, val: string) =>
     `<div class="row"><div class="k">${escapeHtml(label)}</div><div class="v">${ti(k, f, val)}</div></div>`;
+  // Linha "clean" (só sublinhado) com valor editável — como na folha de referência
+  const kvU = (label: string, k: string, f: string, val: string) =>
+    `<div class="uRow"><div class="uk">${escapeHtml(label)}</div><div class="uv">${ti(k, f, val)}</div></div>`;
+
+  const irsPct = extra?.fiscal?.IRS_percent;
+  const ivaPct = extra?.fiscal?.IVA_percent;
+  const pctEdit = (f: string, v?: number) =>
+    `<span class="ei money" ${CE} inputmode="decimal" data-k="fiscal" data-f="${f}">${escapeHtml(String(v ?? 0))}</span>%`;
 
   const dayRows = dias
     .map((d, i) => {
@@ -928,6 +1031,33 @@ export function buildEditableSheetHtml(
         .pago { cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 12px; color: #888; }
         tr.paid .pago { color: #137a3a; }
         .days tr.paid td:first-child, .days tr.paid td:last-child { background: #e4f6ea; }
+        /* Dados pessoais/produtora: sem caixas — só uma linha por baixo (clean) */
+        .secTitle { font-weight: 900; font-size: 12px; margin: 8px 0 2px; text-transform: uppercase; }
+        .uRow { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; align-items: end; }
+        .uk { font-size: 11px; font-weight: 800; padding: 5px 0 3px; }
+        .uv { font-size: 12px; border-bottom: 1px solid #2b2b2b; padding: 5px 2px 3px; min-height: 1.25em; min-width: 0; overflow: hidden; }
+        .uv .ei { display: block; width: 100%; min-height: 1.1em; }
+        .sideBox .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+        .sideBox .k { font-weight: 800; }
+        .sideBox .v { text-align: right; font-weight: 700; }
+        .sideBox .vfRow .v { background: #fff3bf; font-weight: 900; }
+        table.rates { table-layout: fixed; }
+        table.rates td { word-break: break-word; }
+        td.tdias { background: #fff3bf; font-weight: 900; }
+        .condWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
+        .condMain { background: #ffd400; color: #7a0000; font-weight: 900; text-align: center; padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase; }
+        .condRow { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
+        .condRow:first-of-type { border-top: 0; }
+        .condT { background: #e8e8e8; font-weight: 900; font-size: 10px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; border-right: 1px solid #2b2b2b; }
+        .condB { padding: 6px 8px; font-size: 10px; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+        .condImg { max-width: 240px; max-height: 170px; margin-top: 6px; border: 1px solid #999; }
+        .conditionsBody { padding: 8px 10px; font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+        .addDayBar { margin-top: 10px; text-align: left; }
+        .addDayBar button {
+          font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px;
+          border: 2px solid #2b2b2b; border-radius: 999px; background: #f2f2f2; color: #111; cursor: pointer;
+        }
+        @media print { .addDayBar { display: none; } }
       </style>
     </head>
     <body>
@@ -935,34 +1065,38 @@ export function buildEditableSheetHtml(
 
       <div class="headgrid">
         <div class="stack">
-          <div class="box">
-            <div class="boxTitle">${escapeHtml(s.personalData)}</div>
-            ${kvEdit(s.name, "perfil", "nome", safeStr(perfil.nome))}
-            ${kvEdit(s.role, "perfil", "funcao", safeStr(perfil.funcao))}
-            ${kvEdit(s.phone, "perfil", "telefone", safeStr(perfil.telefone))}
-            ${kvEdit(s.email, "perfil", "email", safeStr(perfil.email))}
-            ${kvEdit(s.nif, "perfil", "nif", safeStr(perfil.nif ?? ""))}
-            ${kvEdit(s.iban, "perfil", "iban", safeStr(perfil.iban ?? ""))}
-            ${kvEdit(s.swift, "perfil", "swift", safeStr(perfil.swift ?? ""))}
-            ${kvEdit(s.companyLabel, "perfil", "empresa", safeStr(perfil.empresa ?? ""))}
+          <div class="secTitle">${escapeHtml(s.personalData)}</div>
+          <div>
+            ${kvU(s.name, "perfil", "nome", safeStr(perfil.nome))}
+            ${kvU(s.role, "perfil", "funcao", safeStr(perfil.funcao))}
+            ${kvU(s.companyLabel, "perfil", "empresa", safeStr(perfil.empresa ?? ""))}
+            ${kvU(s.phone, "perfil", "telefone", safeStr(perfil.telefone))}
+            ${kvU(s.email, "perfil", "email", safeStr(perfil.email))}
+            ${kvU(s.nif, "perfil", "nif", safeStr(perfil.nif ?? ""))}
+            ${kvU(s.iban, "perfil", "iban", safeStr(perfil.iban ?? ""))}
+            ${kvU(s.swift, "perfil", "swift", safeStr(perfil.swift ?? ""))}
+          </div>
+          <div class="secTitle">${escapeHtml(s.productionSection)}</div>
+          <div>
+            ${kvU(s.film, "projeto", "filme", safeStr(projeto.filme))}
+            ${kvU(s.productionLabel, "projeto", "produtora", safeStr(projeto.produtora))}
+            ${kvU(s.productionNif, "projeto", "nifProdutora", safeStr(projeto.nifProdutora ?? ""))}
           </div>
         </div>
         <div class="stack">
-          <div class="box">
-            <div class="boxTitle">${escapeHtml(s.productionSection)}</div>
-            ${kvEdit(s.film, "projeto", "filme", safeStr(projeto.filme))}
-            ${kvEdit(s.productionLabel, "projeto", "produtora", safeStr(projeto.produtora))}
-            ${kvEdit(s.productionNif, "projeto", "nifProdutora", safeStr(projeto.nifProdutora ?? ""))}
-          </div>
-          <div class="box totalsRight">
-            <div class="row"><div class="k">${escapeHtml(s.totalDays)}</div><div class="v" data-c="totalDias">${fmtNum(totalDias, 0)}</div></div>
+          <div class="box sideBox">
             <div class="row"><div class="k">${escapeHtml(s.issuedOn)}</div><div class="v">${escapeHtml(emitidoA)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.month)}</div><div class="v">${escapeHtml(mesNome)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.year)}</div><div class="v">${escapeHtml(String(projeto.ano))}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.irs)} %</div><div class="v">${pctEdit("IRS_percent", irsPct)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.iva)} %</div><div class="v">${pctEdit("IVA_percent", ivaPct)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.vb)}</div><div class="v" data-c="vb">${fmt(totais.ValorBruto)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.irs)}</div><div class="v" data-c="irs">${fmt(totais.IRS_valor)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.iva)}</div><div class="v" data-c="iva">${fmt(totais.IVA_valor)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.vf)}</div><div class="v" data-c="vf">${fmt(totais.ValorFinal)}</div></div>
+            <div class="row vfRow"><div class="k">${escapeHtml(s.vf)}</div><div class="v" data-c="vf">${fmt(totais.ValorFinal)}</div></div>
+          </div>
+          <div class="box sideBox">
+            <div class="row"><div class="k">${escapeHtml(s.week)}</div><div class="v">${ti("projeto", "semana", safeStr(projeto.semana ?? ""))}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.month)}</div><div class="v">${escapeHtml(mesNome)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.year)}</div><div class="v">${escapeHtml(String(projeto.ano))}</div></div>
             <div class="row miniRow"><div class="k"></div><div class="v mini muted">${escapeHtml(mesAnoLabel)}</div></div>
           </div>
         </div>
@@ -970,11 +1104,13 @@ export function buildEditableSheetHtml(
 
       <table class="rates">
         <tr>
+          <th class="h-total">${escapeHtml(s.totalDays)}</th>
           <th>${escapeHtml(s.salary)}</th><th>${escapeHtml(s.overtimeA)}</th><th>${escapeHtml(s.overtimeB)}</th>
           <th class="h-blue">${escapeHtml(s.recoveryHours)}</th><th>${escapeHtml(s.meal)}</th><th>${escapeHtml(s.telephone)}</th>
           <th class="h-olive">${escapeHtml(s.vehicle)}</th><th class="h-purple">${escapeHtml(s.material)}</th><th>${escapeHtml(s.perDiem)}</th>
         </tr>
         <tr>
+          <td class="tdias" data-c="totalDias">${fmtNum(totalDias, 1)}</td>
           <td>${mi("tabela", "salarioDia", salarioDia)} <span class="mini">${curSym}</span></td>
           <td>${mi("tabela", "rateHEA", Math.round(vHEA * 100) / 100)} ${unitH}</td>
           <td>${mi("tabela", "rateHEB", Math.round(vHEB * 100) / 100)} ${unitH}</td>
@@ -1010,6 +1146,8 @@ export function buildEditableSheetHtml(
         ${dayRows}
       </table>
 
+      <div class="addDayBar"><button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button></div>
+
       <div class="bottomGrid" style="grid-template-columns:1fr;">
         <div class="box totalsMini">
           <table>
@@ -1021,10 +1159,7 @@ export function buildEditableSheetHtml(
         </div>
       </div>
 
-      <div class="box conditions">
-        <div class="boxTitle">${escapeHtml(s.workConditions)}</div>
-        <div class="notesBody"><div class="ei notes" ${CE} data-k="condicoes" data-f="condicoes">${escapeHtml(condicoes || "")}</div></div>
-      </div>
+      ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra, CE)}
 
       <script>
       (function(){
@@ -1038,6 +1173,9 @@ export function buildEditableSheetHtml(
           if(!el.classList || !el.classList.contains('ei')) return;
           post({ type:'ws:edit', k: el.getAttribute('data-k'), f: el.getAttribute('data-f'), i: di(el), value: el.textContent });
         }, true);
+        // Botão "+ Adicionar dia" — a app adiciona o dia e recarrega a folha
+        var addBtn = document.getElementById('wsAddDay');
+        if(addBtn){ addBtn.addEventListener('click', function(){ post({ type:'ws:addDay' }); }); }
         // Marcar/desmarcar dia como pago
         document.addEventListener('click', function(e){
           var el = e.target;

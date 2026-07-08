@@ -39,6 +39,8 @@ export type ProjectState = {
   dias: Dia[];
   notas?: string;
   condicoes?: string;
+  condTitulo?: string;
+  condBoxes?: { titulo: string; texto: string; img?: string }[];
   pago?: boolean;
   updatedAt?: number;
 };

@@ -9,6 +9,7 @@ import * as Sharing from "expo-sharing";
 import { CalcDia, Dia } from "../calc/types";
 import {
   buildPdfHtml,
+  PdfExtra,
   PdfPerfil,
   PdfProjeto,
   PdfTabela,
@@ -38,12 +39,15 @@ export async function exportPDF(
   region?: string,
   currency: string = "EUR",
   taxDisclaimer?: string,
-  condicoes?: string
+  condicoes?: string,
+  extra?: PdfExtra
 ): Promise<void> {
   try {
-    const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes);
+    const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extra);
 
-    const result = await Print.printToFileAsync({ html });
+    // A3 horizontal (1191×842 pt) — sem isto o iOS usa A4 vertical e a folha
+    // sai cortada à direita (faltavam colunas no PDF exportado no telemóvel).
+    const result = await Print.printToFileAsync({ html, width: 1191, height: 842 });
     let outUri = result.uri;
 
     const mesNome = new Intl.DateTimeFormat(locale, { month: "long" })
