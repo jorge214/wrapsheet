@@ -562,13 +562,14 @@ export default function ProjectsScreen() {
                 </View>
 
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  {/* O botão mostra o ESTADO atual; tocar alterna (com confirmação) */}
                   {p.archived ? (
                     <Pressable
                       hitSlop={8}
                       onPress={(e: any) => { e?.stopPropagation?.(); unarchiveRow(p); }}
                       style={({ pressed }) => [s.payBtn, s.payBtnOn, pressed && { opacity: 0.7 }]}
                     >
-                      <Text style={[s.payBtnText, s.payBtnTextOn]}>↩ {t("to_receive", { defaultValue: "A Receber" })}</Text>
+                      <Text style={[s.payBtnText, s.payBtnTextOn]}>✓ {t("paid", { defaultValue: "Pago" })}</Text>
                     </Pressable>
                   ) : (
                     <Pressable
@@ -576,7 +577,7 @@ export default function ProjectsScreen() {
                       onPress={(e: any) => { e?.stopPropagation?.(); markPaidArchive(p); }}
                       style={({ pressed }) => [s.payBtn, pressed && { opacity: 0.7 }]}
                     >
-                      <Text style={s.payBtnText}>{t("mark_paid_short", { defaultValue: "Pago" })}</Text>
+                      <Text style={s.payBtnText}>{t("to_receive", { defaultValue: "A Receber" })}</Text>
                     </Pressable>
                   )}
 

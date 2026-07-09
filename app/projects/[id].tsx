@@ -313,7 +313,9 @@ export default function ProjectEditor() {
       `<script>
 (function(){
   function fit(){
-    var w = document.documentElement.scrollWidth;
+    // Repõe zoom a 1 antes de medir — senão mede no espaço já ampliado e corta.
+    document.documentElement.style.zoom = '1';
+    var w = Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0);
     var z = w > 0 ? Math.min(1, window.innerWidth / w) : 1;
     document.documentElement.style.zoom = String(z);
     try { window.parent.postMessage({ type: 'wrapsheet:zoom-actual', zoom: z }, '*'); } catch(e){}
@@ -324,8 +326,10 @@ export default function ProjectEditor() {
       else { document.documentElement.style.zoom = String(e.data.zoom); }
     }
   });
-  document.addEventListener('DOMContentLoaded', function(){ fit(); window.addEventListener('resize', fit); });
-  fit();
+  document.addEventListener('DOMContentLoaded', function(){ fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
+  if(!window.ReactNativeWebView){ window.addEventListener('resize', fit); }
+  window.addEventListener('orientationchange', function(){ setTimeout(fit, 250); });
+  fit(); setTimeout(fit, 60);
 })();
 </script></body>`
     );

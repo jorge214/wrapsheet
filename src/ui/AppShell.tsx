@@ -83,15 +83,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [zoom]);
 
-  if (!isWide) {
-    return <>{children}</>;
-  }
-
+  // IMPORTANTE: a árvore é SEMPRE a mesma (sidebar só aparece em ecrãs largos).
+  // Se a estrutura mudasse entre estreito/largo, rodar o telemóvel para
+  // horizontal remontava o ecrã inteiro e perdia o estado (ex.: o editor da
+  // folha abria e fechava logo ao forçar landscape).
   return (
-    <View style={[styles.root, { height }]}>
-      <Sidebar />
+    <View style={[styles.root, Platform.OS === "web" ? { height } : { flex: 1 }]}>
+      {isWide && <Sidebar />}
       <View style={styles.content}>
-        <View style={innerStyle}>
+        <View style={isWide ? innerStyle : styles.contentInnerWide}>
           {children}
         </View>
       </View>
