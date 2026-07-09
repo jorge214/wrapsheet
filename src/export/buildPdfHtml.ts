@@ -80,6 +80,7 @@ const STRINGS = {
     month: "Mês",
     week: "Semana",
     addDay: "Adicionar dia",
+    removeDayConfirm: "Remover este dia?",
     year: "Ano",
     vb: "Valor Bruto",
     vf: "Valor Final",
@@ -139,6 +140,7 @@ const STRINGS = {
     month: "Month",
     week: "Week",
     addDay: "Add day",
+    removeDayConfirm: "Remove this day?",
     year: "Year",
     vb: "Gross",
     vf: "Net",
@@ -198,6 +200,7 @@ const STRINGS = {
     month: "Mes",
     week: "Semana",
     addDay: "Añadir día",
+    removeDayConfirm: "¿Eliminar este día?",
     year: "Año",
     vb: "Valor Bruto",
     vf: "Valor Final",
@@ -257,6 +260,7 @@ const STRINGS = {
     month: "Mois",
     week: "Semaine",
     addDay: "Ajouter un jour",
+    removeDayConfirm: "Supprimer ce jour ?",
     year: "Année",
     vb: "Brut",
     vf: "Net",
@@ -316,6 +320,7 @@ const STRINGS = {
     month: "Monat",
     week: "Woche",
     addDay: "Tag hinzufügen",
+    removeDayConfirm: "Diesen Tag entfernen?",
     year: "Jahr",
     vb: "Brutto",
     vf: "Netto",
@@ -375,6 +380,7 @@ const STRINGS = {
     month: "Month",
     week: "Week",
     addDay: "Add day",
+    removeDayConfirm: "Remove this day?",
     year: "Year",
     vb: "Gross",
     vf: "Net",
@@ -875,6 +881,65 @@ function padTime(v?: string) {
   return m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
 }
 
+// ── Helpers dos campos editáveis (contenteditable) — nível de módulo para a
+// tabela de dias poder ser regenerada sozinha (adicionar/duplicar/remover dia
+// sem recarregar a folha inteira) ──
+const CE = 'contenteditable="true" autocapitalize="off" autocorrect="off" spellcheck="false"';
+const edTi = (k: string, f: string, val: string, extra = "") =>
+  `<span class="ei" ${CE} data-k="${k}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
+const edDi = (i: number, f: string, val: string, cls = "", extra = "") =>
+  `<span class="ei ${cls}" ${CE} data-k="dia" data-i="${i}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
+const edMi = (k: string, f: string, val: number) =>
+  `<span class="ei money" ${CE} inputmode="decimal" data-k="${k}" data-f="${f}">${escapeHtml(String(val ?? 0))}</span>`;
+
+// Só as linhas <tr> da tabela de dias (editáveis). Usado pelo builder e pela
+// app para atualizar a tabela no sítio via window.__wsSetRows(html).
+export function buildEditableDayRowsHtml(
+  dias: Dia[],
+  calculos: CalcDia[],
+  tabela: PdfTabela,
+  currency: string = "EUR"
+): string {
+  const fmt = (n: number) => fmtMoney(n, currency);
+  const salarioDia = Number(tabela.salarioDia || 0);
+  const aj = tabela.ajudas ?? {};
+  const valRef = Number(aj.refeicao ?? 0);
+  const valPer = Number(aj.perDiem ?? 0);
+  const valTel = Number(aj.telefone ?? 0);
+  const valViat = Number(aj.viatura ?? 0);
+  const valMat = Number(aj.material ?? 0);
+
+  return dias
+    .map((d, i) => {
+      const c = calculos[i] ?? ({} as CalcDia);
+      const eff = (d as any).salarioDia ?? salarioDia;
+      return `
+        <tr${d.pago ? ' class="paid"' : ""}>
+          <td class="left"><span class="pago" data-i="${i}">${d.pago ? "☑" : "☐"}</span> ${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
+          <td>${edDi(i, "data", formatDatePT(d.data), "date", 'inputmode="numeric"')}</td>
+          <td class="right calc" data-c="sal" data-i="${i}">${fmt(eff)}</td>
+          <td>${edDi(i, "inicio", d.inicio || "", "time", 'inputmode="numeric"')}</td>
+          <td>${edDi(i, "refeicaoTrabalho", d.refeicaoTrabalho || "", "time", 'inputmode="numeric"')}</td>
+          <td>${edDi(i, "fim", d.fim || "", "time", 'inputmode="numeric"')}</td>
+          <td class="calc" data-c="ht" data-i="${i}">${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
+          <td class="blue calc" data-c="hd" data-i="${i}">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
+          <td class="right calc" data-c="d_ref" data-i="${i}">${fmt(valRef)}</td>
+          <td class="right calc" data-c="d_per" data-i="${i}">${fmt(valPer)}</td>
+          <td class="right calc" data-c="d_tel" data-i="${i}">${fmt(valTel)}</td>
+          <td class="right calc" data-c="d_viat" data-i="${i}">${fmt(valViat)}</td>
+          <td class="right calc" data-c="d_mat" data-i="${i}">${fmt(valMat)}</td>
+          <td class="right calc" data-c="hea_h" data-i="${i}">${fmtNum((c?.HEA_min ?? 0) / 60, 1)}</td>
+          <td class="right calc" data-c="hea_v" data-i="${i}">${fmt(c?.HEA_valor ?? 0)}</td>
+          <td class="right calc" data-c="heb_h" data-i="${i}">${fmtNum((c?.HEB_min ?? 0) / 60, 1)}</td>
+          <td class="right calc" data-c="heb_v" data-i="${i}">${fmt(c?.HEB_valor ?? 0)}</td>
+          <td class="right calc" data-c="hr_h" data-i="${i}">${fmtNum((c?.HR_min ?? 0) / 60, 1)}</td>
+          <td class="right calc" data-c="hr_v" data-i="${i}">${fmt(c?.HR_valor ?? 0)}</td>
+          <td class="right strong calc" data-c="tot" data-i="${i}">${fmt(c?.totalDia ?? 0)}</td>
+        </tr>`;
+    })
+    .join("");
+}
+
 export function buildEditableSheetHtml(
   perfil: PdfPerfil,
   projeto: PdfProjeto,
@@ -915,15 +980,11 @@ export function buildEditableSheetHtml(
   const mesNome = getMonthName(projeto.mes, locale);
   const mesAnoLabel = `${mesNome} ${projeto.ano}`;
 
-  // Campos editáveis: contenteditable (texto que se edita no sítio, dimensiona-se
-  // exatamente como no "Ver" — sem larguras fixas que cortam/quebram).
-  const CE = 'contenteditable="true" autocapitalize="off" autocorrect="off" spellcheck="false"';
-  const ti = (k: string, f: string, val: string, extra = "") =>
-    `<span class="ei" ${CE} data-k="${k}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
-  const di = (i: number, f: string, val: string, cls = "", extra = "") =>
-    `<span class="ei ${cls}" ${CE} data-k="dia" data-i="${i}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
-  const mi = (k: string, f: string, val: number) =>
-    `<span class="ei money" ${CE} inputmode="decimal" data-k="${k}" data-f="${f}">${escapeHtml(String(val ?? 0))}</span>`;
+  // Campos editáveis: helpers de módulo (edTi/edMi) + linhas geradas por
+  // buildEditableDayRowsHtml (a mesma função que a app usa para atualizar a
+  // tabela no sítio ao adicionar/duplicar/remover dias).
+  const ti = edTi;
+  const mi = edMi;
   const kvEdit = (label: string, k: string, f: string, val: string) =>
     `<div class="row"><div class="k">${escapeHtml(label)}</div><div class="v">${ti(k, f, val)}</div></div>`;
   // Linha "clean" (só sublinhado) com valor editável — como na folha de referência
@@ -935,35 +996,7 @@ export function buildEditableSheetHtml(
   const pctEdit = (f: string, v?: number) =>
     `<span class="ei money" ${CE} inputmode="decimal" data-k="fiscal" data-f="${f}">${escapeHtml(String(v ?? 0))}</span>%`;
 
-  const dayRows = dias
-    .map((d, i) => {
-      const c = calculos[i] ?? ({} as CalcDia);
-      const eff = (d as any).salarioDia ?? salarioDia;
-      return `
-        <tr${d.pago ? ' class="paid"' : ""}>
-          <td class="left"><span class="pago" data-i="${i}">${d.pago ? "☑" : "☐"}</span> ${di(i, "descricao", d.descricao || "", "left")}</td>
-          <td>${di(i, "data", formatDatePT(d.data), "date", 'inputmode="numeric"')}</td>
-          <td class="right calc" data-c="sal" data-i="${i}">${fmt(eff)}</td>
-          <td>${di(i, "inicio", d.inicio || "", "time", 'inputmode="numeric"')}</td>
-          <td>${di(i, "refeicaoTrabalho", d.refeicaoTrabalho || "", "time", 'inputmode="numeric"')}</td>
-          <td>${di(i, "fim", d.fim || "", "time", 'inputmode="numeric"')}</td>
-          <td class="calc" data-c="ht" data-i="${i}">${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
-          <td class="blue calc" data-c="hd" data-i="${i}">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
-          <td class="right calc" data-c="d_ref" data-i="${i}">${fmt(valRef)}</td>
-          <td class="right calc" data-c="d_per" data-i="${i}">${fmt(valPer)}</td>
-          <td class="right calc" data-c="d_tel" data-i="${i}">${fmt(valTel)}</td>
-          <td class="right calc" data-c="d_viat" data-i="${i}">${fmt(valViat)}</td>
-          <td class="right calc" data-c="d_mat" data-i="${i}">${fmt(valMat)}</td>
-          <td class="right calc" data-c="hea_h" data-i="${i}">${fmtNum((c?.HEA_min ?? 0) / 60, 1)}</td>
-          <td class="right calc" data-c="hea_v" data-i="${i}">${fmt(c?.HEA_valor ?? 0)}</td>
-          <td class="right calc" data-c="heb_h" data-i="${i}">${fmtNum((c?.HEB_min ?? 0) / 60, 1)}</td>
-          <td class="right calc" data-c="heb_v" data-i="${i}">${fmt(c?.HEB_valor ?? 0)}</td>
-          <td class="right calc" data-c="hr_h" data-i="${i}">${fmtNum((c?.HR_min ?? 0) / 60, 1)}</td>
-          <td class="right calc" data-c="hr_v" data-i="${i}">${fmt(c?.HR_valor ?? 0)}</td>
-          <td class="right strong calc" data-c="tot" data-i="${i}">${fmt(c?.totalDia ?? 0)}</td>
-        </tr>`;
-    })
-    .join("");
+  const dayRows = buildEditableDayRowsHtml(dias, calculos, tabela, currency);
 
   const unitH = `<span class="mini">${curSym} ${escapeHtml(s.perHour)}</span>`;
   const unitD = `<span class="mini">${curSym} ${escapeHtml(s.perDayUnit)}</span>`;
@@ -1058,7 +1091,11 @@ export function buildEditableSheetHtml(
           font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px;
           border: 2px solid #2b2b2b; border-radius: 999px; background: #f2f2f2; color: #111; cursor: pointer;
         }
-        @media print { .addDayBar { display: none; } }
+        /* Botões por linha: duplicar (⧉) e remover (✕) o dia — não saem no print */
+        .rowBtns { float: right; white-space: nowrap; margin-left: 6px; }
+        .rbtn { cursor: pointer; user-select: none; -webkit-user-select: none; color: #9a9a9a; font-size: 12px; padding: 0 4px; }
+        .rbtn.rdel { color: #c05050; }
+        @media print { .addDayBar, .rowBtns { display: none; } }
       </style>
     </head>
     <body>
@@ -1174,9 +1211,29 @@ export function buildEditableSheetHtml(
           if(!el.classList || !el.classList.contains('ei')) return;
           post({ type:'ws:edit', k: el.getAttribute('data-k'), f: el.getAttribute('data-f'), i: di(el), value: el.textContent });
         }, true);
-        // Botão "+ Adicionar dia" — a app adiciona o dia e recarrega a folha
+        // Botão "+ Adicionar dia" — a app adiciona o dia e atualiza só a tabela
         var addBtn = document.getElementById('wsAddDay');
         if(addBtn){ addBtn.addEventListener('click', function(){ post({ type:'ws:addDay' }); }); }
+        // Duplicar (⧉) / remover (✕) um dia
+        document.addEventListener('click', function(e){
+          var el = e.target;
+          if(!el.classList || !el.classList.contains('rbtn')) return;
+          var i = parseInt(el.getAttribute('data-i'), 10);
+          if(el.getAttribute('data-act') === 'del'){
+            if(window.confirm(${JSON.stringify((s as any).removeDayConfirm || "Remover este dia?")})){ post({ type:'ws:removeDay', i:i }); }
+          } else {
+            post({ type:'ws:dupDay', i:i });
+          }
+        }, true);
+        // Substitui só as linhas da tabela de dias (mantém scroll e estado da página)
+        window.__wsSetRows = function(html){
+          var t = document.querySelector('table.days');
+          if(!t) return;
+          var rows = t.querySelectorAll('tr');
+          for(var k = rows.length - 1; k >= 2; k--){ rows[k].parentNode.removeChild(rows[k]); }
+          var tb = (t.tBodies && t.tBodies[0]) ? t.tBodies[0] : t;
+          tb.insertAdjacentHTML('beforeend', html);
+        };
         // Marcar/desmarcar dia como pago
         document.addEventListener('click', function(e){
           var el = e.target;
@@ -1220,6 +1277,7 @@ export function buildEditableSheetHtml(
         window.addEventListener('message', function(e){
           var d = e.data; if(!d) return;
           if(d.type === 'ws:calc'){ applyCalc(d); }
+          else if(d.type === 'ws:setRows'){ window.__wsSetRows(d.html); }
           else if(d.type === 'ws:zoom'){ document.documentElement.style.zoom = String(d.zoom); }
         });
         function fit(){

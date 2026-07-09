@@ -20,12 +20,12 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engine";
 import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
-import { buildPdfHtml, buildEditableSheetHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
+import { buildPdfHtml, buildEditableSheetHtml, buildEditableDayRowsHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
 import * as ScreenOrientation from "expo-screen-orientation";
 
 // WebView só no nativo (na web usamos <iframe>); evita puxá-lo para o bundle web.
@@ -150,6 +150,7 @@ export default function ProjectEditor() {
 
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
+  const insets = useSafeAreaInsets();
   const [showPreview, setShowPreview] = useState(false);
   const [fsPreview, setFsPreview] = useState(false);
   const [editForm, setEditForm] = useState(false);
@@ -242,6 +243,13 @@ export default function ProjectEditor() {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
     return () => { ScreenOrientation.unlockAsync().catch(() => {}); };
   }, [editHtml]);
+
+  // "Ver" (preview) no nativo também abre em horizontal — a folha é larga
+  useEffect(() => {
+    if (Platform.OS === "web" || !showPreview) return;
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
+    return () => { ScreenOrientation.unlockAsync().catch(() => {}); };
+  }, [showPreview]);
 
   async function persist(next: ProjectState) {
     setProject(next);
@@ -462,6 +470,20 @@ export default function ProjectEditor() {
     const p = projectRef.current;
     if (!p) return;
     if (d.type === "ws:ready") { postEditCalc(p); return; }
+
+    // Atualiza SÓ as linhas da tabela de dias (sem recarregar a folha — mantém
+    // scroll, zoom e foco). A folha troca as <tr> via window.__wsSetRows.
+    const pushRows = (next: ProjectState) => {
+      const calc = calcAll(next.dias, next.tabela as any);
+      const rowsHtml = buildEditableDayRowsHtml(next.dias, calc as any, next.tabela as any, getPreset(regionCode).currency);
+      if (Platform.OS === "web") {
+        editIframeRef.current?.contentWindow?.postMessage({ type: "ws:setRows", html: rowsHtml }, "*");
+      } else {
+        editWebViewRef.current?.injectJavaScript(`window.__wsSetRows(${JSON.stringify(rowsHtml)}); true;`);
+      }
+      postEditCalc(next);
+    };
+
     if (d.type === "ws:addDay") {
       // Novo dia a seguir ao último (mesmos horários, data +1, não pago)
       const last = p.dias[p.dias.length - 1];
@@ -479,7 +501,26 @@ export default function ProjectEditor() {
           } as Dia);
       const next = { ...p, dias: [...p.dias, novo] };
       persist(next);
-      setEditHtmlContent(buildEditSheet(next)); // recarrega a folha com a linha nova
+      pushRows(next);
+      return;
+    }
+    if (d.type === "ws:dupDay") {
+      const i = Number(d.i);
+      const src = p.dias[i];
+      if (!src) return;
+      const clone: Dia = { ...src, pago: false } as Dia;
+      const dias = [...p.dias.slice(0, i + 1), clone, ...p.dias.slice(i + 1)];
+      const next = { ...p, dias };
+      persist(next);
+      pushRows(next);
+      return;
+    }
+    if (d.type === "ws:removeDay") {
+      const i = Number(d.i);
+      if (p.dias.length <= 1 || !p.dias[i]) return; // um projeto precisa de ≥1 dia
+      const next = { ...p, dias: p.dias.filter((_, ix) => ix !== i) };
+      persist(next);
+      pushRows(next);
       return;
     }
     if (d.type !== "ws:edit") return;
@@ -1276,7 +1317,9 @@ export default function ProjectEditor() {
         supportedOrientations={["portrait", "landscape"]}
         onRequestClose={() => setEditHtml(false)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        {/* View + insets em vez de SafeAreaView: dentro de Modal no iOS os
+            insets do SafeAreaView vêm a 0 e o cabeçalho ficava sob o notch */}
+        <View style={{ flex: 1, backgroundColor: COLORS.bg, paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
               {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
@@ -1328,7 +1371,7 @@ export default function ProjectEditor() {
               {renderMobileForm()}
             </ScrollView>
           )}
-        </SafeAreaView>
+        </View>
       </Modal>
 
       {/* Preview overlay */}
@@ -1336,9 +1379,10 @@ export default function ProjectEditor() {
         transparent
         animationType="slide"
         visible={showPreview}
+        supportedOrientations={["portrait", "landscape"]}
         onRequestClose={() => setShowPreview(false)}
       >
-        <View style={ss.previewOverlay}>
+        <View style={[ss.previewOverlay, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
               {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}

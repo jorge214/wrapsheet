@@ -154,8 +154,18 @@ export async function getActiveProfileId(): Promise<string> {
 
 export async function getActiveProfile(): Promise<Profile | null> {
   const id = await getActiveProfileId();
-  if (!id) return null;
-  return await getProfileById(id);
+  if (id) {
+    const p = await getProfileById(id);
+    if (p) return p;
+  }
+  // Fallback: perfis sincronizados da cloud chegam sem "ativo" definido neste
+  // dispositivo (o ativo é uma definição local) — usa o primeiro e marca-o.
+  const list = await readList();
+  if (list.length) {
+    await setActiveProfileId(list[0].id);
+    return list[0];
+  }
+  return null;
 }
 
 /* ---------- Compatibilidade antiga ---------- */
