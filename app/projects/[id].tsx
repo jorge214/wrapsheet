@@ -39,7 +39,7 @@ import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
 import { getSettings } from "../../src/storage/appSettings";
 import { canExportPdf, incrementPdfExportCount } from "../../src/storage/freeTier";
-import { getActiveProfile } from "../../src/storage/profile";
+import { defaultCondBoxes, getActiveProfile } from "../../src/storage/profile";
 import { getProject, saveProject } from "../../src/storage/projects";
 import EditableSheet, { SHEET_W } from "../../src/ui/EditableSheet";
 
@@ -152,6 +152,16 @@ export default function ProjectEditor() {
   const [menuOpen, setMenuOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const [showPreview, setShowPreview] = useState(false);
+
+  // Toast de confirmação (ex.: "✓ Perfil aplicado")
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<any>(null);
+  function showToast(msg: string) {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  }
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
   const [fsPreview, setFsPreview] = useState(false);
   const [editForm, setEditForm] = useState(false);
   const [editHtml, setEditHtml] = useState(false);
@@ -654,9 +664,14 @@ export default function ProjectEditor() {
       swift: act.swift ?? "",
     });
 
-    // Condições de trabalho (texto + caixas + título anual)
+    // Condições de trabalho (texto + caixas + título anual). Se o perfil ainda
+    // não tiver caixas nem texto, aplica o modelo predefinido — assim as
+    // condições saem SEMPRE no fim do PDF depois de aplicar o perfil.
     if ((act as any).condicoes) setP("condicoes", (act as any).condicoes);
-    if (Array.isArray((act as any).condBoxes)) setP("condBoxes", (act as any).condBoxes);
+    const profBoxes = Array.isArray((act as any).condBoxes) && (act as any).condBoxes.length
+      ? (act as any).condBoxes
+      : (!(act as any).condicoes ? defaultCondBoxes() : undefined);
+    if (profBoxes) setP("condBoxes", profBoxes);
     if ((act as any).condTitulo) setP("condTitulo", (act as any).condTitulo);
 
     // Regime fiscal do perfil (IRS/IVA %)
@@ -688,6 +703,8 @@ export default function ProjectEditor() {
     if (fx.material != null) patch.ajudas.material = fx.material;
     if (fx.perDiem != null) patch.ajudas.perDiem = fx.perDiem;
     setP("tabela", patch);
+
+    showToast(t("toast_profile_applied", { defaultValue: "✓ Perfil aplicado — condições incluídas no PDF" }));
   }
 
   // Write-through: editar um multiplicador recalcula a taxa €/h a partir do salário atual
@@ -1428,6 +1445,21 @@ export default function ProjectEditor() {
           )}
         </View>
       </Modal>
+
+      {/* Toast de confirmação */}
+      {toast && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute", bottom: 30, left: 16, right: 16,
+            backgroundColor: "#137a3a", borderRadius: 12, paddingVertical: 12,
+            paddingHorizontal: 16, alignItems: "center",
+            shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "900", fontSize: 14 }}>{toast}</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

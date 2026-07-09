@@ -380,5 +380,6 @@
   "reset_cond_default": "Reset to template (PDF)",
   "reset_cond_confirm": "Replace the current boxes with the reference template conditions?",
   "image_too_big": "Image too large",
-  "image_too_big_msg": "Choose a smaller image (max. ~1.3 MB)."
+  "image_too_big_msg": "Choose a smaller image (max. ~1.3 MB).",
+  "toast_profile_applied": "✓ Profile applied — conditions included in the PDF"
 }

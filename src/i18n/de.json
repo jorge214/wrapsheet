@@ -380,5 +380,6 @@
   "reset_cond_default": "Vorlage wiederherstellen (PDF)",
   "reset_cond_confirm": "Aktuelle Kästen durch die Bedingungen der Referenzvorlage ersetzen?",
   "image_too_big": "Bild zu groß",
-  "image_too_big_msg": "Wähle ein kleineres Bild (max. ~1,3 MB)."
+  "image_too_big_msg": "Wähle ein kleineres Bild (max. ~1,3 MB).",
+  "toast_profile_applied": "✓ Profil angewendet — Bedingungen im PDF enthalten"
 }

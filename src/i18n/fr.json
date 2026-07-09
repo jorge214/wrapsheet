@@ -380,5 +380,6 @@
   "reset_cond_default": "Rétablir le modèle (PDF)",
   "reset_cond_confirm": "Remplacer les encadrés actuels par les conditions du modèle de référence ?",
   "image_too_big": "Image trop volumineuse",
-  "image_too_big_msg": "Choisissez une image plus petite (max. ~1,3 Mo)."
+  "image_too_big_msg": "Choisissez une image plus petite (max. ~1,3 Mo).",
+  "toast_profile_applied": "✓ Profil appliqué — conditions incluses dans le PDF"
 }

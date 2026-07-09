@@ -380,5 +380,6 @@
   "reset_cond_default": "Ripristina modello (PDF)",
   "reset_cond_confirm": "Sostituire i riquadri attuali con le condizioni del modello di riferimento?",
   "image_too_big": "Immagine troppo grande",
-  "image_too_big_msg": "Scegli un'immagine più piccola (max ~1,3 MB)."
+  "image_too_big_msg": "Scegli un'immagine più piccola (max ~1,3 MB).",
+  "toast_profile_applied": "✓ Profilo applicato — condizioni incluse nel PDF"
 }
