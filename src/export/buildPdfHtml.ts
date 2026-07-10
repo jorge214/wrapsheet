@@ -650,8 +650,12 @@ export function buildPdfHtml(
         .headgrid {
           margin-top: 10px;
           display: grid;
-          grid-template-columns: 2fr 0.85fr;
-          gap: 28px;
+          /* Alinhado às colunas da tabela (10 × 10%): as linhas acabam onde a
+             HORA RECUPERAÇÃO começa (40%); a caixa "Emitido a" começa na
+             coluna do MATERIAL (80%); o meio fica em branco. */
+          grid-template-columns: 40% 20%;
+          justify-content: space-between;
+          gap: 0;
           align-items: start;
         }
         .stack { display: flex; flex-direction: column; gap: 10px; }
@@ -720,7 +724,7 @@ export function buildPdfHtml(
         .sideBox .v { text-align: right; font-weight: 700; }
         .sideBox .vfRow .v { background: #fff3bf; font-weight: 900; }
         /* Tabela de valores (rates): colunas uniformes */
-        table.rates { table-layout: fixed; }
+        table.rates { table-layout: fixed; margin-top: 18px; }
         table.rates td { word-break: break-word; }
         td.tdias { background: #fff3bf; font-weight: 900; }
         /* Condições de trabalho em caixas (como na folha de referência) */
@@ -1013,7 +1017,7 @@ export function buildEditableSheetHtml(
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
         .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
         .titleBox .ei:focus { background: rgba(255,255,255,.18); box-shadow: none; }
-        .headgrid { margin-top: 10px; display: grid; grid-template-columns: 2fr 0.85fr; gap: 28px; align-items: start; }
+        .headgrid { margin-top: 10px; display: grid; grid-template-columns: 40% 20%; justify-content: space-between; gap: 0; align-items: start; }
         .stack { display: flex; flex-direction: column; gap: 10px; }
         .box { border: 2px solid #2b2b2b; background: #fff; }
         .boxTitle { padding: 6px 8px; font-weight: 800; font-size: 12px; border-bottom: 2px solid #2b2b2b; background: #f2f2f2; text-transform: uppercase; }
@@ -1075,7 +1079,7 @@ export function buildEditableSheetHtml(
         .sideBox .k { font-weight: 800; }
         .sideBox .v { text-align: right; font-weight: 700; }
         .sideBox .vfRow .v { background: #fff3bf; font-weight: 900; }
-        table.rates { table-layout: fixed; }
+        table.rates { table-layout: fixed; margin-top: 18px; }
         table.rates td { word-break: break-word; }
         td.tdias { background: #fff3bf; font-weight: 900; }
         .condWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
