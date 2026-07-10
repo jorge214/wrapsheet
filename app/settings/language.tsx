@@ -15,6 +15,8 @@ const LANGS = [
   { code: "fr",    label: "Français",             flag: "🇫🇷" },
   { code: "de",    label: "Deutsch",              flag: "🇩🇪" },
   { code: "it",    label: "Italiano",             flag: "🇮🇹" },
+  { code: "nl",    label: "Nederlands",           flag: "🇳🇱" },
+  { code: "pl",    label: "Polski",               flag: "🇵🇱" },
 ] as const;
 
 type LangCode = (typeof LANGS)[number]["code"];
@@ -28,6 +30,8 @@ function normalizeLang(tag: string): LangCode {
   if (t.startsWith("fr"))    return "fr";
   if (t.startsWith("de"))    return "de";
   if (t.startsWith("it"))    return "it";
+  if (t.startsWith("nl"))    return "nl";
+  if (t.startsWith("pl"))    return "pl";
   return "en";
 }
 

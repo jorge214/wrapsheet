@@ -152,7 +152,7 @@ export default function ProfilesListScreen() {
               <View style={s.card}>
                 <View style={{ flex: 1, paddingRight: 10 }}>
                   <View style={s.titleRow}>
-                    <Text style={s.title}>{item.nome || "Sem nome"}</Text>
+                    <Text style={s.title}>{item.nome || t("no_name", { defaultValue: "Sem nome" })}</Text>
 
                     {isActive ? (
                       <View style={s.badgePill}>

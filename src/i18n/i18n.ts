@@ -8,12 +8,14 @@ import en from "./en.json";
 import es from "./es.json";
 import fr from "./fr.json";
 import it from "./it.json";
+import nl from "./nl.json";
+import pl from "./pl.json";
 import ptBR from "./pt-BR.json";
 import pt from "./pt.json";
 
 export const LANG_KEY = "app:language";
 
-export const SUPPORTED_LANGS = ["pt", "en", "es", "pt-BR", "fr", "de", "it"] as const;
+export const SUPPORTED_LANGS = ["pt", "en", "es", "pt-BR", "fr", "de", "it", "nl", "pl"] as const;
 export type LangCode = (typeof SUPPORTED_LANGS)[number];
 
 const resources = {
@@ -24,6 +26,8 @@ const resources = {
   fr:    { translation: fr },
   de:    { translation: de },
   it:    { translation: it },
+  nl:    { translation: nl },
+  pl:    { translation: pl },
 };
 
 function normalizeLang(tag: string): LangCode {
@@ -35,6 +39,8 @@ function normalizeLang(tag: string): LangCode {
   if (t.startsWith("fr"))    return "fr";
   if (t.startsWith("de"))    return "de";
   if (t.startsWith("it"))    return "it";
+  if (t.startsWith("nl"))    return "nl";
+  if (t.startsWith("pl"))    return "pl";
   return "en";
 }
 

@@ -935,7 +935,7 @@ export default function ProjectEditor() {
     const L = (x: string) => x.replace(/\s*:$/, "");
     const currency = getPreset(regionCode).currency;
     const money = (n: number) => fmtMoney(Number(n) || 0, currency);
-    const curSym = currency === "GBP" ? "£" : currency === "USD" ? "$" : "€";
+    const curSym = getPreset(regionCode).currencySymbol;
     const aj = p.tabela.ajudas ?? {};
     const setTabela = (patch: any) => setP("tabela", { ...p.tabela, ...patch });
     const setAj = (patch: any) => setP("tabela", { ...p.tabela, ajudas: { ...aj, ...patch } });

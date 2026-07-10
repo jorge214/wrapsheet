@@ -8,7 +8,7 @@ import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-nativ
 
 import { minutesToHM, round2 } from "../calc/engine";
 import { CalcDia, Dia } from "../calc/types";
-import { fmtMoney, getStrings } from "../export/buildPdfHtml";
+import { currencySymbol, fmtMoney, getStrings } from "../export/buildPdfHtml";
 
 /* ---------------- Colours (match the PDF exactly) ---------------- */
 const C = {
@@ -448,7 +448,7 @@ export default function EditableSheet(props: Props) {
   const mesNome = monthName(projeto.mes, locale);
 
   const transpLabel = "TRANSP.";
-  const curSym = currency === "GBP" ? "£" : currency === "USD" ? "$" : "€";
+  const curSym = currencySymbol(currency);
 
   // Rate cell: editable money value com símbolo da moeda (sobreposto, não espreme)
   const RateEdit = ({ value, onChange }: { value: number; onChange: (n: number) => void }) => (

@@ -15,6 +15,16 @@ const FLAGS: Record<string, any> = {
   gb: require("../../assets/flags/gb.png"),
   br: require("../../assets/flags/br.png"),
   it: require("../../assets/flags/it.png"),
+  nl: require("../../assets/flags/nl.png"),
+  pl: require("../../assets/flags/pl.png"),
+  se: require("../../assets/flags/se.png"),
+  ch: require("../../assets/flags/ch.png"),
+  cz: require("../../assets/flags/cz.png"),
+  no: require("../../assets/flags/no.png"),
+  fi: require("../../assets/flags/fi.png"),
+  be: require("../../assets/flags/be.png"),
+  at: require("../../assets/flags/at.png"),
+  hu: require("../../assets/flags/hu.png"),
 };
 
 // Map app region/language codes → ISO country code.
@@ -27,6 +37,16 @@ const ISO: Record<string, string> = {
   fr: "fr",
   de: "de",
   it: "it",
+  nl: "nl",
+  pl: "pl",
+  se: "se",
+  ch: "ch",
+  cz: "cz",
+  no: "no",
+  fi: "fi",
+  be: "be",
+  at: "at",
+  hu: "hu",
 };
 
 export function Flag({ code, size = 30 }: { code: string; size?: number }) {

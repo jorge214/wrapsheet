@@ -358,6 +358,186 @@ const STRINGS = {
     net: "WERT",
     workConditions: "ARBEITSBEDINGUNGEN",
   },
+  it: {
+    title: "PUBBLICITÀ",
+    subtitle: "Foglio paga",
+    personalData: "DATI PERSONALI",
+    film: "FILM:",
+    name: "NOME:",
+    role: "RUOLO:",
+    phone: "TELEFONO:",
+    email: "E-MAIL:",
+    companySection: "AZIENDA",
+    companyLabel: "AZIENDA:",
+    nif: "P. IVA:",
+    iban: "IBAN:",
+    swift: "SWIFT:",
+    productionSection: "PRODUZIONE",
+    productionLabel: "PRODUZIONE:",
+    productionNif: "P. IVA:",
+    totalDays: "Totale giorni",
+    issuedOn: "Emesso il",
+    month: "Mese",
+    week: "Settimana",
+    addDay: "Aggiungi giorno",
+    removeDayConfirm: "Rimuovere questo giorno?",
+    year: "Anno",
+    vb: "Lordo",
+    vf: "Netto",
+    salary: "SALARIO",
+    overtimeA: "STRAORDINARIO A",
+    overtimeB: "STRAORDINARIO B",
+    recoveryHours: "ORE DI RECUPERO",
+    meal: "PASTO",
+    perDiem: "PER DIEM",
+    telephone: "TELEFONO",
+    vehicle: "VEICOLO",
+    material: "MATERIALE",
+    day: "GIORNO",
+    date: "DATA",
+    schedule: "ORARIO",
+    totalHours: "TOTALE ORE",
+    description: "DESCRIZIONE",
+    start: "INIZIO",
+    mealBreak: "PASTO",
+    end: "FINE",
+    workHours: "ORE LAVORO",
+    restHours: "ORE RIPOSO",
+    perDay: "Al giorno",
+    total: "TOTALE",
+    value: "VALORE",
+    notes: "Note",
+    perHour: "/ora",
+    perDayUnit: "/giorno",
+    overtimeAFull: "STRAORDINARIO A",
+    overtimeBFull: "STRAORDINARIO B",
+    recoveryFull: "ORE DI RECUPERO",
+    gross: "TOTALE",
+    irs: "IRPEF",
+    iva: "IVA",
+    net: "VALORE",
+    workConditions: "CONDIZIONI DI LAVORO",
+  },
+  nl: {
+    title: "RECLAME",
+    subtitle: "Urenstaat",
+    personalData: "PERSOONLIJKE GEGEVENS",
+    film: "FILM:",
+    name: "NAAM:",
+    role: "FUNCTIE:",
+    phone: "TELEFOON:",
+    email: "E-MAIL:",
+    companySection: "BEDRIJF",
+    companyLabel: "BEDRIJF:",
+    nif: "BTW-NR:",
+    iban: "IBAN:",
+    swift: "SWIFT:",
+    productionSection: "PRODUCTIE",
+    productionLabel: "PRODUCTIE:",
+    productionNif: "BTW-NR:",
+    totalDays: "Totaal dagen",
+    issuedOn: "Uitgegeven op",
+    month: "Maand",
+    week: "Week",
+    addDay: "Dag toevoegen",
+    removeDayConfirm: "Deze dag verwijderen?",
+    year: "Jaar",
+    vb: "Bruto",
+    vf: "Netto",
+    salary: "GAGE",
+    overtimeA: "OVERUREN A",
+    overtimeB: "OVERUREN B",
+    recoveryHours: "HERSTELUREN",
+    meal: "MAALTIJD",
+    perDiem: "PER DIEMS",
+    telephone: "TELEFOON",
+    vehicle: "VOERTUIG",
+    material: "MATERIAAL",
+    day: "DAG",
+    date: "DATUM",
+    schedule: "ROOSTER",
+    totalHours: "TOTAAL UREN",
+    description: "OMSCHRIJVING",
+    start: "START",
+    mealBreak: "MAALTIJD",
+    end: "EINDE",
+    workHours: "WERKUREN",
+    restHours: "RUSTUREN",
+    perDay: "Per dag",
+    total: "TOTAAL",
+    value: "BEDRAG",
+    notes: "Notities",
+    perHour: "/uur",
+    perDayUnit: "/dag",
+    overtimeAFull: "OVERUREN A",
+    overtimeBFull: "OVERUREN B",
+    recoveryFull: "HERSTELUREN",
+    gross: "TOTAAL",
+    irs: "IB",
+    iva: "BTW",
+    net: "BEDRAG",
+    workConditions: "ARBEIDSVOORWAARDEN",
+  },
+  pl: {
+    title: "REKLAMA",
+    subtitle: "Karta godzin",
+    personalData: "DANE OSOBOWE",
+    film: "FILM:",
+    name: "IMIĘ I NAZWISKO:",
+    role: "FUNKCJA:",
+    phone: "TELEFON:",
+    email: "E-MAIL:",
+    companySection: "FIRMA",
+    companyLabel: "FIRMA:",
+    nif: "NIP:",
+    iban: "IBAN:",
+    swift: "SWIFT:",
+    productionSection: "PRODUCENT",
+    productionLabel: "PRODUCENT:",
+    productionNif: "NIP:",
+    totalDays: "Łącznie dni",
+    issuedOn: "Wystawiono",
+    month: "Miesiąc",
+    week: "Tydzień",
+    addDay: "Dodaj dzień",
+    removeDayConfirm: "Usunąć ten dzień?",
+    year: "Rok",
+    vb: "Brutto",
+    vf: "Netto",
+    salary: "GAŻA",
+    overtimeA: "NADGODZINY A",
+    overtimeB: "NADGODZINY B",
+    recoveryHours: "GODZ. ODPOCZYNKU",
+    meal: "POSIŁEK",
+    perDiem: "DIETY",
+    telephone: "TELEFON",
+    vehicle: "POJAZD",
+    material: "SPRZĘT",
+    day: "DZIEŃ",
+    date: "DATA",
+    schedule: "GRAFIK",
+    totalHours: "SUMA GODZIN",
+    description: "OPIS",
+    start: "START",
+    mealBreak: "POSIŁEK",
+    end: "KONIEC",
+    workHours: "GODZINY PRACY",
+    restHours: "GODZINY ODPOCZ.",
+    perDay: "Dziennie",
+    total: "SUMA",
+    value: "KWOTA",
+    notes: "Notatki",
+    perHour: "/godz.",
+    perDayUnit: "/dzień",
+    overtimeAFull: "NADGODZINY A",
+    overtimeBFull: "NADGODZINY B",
+    recoveryFull: "GODZINY ODPOCZYNKU",
+    gross: "SUMA",
+    irs: "PIT",
+    iva: "VAT",
+    net: "KWOTA",
+    workConditions: "WARUNKI PRACY",
+  },
   uk: {
     title: "ADVERTISING",
     subtitle: "Timesheet",
@@ -431,12 +611,18 @@ export function getStrings(locale: string, region?: string) {
   if (lang.startsWith("es")) return STRINGS.es;
   if (lang.startsWith("fr")) return STRINGS.fr;
   if (lang.startsWith("de")) return STRINGS.de;
+  if (lang.startsWith("it")) return STRINGS.it;
+  if (lang.startsWith("nl")) return STRINGS.nl;
+  if (lang.startsWith("pl")) return STRINGS.pl;
   // Fallback to region
   const r = (region ?? "").toLowerCase();
   if (r === "uk") return STRINGS.uk;
-  if (r === "de") return STRINGS.de;
-  if (r === "fr") return STRINGS.fr;
+  if (r === "de" || r === "at" || r === "ch") return STRINGS.de;
+  if (r === "fr" || r === "be") return STRINGS.fr;
   if (r === "es") return STRINGS.es;
+  if (r === "nl") return STRINGS.nl;
+  if (r === "pl") return STRINGS.pl;
+  if (r === "se" || r === "no" || r === "fi" || r === "cz" || r === "hu") return STRINGS.en;
   return STRINGS.pt;
 }
 
@@ -461,6 +647,15 @@ export function fmtMoney(n: number, currency = "EUR") {
     currency,
     minimumFractionDigits: 2,
   });
+}
+
+// Símbolo da moeda para mostrar junto aos campos (todas as regiões)
+export function currencySymbol(code: string): string {
+  const map: Record<string, string> = {
+    EUR: "€", GBP: "£", USD: "$",
+    SEK: "kr", NOK: "kr", CHF: "CHF", CZK: "Kč", PLN: "zł", HUF: "Ft",
+  };
+  return map[code] || code;
 }
 
 function fmtNum(n: number, digits = 1) {
@@ -961,7 +1156,7 @@ export function buildEditableSheetHtml(
 ): string {
   const s = getStrings(locale, region);
   const fmt = (n: number) => fmtMoney(n, currency);
-  const curSym = currency === "GBP" ? "£" : currency === "USD" ? "$" : "€";
+  const curSym = currencySymbol(currency);
 
   const salarioDia = Number(tabela.salarioDia || 0);
   const multHEA = Number(tabela.multHEA ?? 1.5);

@@ -12,6 +12,8 @@ const LANG_LABELS: Record<LangCode, string> = {
   fr: "Français",
   de: "Deutsch",
   it: "Italiano",
+  nl: "Nederlands",
+  pl: "Polski",
 };
 
 const LANG_SHORT: Record<LangCode, string> = {
@@ -22,6 +24,8 @@ const LANG_SHORT: Record<LangCode, string> = {
   fr: "FR",
   de: "DE",
   it: "IT",
+  nl: "NL",
+  pl: "PL",
 };
 
 export function LanguagePicker() {
