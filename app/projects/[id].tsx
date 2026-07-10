@@ -135,7 +135,9 @@ export default function ProjectEditor() {
   const { width: winW, height: winH } = useWindowDimensions();
   // "Telemóvel" = menor dimensão < 600px (distingue telemóvel de tablet/desktop
   // independentemente da orientação; um telemóvel na horizontal continua telemóvel).
-  const isPhone = Math.min(winW, winH) < 600;
+  // Nativo (iPhone E iPad) usa sempre o fluxo touch: página de stats + folha
+  // em WebView com pinch-zoom. A grelha de desktop (zoom −/+) fica só na web.
+  const isPhone = Platform.OS !== "web" || Math.min(winW, winH) < 600;
   const isPortrait = winH >= winW;
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -919,6 +921,9 @@ export default function ProjectEditor() {
           <StatLine label={gs.iva} value={money(totais.IVA_valor)} />
           <StatLine label={gs.vf} value={money(totais.ValorFinal)} strong last />
         </View>
+
+        {/* Parâmetros avançados (tabela + fiscal) também no touch */}
+        <View style={{ marginTop: 14 }}>{renderAdvanced()}</View>
       </View>
     );
   };
@@ -1102,7 +1107,11 @@ export default function ProjectEditor() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 160 }}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+      >
         {/* Header */}
         <View style={{ paddingTop: paddingTop, paddingHorizontal: PAGE_X }}>
           <View style={ss.topbar}>
@@ -1294,7 +1303,11 @@ export default function ProjectEditor() {
               {t("rotate_hint", { defaultValue: "Roda o telemóvel para a horizontal para veres a folha maior." })}
             </Text>
           )}
-          <ScrollView contentContainerStyle={{ padding: 12 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 12, paddingBottom: 160 }}
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+          >
             <ScrollView horizontal>
               <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
             </ScrollView>
@@ -1331,7 +1344,7 @@ export default function ProjectEditor() {
               </Pressable>
             </View>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 200 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}>
             {renderMobileForm()}
           </ScrollView>
         </SafeAreaView>
@@ -1397,7 +1410,7 @@ export default function ProjectEditor() {
             />
           ) : (
             // Fallback (WebView indisponível): formulário tátil
-            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 200 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}>
               {renderMobileForm()}
             </ScrollView>
           )}

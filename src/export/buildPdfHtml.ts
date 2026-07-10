@@ -650,8 +650,8 @@ export function buildPdfHtml(
         .headgrid {
           margin-top: 10px;
           display: grid;
-          grid-template-columns: 1.55fr 1fr;
-          gap: 10px;
+          grid-template-columns: 2fr 0.85fr;
+          gap: 28px;
           align-items: start;
         }
         .stack { display: flex; flex-direction: column; gap: 10px; }
@@ -917,24 +917,24 @@ export function buildEditableDayRowsHtml(
         <tr${d.pago ? ' class="paid"' : ""}>
           <td class="left"><span class="pago" data-i="${i}">${d.pago ? "☑" : "☐"}</span> ${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
           <td>${edDi(i, "data", formatDatePT(d.data), "date", 'inputmode="numeric"')}</td>
-          <td class="right calc" data-c="sal" data-i="${i}">${fmt(eff)}</td>
+          <td class="calc" data-c="sal" data-i="${i}">${fmt(eff)}</td>
           <td>${edDi(i, "inicio", d.inicio || "", "time", 'inputmode="numeric"')}</td>
           <td>${edDi(i, "refeicaoTrabalho", d.refeicaoTrabalho || "", "time", 'inputmode="numeric"')}</td>
           <td>${edDi(i, "fim", d.fim || "", "time", 'inputmode="numeric"')}</td>
           <td class="calc" data-c="ht" data-i="${i}">${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
           <td class="blue calc" data-c="hd" data-i="${i}">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
-          <td class="right calc" data-c="d_ref" data-i="${i}">${fmt(valRef)}</td>
-          <td class="right calc" data-c="d_per" data-i="${i}">${fmt(valPer)}</td>
-          <td class="right calc" data-c="d_tel" data-i="${i}">${fmt(valTel)}</td>
-          <td class="right calc" data-c="d_viat" data-i="${i}">${fmt(valViat)}</td>
-          <td class="right calc" data-c="d_mat" data-i="${i}">${fmt(valMat)}</td>
-          <td class="right calc" data-c="hea_h" data-i="${i}">${fmtNum((c?.HEA_min ?? 0) / 60, 1)}</td>
-          <td class="right calc" data-c="hea_v" data-i="${i}">${fmt(c?.HEA_valor ?? 0)}</td>
-          <td class="right calc" data-c="heb_h" data-i="${i}">${fmtNum((c?.HEB_min ?? 0) / 60, 1)}</td>
-          <td class="right calc" data-c="heb_v" data-i="${i}">${fmt(c?.HEB_valor ?? 0)}</td>
-          <td class="right calc" data-c="hr_h" data-i="${i}">${fmtNum((c?.HR_min ?? 0) / 60, 1)}</td>
-          <td class="right calc" data-c="hr_v" data-i="${i}">${fmt(c?.HR_valor ?? 0)}</td>
-          <td class="right strong calc" data-c="tot" data-i="${i}">${fmt(c?.totalDia ?? 0)}</td>
+          <td class="calc" data-c="d_ref" data-i="${i}">${fmt(valRef)}</td>
+          <td class="calc" data-c="d_per" data-i="${i}">${fmt(valPer)}</td>
+          <td class="calc" data-c="d_tel" data-i="${i}">${fmt(valTel)}</td>
+          <td class="calc" data-c="d_viat" data-i="${i}">${fmt(valViat)}</td>
+          <td class="calc" data-c="d_mat" data-i="${i}">${fmt(valMat)}</td>
+          <td class="calc" data-c="hea_h" data-i="${i}">${fmtNum((c?.HEA_min ?? 0) / 60, 1)}</td>
+          <td class="calc" data-c="hea_v" data-i="${i}">${fmt(c?.HEA_valor ?? 0)}</td>
+          <td class="calc" data-c="heb_h" data-i="${i}">${fmtNum((c?.HEB_min ?? 0) / 60, 1)}</td>
+          <td class="calc" data-c="heb_v" data-i="${i}">${fmt(c?.HEB_valor ?? 0)}</td>
+          <td class="calc" data-c="hr_h" data-i="${i}">${fmtNum((c?.HR_min ?? 0) / 60, 1)}</td>
+          <td class="calc" data-c="hr_v" data-i="${i}">${fmt(c?.HR_valor ?? 0)}</td>
+          <td class="strong calc" data-c="tot" data-i="${i}">${fmt(c?.totalDia ?? 0)}</td>
         </tr>`;
     })
     .join("");
@@ -1013,7 +1013,7 @@ export function buildEditableSheetHtml(
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
         .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
         .titleBox .ei:focus { background: rgba(255,255,255,.18); box-shadow: none; }
-        .headgrid { margin-top: 10px; display: grid; grid-template-columns: 1.55fr 1fr; gap: 10px; align-items: start; }
+        .headgrid { margin-top: 10px; display: grid; grid-template-columns: 2fr 0.85fr; gap: 28px; align-items: start; }
         .stack { display: flex; flex-direction: column; gap: 10px; }
         .box { border: 2px solid #2b2b2b; background: #fff; }
         .boxTitle { padding: 6px 8px; font-weight: 800; font-size: 12px; border-bottom: 2px solid #2b2b2b; background: #f2f2f2; text-transform: uppercase; }
