@@ -20,7 +20,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engine";
 import { Dia } from "../../src/calc/types";
@@ -150,7 +150,6 @@ export default function ProjectEditor() {
 
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
-  const insets = useSafeAreaInsets();
   const [showPreview, setShowPreview] = useState(false);
 
   // Toast de confirmação (ex.: "✓ Perfil aplicado")
@@ -649,6 +648,9 @@ export default function ProjectEditor() {
   async function handleApplyActiveProfile() {
     const act = await getActiveProfile();
     if (!act) {
+      // Toast além do Alert: no iOS um Alert disparado enquanto um modal fecha
+      // pode ser engolido — o toast é nosso e aparece sempre.
+      showToast(t("no_active_profile", { defaultValue: "Sem perfil ativo. Define um em Perfis." }));
       Alert.alert(t("profile"), t("no_active_profile"));
       return;
     }
@@ -902,6 +904,12 @@ export default function ProjectEditor() {
 
         <Pressable onPress={() => setShowPreview(true)} style={({ pressed }) => [ss.mOpenBtnGhost, pressed && { opacity: 0.9 }]}>
           <Text style={ss.mOpenBtnGhostText}>👁 {t("view_sheet", { defaultValue: "Ver / exportar (PDF)" })}</Text>
+        </Pressable>
+
+        {/* Botão direto (fora do menu ⋯): no iOS a ação disparada durante o
+            fecho do menu podia ser engolida sem feedback nenhum */}
+        <Pressable onPress={handleApplyActiveProfile} style={({ pressed }) => [ss.mOpenBtnGhost, pressed && { opacity: 0.9 }]}>
+          <Text style={ss.mOpenBtnGhostText}>⤓ {t("apply_active_profile", { defaultValue: "Aplicar perfil ativo" })}</Text>
         </Pressable>
 
         <View style={ss.mStatsPanel}>
@@ -1216,7 +1224,9 @@ export default function ProjectEditor() {
               label={t("apply_active_profile")}
               onPress={() => {
                 setMenuOpen(false);
-                handleApplyActiveProfile();
+                // Espera o menu fechar: no iOS, Alerts/ações durante o fecho
+                // de um modal são engolidos silenciosamente.
+                setTimeout(() => handleApplyActiveProfile(), 450);
               }}
             />
 
@@ -1334,9 +1344,12 @@ export default function ProjectEditor() {
         supportedOrientations={["portrait", "landscape"]}
         onRequestClose={() => setEditHtml(false)}
       >
-        {/* View + insets em vez de SafeAreaView: dentro de Modal no iOS os
-            insets do SafeAreaView vêm a 0 e o cabeçalho ficava sob o notch */}
-        <View style={{ flex: 1, backgroundColor: COLORS.bg, paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }}>
+        {/* SafeAreaProvider PRÓPRIO dentro do modal: mede a janela do modal e
+            acompanha a rotação (os insets do ecrã por trás ficam em portrait
+            quando forçamos landscape — era isso que cortava a folha à esquerda,
+            debaixo do notch) */}
+        <SafeAreaProvider>
+        <SafeAreaView edges={["top", "bottom", "left", "right"]} style={{ flex: 1, backgroundColor: COLORS.bg }}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
               {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
@@ -1388,7 +1401,8 @@ export default function ProjectEditor() {
               {renderMobileForm()}
             </ScrollView>
           )}
-        </View>
+        </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
 
       {/* Preview overlay */}
@@ -1399,7 +1413,8 @@ export default function ProjectEditor() {
         supportedOrientations={["portrait", "landscape"]}
         onRequestClose={() => setShowPreview(false)}
       >
-        <View style={[ss.previewOverlay, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
+        <SafeAreaProvider>
+        <SafeAreaView edges={["top", "bottom", "left", "right"]} style={ss.previewOverlay}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
               {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
@@ -1443,7 +1458,8 @@ export default function ProjectEditor() {
               </Text>
             </View>
           )}
-        </View>
+        </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
 
       {/* Toast de confirmação */}
