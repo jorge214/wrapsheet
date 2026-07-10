@@ -4,6 +4,7 @@
 
 import { minutesToHM } from "../calc/engine";
 import { CalcDia, Dia } from "../calc/types";
+import { getPreset } from "../constants/countryPresets";
 
 export type PdfPerfil = {
   nome: string;
@@ -600,7 +601,7 @@ const STRINGS = {
   },
 };
 
-export function getStrings(locale: string, region?: string) {
+function pickLangStrings(locale: string, region?: string) {
   // UI language takes priority; region is only used as fallback
   const lang = locale.toLowerCase();
   if (lang.startsWith("pt")) return STRINGS.pt;
@@ -624,6 +625,17 @@ export function getStrings(locale: string, region?: string) {
   if (r === "pl") return STRINGS.pl;
   if (r === "se" || r === "no" || r === "fi" || r === "cz" || r === "hu") return STRINGS.en;
   return STRINGS.pt;
+}
+
+export function getStrings(locale: string, region?: string) {
+  const base = pickLangStrings(locale, region);
+  // Os NOMES DOS IMPOSTOS seguem a REGIÃO FISCAL, não a língua da app:
+  // app em francês com região Portugal mostra IRS/IVA (não IR/TVA).
+  if (region) {
+    const tax = getPreset(region).taxLabels;
+    return { ...base, irs: tax.incomeTax, iva: tax.vat };
+  }
+  return base;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────

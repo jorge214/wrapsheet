@@ -18,6 +18,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CURRENCY } from "../../src/calc/engine";
+import { getPreset } from "../../src/constants/countryPresets";
+import { getSettings } from "../../src/storage/appSettings";
 import i18n from "../../src/i18n/i18n";
 import { getMonthSummary, getYearSummary, MonthSummary, YearSummary } from "../../src/stats/monthSummary";
 import {
@@ -73,6 +75,14 @@ export default function DashboardScreen() {
   const [yearSummary, setYearSummary] = useState<YearSummary | null>(null);
 
   const [pickerVisible, setPickerVisible] = useState(false);
+
+  // Nomes dos impostos seguem a REGIÃO FISCAL (não a língua da app)
+  const [taxLabels, setTaxLabels] = useState({ incomeTax: "IRS", vat: "IVA" });
+  useEffect(() => {
+    getSettings()
+      .then((s: any) => setTaxLabels(getPreset(s.region).taxLabels))
+      .catch(() => {});
+  }, []);
 
   const locale = i18n.language;
   const labelMes = useMemo(() => fmtMonthLabel(mes, ano, locale), [mes, ano, locale]);
@@ -311,13 +321,13 @@ export default function DashboardScreen() {
           <StatCard
             s={s}
             value={formatMoneyPT(stats.irsMes)}
-            label={t("dash_irs_month", { defaultValue: "IRS retido (mês)" })}
+            label={t("dash_irs_month", { defaultValue: "{{tax}} retido (mês)", tax: taxLabels.incomeTax })}
             isMoney
           />
           <StatCard
             s={s}
             value={formatMoneyPT(stats.ivaMes)}
-            label={t("dash_iva_month", { defaultValue: "IVA (mês)" })}
+            label={t("dash_iva_month", { defaultValue: "{{tax}} (mês)", tax: taxLabels.vat })}
             isMoney
           />
           <StatCard

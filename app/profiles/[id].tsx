@@ -128,7 +128,9 @@ export default function ProfileEditScreen() {
   const [editing, setEditing] = useState(edit === "1");
   const [saving, setSaving] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
-  const [preset, setPreset] = useState<{ IRS_percent: number; IVA_percent: number }>({ IRS_percent: 0, IVA_percent: 0 });
+  const [preset, setPreset] = useState<{ IRS_percent: number; IVA_percent: number; taxIncome: string; taxVat: string }>({
+    IRS_percent: 0, IVA_percent: 0, taxIncome: "IRS", taxVat: "IVA",
+  });
 
   useEffect(() => {
     (async () => {
@@ -138,6 +140,9 @@ export default function ProfileEditScreen() {
         setPreset({
           IRS_percent: Number(pr?.fiscal?.IRS_percent ?? 0),
           IVA_percent: Number(pr?.fiscal?.IVA_percent ?? 0),
+          // Nomes dos impostos seguem a REGIÃO FISCAL, não a língua da app
+          taxIncome: pr?.taxLabels?.incomeTax ?? "IRS",
+          taxVat: pr?.taxLabels?.vat ?? "IVA",
         });
       } catch {}
     })();
@@ -408,8 +413,8 @@ export default function ProfileEditScreen() {
           <Text style={s.fieldHint}>
             {t("tax_regime_hint", { defaultValue: "Percentagens aplicadas aos valores. Deixa a 0% se não aplicável (ex.: empresa unipessoal). Predefinição pelo país em Definições › Região." })}
           </Text>
-          <NumField label={t("irs", { defaultValue: "IRS" })} unit="%" value={fiscalV.IRS_percent ?? preset.IRS_percent} editing={editing} onChange={(n) => setFiscal({ IRS_percent: n ?? 0 })} COLORS={COLORS} styles={s} />
-          <NumField label={t("iva", { defaultValue: "IVA" })} unit="%" value={fiscalV.IVA_percent ?? preset.IVA_percent} editing={editing} onChange={(n) => setFiscal({ IVA_percent: n ?? 0 })} COLORS={COLORS} styles={s} />
+          <NumField label={preset.taxIncome} unit="%" value={fiscalV.IRS_percent ?? preset.IRS_percent} editing={editing} onChange={(n) => setFiscal({ IRS_percent: n ?? 0 })} COLORS={COLORS} styles={s} />
+          <NumField label={preset.taxVat} unit="%" value={fiscalV.IVA_percent ?? preset.IVA_percent} editing={editing} onChange={(n) => setFiscal({ IVA_percent: n ?? 0 })} COLORS={COLORS} styles={s} />
         </View>
 
         {/* Regras de horas extra + Condições de trabalho (última secção) */}
