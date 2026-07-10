@@ -128,8 +128,8 @@ export default function ProfileEditScreen() {
   const [editing, setEditing] = useState(edit === "1");
   const [saving, setSaving] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
-  const [preset, setPreset] = useState<{ IRS_percent: number; IVA_percent: number; taxIncome: string; taxVat: string }>({
-    IRS_percent: 0, IVA_percent: 0, taxIncome: "IRS", taxVat: "IVA",
+  const [preset, setPreset] = useState<{ IRS_percent: number; IVA_percent: number; taxIncome: string; taxVat: string; sym: string }>({
+    IRS_percent: 0, IVA_percent: 0, taxIncome: "IRS", taxVat: "IVA", sym: "€",
   });
 
   useEffect(() => {
@@ -140,9 +140,10 @@ export default function ProfileEditScreen() {
         setPreset({
           IRS_percent: Number(pr?.fiscal?.IRS_percent ?? 0),
           IVA_percent: Number(pr?.fiscal?.IVA_percent ?? 0),
-          // Nomes dos impostos seguem a REGIÃO FISCAL, não a língua da app
+          // Nomes dos impostos e moeda seguem a REGIÃO FISCAL, não a língua
           taxIncome: pr?.taxLabels?.incomeTax ?? "IRS",
           taxVat: pr?.taxLabels?.vat ?? "IVA",
+          sym: pr?.currencySymbol ?? "€",
         });
       } catch {}
     })();
@@ -394,15 +395,15 @@ export default function ProfileEditScreen() {
           <Text style={s.fieldHint}>
             {t("fixed_conditions_hint", { defaultValue: "Aplicam-se automaticamente a projetos novos. Podes editá-las por projeto." })}
           </Text>
-          <NumField label={gs.salary} unit="€" value={fixas.salarioDia} editing={editing} onChange={(n) => setFixas({ salarioDia: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`HEA · ${gs.overtimeA} (€/h)`} value={fixas.rateHEA} editing={editing} onChange={(n) => setFixas({ rateHEA: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`HEB · ${gs.overtimeB} (€/h)`} value={fixas.rateHEB} editing={editing} onChange={(n) => setFixas({ rateHEB: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`HR · ${gs.recoveryHours} (€/h)`} value={fixas.rateHR} editing={editing} onChange={(n) => setFixas({ rateHR: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.meal} (€)`} value={fixas.refeicao} editing={editing} onChange={(n) => setFixas({ refeicao: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.telephone} (€)`} value={fixas.telefone} editing={editing} onChange={(n) => setFixas({ telefone: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.vehicle} (€)`} value={fixas.viatura} editing={editing} onChange={(n) => setFixas({ viatura: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.material} (€)`} value={fixas.material} editing={editing} onChange={(n) => setFixas({ material: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.perDiem} (€)`} value={fixas.perDiem} editing={editing} onChange={(n) => setFixas({ perDiem: n })} COLORS={COLORS} styles={s} />
+          <NumField label={gs.salary} unit={preset.sym} value={fixas.salarioDia} editing={editing} onChange={(n) => setFixas({ salarioDia: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`HEA · ${gs.overtimeA} (${preset.sym}/h)`} value={fixas.rateHEA} editing={editing} onChange={(n) => setFixas({ rateHEA: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`HEB · ${gs.overtimeB} (${preset.sym}/h)`} value={fixas.rateHEB} editing={editing} onChange={(n) => setFixas({ rateHEB: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`HR · ${gs.recoveryHours} (${preset.sym}/h)`} value={fixas.rateHR} editing={editing} onChange={(n) => setFixas({ rateHR: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.meal} (${preset.sym})`} value={fixas.refeicao} editing={editing} onChange={(n) => setFixas({ refeicao: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.telephone} (${preset.sym})`} value={fixas.telefone} editing={editing} onChange={(n) => setFixas({ telefone: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.vehicle} (${preset.sym})`} value={fixas.viatura} editing={editing} onChange={(n) => setFixas({ viatura: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.material} (${preset.sym})`} value={fixas.material} editing={editing} onChange={(n) => setFixas({ material: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.perDiem} (${preset.sym})`} value={fixas.perDiem} editing={editing} onChange={(n) => setFixas({ perDiem: n })} COLORS={COLORS} styles={s} />
         </View>
 
         {/* Regime Fiscal (movido de Definições) — percentagens editáveis, incl. 0% */}

@@ -858,7 +858,7 @@ export default function ProjectEditor() {
           <Num label={t("min_rest")} value={project!.tabela.descanso_min} onChange={(n) => setP("tabela", { ...project!.tabela, descanso_min: n })} />
         </Grid2>
         <Text style={ss.helperTitle}>{t("base_hour_mult")}</Text>
-        <Text style={ss.fieldHint}>{t("mult_writethrough_hint", { defaultValue: "Ao alterar um multiplicador, a taxa €/h correspondente é recalculada a partir do salário atual." })}</Text>
+        <Text style={ss.fieldHint}>{t("mult_writethrough_hint", { defaultValue: "Ao alterar um multiplicador, a taxa {{sym}}/h correspondente é recalculada a partir do salário atual.", sym: getPreset(regionCode).currencySymbol })}</Text>
         <Grid3>
           <Num label={t("mult_hea")} value={project!.tabela.multHEA ?? 1.5} onChange={(n) => applyMult("multHEA", "rateHEA", n || 1.5)} />
           <Num label={t("mult_heb")} value={project!.tabela.multHEB ?? 2.0} onChange={(n) => applyMult("multHEB", "rateHEB", n || 2.0)} />
