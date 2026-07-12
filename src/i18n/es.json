@@ -414,5 +414,8 @@
   "auth_confirm_email_body": "Te hemos enviado un email de confirmación. Haz clic en el enlace para activar la cuenta y luego inicia sesión.",
   "auth_reset_invalid": "Enlace no válido o caducado. Solicita un nuevo email de recuperación.",
   "auth_email_confirmed": "¡Email confirmado! Ya puedes iniciar sesión.",
-  "region_dk": "Dinamarca"
+  "region_dk": "Dinamarca",
+  "unsaved_changes": "Cambios sin guardar",
+  "unsaved_changes_msg": "¿Quieres guardar los cambios antes de salir?",
+  "ignore": "Descartar"
 }

@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import {
   Alert,
   Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -125,7 +126,9 @@ export default function ProfileEditScreen() {
 
   const [p, setP] = useState<Profile | null>(null);
   const [original, setOriginal] = useState<Profile | null>(null);
-  const [editing, setEditing] = useState(edit === "1");
+  // O perfil abre SEMPRE em modo de edição (mexe-se e carrega-se em Guardar;
+  // não há passo "Editar" intermédio).
+  const [editing] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
   const [preset, setPreset] = useState<{ IRS_percent: number; IVA_percent: number; taxIncome: string; taxVat: string; sym: string }>({
@@ -169,36 +172,28 @@ export default function ProfileEditScreen() {
     })();
   }, [id, t]);
 
-  function handleEdit() {
-    setEditing(true);
-  }
-
+  // Voltar: se houver alterações por gravar, abre o popup Guardar/Ignorar
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
   function handleCancel() {
     const isDirty = JSON.stringify(p) !== JSON.stringify(original);
     if (!isDirty) {
-      setP(original);
-      setEditing(false);
+      router.back();
       return;
     }
-    if (Platform.OS === "web") {
-      const ok = (window as any).confirm(
-        t("discard_changes_confirm", { defaultValue: "Descartar alterações? As tuas alterações não serão guardadas." })
-      );
-      if (ok) { setP(original); setEditing(false); }
-    } else {
-      Alert.alert(
-        t("discard_changes", { defaultValue: "Descartar alterações?" }),
-        t("discard_changes_confirm", { defaultValue: "As tuas alterações não serão guardadas." }),
-        [
-          { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
-          { text: t("discard", { defaultValue: "Descartar" }), style: "destructive", onPress: () => { setP(original); setEditing(false); } },
-        ]
-      );
-    }
+    setLeaveConfirm(true);
+  }
+  async function leaveSaving() {
+    setLeaveConfirm(false);
+    const ok = await handleSave();
+    if (ok) router.back();
+  }
+  function leaveIgnoring() {
+    setLeaveConfirm(false);
+    router.back();
   }
 
-  async function handleSave() {
-    if (!p || saving) return;
+  async function handleSave(): Promise<boolean> {
+    if (!p || saving) return false;
 
     const nome = (p.nome || "").trim();
     if (!nome) {
@@ -206,7 +201,7 @@ export default function ProfileEditScreen() {
         t("invalid_name", { defaultValue: "Nome inválido" }),
         t("invalid_name_msg", { defaultValue: "O nome não pode estar vazio." })
       );
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -216,15 +211,16 @@ export default function ProfileEditScreen() {
       await setActiveProfileId(p.id);
       if (user) syncProfileToCloud(user.id, updated);
       setOriginal(updated);
-      setEditing(false);
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 2400);
+      return true;
     } catch (e) {
       console.error("Erro ao guardar perfil", e);
       Alert.alert(
         t("error", { defaultValue: "Erro" }),
         t("save_error", { defaultValue: "Não foi possível guardar. Tenta novamente." })
       );
+      return false;
     } finally {
       setSaving(false);
     }
@@ -342,38 +338,25 @@ export default function ProfileEditScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <View style={s.header}>
-        <Pressable onPress={editing ? handleCancel : () => router.back()} hitSlop={8}>
-          <Text style={s.backLink}>
-            ‹ {editing ? t("cancel", { defaultValue: "Cancelar" }) : t("back", { defaultValue: "Voltar" })}
-          </Text>
+        {/* Sempre em edição: Voltar (com aviso se houver alterações) + Guardar */}
+        <Pressable onPress={handleCancel} hitSlop={8}>
+          <Text style={s.backLink}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
         </Pressable>
 
         <Text style={s.headerTitle}>
           {t("profile", { defaultValue: "Perfil" })}
         </Text>
 
-        {editing ? (
-          <Pressable
-            onPress={handleSave}
-            disabled={saving}
-            style={({ pressed }) => [s.actionBtn, pressed && !saving && { opacity: 0.85 }, saving && { opacity: 0.5 }]}
-            hitSlop={8}
-          >
-            <Text style={s.actionBtnText}>
-              {saving ? t("saving", { defaultValue: "A guardar…" }) : t("save", { defaultValue: "Guardar" })}
-            </Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            onPress={handleEdit}
-            style={({ pressed }) => [s.actionBtn, pressed && { opacity: 0.85 }]}
-            hitSlop={8}
-          >
-            <Text style={s.actionBtnText}>
-              {t("edit", { defaultValue: "Editar" })}
-            </Text>
-          </Pressable>
-        )}
+        <Pressable
+          onPress={handleSave}
+          disabled={saving}
+          style={({ pressed }) => [s.actionBtn, pressed && !saving && { opacity: 0.85 }, saving && { opacity: 0.5 }]}
+          hitSlop={8}
+        >
+          <Text style={s.actionBtnText}>
+            {saving ? t("saving", { defaultValue: "A guardar…" }) : t("save", { defaultValue: "Guardar" })}
+          </Text>
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
@@ -525,13 +508,11 @@ export default function ProfileEditScreen() {
           )}
         </View>
 
-        {!editing && (
-          <Pressable onPress={handleDelete} style={({ pressed }) => [s.deleteBtn, pressed && { opacity: 0.85 }]}>
-            <Text style={s.deleteBtnText}>
-              {t("delete_profile", { defaultValue: "Apagar perfil" })}
-            </Text>
-          </Pressable>
-        )}
+        <Pressable onPress={handleDelete} style={({ pressed }) => [s.deleteBtn, pressed && { opacity: 0.85 }]}>
+          <Text style={s.deleteBtnText}>
+            {t("delete_profile", { defaultValue: "Apagar perfil" })}
+          </Text>
+        </Pressable>
 
         <View style={{ height: 24 }} />
       </ScrollView>
@@ -541,6 +522,44 @@ export default function ProfileEditScreen() {
           <Text style={s.savedToastText}>✓ {t("saved", { defaultValue: "Guardado" })}</Text>
         </View>
       )}
+
+      {/* Sair com alterações por gravar: Guardar / Ignorar / Cancelar */}
+      <Modal transparent animationType="fade" visible={leaveConfirm} onRequestClose={() => setLeaveConfirm(false)}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
+          onPress={() => setLeaveConfirm(false)}
+        >
+          <Pressable
+            style={{ width: "100%", maxWidth: 420, backgroundColor: COLORS.card, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: COLORS.border }}
+            onPress={() => {}}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "900", color: COLORS.text, textAlign: "center" }}>
+              {t("unsaved_changes", { defaultValue: "Alterações por guardar" })}
+            </Text>
+            <Text style={{ fontSize: 13, color: COLORS.sub, textAlign: "center", marginTop: 6, marginBottom: 14 }}>
+              {t("unsaved_changes_msg", { defaultValue: "Queres guardar as alterações antes de sair?" })}
+            </Text>
+            <Pressable
+              onPress={leaveSaving}
+              style={({ pressed }) => [{ alignItems: "center", paddingVertical: 12, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={{ color: COLORS.bg, fontWeight: "900" }}>{t("save", { defaultValue: "Guardar" })}</Text>
+            </Pressable>
+            <Pressable
+              onPress={leaveIgnoring}
+              style={({ pressed }) => [{ alignItems: "center", paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.bg, marginTop: 8 }, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={{ color: COLORS.danger, fontWeight: "900" }}>{t("ignore", { defaultValue: "Ignorar" })}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setLeaveConfirm(false)}
+              style={({ pressed }) => [{ alignItems: "center", paddingVertical: 10, marginTop: 4 }, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={{ color: COLORS.sub, fontWeight: "800", fontSize: 13 }}>{t("cancel", { defaultValue: "Cancelar" })}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

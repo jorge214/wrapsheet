@@ -414,5 +414,8 @@
   "auth_confirm_email_body": "Enviámos-te um email de confirmação. Clica no link para ativares a conta e depois inicia sessão.",
   "auth_reset_invalid": "Link inválido ou expirado. Pede um novo email de recuperação.",
   "auth_email_confirmed": "Email confirmado! Já podes iniciar sessão.",
-  "region_dk": "Dinamarca"
+  "region_dk": "Dinamarca",
+  "unsaved_changes": "Alterações por guardar",
+  "unsaved_changes_msg": "Queres guardar as alterações antes de sair?",
+  "ignore": "Ignorar"
 }

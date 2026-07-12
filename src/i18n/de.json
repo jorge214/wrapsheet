@@ -414,5 +414,8 @@
   "auth_confirm_email_body": "Wir haben dir eine Bestätigungs-E-Mail gesendet. Klicke auf den Link, um das Konto zu aktivieren, und melde dich dann an.",
   "auth_reset_invalid": "Ungültiger oder abgelaufener Link. Fordere eine neue Wiederherstellungs-E-Mail an.",
   "auth_email_confirmed": "E-Mail bestätigt! Du kannst dich jetzt anmelden.",
-  "region_dk": "Dänemark"
+  "region_dk": "Dänemark",
+  "unsaved_changes": "Ungespeicherte Änderungen",
+  "unsaved_changes_msg": "Möchtest du die Änderungen vor dem Verlassen speichern?",
+  "ignore": "Verwerfen"
 }

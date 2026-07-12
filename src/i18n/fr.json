@@ -414,5 +414,8 @@
   "auth_confirm_email_body": "Nous vous avons envoyé un e-mail de confirmation. Cliquez sur le lien pour activer le compte, puis connectez-vous.",
   "auth_reset_invalid": "Lien invalide ou expiré. Demandez un nouvel e-mail de récupération.",
   "auth_email_confirmed": "E-mail confirmé ! Vous pouvez maintenant vous connecter.",
-  "region_dk": "Danemark"
+  "region_dk": "Danemark",
+  "unsaved_changes": "Modifications non enregistrées",
+  "unsaved_changes_msg": "Voulez-vous enregistrer les modifications avant de quitter ?",
+  "ignore": "Ignorer"
 }

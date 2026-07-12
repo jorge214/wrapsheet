@@ -414,5 +414,8 @@
   "auth_confirm_email_body": "Ti abbiamo inviato un'email di conferma. Clicca sul link per attivare l'account, poi accedi.",
   "auth_reset_invalid": "Link non valido o scaduto. Richiedi una nuova email di recupero.",
   "auth_email_confirmed": "Email confermata! Ora puoi accedere.",
-  "region_dk": "Danimarca"
+  "region_dk": "Danimarca",
+  "unsaved_changes": "Modifiche non salvate",
+  "unsaved_changes_msg": "Vuoi salvare le modifiche prima di uscire?",
+  "ignore": "Ignora"
 }
