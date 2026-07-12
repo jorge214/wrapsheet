@@ -168,17 +168,18 @@ const createStyles = (COLORS: any) =>
       color: COLORS.sub,
       marginBottom: 10,
     },
+    // Identidade preto/cinza — nada de azul neste ecrã
     priceText: {
       fontSize: 16,
-      fontWeight: "700",
-      color: COLORS.accent,
+      fontWeight: "800",
+      color: COLORS.text,
       marginBottom: 6,
     },
     badge: {
       alignSelf: "flex-start",
       fontSize: 11,
-      fontWeight: "700",
-      color: COLORS.accent,
+      fontWeight: "800",
+      color: COLORS.sub,
       marginBottom: 4,
     },
     badgeMuted: {
@@ -199,7 +200,7 @@ const createStyles = (COLORS: any) =>
       gap: 6,
     },
     bulletDot: {
-      color: COLORS.accent,
+      color: COLORS.text,
       fontSize: 14,
       lineHeight: 18,
     },

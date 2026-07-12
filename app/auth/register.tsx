@@ -27,6 +27,7 @@ export default function RegisterScreen() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmSent, setConfirmSent] = useState(false);
 
   useEffect(() => {
     if (session) router.replace("/");
@@ -38,8 +39,35 @@ export default function RegisterScreen() {
     if (password.length < 6) { setError(t("auth_password_too_short")); return; }
     setLoading(true);
     setError(null);
-    const err = await signUp(email.trim(), password);
-    if (err) { setError(err); setLoading(false); }
+    const res = await signUp(email.trim(), password);
+    if (res.error) { setError(res.error); setLoading(false); return; }
+    if (res.needsConfirmation) {
+      // Conta criada mas o Supabase exige confirmação por email antes do login
+      setConfirmSent(true);
+      setLoading(false);
+    }
+    // com sessão, o useEffect acima redireciona
+  }
+
+  if (confirmSent) {
+    return (
+      <SafeAreaView style={styles(COLORS, mode).root}>
+        <View style={{ flex: 1, justifyContent: "center", padding: 24 }}>
+          <Text style={{ fontSize: 26, fontWeight: "900", color: COLORS.text, marginBottom: 12, textAlign: "center" }}>
+            ✉️ {t("auth_confirm_email_title", { defaultValue: "Confirma o teu email" })}
+          </Text>
+          <Text style={{ fontSize: 15, color: COLORS.sub, textAlign: "center", lineHeight: 22 }}>
+            {t("auth_confirm_email_body", { defaultValue: "Enviámos-te um email de confirmação. Clica no link para ativares a conta e depois inicia sessão." })}
+          </Text>
+          <Pressable
+            onPress={() => router.replace("/auth/login")}
+            style={{ marginTop: 24, alignSelf: "center", borderWidth: 1, borderColor: COLORS.border, borderRadius: 999, paddingVertical: 12, paddingHorizontal: 24 }}
+          >
+            <Text style={{ color: COLORS.text, fontWeight: "900" }}>{t("auth_login_title")}</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   const s = styles(COLORS, mode);

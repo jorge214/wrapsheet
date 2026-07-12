@@ -2,12 +2,17 @@ import { Session, User } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
+// Domínio de produção da web app — para onde apontam os links dos emails
+// (recuperação de palavra-passe e confirmação de registo).
+export const SITE_URL = "https://wrapsheet-app.com";
+
 type AuthContextType = {
   session: Session | null;
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
-  signUp: (email: string, password: string) => Promise<string | null>;
+  /** Devolve { error } ou { needsConfirmation: true } quando o Supabase exige confirmação por email */
+  signUp: (email: string, password: string) => Promise<{ error: string | null; needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<string | null>;
 };
@@ -41,9 +46,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return error ? error.message : null;
   }
 
-  async function signUp(email: string, password: string): Promise<string | null> {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return error ? error.message : null;
+  async function signUp(email: string, password: string): Promise<{ error: string | null; needsConfirmation: boolean }> {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${SITE_URL}/auth/login` },
+    });
+    if (error) return { error: error.message, needsConfirmation: false };
+    // Com "Confirm email" ativo no Supabase, não há sessão até o utilizador
+    // clicar no link do email — a UI deve mostrar "verifica o teu email".
+    return { error: null, needsConfirmation: !data.session };
   }
 
   async function signOut(): Promise<void> {
@@ -51,7 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function resetPassword(email: string): Promise<string | null> {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    // Sem redirectTo, o link do email caía no Site URL predefinido do Supabase
+    // (localhost) → "server not found". Aponta para o ecrã de reposição na web.
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${SITE_URL}/auth/reset`,
+    });
     return error ? error.message : null;
   }
 

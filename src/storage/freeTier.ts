@@ -1,22 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
+// src/storage/freeTier.ts
+// Limites do plano gratuito.
+// - Exports de PDF: ILIMITADOS (o PDF é o recibo com que o técnico é pago —
+//   nunca se bloqueia; a antiga contagem de 3 exports foi removida).
+// - O gate do futuro Pro é o número de projetos ativos (por agora desativado
+//   com Infinity, até o Pro ser comprável).
 export const FREE_PROJECT_LIMIT = Infinity;
-export const FREE_PDF_EXPORTS = 3;
-
-const PDF_COUNT_KEY = "app:pdfExports:count";
-
-export async function getPdfExportCount(): Promise<number> {
-  const raw = await AsyncStorage.getItem(PDF_COUNT_KEY);
-  if (!raw) return 0;
-  const n = parseInt(raw, 10);
-  return isNaN(n) ? 0 : n;
-}
-
-export async function incrementPdfExportCount(): Promise<void> {
-  const current = await getPdfExportCount();
-  await AsyncStorage.setItem(PDF_COUNT_KEY, String(current + 1));
-}
-
-export async function canExportPdf(): Promise<boolean> {
-  return true;
-}

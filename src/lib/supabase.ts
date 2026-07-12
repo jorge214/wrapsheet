@@ -35,6 +35,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: buildStorage(),
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // Na web tem de estar ativo: é o que apanha o token do link de
+    // recuperação de palavra-passe (#access_token…type=recovery) no /auth/reset.
+    detectSessionInUrl: Platform.OS === "web" && typeof window !== "undefined",
   },
 });
