@@ -2,7 +2,10 @@
   "buildCommand": "npx expo export -p web",
   "outputDirectory": "dist",
   "framework": null,
+  "cleanUrls": true,
+  "trailingSlash": false,
   "rewrites": [
-    { "source": "/projects/:id", "destination": "/projects/[id]" }
+    { "source": "/projects/:id", "destination": "/projects/[id].html" },
+    { "source": "/profiles/:id", "destination": "/profiles/[id].html" }
   ]
 }
