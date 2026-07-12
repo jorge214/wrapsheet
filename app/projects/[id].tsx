@@ -153,24 +153,24 @@ export default function ProjectEditor() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
-  // Renomear o projeto a partir do título da página (sem abrir a folha)
-  const [renameOpen, setRenameOpen] = useState(false);
+  // Título editável inline: tocar no nome transforma-o num campo de texto
+  // no próprio sítio (sem diálogo); Enter/sair grava.
+  const [editingTitle, setEditingTitle] = useState(false);
   const [renameVal, setRenameVal] = useState("");
   function openRenameTitle() {
     const p = projectRef.current;
     if (!p) return;
     setRenameVal(p.projeto.titulo || p.projeto.filme || "");
-    setRenameOpen(true);
+    setEditingTitle(true);
   }
-  function saveRenameTitle() {
+  function saveTitleInline() {
     const p = projectRef.current;
+    setEditingTitle(false);
     if (!p) return;
     const nome = renameVal.trim();
-    setRenameOpen(false);
-    if (!nome) return;
+    if (!nome || nome === (p.projeto.titulo || p.projeto.filme || "")) return;
     // titulo é o que aparece na lista e na barra vermelha da folha
     setP("projeto", { ...p.projeto, titulo: nome });
-    showToast(t("toast_renamed", { defaultValue: "✓ Projeto renomeado" }));
   }
 
   // Toast de confirmação (ex.: "✓ Perfil aplicado")
@@ -902,13 +902,27 @@ export default function ProjectEditor() {
     const monthCap = mName.charAt(0).toUpperCase() + mName.slice(1);
     return (
       <View>
-        {/* Título tocável — renomear sem ter de abrir a folha */}
-        <Pressable onPress={openRenameTitle} hitSlop={6}>
-          <Text style={ss.mStatsTitle} numberOfLines={2}>
-            {project!.projeto.titulo || project!.projeto.filme || t("unnamed_project")}
-            <Text style={{ fontSize: 16, color: COLORS.sub }}>  ✏️</Text>
-          </Text>
-        </Pressable>
+        {/* Título editável no próprio sítio: tocar → escrever → Enter/sair grava */}
+        {editingTitle ? (
+          <TextInput
+            value={renameVal}
+            onChangeText={setRenameVal}
+            style={[ss.mStatsTitle, { borderBottomWidth: 2, borderColor: COLORS.border, paddingVertical: 2 }]}
+            placeholder={t("project_name", { defaultValue: "Nome do projeto" })}
+            placeholderTextColor={COLORS.sub}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={saveTitleInline}
+            onBlur={saveTitleInline}
+          />
+        ) : (
+          <Pressable onPress={openRenameTitle} hitSlop={6}>
+            <Text style={ss.mStatsTitle} numberOfLines={2}>
+              {project!.projeto.titulo || project!.projeto.filme || t("unnamed_project")}
+              <Text style={{ fontSize: 16, color: COLORS.sub }}>  ✏️</Text>
+            </Text>
+          </Pressable>
+        )}
         <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
 
         <Pressable onPress={openEditHtml} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
@@ -1484,46 +1498,6 @@ export default function ProjectEditor() {
           )}
         </SafeAreaView>
         </SafeAreaProvider>
-      </Modal>
-
-      {/* Renomear projeto (título tocável na página) */}
-      <Modal transparent animationType="fade" visible={renameOpen} onRequestClose={() => setRenameOpen(false)}>
-        <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
-          onPress={() => setRenameOpen(false)}
-        >
-          <Pressable
-            style={{ width: "100%", maxWidth: 420, backgroundColor: COLORS.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: COLORS.border }}
-            onPress={() => {}}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "900", color: COLORS.text, marginBottom: 10, textAlign: "center" }}>
-              {t("rename_project", { defaultValue: "Renomear projeto" })}
-            </Text>
-            <TextInput
-              value={renameVal}
-              onChangeText={setRenameVal}
-              placeholder={t("project_name", { defaultValue: "Nome do projeto" })}
-              placeholderTextColor={COLORS.sub}
-              style={{ backgroundColor: COLORS.cardAlt, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, color: COLORS.text }}
-              autoFocus
-              onSubmitEditing={saveRenameTitle}
-            />
-            <View style={{ flexDirection: "row", gap: 10, justifyContent: "center", marginTop: 12 }}>
-              <Pressable
-                onPress={() => setRenameOpen(false)}
-                style={({ pressed }) => [{ flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 999, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.bg }, pressed && { opacity: 0.85 }]}
-              >
-                <Text style={{ color: COLORS.text, fontWeight: "900" }}>{t("cancel", { defaultValue: "Cancelar" })}</Text>
-              </Pressable>
-              <Pressable
-                onPress={saveRenameTitle}
-                style={({ pressed }) => [{ flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
-              >
-                <Text style={{ color: COLORS.bg, fontWeight: "900" }}>{t("save", { defaultValue: "Guardar" })}</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
       </Modal>
 
       {/* Toast de confirmação */}
