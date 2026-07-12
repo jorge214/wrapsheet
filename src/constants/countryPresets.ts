@@ -1,7 +1,7 @@
 export type RegionCode =
   | "pt" | "es" | "fr" | "uk" | "de"
   | "se" | "ch" | "cz" | "no" | "fi"
-  | "nl" | "be" | "at" | "pl" | "hu";
+  | "nl" | "be" | "at" | "pl" | "hu" | "dk";
 
 export type RegionPreset = {
   code: RegionCode;
@@ -224,6 +224,16 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
     currencySymbol: "Ft",
     taxLabels: { incomeTax: "SZJA", vat: "ÁFA" },
     fiscal: { IRS_percent: 15, IVA_percent: 27 },
+    tabela: { H_dia: 10, descanso_min: 11, multHEA: 1.5, multHEB: 2.0, multHR: 2.0, limiar_A: 10, limiar_B: 14 },
+  },
+  dk: {
+    code: "dk",
+    nameKey: "region_dk",
+    flag: "🇩🇰",
+    currency: "DKK",
+    currencySymbol: "kr.",
+    taxLabels: { incomeTax: "Indkomstskat", vat: "Moms" },
+    fiscal: { IRS_percent: 0, IVA_percent: 25 },
     tabela: { H_dia: 10, descanso_min: 11, multHEA: 1.5, multHEB: 2.0, multHR: 2.0, limiar_A: 10, limiar_B: 14 },
   },
 };

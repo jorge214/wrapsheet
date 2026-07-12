@@ -665,7 +665,7 @@ export function fmtMoney(n: number, currency = "EUR") {
 export function currencySymbol(code: string): string {
   const map: Record<string, string> = {
     EUR: "€", GBP: "£", USD: "$",
-    SEK: "kr", NOK: "kr", CHF: "CHF", CZK: "Kč", PLN: "zł", HUF: "Ft",
+    SEK: "kr", NOK: "kr", CHF: "CHF", CZK: "Kč", PLN: "zł", HUF: "Ft", DKK: "kr.",
   };
   return map[code] || code;
 }

@@ -25,6 +25,7 @@ const FLAGS: Record<string, any> = {
   be: require("../../assets/flags/be.png"),
   at: require("../../assets/flags/at.png"),
   hu: require("../../assets/flags/hu.png"),
+  dk: require("../../assets/flags/dk.png"),
 };
 
 // Map app region/language codes → ISO country code.
@@ -47,6 +48,7 @@ const ISO: Record<string, string> = {
   be: "be",
   at: "at",
   hu: "hu",
+  dk: "dk",
 };
 
 export function Flag({ code, size = 30 }: { code: string; size?: number }) {

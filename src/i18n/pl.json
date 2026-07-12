@@ -401,7 +401,7 @@
   "preview_web_only": "Podgląd jest dostępny w wersji webowej aplikacji.",
   "about_description": "WrapSheet pomaga technikom filmowym i reklamowym rejestrować godziny pracy i generować profesjonalne arkusze płac w PDF.",
   "about_contact_support": "Skontaktuj się z pomocą",
-  "dash_net_month": "Kwota netto (miesiąc)",
+  "dash_net_month": "Kwota faktury (miesiąc)",
   "dash_irs_month": "Potrącony {{tax}} (miesiąc)",
   "dash_iva_month": "{{tax}} (miesiąc)",
   "dash_overtime_month": "Nadgodziny (miesiąc)",
@@ -409,9 +409,10 @@
   "dash_year_section": "Narastająco w roku",
   "dash_hours_year": "Godziny (rok)",
   "dash_gross_year": "Kwota brutto (rok)",
-  "dash_net_year": "Kwota netto (rok)",
+  "dash_net_year": "Kwota faktury (rok)",
   "auth_confirm_email_title": "Potwierdź swój e-mail",
   "auth_confirm_email_body": "Wysłaliśmy e-mail z potwierdzeniem. Kliknij link, aby aktywować konto, a następnie zaloguj się.",
   "auth_reset_invalid": "Link nieprawidłowy lub wygasł. Poproś o nowy e-mail odzyskiwania.",
-  "auth_email_confirmed": "E-mail potwierdzony! Możesz się teraz zalogować."
+  "auth_email_confirmed": "E-mail potwierdzony! Możesz się teraz zalogować.",
+  "region_dk": "Dania"
 }

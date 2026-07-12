@@ -391,7 +391,7 @@
   "preview_web_only": "The preview is available in the web version of the app.",
   "about_description": "WrapSheet helps film and advertising technicians track working hours and generate professional PDF payment sheets.",
   "about_contact_support": "Contact support",
-  "dash_net_month": "Net value (month)",
+  "dash_net_month": "Invoice total (month)",
   "dash_irs_month": "{{tax}} withheld (month)",
   "dash_iva_month": "{{tax}} (month)",
   "dash_overtime_month": "Overtime hours (month)",
@@ -399,7 +399,7 @@
   "dash_year_section": "Year to date",
   "dash_hours_year": "Hours (year)",
   "dash_gross_year": "Gross value (year)",
-  "dash_net_year": "Net value (year)",
+  "dash_net_year": "Invoice total (year)",
   "region_se": "Sweden",
   "region_ch": "Switzerland",
   "region_cz": "Czechia",
@@ -413,5 +413,6 @@
   "auth_confirm_email_title": "Confirm your email",
   "auth_confirm_email_body": "We've sent you a confirmation email. Click the link to activate your account, then sign in.",
   "auth_reset_invalid": "Invalid or expired link. Request a new recovery email.",
-  "auth_email_confirmed": "Email confirmed! You can now sign in."
+  "auth_email_confirmed": "Email confirmed! You can now sign in.",
+  "region_dk": "Denmark"
 }

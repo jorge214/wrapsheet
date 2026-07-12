@@ -413,5 +413,6 @@
   "auth_confirm_email_title": "Confirma o teu email",
   "auth_confirm_email_body": "Enviámos-te um email de confirmação. Clica no link para ativares a conta e depois inicia sessão.",
   "auth_reset_invalid": "Link inválido ou expirado. Pede um novo email de recuperação.",
-  "auth_email_confirmed": "Email confirmado! Já podes iniciar sessão."
+  "auth_email_confirmed": "Email confirmado! Já podes iniciar sessão.",
+  "region_dk": "Dinamarca"
 }
