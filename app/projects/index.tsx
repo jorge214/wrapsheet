@@ -69,11 +69,11 @@ export default function ProjectsScreen() {
   const [archived, setArchived] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Mensagem de sucesso (toast) após uma ação
-  const [toast, setToast] = useState<string | null>(null);
+  // Mensagem (toast) após uma ação — verde para sucesso, vermelho para apagar
+  const [toast, setToast] = useState<{ msg: string; kind: "success" | "danger" } | null>(null);
   const toastTimer = useRef<any>(null);
-  function showToast(msg: string) {
-    setToast(msg);
+  function showToast(msg: string, kind: "success" | "danger" = "success") {
+    setToast({ msg, kind });
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2600);
   }
@@ -194,7 +194,7 @@ export default function ProjectsScreen() {
     }
     if (user) await deleteProjectFromCloud(user.id, row.id);
     await loadProjects();
-    showToast(t("toast_deleted", { defaultValue: "Projeto apagado" }));
+    showToast(t("toast_deleted", { defaultValue: "Projeto apagado" }), "danger");
   }
 
   async function confirmDelete(row: Row) {
@@ -625,10 +625,10 @@ export default function ProjectsScreen() {
         <View style={{ height: 110 }} />
       </ScrollView>
 
-      {/* Toast de sucesso */}
+      {/* Toast (verde = sucesso, vermelho = apagado) */}
       {toast && (
-        <View style={s.toast} pointerEvents="none">
-          <Text style={s.toastText}>{toast}</Text>
+        <View style={[s.toast, toast.kind === "danger" && { backgroundColor: "#c62828" }]} pointerEvents="none">
+          <Text style={s.toastText}>{toast.msg}</Text>
         </View>
       )}
 
