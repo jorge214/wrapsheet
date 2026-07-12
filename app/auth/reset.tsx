@@ -8,6 +8,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { applyLangFromUrl } from "../../src/i18n/i18n";
 import { supabase } from "../../src/lib/supabase";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
@@ -23,6 +24,8 @@ export default function ResetPasswordScreen() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
+    // Abre na língua escolhida quando se pediu a recuperação (?lang=)
+    applyLangFromUrl();
     // Link expirado/inválido chega com #error=… em vez de token
     if (Platform.OS === "web" && typeof window !== "undefined") {
       const h = window.location.hash || "";

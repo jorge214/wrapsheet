@@ -63,6 +63,20 @@ export async function setAppLanguage(code: LangCode) {
   await i18n.changeLanguage(code);
 }
 
+// Aplica a língua vinda de um parâmetro ?lang= no URL (web).
+// Usado nas páginas de aterragem dos emails (confirmação de registo e
+// recuperação de palavra-passe) para abrirem na língua escolhida no registo,
+// independentemente da língua do browser onde o link foi aberto.
+export async function applyLangFromUrl(): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    const lang = new URLSearchParams(window.location.search).get("lang");
+    if (lang && (SUPPORTED_LANGS as readonly string[]).includes(lang) && i18n.language !== lang) {
+      await setAppLanguage(lang as LangCode);
+    }
+  } catch {}
+}
+
 export async function loadStoredLanguage() {
   const saved = await AsyncStorage.getItem(LANG_KEY);
   if (saved && (SUPPORTED_LANGS as readonly string[]).includes(saved)) {

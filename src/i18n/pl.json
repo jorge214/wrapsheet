@@ -412,5 +412,6 @@
   "dash_net_year": "Kwota netto (rok)",
   "auth_confirm_email_title": "Potwierdź swój e-mail",
   "auth_confirm_email_body": "Wysłaliśmy e-mail z potwierdzeniem. Kliknij link, aby aktywować konto, a następnie zaloguj się.",
-  "auth_reset_invalid": "Link nieprawidłowy lub wygasł. Poproś o nowy e-mail odzyskiwania."
+  "auth_reset_invalid": "Link nieprawidłowy lub wygasł. Poproś o nowy e-mail odzyskiwania.",
+  "auth_email_confirmed": "E-mail potwierdzony! Możesz się teraz zalogować."
 }

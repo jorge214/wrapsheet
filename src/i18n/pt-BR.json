@@ -412,5 +412,6 @@
   "region_hu": "Hungria",
   "auth_confirm_email_title": "Confirme seu email",
   "auth_confirm_email_body": "Enviamos um email de confirmação. Clique no link para ativar a conta e depois faça login.",
-  "auth_reset_invalid": "Link inválido ou expirado. Peça um novo email de recuperação."
+  "auth_reset_invalid": "Link inválido ou expirado. Peça um novo email de recuperação.",
+  "auth_email_confirmed": "Email confirmado! Você já pode fazer login."
 }

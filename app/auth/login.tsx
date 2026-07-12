@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/auth/AuthContext";
+import { applyLangFromUrl } from "../../src/i18n/i18n";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { LanguagePicker } from "../../src/ui/LanguagePicker";
 import { WrapSheetLogo } from "../../src/ui/WrapSheetLogo";
@@ -27,6 +28,17 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justConfirmed, setJustConfirmed] = useState(false);
+
+  // Página de aterragem do email de confirmação: aplica a língua do registo
+  // (?lang=) e mostra o aviso "email confirmado" (?confirmed=1)
+  useEffect(() => {
+    applyLangFromUrl();
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const q = new URLSearchParams(window.location.search);
+      if (q.get("confirmed") === "1") setJustConfirmed(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (session) router.replace("/");
@@ -57,6 +69,14 @@ export default function LoginScreen() {
           </View>
 
           <Text style={s.title}>{t("auth_login_title")}</Text>
+
+          {justConfirmed && (
+            <View style={{ backgroundColor: "#e4f6ea", borderColor: "#1a9c4e", borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 14 }}>
+              <Text style={{ color: "#137a3a", fontWeight: "800", fontSize: 14 }}>
+                ✓ {t("auth_email_confirmed", { defaultValue: "Email confirmado! Já podes iniciar sessão." })}
+              </Text>
+            </View>
+          )}
 
           {error && <Text style={s.errorText}>{error}</Text>}
 

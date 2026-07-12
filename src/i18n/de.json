@@ -412,5 +412,6 @@
   "region_hu": "Ungarn",
   "auth_confirm_email_title": "Bestätige deine E-Mail",
   "auth_confirm_email_body": "Wir haben dir eine Bestätigungs-E-Mail gesendet. Klicke auf den Link, um das Konto zu aktivieren, und melde dich dann an.",
-  "auth_reset_invalid": "Ungültiger oder abgelaufener Link. Fordere eine neue Wiederherstellungs-E-Mail an."
+  "auth_reset_invalid": "Ungültiger oder abgelaufener Link. Fordere eine neue Wiederherstellungs-E-Mail an.",
+  "auth_email_confirmed": "E-Mail bestätigt! Du kannst dich jetzt anmelden."
 }

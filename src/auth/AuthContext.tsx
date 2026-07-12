@@ -1,5 +1,6 @@
 import { Session, User } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import i18n from "../i18n/i18n";
 import { supabase } from "../lib/supabase";
 
 // Domínio de produção da web app — para onde apontam os links dos emails
@@ -47,10 +48,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signUp(email: string, password: string): Promise<{ error: string | null; needsConfirmation: boolean }> {
+    const lang = i18n.language || "en";
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${SITE_URL}/auth/login` },
+      options: {
+        // A língua vai no link (a página de aterragem aplica-a) e nos
+        // metadados do utilizador (os templates de email usam {{ .Data.lang }})
+        emailRedirectTo: `${SITE_URL}/auth/login?confirmed=1&lang=${encodeURIComponent(lang)}`,
+        data: { lang },
+      },
     });
     if (error) return { error: error.message, needsConfirmation: false };
     // Com "Confirm email" ativo no Supabase, não há sessão até o utilizador
@@ -64,9 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function resetPassword(email: string): Promise<string | null> {
     // Sem redirectTo, o link do email caía no Site URL predefinido do Supabase
-    // (localhost) → "server not found". Aponta para o ecrã de reposição na web.
+    // (localhost) → "server not found". Aponta para o ecrã de reposição na web,
+    // levando a língua atual para a página abrir na língua certa.
+    const lang = i18n.language || "en";
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${SITE_URL}/auth/reset`,
+      redirectTo: `${SITE_URL}/auth/reset?lang=${encodeURIComponent(lang)}`,
     });
     return error ? error.message : null;
   }

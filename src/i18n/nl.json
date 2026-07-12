@@ -412,5 +412,6 @@
   "dash_net_year": "Nettobedrag (jaar)",
   "auth_confirm_email_title": "Bevestig je e-mail",
   "auth_confirm_email_body": "We hebben je een bevestigingsmail gestuurd. Klik op de link om het account te activeren en log daarna in.",
-  "auth_reset_invalid": "Ongeldige of verlopen link. Vraag een nieuwe herstel-e-mail aan."
+  "auth_reset_invalid": "Ongeldige of verlopen link. Vraag een nieuwe herstel-e-mail aan.",
+  "auth_email_confirmed": "E-mail bevestigd! Je kunt nu inloggen."
 }
