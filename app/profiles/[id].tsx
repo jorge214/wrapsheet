@@ -2,7 +2,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
-import { syncProfileToCloud } from "../../src/sync/syncService";
+import { deleteProfileFromCloud, syncProfileToCloud } from "../../src/sync/syncService";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
@@ -239,6 +239,7 @@ export default function ProfileEditScreen() {
       );
       if (ok) {
         await deleteProfile(p.id);
+        if (user) await deleteProfileFromCloud(user.id, p.id);
         router.replace("/profiles");
       }
       return;
@@ -254,6 +255,7 @@ export default function ProfileEditScreen() {
           style: "destructive",
           onPress: async () => {
             await deleteProfile(p.id);
+            if (user) await deleteProfileFromCloud(user.id, p.id);
             router.replace("/profiles");
           },
         },

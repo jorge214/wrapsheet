@@ -95,6 +95,13 @@ export async function deleteProjectFromCloud(userId: string, projectId: string):
   if (error) console.error("[sync] deleteProjectFromCloud:", error.message);
 }
 
+// Sem isto, apagar um perfil só o removia localmente e o downloadProfiles
+// da sincronização seguinte ressuscitava-o a partir da cloud.
+export async function deleteProfileFromCloud(userId: string, profileId: string): Promise<void> {
+  const { error } = await supabase.from("profiles").delete().eq("id", profileId).eq("user_id", userId);
+  if (error) console.error("[sync] deleteProfileFromCloud:", error.message);
+}
+
 /* ---------- Full sync on login ---------- */
 
 export async function fullSync(userId: string): Promise<void> {

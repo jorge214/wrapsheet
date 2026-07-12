@@ -23,6 +23,8 @@ import {
   listProfiles,
   setActiveProfileId,
 } from "../../src/storage/profile";
+import { useAuth } from "../../src/auth/AuthContext";
+import { deleteProfileFromCloud } from "../../src/sync/syncService";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 export default function ProfilesListScreen() {
@@ -31,6 +33,7 @@ export default function ProfilesListScreen() {
   const isWide = useIsWide();
   const s = useMemo(() => createStyles(COLORS, mode), [COLORS, mode]);
 
+  const { user } = useAuth();
   const [items, setItems] = useState<Profile[]>([]);
   const [activeId, setActiveId] = useState("");
 
@@ -74,6 +77,7 @@ export default function ProfilesListScreen() {
       );
       if (ok) {
         await deleteProfile(id);
+        if (user) await deleteProfileFromCloud(user.id, id);
         setOptsId(null);
         await refresh();
       }
@@ -90,6 +94,7 @@ export default function ProfilesListScreen() {
           style: "destructive",
           onPress: async () => {
             await deleteProfile(id);
+            if (user) await deleteProfileFromCloud(user.id, id);
             setOptsId(null);
             await refresh();
           },
