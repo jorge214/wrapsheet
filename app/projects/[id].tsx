@@ -153,6 +153,26 @@ export default function ProjectEditor() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
+  // Renomear o projeto a partir do título da página (sem abrir a folha)
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameVal, setRenameVal] = useState("");
+  function openRenameTitle() {
+    const p = projectRef.current;
+    if (!p) return;
+    setRenameVal(p.projeto.titulo || p.projeto.filme || "");
+    setRenameOpen(true);
+  }
+  function saveRenameTitle() {
+    const p = projectRef.current;
+    if (!p) return;
+    const nome = renameVal.trim();
+    setRenameOpen(false);
+    if (!nome) return;
+    // titulo é o que aparece na lista e na barra vermelha da folha
+    setP("projeto", { ...p.projeto, titulo: nome });
+    showToast(t("toast_renamed", { defaultValue: "✓ Projeto renomeado" }));
+  }
+
   // Toast de confirmação (ex.: "✓ Perfil aplicado")
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<any>(null);
@@ -882,9 +902,13 @@ export default function ProjectEditor() {
     const monthCap = mName.charAt(0).toUpperCase() + mName.slice(1);
     return (
       <View>
-        <Text style={ss.mStatsTitle} numberOfLines={2}>
-          {project!.projeto.titulo || project!.projeto.filme || t("unnamed_project")}
-        </Text>
+        {/* Título tocável — renomear sem ter de abrir a folha */}
+        <Pressable onPress={openRenameTitle} hitSlop={6}>
+          <Text style={ss.mStatsTitle} numberOfLines={2}>
+            {project!.projeto.titulo || project!.projeto.filme || t("unnamed_project")}
+            <Text style={{ fontSize: 16, color: COLORS.sub }}>  ✏️</Text>
+          </Text>
+        </Pressable>
         <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
 
         <Pressable onPress={openEditHtml} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
@@ -1460,6 +1484,46 @@ export default function ProjectEditor() {
           )}
         </SafeAreaView>
         </SafeAreaProvider>
+      </Modal>
+
+      {/* Renomear projeto (título tocável na página) */}
+      <Modal transparent animationType="fade" visible={renameOpen} onRequestClose={() => setRenameOpen(false)}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
+          onPress={() => setRenameOpen(false)}
+        >
+          <Pressable
+            style={{ width: "100%", maxWidth: 420, backgroundColor: COLORS.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: COLORS.border }}
+            onPress={() => {}}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "900", color: COLORS.text, marginBottom: 10, textAlign: "center" }}>
+              {t("rename_project", { defaultValue: "Renomear projeto" })}
+            </Text>
+            <TextInput
+              value={renameVal}
+              onChangeText={setRenameVal}
+              placeholder={t("project_name", { defaultValue: "Nome do projeto" })}
+              placeholderTextColor={COLORS.sub}
+              style={{ backgroundColor: COLORS.cardAlt, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, color: COLORS.text }}
+              autoFocus
+              onSubmitEditing={saveRenameTitle}
+            />
+            <View style={{ flexDirection: "row", gap: 10, justifyContent: "center", marginTop: 12 }}>
+              <Pressable
+                onPress={() => setRenameOpen(false)}
+                style={({ pressed }) => [{ flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 999, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.bg }, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={{ color: COLORS.text, fontWeight: "900" }}>{t("cancel", { defaultValue: "Cancelar" })}</Text>
+              </Pressable>
+              <Pressable
+                onPress={saveRenameTitle}
+                style={({ pressed }) => [{ flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={{ color: COLORS.bg, fontWeight: "900" }}>{t("save", { defaultValue: "Guardar" })}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Toast de confirmação */}
