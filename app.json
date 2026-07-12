@@ -55,7 +55,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "A app acede às tuas fotos para adicionares imagens às condições de trabalho da folha."
+          "photosPermission": "A app acede às tuas fotos para adicionares imagens às condições de trabalho da folha.",
+          "microphonePermission": false,
+          "cameraPermission": false
         }
       ],
       "react-native-localize"
@@ -69,6 +71,12 @@
       "eas": {
         "projectId": "6add5ccd-c99b-4660-a1eb-84246ef113c0"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6add5ccd-c99b-4660-a1eb-84246ef113c0"
     }
   }
 }
