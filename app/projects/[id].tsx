@@ -189,6 +189,15 @@ export default function ProjectEditor() {
   const [editHtmlContent, setEditHtmlContent] = useState("");
   const editIframeRef = useRef<any>(null);
   const editWebViewRef = useRef<any>(null);
+
+  // Desktop (web largo): a folha editável no formato do PDF vive INLINE na
+  // página — a mesma do telemóvel (contenteditable), com condições incluídas.
+  const inlineSheet = Platform.OS === "web" && !isPhone;
+  const inlineSheetRef = useRef<any>(null);
+  const [inlineHtml, setInlineHtml] = useState("");
+  // Edições vindas da própria folha não devem recarregar o iframe (perdia o foco)
+  const sheetSelfEdit = useRef(false);
+  const inlineRebuildTimer = useRef<any>(null);
   const [sheetZoom, setSheetZoom] = useState(() =>
     isPhone ? Math.max(0.25, Math.min(1, (winW - 2 * PAGE_X) / SHEET_W)) : 1
   );
@@ -248,12 +257,32 @@ export default function ProjectEditor() {
   }, [fsPreview, winW]);
 
   // Editor HTML (formato PDF, editável): ouve as edições vindas do iframe
+  // (modal do telemóvel/web E folha inline do desktop)
   useEffect(() => {
-    if (!editHtml || Platform.OS !== "web") return;
+    if (Platform.OS !== "web" || (!editHtml && !inlineSheet)) return;
     const handler = (e: any) => handleEditMessage(e);
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [editHtml]);
+  }, [editHtml, inlineSheet]);
+
+  // Folha inline do desktop: constrói ao carregar e reconstrói (com atraso,
+  // para não recarregar a cada tecla) quando o projeto muda FORA da folha
+  // (parâmetros avançados, fiscal, aplicar perfil…). Edições feitas na própria
+  // folha não recarregam — o iframe atualiza-se a si próprio.
+  useEffect(() => {
+    if (!inlineSheet || !project) return;
+    if (sheetSelfEdit.current) { sheetSelfEdit.current = false; return; }
+    if (!inlineHtml) {
+      setInlineHtml(buildEditSheet(project));
+      return;
+    }
+    if (inlineRebuildTimer.current) clearTimeout(inlineRebuildTimer.current);
+    inlineRebuildTimer.current = setTimeout(() => {
+      const p = projectRef.current;
+      if (p) setInlineHtml(buildEditSheet(p));
+    }, 600);
+    return () => { if (inlineRebuildTimer.current) clearTimeout(inlineRebuildTimer.current); };
+  }, [inlineSheet, project]);
 
   // Web: o "voltar" do telemóvel/browser fecha o editor em vez de sair da
   // página (senão o gesto de recuar levava-te para a lista de projetos).
@@ -266,6 +295,14 @@ export default function ProjectEditor() {
       window.removeEventListener("popstate", onPop);
       if ((window.history.state as any)?.wsEditor) window.history.back();
     };
+  }, [editHtml]);
+
+  // Ao fechar o editor em ecrã inteiro (desktop), ressincroniza a folha inline
+  // (os campos de texto editados no modal não chegam por mensagens)
+  useEffect(() => {
+    if (!inlineSheet || editHtml) return;
+    const p = projectRef.current;
+    if (p) setInlineHtml(buildEditSheet(p));
   }, [editHtml]);
 
   // Nativo (app): bloqueia o editor em horizontal; volta ao normal ao fechar
@@ -462,6 +499,7 @@ export default function ProjectEditor() {
     const payload = { type: "ws:calc", totalDias: String(totalDias), vb: fmt(tot.ValorBruto), irs: fmt(tot.IRS_valor), iva: fmt(tot.IVA_valor), vf: fmt(tot.ValorFinal), days };
     if (Platform.OS === "web") {
       editIframeRef.current?.contentWindow?.postMessage(payload, "*");
+      inlineSheetRef.current?.contentWindow?.postMessage(payload, "*");
     } else {
       editWebViewRef.current?.injectJavaScript(`window.__wsApply(${JSON.stringify(payload)}); true;`);
     }
@@ -502,13 +540,19 @@ export default function ProjectEditor() {
     if (!p) return;
     if (d.type === "ws:ready") { postEditCalc(p); return; }
 
+    // Tudo o que segue vem da própria folha e persiste o projeto — marca para
+    // o efeito da folha inline NÃO a recarregar (perdia o foco/scroll)
+    sheetSelfEdit.current = true;
+
     // Atualiza SÓ as linhas da tabela de dias (sem recarregar a folha — mantém
     // scroll, zoom e foco). A folha troca as <tr> via window.__wsSetRows.
     const pushRows = (next: ProjectState) => {
       const calc = calcAll(next.dias, next.tabela as any);
       const rowsHtml = buildEditableDayRowsHtml(next.dias, calc as any, next.tabela as any, getPreset(regionCode).currency);
       if (Platform.OS === "web") {
-        editIframeRef.current?.contentWindow?.postMessage({ type: "ws:setRows", html: rowsHtml }, "*");
+        const msg = { type: "ws:setRows", html: rowsHtml };
+        editIframeRef.current?.contentWindow?.postMessage(msg, "*");
+        inlineSheetRef.current?.contentWindow?.postMessage(msg, "*");
       } else {
         editWebViewRef.current?.injectJavaScript(`window.__wsSetRows(${JSON.stringify(rowsHtml)}); true;`);
       }
@@ -1159,23 +1203,34 @@ export default function ProjectEditor() {
             </View>
 
             <View style={{ flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-              {/* Zoom da folha (só quando a folha está visível inline) */}
+              {/* Zoom da folha inline (envia para o iframe) */}
               {!isPhone && (
                 <View style={ss.zoomRow}>
                   <Pressable
-                    onPress={() => setSheetZoom((z) => Math.max(0.25, Math.round((z - 0.1) * 10) / 10))}
+                    onPress={() => {
+                      const z = Math.max(0.25, Math.round((sheetZoom - 0.1) * 10) / 10);
+                      setSheetZoom(z);
+                      inlineSheetRef.current?.contentWindow?.postMessage({ type: "ws:zoom", zoom: z }, "*");
+                    }}
                     style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
                   >
                     <Text style={ss.zoomBtnText}>−</Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setSheetZoom(1)}
+                    onPress={() => {
+                      setSheetZoom(1);
+                      inlineSheetRef.current?.contentWindow?.postMessage({ type: "ws:zoom", zoom: "auto" }, "*");
+                    }}
                     style={({ pressed }) => [ss.zoomBtnMid, pressed && { opacity: 0.7 }]}
                   >
                     <Text style={ss.zoomBtnText}>{Math.round(sheetZoom * 100)}%</Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setSheetZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}
+                    onPress={() => {
+                      const z = Math.min(2, Math.round((sheetZoom + 0.1) * 10) / 10);
+                      setSheetZoom(z);
+                      inlineSheetRef.current?.contentWindow?.postMessage({ type: "ws:zoom", zoom: z }, "*");
+                    }}
                     style={({ pressed }) => [ss.zoomBtn, pressed && { opacity: 0.7 }]}
                   >
                     <Text style={ss.zoomBtnText}>+</Text>
@@ -1185,11 +1240,11 @@ export default function ProjectEditor() {
 
               {!isPhone && (
                 <Pressable
-                  onPress={() => setFsPreview(true)}
+                  onPress={openEditHtml}
                   style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
                 >
-                  {/* Ícone do pacote (glifo embutido) — o carácter ⛶ não existe
-                      nas fontes do macOS e aparecia um símbolo estranho */}
+                  {/* Fullscreen: abre a MESMA folha em ecrã inteiro (modal).
+                      Ícone do pacote — o carácter ⛶ não existia nas fontes do macOS */}
                   <Ionicons name="expand-outline" size={15} color="#fff" />
                 </Pressable>
               )}
@@ -1221,9 +1276,21 @@ export default function ProjectEditor() {
             renderMobileStats()
           ) : (
             <>
-              <ScrollView horizontal showsHorizontalScrollIndicator>
-                <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
-              </ScrollView>
+              {/* Folha editável no formato do PDF — exatamente a mesma do
+                  telemóvel (contenteditable, com condições), inline na página */}
+              {/* @ts-ignore — iframe é web-only (desktop implica web aqui) */}
+              <iframe
+                ref={inlineSheetRef}
+                srcDoc={inlineHtml}
+                style={{
+                  width: "100%",
+                  height: Math.max(560, winH - 230),
+                  border: "1px solid #E5E6EA",
+                  borderRadius: 10,
+                  backgroundColor: "#fff",
+                } as any}
+                title="Folha editável"
+              />
               <View style={{ marginTop: 12 }}>{renderAdvanced()}</View>
             </>
           )}

@@ -1489,7 +1489,10 @@ export function buildEditableSheetHtml(
           var d = e.data; if(!d) return;
           if(d.type === 'ws:calc'){ applyCalc(d); }
           else if(d.type === 'ws:setRows'){ window.__wsSetRows(d.html); }
-          else if(d.type === 'ws:zoom'){ document.documentElement.style.zoom = String(d.zoom); }
+          else if(d.type === 'ws:zoom'){
+            if(d.zoom === 'auto'){ fit(); }
+            else { document.documentElement.style.zoom = String(d.zoom); }
+          }
         });
         function fit(){
           // Repõe zoom a 1 antes de medir (senão media-se no espaço já ampliado
