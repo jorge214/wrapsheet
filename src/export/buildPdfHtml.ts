@@ -1556,8 +1556,8 @@ export function buildEditableSheetHtml(
           if(w > window.innerWidth + 1){ document.body.style.width = w + 'px'; }
         }
         function fit(){
-          // No nativo (iPhone/iPad) NÃO há auto-zoom: a folha fica ao tamanho
-          // natural, tudo alinhado, e o pinch nativo faz o resto.
+          // No nativo (iPhone/iPad) NÃO há auto-zoom por CSS: o ajuste inicial
+          // faz-se pelo viewport (nativeFit) e o pinch nativo faz o resto.
           if(window.ReactNativeWebView) return;
           // Repõe zoom a 1 antes de medir (senão media-se no espaço já ampliado
           // e a folha larga fica cortada na vertical).
@@ -1566,7 +1566,21 @@ export function buildEditableSheetHtml(
           var z = w>0 ? Math.min(1, window.innerWidth / w) : 1;
           document.documentElement.style.zoom = String(z);
         }
-        function layout(){ align(); fit(); }
+        // Nativo: declara a largura real da folha no viewport — o iOS abre com
+        // a folha inteira a caber no ecrã e o pinch continua livre (sem JS a
+        // lutar contra o zoom do utilizador).
+        function nativeFit(){
+          if(!window.ReactNativeWebView) return;
+          var t = document.querySelector('table.days');
+          var w = t ? (t.offsetWidth + 36) : 0;
+          if(!w) return;
+          var m = document.querySelector('meta[name="viewport"]');
+          if(m && m.getAttribute('data-w') !== String(w)){
+            m.setAttribute('data-w', String(w));
+            m.setAttribute('content', 'width=' + w);
+          }
+        }
+        function layout(){ align(); nativeFit(); fit(); }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
         window.addEventListener('orientationchange', function(){ setTimeout(layout, 250); });

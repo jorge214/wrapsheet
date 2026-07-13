@@ -189,6 +189,9 @@ export default function ProjectEditor() {
   // ATENÇÃO: hooks têm de ficar ANTES do early return de loading (regras dos
   // hooks) — declará-los mais abaixo deixava o ecrã branco ao carregar.
   const [exportOpen, setExportOpen] = useState(false);
+  // Export pendente: só corre depois de o diálogo fechar DE FACTO (onDismiss).
+  // Apresentar o share sheet durante o fecho do modal crashava a app no iOS.
+  const pendingExportRef = useRef<null | { orientation: "landscape" | "portrait" }>(null);
   const [expOrientation, setExpOrientation] = useState<"landscape" | "portrait">("landscape");
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
@@ -444,7 +447,18 @@ export default function ProjectEditor() {
   function fit(){
     document.documentElement.style.zoom = '1';
     var w = Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0);
-    var z = w > 0 ? Math.min(1, window.innerWidth / w) : 1;
+    if(w <= 0) return;
+    if(window.ReactNativeWebView){
+      // iOS WebView: o zoom por CSS não encolhe a página — declara-se a
+      // largura real no viewport e o WKWebView ajusta a folha à miniatura.
+      var m = document.querySelector('meta[name="viewport"]');
+      if(m && m.getAttribute('data-w') !== String(w)){
+        m.setAttribute('data-w', String(w));
+        m.setAttribute('content', 'width=' + w);
+      }
+      return;
+    }
+    var z = Math.min(1, window.innerWidth / w);
     document.documentElement.style.zoom = String(z);
   }
   document.addEventListener('DOMContentLoaded', function(){ fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
@@ -1007,8 +1021,25 @@ export default function ProjectEditor() {
   // Diálogo de exportação (orientação + previews). É renderizado DENTRO do
   // modal que estiver aberto (editor/preview): no iOS, um Modal irmão de outro
   // Modal apresentado nunca chega a aparecer — tem de ser filho.
+  const runPendingExport = () => {
+    const job = pendingExportRef.current;
+    if (!job) return;
+    pendingExportRef.current = null;
+    handleExportPDF(job);
+  };
+
   const renderExportDialog = () => (
-    <Modal transparent animationType="fade" visible={exportOpen} onRequestClose={() => setExportOpen(false)}>
+    <Modal
+      transparent
+      animationType="fade"
+      visible={exportOpen}
+      onRequestClose={() => setExportOpen(false)}
+      onDismiss={() => {
+        // iOS: dispara quando o modal terminou mesmo de fechar — só aqui é
+        // seguro apresentar o share sheet.
+        if (Platform.OS === "ios") setTimeout(runPendingExport, 350);
+      }}
+    >
       <Pressable
         style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
         onPress={() => setExportOpen(false)}
@@ -1070,11 +1101,16 @@ export default function ProjectEditor() {
 
           <Pressable
             onPress={() => {
+              if (Platform.OS === "web") {
+                setExportOpen(false);
+                handleExportPDF({ orientation: expOrientation });
+                return;
+              }
+              // Nativo: agenda e deixa o onDismiss (iOS) disparar quando o
+              // modal fechar de facto; no Android não há onDismiss → timer.
+              pendingExportRef.current = { orientation: expOrientation };
               setExportOpen(false);
-              // iOS: o share sheet não consegue apresentar-se enquanto este
-              // modal ainda está a fechar — a ação morria em silêncio.
-              if (Platform.OS === "web") handleExportPDF({ orientation: expOrientation });
-              else setTimeout(() => handleExportPDF({ orientation: expOrientation }), 700);
+              if (Platform.OS !== "ios") setTimeout(runPendingExport, 600);
             }}
             style={({ pressed }) => [{ alignItems: "center", paddingVertical: 13, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
           >
