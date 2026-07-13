@@ -1577,7 +1577,10 @@ export function buildEditableSheetHtml(
           var m = document.querySelector('meta[name="viewport"]');
           if(m && m.getAttribute('data-w') !== String(w)){
             m.setAttribute('data-w', String(w));
-            m.setAttribute('content', 'width=' + w);
+            // maximum-scale=1 desliga o auto-zoom do iOS ao focar células com
+            // letra pequena (<16px) — era o "salto" de zoom ao tocar para
+            // editar. O pinch continua a funcionar até ao tamanho natural.
+            m.setAttribute('content', 'width=' + w + ', maximum-scale=1');
           }
         }
         function layout(){ align(); nativeFit(); fit(); }

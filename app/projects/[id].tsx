@@ -189,9 +189,12 @@ export default function ProjectEditor() {
   // ATENÇÃO: hooks têm de ficar ANTES do early return de loading (regras dos
   // hooks) — declará-los mais abaixo deixava o ecrã branco ao carregar.
   const [exportOpen, setExportOpen] = useState(false);
-  // Export pendente: só corre depois de o diálogo fechar DE FACTO (onDismiss).
-  // Apresentar o share sheet durante o fecho do modal crashava a app no iOS.
-  const pendingExportRef = useRef<null | { orientation: "landscape" | "portrait" }>(null);
+  // Export pendente: só corre depois de os modais fecharem DE FACTO (onDismiss).
+  // Apresentar o share sheet durante o fecho de um modal crashava a app no iOS;
+  // e o onDismiss de um modal aninhado noutro modal nunca dispara — por isso,
+  // ao exportar de dentro do editor, fecha-se também o editor e espera-se pelo
+  // onDismiss DELE. waitModal marca esse caso.
+  const pendingExportRef = useRef<null | { orientation: "landscape" | "portrait"; waitModal?: boolean }>(null);
   const [expOrientation, setExpOrientation] = useState<"landscape" | "portrait">("landscape");
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
@@ -440,25 +443,17 @@ export default function ProjectEditor() {
     );
     // Mesmo auto-ajuste do preview real: encolhe a folha para caber na largura
     // da miniatura (representa o print, que também encolhe uniformemente)
-    return html.replace(
+    let out = html.replace(
       "</body>",
       `<style>body{padding:6px}</style><script>
 (function(){
   function fit(){
+    // Com viewport fixo (nativo) o WKWebView já ajusta sozinho — não mexer.
+    var vp = document.querySelector('meta[name="viewport"]');
+    if(vp && (vp.getAttribute('content')||'').indexOf('device-width') === -1) return;
     document.documentElement.style.zoom = '1';
     var w = Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0);
-    if(w <= 0) return;
-    if(window.ReactNativeWebView){
-      // iOS WebView: o zoom por CSS não encolhe a página — declara-se a
-      // largura real no viewport e o WKWebView ajusta a folha à miniatura.
-      var m = document.querySelector('meta[name="viewport"]');
-      if(m && m.getAttribute('data-w') !== String(w)){
-        m.setAttribute('data-w', String(w));
-        m.setAttribute('content', 'width=' + w);
-      }
-      return;
-    }
-    var z = Math.min(1, window.innerWidth / w);
+    var z = w > 0 ? Math.min(1, window.innerWidth / w) : 1;
     document.documentElement.style.zoom = String(z);
   }
   document.addEventListener('DOMContentLoaded', function(){ fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
@@ -466,6 +461,12 @@ export default function ProjectEditor() {
 })();
 </script></body>`
     );
+    // Nativo: viewport fixo à largura natural da folha — o WKWebView encolhe-a
+    // para caber na miniatura logo no load (o zoom por JS não funciona lá).
+    if (Platform.OS !== "web") {
+      out = out.replace('content="width=device-width, initial-scale=1"', 'content="width=1160"');
+    }
+    return out;
   }, [exportOpen, project, calculos, totais, regionCode]);
 
   // Sync to context whenever previewHtml changes
@@ -1035,9 +1036,11 @@ export default function ProjectEditor() {
       visible={exportOpen}
       onRequestClose={() => setExportOpen(false)}
       onDismiss={() => {
-        // iOS: dispara quando o modal terminou mesmo de fechar — só aqui é
-        // seguro apresentar o share sheet.
-        if (Platform.OS === "ios") setTimeout(runPendingExport, 350);
+        // iOS: dispara quando o diálogo terminou mesmo de fechar. Se o export
+        // veio de dentro do editor (waitModal), quem dispara é o onDismiss do
+        // próprio editor — aqui não se faz nada.
+        const job = pendingExportRef.current;
+        if (Platform.OS === "ios" && job && !job.waitModal) setTimeout(runPendingExport, 300);
       }}
     >
       <Pressable
@@ -1106,11 +1109,14 @@ export default function ProjectEditor() {
                 handleExportPDF({ orientation: expOrientation });
                 return;
               }
-              // Nativo: agenda e deixa o onDismiss (iOS) disparar quando o
-              // modal fechar de facto; no Android não há onDismiss → timer.
-              pendingExportRef.current = { orientation: expOrientation };
+              // Nativo: agenda e fecha TUDO (diálogo + editor/preview se
+              // abertos); o onDismiss do modal certo dispara o export. O timer
+              // é rede de segurança (Android não tem onDismiss).
+              const inModal = editHtml || showPreview;
+              pendingExportRef.current = { orientation: expOrientation, waitModal: inModal };
               setExportOpen(false);
-              if (Platform.OS !== "ios") setTimeout(runPendingExport, 600);
+              if (inModal) { setEditHtml(false); setShowPreview(false); }
+              setTimeout(runPendingExport, 1200);
             }}
             style={({ pressed }) => [{ alignItems: "center", paddingVertical: 13, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
           >
@@ -1648,6 +1654,10 @@ export default function ProjectEditor() {
         visible={editHtml}
         supportedOrientations={["portrait", "landscape"]}
         onRequestClose={() => setEditHtml(false)}
+        onDismiss={() => {
+          // Export pedido lá dentro: corre agora que o editor fechou de facto
+          if (Platform.OS === "ios") setTimeout(runPendingExport, 300);
+        }}
       >
         {/* SafeAreaProvider PRÓPRIO dentro do modal: mede a janela do modal e
             acompanha a rotação (os insets do ecrã por trás ficam em portrait
@@ -1697,7 +1707,7 @@ export default function ProjectEditor() {
               javaScriptEnabled
               domStorageEnabled
               keyboardDisplayRequiresUserAction={false}
-              hideKeyboardAccessoryView
+              // Barra nativa do teclado com "OK" — é o botão para o baixar
               style={{ flex: 1, backgroundColor: "#fff" }}
             />
           ) : (
@@ -1718,6 +1728,9 @@ export default function ProjectEditor() {
         visible={showPreview}
         supportedOrientations={["portrait", "landscape"]}
         onRequestClose={() => setShowPreview(false)}
+        onDismiss={() => {
+          if (Platform.OS === "ios") setTimeout(runPendingExport, 300);
+        }}
       >
         <SafeAreaProvider>
         <SafeAreaView edges={["top", "bottom", "left", "right"]} style={ss.previewOverlay}>
