@@ -426,7 +426,23 @@ export default function ProjectEditor() {
       project.notas, i18n.language, regionCode, rPreset.currency, t("tax_disclaimer"), project.condicoes,
       { fiscal: project.fiscal as any, condTitulo: project.condTitulo, condBoxes: project.condBoxes }
     );
-    return html.replace("</body>", "<style>table.days{table-layout:fixed;width:100%} body{padding:8px}</style></body>");
+    // Mesmo auto-ajuste do preview real: encolhe a folha para caber na largura
+    // da miniatura (representa o print, que também encolhe uniformemente)
+    return html.replace(
+      "</body>",
+      `<style>body{padding:6px}</style><script>
+(function(){
+  function fit(){
+    document.documentElement.style.zoom = '1';
+    var w = Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0);
+    var z = w > 0 ? Math.min(1, window.innerWidth / w) : 1;
+    document.documentElement.style.zoom = String(z);
+  }
+  document.addEventListener('DOMContentLoaded', function(){ fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
+  fit();
+})();
+</script></body>`
+    );
   }, [exportOpen, project, calculos, totais, regionCode]);
 
   // Sync to context whenever previewHtml changes
@@ -1653,7 +1669,7 @@ export default function ProjectEditor() {
                         <iframe
                           srcDoc={exportPreviewHtml}
                           scrolling="no"
-                          style={{ width: "300%", height: "300%", border: "none", transform: "scale(0.3333)", transformOrigin: "top left", pointerEvents: "none" } as any}
+                          style={{ width: "100%", height: "100%", border: "none", pointerEvents: "none", overflow: "hidden" } as any}
                           title={o.label}
                         />
                       ) : WebView ? (

@@ -982,18 +982,20 @@ export function buildPdfHtml(
         .condB { padding: 6px 8px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
         .condImg { max-width: 240px; max-height: 170px; margin-top: 6px; border: 1px solid #999; }
         .condRow { break-inside: avoid; page-break-inside: avoid; }
-        /* Keep table rows and the closing blocks from being split across pages */
+        /* Keep table rows and the closing blocks from being split across pages.
+           NOTA: as condições NÃO levam break-inside:avoid no bloco inteiro —
+           senão saltavam por inteiro para a página seguinte; cada .condRow
+           individual é que se mantém inteira. */
         tr { break-inside: avoid; page-break-inside: avoid; }
-        .bottomGrid, .bottomGrid .box, .conditions {
+        .bottomGrid, .bottomGrid .box {
           break-inside: avoid;
           page-break-inside: avoid;
         }
         @media print {
           @page { size: ${pageCss}; margin: 8mm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          /* Cabe sempre na largura da página escolhida */
-          body { padding: 0; }
-          table.days { table-layout: fixed; width: 100%; }
+          /* No vertical, encolhe a folha inteira uniformemente (proporcional e
+             legível) em vez de esmagar colunas umas contra as outras. */
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0; ${extra?.orientation === "portrait" ? "zoom: 0.62;" : ""} }
         }
       </style>
     </head>
