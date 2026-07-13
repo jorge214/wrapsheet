@@ -1275,7 +1275,10 @@ export function buildEditableSheetHtml(
       <style>
         * { box-sizing: border-box; }
         html, body { margin: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
+        /* width: max-content — o corpo mede pela tabela dos dias (o elemento
+           mais largo); cabeçalho e condições esticam até lá e fica tudo
+           alinhado, mesmo em ecrãs estreitos (iPhone). */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; width: max-content; min-width: 100%; }
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
         .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
         .titleBox .ei:focus { background: rgba(255,255,255,.18); box-shadow: none; }
@@ -1545,6 +1548,9 @@ export function buildEditableSheetHtml(
           }
         });
         function fit(){
+          // No nativo (iPhone/iPad) NÃO há auto-zoom: a folha fica ao tamanho
+          // natural, tudo alinhado, e o pinch nativo faz o resto.
+          if(window.ReactNativeWebView) return;
           // Repõe zoom a 1 antes de medir (senão media-se no espaço já ampliado
           // e a folha larga fica cortada na vertical).
           document.documentElement.style.zoom = '1';

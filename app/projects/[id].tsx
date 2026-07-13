@@ -1030,18 +1030,18 @@ export default function ProjectEditor() {
           <Pressable onPress={openRenameTitle} hitSlop={6}>
             <Text style={ss.mStatsTitle} numberOfLines={2}>
               {project!.projeto.titulo || project!.projeto.filme || t("unnamed_project")}
-              <Text style={{ fontSize: 16, color: COLORS.sub }}>  ✏️</Text>
+              {"  "}<Ionicons name="pencil-outline" size={16} color={COLORS.sub} />
             </Text>
           </Pressable>
         )}
         <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
 
+        {/* Só "Editar folha" — o export vive dentro do editor (botão Export PDF) */}
         <Pressable onPress={openEditHtml} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
-          <Text style={ss.mOpenBtnText}>✏️ {t("edit_sheet", { defaultValue: "Editar folha" })}</Text>
-        </Pressable>
-
-        <Pressable onPress={() => setShowPreview(true)} style={({ pressed }) => [ss.mOpenBtnGhost, pressed && { opacity: 0.9 }]}>
-          <Text style={ss.mOpenBtnGhostText}>👁 {t("view_sheet", { defaultValue: "Ver / exportar (PDF)" })}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Ionicons name="create-outline" size={17} color="#fff" />
+            <Text style={ss.mOpenBtnText}>{t("edit_sheet", { defaultValue: "Editar folha" })}</Text>
+          </View>
         </Pressable>
 
         {/* Botão direto (fora do menu ⋯): no iOS a ação disparada durante o
@@ -1711,7 +1711,10 @@ export default function ProjectEditor() {
             <Pressable
               onPress={() => {
                 setExportOpen(false);
-                handleExportPDF({ orientation: expOrientation });
+                // iOS: o share sheet não consegue apresentar-se enquanto este
+                // modal ainda está a fechar — a ação morria em silêncio.
+                if (Platform.OS === "web") handleExportPDF({ orientation: expOrientation });
+                else setTimeout(() => handleExportPDF({ orientation: expOrientation }), 700);
               }}
               style={({ pressed }) => [{ alignItems: "center", paddingVertical: 13, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
             >
