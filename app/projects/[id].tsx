@@ -382,7 +382,7 @@ export default function ProjectEditor() {
       rPreset.currency,
       t("tax_disclaimer"),
       project.condicoes,
-      { fiscal: project.fiscal as any, condTitulo: project.condTitulo, condBoxes: project.condBoxes }
+      { fiscal: project.fiscal as any, condTitulo: project.condTitulo, condBoxes: project.condBoxes, fontScale: project.fontScale }
     );
     return html.replace(
       "</body>",
@@ -512,7 +512,7 @@ export default function ProjectEditor() {
     return buildEditableSheetHtml(
       p.perfil as any, p.projeto as any, p.dias, calc as any, tot as any, p.tabela as any,
       p.notas, i18n.language, regionCode, rPreset.currency, t("tax_disclaimer"), p.condicoes,
-      { fiscal: p.fiscal as any, condTitulo: p.condTitulo, condBoxes: p.condBoxes }
+      { fiscal: p.fiscal as any, condTitulo: p.condTitulo, condBoxes: p.condBoxes, fontScale: p.fontScale }
     );
   }
 
@@ -596,6 +596,19 @@ export default function ProjectEditor() {
       const next = { ...p, dias: p.dias.filter((_, ix) => ix !== i) };
       persist(next);
       pushRows(next);
+      return;
+    }
+    if (d.type === "ws:fontScale") {
+      // Tamanho das letras/números da folha (0.8×–1.6×), gravado no projeto
+      // e aplicado também ao PDF exportado. Reconstrói a folha visível.
+      const cur = Number(p.fontScale ?? 1);
+      const nextScale = Math.round(Math.min(1.6, Math.max(0.8, cur + Number(d.delta || 0))) * 10) / 10;
+      if (nextScale === cur) return;
+      const next = { ...p, fontScale: nextScale };
+      persist(next);
+      const html = buildEditSheet(next);
+      if (editHtml) setEditHtmlContent(html);
+      if (inlineSheet) setInlineHtml(html);
       return;
     }
     if (d.type !== "ws:edit") return;
@@ -691,7 +704,7 @@ export default function ProjectEditor() {
         rPreset.currency,
         t("tax_disclaimer"),
         p.condicoes,
-        { fiscal: p.fiscal as any, condTitulo: p.condTitulo, condBoxes: p.condBoxes }
+        { fiscal: p.fiscal as any, condTitulo: p.condTitulo, condBoxes: p.condBoxes, fontScale: p.fontScale }
       );
     } catch (e) {
       console.error(e);
