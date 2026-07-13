@@ -18,7 +18,9 @@ export default function LegalScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text style={s.backLink}>‹ {t("back")}</Text>
         </Pressable>
-        <Text style={s.headerTitle}>{t("settings_terms_privacy")}</Text>
+        <Text style={s.headerTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>
+          {t("settings_terms_privacy")}
+        </Text>
         <View style={{ width: 70 }} />
       </View>
 
@@ -82,10 +84,14 @@ const createStyles = (COLORS: any) =>
       opacity: 0.9,
     },
     headerTitle: {
-      fontSize: 20,
+      // flex + encolher para caber: em ecrãs estreitos o título completo
+      // ("Termos & Política de Privacidade") não cabe a tamanho fixo
+      flex: 1,
+      fontSize: 17,
       fontWeight: "800",
       color: COLORS.text,
       textAlign: "center",
+      paddingHorizontal: 6,
     },
     content: {
       padding: 16,
