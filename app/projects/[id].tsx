@@ -443,30 +443,28 @@ export default function ProjectEditor() {
     );
     // Mesmo auto-ajuste do preview real: encolhe a folha para caber na largura
     // da miniatura (representa o print, que também encolhe uniformemente)
-    let out = html.replace(
+    // transform:scale funciona igual na web e no WKWebView (o zoom por CSS e o
+    // viewport dinâmico não — o iOS trava a escala mínima em 0,25).
+    return html.replace(
       "</body>",
-      `<style>body{padding:6px}</style><script>
+      `<style>html{overflow:hidden} body{padding:6px}</style><script>
 (function(){
   function fit(){
-    // Com viewport fixo (nativo) o WKWebView já ajusta sozinho — não mexer.
-    var vp = document.querySelector('meta[name="viewport"]');
-    if(vp && (vp.getAttribute('content')||'').indexOf('device-width') === -1) return;
-    document.documentElement.style.zoom = '1';
-    var w = Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0);
-    var z = w > 0 ? Math.min(1, window.innerWidth / w) : 1;
-    document.documentElement.style.zoom = String(z);
+    var b = document.body, d = document.documentElement;
+    if(!b) return;
+    b.style.transform = ''; b.style.width = '';
+    var w = Math.max(d.scrollWidth, b.scrollWidth);
+    if(w <= 0) return;
+    var z = Math.min(1, window.innerWidth / w);
+    b.style.width = w + 'px';
+    b.style.transformOrigin = '0 0';
+    b.style.transform = 'scale(' + z + ')';
   }
   document.addEventListener('DOMContentLoaded', function(){ fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
   fit();
 })();
 </script></body>`
     );
-    // Nativo: viewport fixo à largura natural da folha — o WKWebView encolhe-a
-    // para caber na miniatura logo no load (o zoom por JS não funciona lá).
-    if (Platform.OS !== "web") {
-      out = out.replace('content="width=device-width, initial-scale=1"', 'content="width=1160"');
-    }
-    return out;
   }, [exportOpen, project, calculos, totais, regionCode]);
 
   // Sync to context whenever previewHtml changes
@@ -1109,14 +1107,20 @@ export default function ProjectEditor() {
                 handleExportPDF({ orientation: expOrientation });
                 return;
               }
-              // Nativo: agenda e fecha TUDO (diálogo + editor/preview se
-              // abertos); o onDismiss do modal certo dispara o export. O timer
-              // é rede de segurança (Android não tem onDismiss).
+              // Nativo: fechar dois modais empilhados AO MESMO TEMPO crasha o
+              // iOS — escalona-se: 1º o diálogo, meio segundo depois o editor,
+              // e o export corre no onDismiss do editor. Timer = rede de
+              // segurança (Android não tem onDismiss).
               const inModal = editHtml || showPreview;
               pendingExportRef.current = { orientation: expOrientation, waitModal: inModal };
               setExportOpen(false);
-              if (inModal) { setEditHtml(false); setShowPreview(false); }
-              setTimeout(runPendingExport, 1200);
+              if (Platform.OS === "ios") {
+                if (inModal) setTimeout(() => { setEditHtml(false); setShowPreview(false); }, 500);
+                setTimeout(runPendingExport, 2800);
+              } else {
+                if (inModal) { setEditHtml(false); setShowPreview(false); }
+                setTimeout(runPendingExport, 1200);
+              }
             }}
             style={({ pressed }) => [{ alignItems: "center", paddingVertical: 13, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
           >
