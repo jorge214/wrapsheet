@@ -41,6 +41,10 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <style
           dangerouslySetInnerHTML={{
             __html: `
+              /* Cursor de seta por defeito (o RN Web mostra I-beam de texto em
+                 qualquer <Text>). cursor herda-se, por isso o body chega — os
+                 botões e inputs mantêm o deles (têm !important abaixo). */
+              html, body { cursor: default; }
               /* Pointer cursor on all interactive elements */
               [role="button"], button, a, select { cursor: pointer !important; }
               /* Text cursor on inputs */
