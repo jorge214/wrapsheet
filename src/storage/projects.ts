@@ -85,7 +85,6 @@ export type ProjectState = {
   condicoes?: string;
   condTitulo?: string;
   condBoxes?: CondBox[];
-  fontScale?: number; // tamanho das letras/números da folha (1 = normal)
   pago?: boolean; // projeto já pago
   updatedAt: string;
 };
@@ -249,7 +248,6 @@ function upgradeProject(raw: any, id: string): ProjectState {
     condicoes: raw.condicoes || "",
     condTitulo: raw.condTitulo || "",
     condBoxes: Array.isArray(raw.condBoxes) ? raw.condBoxes : undefined,
-    fontScale: typeof raw.fontScale === "number" ? raw.fontScale : undefined,
     pago: !!raw.pago,
     updatedAt: raw.updatedAt || new Date().toISOString(),
   };

@@ -41,7 +41,6 @@ export type ProjectState = {
   condicoes?: string;
   condTitulo?: string;
   condBoxes?: { titulo: string; texto: string; img?: string }[];
-  fontScale?: number; // tamanho das letras/números da folha (1 = normal)
   pago?: boolean;
   updatedAt?: number;
 };

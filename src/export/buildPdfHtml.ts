@@ -721,16 +721,7 @@ export type PdfExtra = {
   fiscal?: { IRS_percent?: number; IVA_percent?: number };
   condTitulo?: string;
   condBoxes?: { titulo: string; texto: string; img?: string }[];
-  fontScale?: number; // multiplicador do tamanho de letras/números (1 = normal)
 };
-
-// Aplica o multiplicador de tamanho de letra a todos os font-size do CSS
-// gerado (a folha e o PDF exportado ficam com letras/números maiores).
-function applyFontScale(html: string, scale?: number): string {
-  const s = Number(scale);
-  if (!s || s === 1 || !isFinite(s)) return html;
-  return html.replace(/font-size:\s*([\d.]+)px/g, (_m, n) => `font-size: ${Math.round(Number(n) * s * 10) / 10}px`);
-}
 
 // Secção de condições de trabalho: caixas (título | texto + imagem) como na
 // folha de referência; cai para o texto corrido antigo se não houver caixas.
@@ -851,7 +842,7 @@ export function buildPdfHtml(
     })
     .join("");
 
-  return applyFontScale(`
+  return `
   <html>
     <head>
       <meta charset="utf-8" />
@@ -1107,7 +1098,7 @@ export function buildPdfHtml(
       ${taxDisclaimer ? `<div style="margin-top:8px;font-size:9px;color:#999;">${escapeHtml(taxDisclaimer)}</div>` : ""}
     </body>
   </html>
-  `, extra?.fontScale);
+  `;
 }
 
 // ── Editable mirror of the sheet (same format, but with <input> fields) ─────────
@@ -1235,12 +1226,11 @@ export function buildEditableSheetHtml(
     `<span class="ei money" ${CE} inputmode="decimal" data-k="fiscal" data-f="${f}">${escapeHtml(String(v ?? 0))}</span>%`;
 
   const dayRows = buildEditableDayRowsHtml(dias, calculos, tabela, currency);
-  const fontPct = Math.round((extra?.fontScale ?? 1) * 100);
 
   const unitH = `<span class="mini">${curSym} ${escapeHtml(s.perHour)}</span>`;
   const unitD = `<span class="mini">${curSym} ${escapeHtml(s.perDayUnit)}</span>`;
 
-  return applyFontScale(`<!DOCTYPE html>
+  return `<!DOCTYPE html>
   <html>
     <head>
       <meta charset="utf-8" />
@@ -1332,9 +1322,6 @@ export function buildEditableSheetHtml(
           margin-right: 8px;
         }
         .addDayBar .delBtn { border-color: #c05050; color: #c05050; background: #fff; }
-        /* Controlo do tamanho das letras/números (gravado no projeto; sai no PDF) */
-        .fontCtl { float: right; }
-        .fontCtl .fontPct { font-size: 12px; font-weight: 800; color: #666; margin: 0 4px; }
         /* Botões por linha: duplicar (⧉) e remover (✕) o dia — não saem no print */
         .rowBtns { float: right; white-space: nowrap; margin-left: 6px; }
         .rbtn { cursor: pointer; user-select: none; -webkit-user-select: none; color: #9a9a9a; font-size: 12px; padding: 0 4px; }
@@ -1432,11 +1419,6 @@ export function buildEditableSheetHtml(
         <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
         <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
         <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
-        <span class="fontCtl">
-          <button type="button" id="wsFontMinus">A−</button>
-          <span class="fontPct">${fontPct}%</span>
-          <button type="button" id="wsFontPlus">A＋</button>
-        </span>
       </div>
 
       ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra, CE)}
@@ -1466,11 +1448,6 @@ export function buildEditableSheetHtml(
         if(delBtn){ delBtn.addEventListener('click', function(){
           if(window.confirm(${JSON.stringify((s as any).removeDayConfirm || "Remover este dia?")})){ post({ type:'ws:removeDay', i: lastDayIndex() }); }
         }); }
-        // Tamanho das letras/números (a app grava e reconstrói a folha)
-        var fMinus = document.getElementById('wsFontMinus');
-        var fPlus = document.getElementById('wsFontPlus');
-        if(fMinus){ fMinus.addEventListener('click', function(){ post({ type:'ws:fontScale', delta: -0.1 }); }); }
-        if(fPlus){ fPlus.addEventListener('click', function(){ post({ type:'ws:fontScale', delta: 0.1 }); }); }
         // Duplicar (⧉) / remover (✕) um dia
         document.addEventListener('click', function(e){
           var el = e.target;
@@ -1546,5 +1523,5 @@ export function buildEditableSheetHtml(
       })();
       </script>
     </body>
-  </html>`, extra?.fontScale);
+  </html>`;
 }
