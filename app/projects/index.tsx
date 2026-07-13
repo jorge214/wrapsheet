@@ -38,6 +38,7 @@ import { useAuth } from "../../src/auth/AuthContext";
 import { deleteProjectFromCloud } from "../../src/sync/syncService";
 import { FREE_PROJECT_LIMIT } from "../../src/storage/freeTier";
 import { useTheme } from "../../src/theme/ThemeProvider";
+import { MonthYearPicker } from "../../src/ui/MonthYearPicker";
 
 function fmtMonthLabel(m: number, y: number, locale: string = "pt") {
   const date = new Date(y, m - 1, 1);
@@ -379,14 +380,6 @@ export default function ProjectsScreen() {
     return { minY, maxY: nowY + 1 };
   }, [allItems]);
 
-  const monthOptions = useMemo(() => {
-    const options: { m: number; y: number }[] = [];
-    for (let y = yearBounds.maxY; y >= yearBounds.minY; y--) {
-      for (let m = 12; m >= 1; m--) options.push({ m, y });
-    }
-    return options;
-  }, [yearBounds]);
-
   function selectMonth(m: number, y: number) {
     setShowAll(false);
     setMes(m);
@@ -704,75 +697,19 @@ export default function ProjectsScreen() {
         </Pressable>
       </Modal>
 
-      {/* Modal selecionar mês */}
-      <Modal transparent animationType="fade" visible={pickerVisible}>
-        <View style={s.modalBackdrop}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>
-              {t("select_month", { defaultValue: "Selecionar mês" })}
-            </Text>
-
-            <ScrollView
-              style={{ maxHeight: 360 }}
-              showsVerticalScrollIndicator={false}
-            >
-              <Pressable
-                style={({ pressed }) => [
-                  s.monthOption,
-                  showAll && s.monthOptionSelected,
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={() => {
-                  setShowAll(true);
-                  setPickerVisible(false);
-                }}
-              >
-                <Text
-                  style={[
-                    s.monthOptionText,
-                    showAll && s.monthOptionTextSelected,
-                  ]}
-                >
-                  {t("all_months", { defaultValue: "Todos" })}
-                </Text>
-              </Pressable>
-
-              {monthOptions.map((opt) => {
-                const selected = !showAll && opt.m === mes && opt.y === ano;
-                return (
-                  <Pressable
-                    key={`${opt.m}-${opt.y}`}
-                    style={({ pressed }) => [
-                      s.monthOption,
-                      selected && s.monthOptionSelected,
-                      pressed && { opacity: 0.85 },
-                    ]}
-                    onPress={() => selectMonth(opt.m, opt.y)}
-                  >
-                    <Text
-                      style={[
-                        s.monthOptionText,
-                        selected && s.monthOptionTextSelected,
-                      ]}
-                    >
-                      {fmtMonthLabel(opt.m, opt.y, locale)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            <TouchableOpacity
-              style={s.modalCloseBtn}
-              onPress={() => setPickerVisible(false)}
-            >
-              <Text style={s.modalCloseText}>
-                {t("close", { defaultValue: "Fechar" })}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Seletor de Mês + Ano */}
+      <MonthYearPicker
+        visible={pickerVisible}
+        locale={locale}
+        year={ano}
+        month={mes}
+        showAll={showAll}
+        minYear={yearBounds.minY}
+        maxYear={yearBounds.maxY}
+        onClose={() => setPickerVisible(false)}
+        onSelect={(m, y) => selectMonth(m, y)}
+        onSelectAll={() => { setShowAll(true); setPickerVisible(false); }}
+      />
 
       {/* Modal renomear */}
       {renameId && (

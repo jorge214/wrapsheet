@@ -28,6 +28,7 @@ import {
   ProjectListItem,
 } from "../../src/storage/projects";
 import { useTheme } from "../../src/theme/ThemeProvider";
+import { MonthYearPicker } from "../../src/ui/MonthYearPicker";
 
 type RecentItem = ProjectListItem & { status: "active" | "archived" };
 
@@ -117,44 +118,17 @@ export default function DashboardScreen() {
     load();
   }, [load]);
 
-  // meses disponíveis — gama fixa (3 anos atrás → 1 ano à frente) + meses com projetos
-  const monthOptions = useMemo(() => {
-    const set = new Set<string>();
-
-    // adiciona todos os meses com projetos
-    for (const p of [...projects, ...archived]) {
-      const m = (p.mes || "").trim();
-      if (m) set.add(m);
-    }
-
-    // gama navegável limitada ao histórico real (do ano mais antigo com dados
-    // até ao ano seguinte) — evita andar até anos vazios
+  // Limites de ano do seletor: do ano mais antigo com dados até ao ano seguinte
+  const yearBounds = useMemo(() => {
     const nowY = new Date().getFullYear();
     const dataYears = [...projects, ...archived]
       .map((p) => Number((p.mes || "").split("/")[1]))
       .filter((y) => !!y);
-    const startYear = Math.min(nowY, ...(dataYears.length ? dataYears : [nowY]));
-    const endYear = Math.max(nowY, ano) + 1;
-    for (let y = endYear; y >= startYear; y--) {
-      for (let m = 12; m >= 1; m--) {
-        set.add(toMMYYYY(m, y));
-      }
-    }
-
-    const sorted = Array.from(set).sort((a, b) => {
-      const [am, ay] = a.split("/").map(Number);
-      const [bm, by] = b.split("/").map(Number);
-      return ((by || 0) * 100 + (bm || 0)) - ((ay || 0) * 100 + (am || 0));
-    });
-
-    return sorted
-      .map((mmYYYY) => {
-        const [mm, yy] = mmYYYY.split("/").map(Number);
-        if (!mm || !yy) return null;
-        return { label: fmtMonthLabel(mm, yy, locale), mes: mm, ano: yy };
-      })
-      .filter(Boolean) as { label: string; mes: number; ano: number }[];
-  }, [projects, archived, ano, locale]);
+    return {
+      minY: Math.min(nowY, ...(dataYears.length ? dataYears : [nowY])),
+      maxY: Math.max(nowY, ano) + 1,
+    };
+  }, [projects, archived, ano]);
 
   const monthKey = toMMYYYY(mes, ano);
 
@@ -442,46 +416,17 @@ export default function DashboardScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Picker mês */}
-      <Modal transparent animationType="fade" visible={pickerVisible}>
-        <View style={s.modalBackdrop}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>
-              {t("select_month", { defaultValue: "Selecionar mês" })}
-            </Text>
-            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
-              {monthOptions.map((opt) => {
-                const selected = opt.mes === mes && opt.ano === ano;
-                return (
-                  <Pressable
-                    key={`${opt.mes}-${opt.ano}`}
-                    style={({ pressed }) => [
-                      s.monthOption,
-                      selected && s.monthOptionSelected,
-                      pressed && { opacity: 0.85 },
-                    ]}
-                    onPress={() => {
-                      setMes(opt.mes);
-                      setAno(opt.ano);
-                      setPickerVisible(false);
-                    }}
-                  >
-                    <Text style={[s.monthOptionText, selected && s.monthOptionTextSelected]}>
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <TouchableOpacity
-              style={s.modalCloseBtn}
-              onPress={() => setPickerVisible(false)}
-            >
-              <Text style={s.modalCloseText}>{t("close", { defaultValue: "Fechar" })}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Seletor de Mês + Ano */}
+      <MonthYearPicker
+        visible={pickerVisible}
+        locale={locale}
+        year={ano}
+        month={mes}
+        minYear={yearBounds.minY}
+        maxYear={yearBounds.maxY}
+        onClose={() => setPickerVisible(false)}
+        onSelect={(m, y) => { setMes(m); setAno(y); setPickerVisible(false); }}
+      />
     </SafeAreaView>
   );
 }
