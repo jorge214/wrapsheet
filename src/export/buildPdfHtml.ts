@@ -82,6 +82,8 @@ const STRINGS = {
     week: "Semana",
     addDay: "Adicionar dia",
     removeDayConfirm: "Remover este dia?",
+    dupDay: "Duplicar dia",
+    removeDay: "Remover dia",
     year: "Ano",
     vb: "Valor Bruto",
     vf: "Valor Líquido",
@@ -142,6 +144,8 @@ const STRINGS = {
     week: "Week",
     addDay: "Add day",
     removeDayConfirm: "Remove this day?",
+    dupDay: "Duplicate day",
+    removeDay: "Remove day",
     year: "Year",
     vb: "Gross",
     vf: "Invoice total",
@@ -202,6 +206,8 @@ const STRINGS = {
     week: "Semana",
     addDay: "Añadir día",
     removeDayConfirm: "¿Eliminar este día?",
+    dupDay: "Duplicar día",
+    removeDay: "Eliminar día",
     year: "Año",
     vb: "Valor Bruto",
     vf: "Total factura",
@@ -262,6 +268,8 @@ const STRINGS = {
     week: "Semaine",
     addDay: "Ajouter un jour",
     removeDayConfirm: "Supprimer ce jour ?",
+    dupDay: "Dupliquer le jour",
+    removeDay: "Supprimer le jour",
     year: "Année",
     vb: "Brut",
     vf: "Total TTC",
@@ -322,6 +330,8 @@ const STRINGS = {
     week: "Woche",
     addDay: "Tag hinzufügen",
     removeDayConfirm: "Diesen Tag entfernen?",
+    dupDay: "Tag duplizieren",
+    removeDay: "Tag entfernen",
     year: "Jahr",
     vb: "Brutto",
     vf: "Rechnungsbetrag",
@@ -382,6 +392,8 @@ const STRINGS = {
     week: "Settimana",
     addDay: "Aggiungi giorno",
     removeDayConfirm: "Rimuovere questo giorno?",
+    dupDay: "Duplica giorno",
+    removeDay: "Rimuovi giorno",
     year: "Anno",
     vb: "Lordo",
     vf: "Totale fattura",
@@ -442,6 +454,8 @@ const STRINGS = {
     week: "Week",
     addDay: "Dag toevoegen",
     removeDayConfirm: "Deze dag verwijderen?",
+    dupDay: "Dag dupliceren",
+    removeDay: "Dag verwijderen",
     year: "Jaar",
     vb: "Bruto",
     vf: "Factuurtotaal",
@@ -502,6 +516,8 @@ const STRINGS = {
     week: "Tydzień",
     addDay: "Dodaj dzień",
     removeDayConfirm: "Usunąć ten dzień?",
+    dupDay: "Duplikuj dzień",
+    removeDay: "Usuń dzień",
     year: "Rok",
     vb: "Brutto",
     vf: "Kwota faktury",
@@ -562,6 +578,8 @@ const STRINGS = {
     week: "Week",
     addDay: "Add day",
     removeDayConfirm: "Remove this day?",
+    dupDay: "Duplicate day",
+    removeDay: "Remove day",
     year: "Year",
     vb: "Gross",
     vf: "Invoice total",
@@ -1125,8 +1143,8 @@ export function buildEditableDayRowsHtml(
       const c = calculos[i] ?? ({} as CalcDia);
       const eff = (d as any).salarioDia ?? salarioDia;
       return `
-        <tr${d.pago ? ' class="paid"' : ""}>
-          <td class="left"><span class="pago" data-i="${i}">${d.pago ? "☑" : "☐"}</span> ${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
+        <tr>
+          <td class="left">${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
           <td>${edDi(i, "data", formatDatePT(d.data), "date", 'inputmode="numeric"')}</td>
           <td class="calc" data-c="sal" data-i="${i}">${fmt(eff)}</td>
           <td>${edDi(i, "inicio", d.inicio || "", "time", 'inputmode="numeric"')}</td>
@@ -1301,7 +1319,9 @@ export function buildEditableSheetHtml(
         .addDayBar button {
           font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px;
           border: 2px solid #2b2b2b; border-radius: 999px; background: #f2f2f2; color: #111; cursor: pointer;
+          margin-right: 8px;
         }
+        .addDayBar .delBtn { border-color: #c05050; color: #c05050; background: #fff; }
         /* Botões por linha: duplicar (⧉) e remover (✕) o dia — não saem no print */
         .rowBtns { float: right; white-space: nowrap; margin-left: 6px; }
         .rbtn { cursor: pointer; user-select: none; -webkit-user-select: none; color: #9a9a9a; font-size: 12px; padding: 0 4px; }
@@ -1395,17 +1415,10 @@ export function buildEditableSheetHtml(
         ${dayRows}
       </table>
 
-      <div class="addDayBar"><button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button></div>
-
-      <div class="bottomGrid" style="grid-template-columns:1fr;">
-        <div class="box totalsMini">
-          <table>
-            <tr><th>${escapeHtml(s.gross)}</th><td class="val" data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
-            <tr><th>${escapeHtml(s.irs)}</th><td class="val" data-c="birs">${fmt(totais.IRS_valor)}</td></tr>
-            <tr><th>${escapeHtml(s.iva)}</th><td class="val" data-c="biva">${fmt(totais.IVA_valor)}</td></tr>
-            <tr><th>${escapeHtml(s.net)}</th><td class="val" data-c="net">${fmt(totais.ValorFinal)}</td></tr>
-          </table>
-        </div>
+      <div class="addDayBar">
+        <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
+        <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
+        <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
       </div>
 
       ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra, CE)}
@@ -1422,9 +1435,19 @@ export function buildEditableSheetHtml(
           if(!el.classList || !el.classList.contains('ei')) return;
           post({ type:'ws:edit', k: el.getAttribute('data-k'), f: el.getAttribute('data-f'), i: di(el), value: el.textContent });
         }, true);
-        // Botão "+ Adicionar dia" — a app adiciona o dia e atualiza só a tabela
+        // Barra de dias: adicionar / duplicar último / remover último
+        function lastDayIndex(){
+          var t = document.querySelector('table.days');
+          return t ? Math.max(0, t.querySelectorAll('tr').length - 3) : 0;
+        }
         var addBtn = document.getElementById('wsAddDay');
         if(addBtn){ addBtn.addEventListener('click', function(){ post({ type:'ws:addDay' }); }); }
+        var dupBtn = document.getElementById('wsDupDay');
+        if(dupBtn){ dupBtn.addEventListener('click', function(){ post({ type:'ws:dupDay', i: lastDayIndex() }); }); }
+        var delBtn = document.getElementById('wsDelDay');
+        if(delBtn){ delBtn.addEventListener('click', function(){
+          if(window.confirm(${JSON.stringify((s as any).removeDayConfirm || "Remover este dia?")})){ post({ type:'ws:removeDay', i: lastDayIndex() }); }
+        }); }
         // Duplicar (⧉) / remover (✕) um dia
         document.addEventListener('click', function(e){
           var el = e.target;
@@ -1445,16 +1468,6 @@ export function buildEditableSheetHtml(
           var tb = (t.tBodies && t.tBodies[0]) ? t.tBodies[0] : t;
           tb.insertAdjacentHTML('beforeend', html);
         };
-        // Marcar/desmarcar dia como pago
-        document.addEventListener('click', function(e){
-          var el = e.target;
-          if(!el.classList || !el.classList.contains('pago')) return;
-          var tr = el.closest('tr');
-          var paid = tr.classList.toggle('paid');
-          el.textContent = paid ? '☑' : '☐';
-          var i = el.getAttribute('data-i');
-          post({ type:'ws:edit', k:'dia', f:'pago', i: i===null?null:parseInt(i,10), value: paid });
-        }, true);
         // Enter não cria nova linha em campos de uma linha
         document.addEventListener('keydown', function(e){
           var el = e.target;
