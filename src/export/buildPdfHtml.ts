@@ -748,28 +748,39 @@ function conditionsHtml(
     (extra?.condTitulo || "").trim() ||
     `${s.workConditions}${perfilNome ? " - " + perfilNome.toUpperCase() : ""}`;
 
+  // No editor tudo é editável — mesmo quando as condições vieram de um perfil.
+  const titleHtml = editableAttr
+    ? `<span class="ei" ${editableAttr} data-k="condTitulo" data-f="condTitulo">${escapeHtml(mainTitle)}</span>`
+    : escapeHtml(mainTitle);
+
   if (boxes.length === 0) {
     if (!condicoes || !condicoes.trim()) return "";
     const body = editableAttr
       ? `<div class="ei notes" ${editableAttr} data-k="condicoes" data-f="condicoes">${escapeHtml(condicoes)}</div>`
       : escapeHtml(condicoes);
     return `<div class="condWrap conditions">
-      <div class="condMain">${escapeHtml(mainTitle)}</div>
+      <div class="condMain">${titleHtml}</div>
       <div class="conditionsBody">${body}</div>
     </div>`;
   }
 
   const rows = boxes
-    .map(
-      (b) => `<div class="condRow">
-        <div class="condT">${escapeHtml(b.titulo || "")}</div>
-        <div class="condB">${escapeHtml(b.texto || "")}${b.img ? `<div><img class="condImg" src="${b.img}" /></div>` : ""}</div>
-      </div>`
-    )
+    .map((b, i) => {
+      const tit = editableAttr
+        ? `<span class="ei" ${editableAttr} data-k="condBox" data-f="titulo" data-i="${i}">${escapeHtml(b.titulo || "")}</span>`
+        : escapeHtml(b.titulo || "");
+      const txt = editableAttr
+        ? `<div class="ei notes" ${editableAttr} data-k="condBox" data-f="texto" data-i="${i}">${escapeHtml(b.texto || "")}</div>`
+        : escapeHtml(b.texto || "");
+      return `<div class="condRow">
+        <div class="condT">${tit}</div>
+        <div class="condB">${txt}${b.img ? `<div><img class="condImg" src="${b.img}" /></div>` : ""}</div>
+      </div>`;
+    })
     .join("");
 
   return `<div class="condWrap conditions">
-    <div class="condMain">${escapeHtml(mainTitle)}</div>
+    <div class="condMain">${titleHtml}</div>
     ${rows}
   </div>`;
 }

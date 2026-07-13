@@ -655,6 +655,14 @@ export default function ProjectEditor() {
       }
       case "notas": next = { ...p, notas: d.value }; break;
       case "condicoes": next = { ...p, condicoes: d.value }; break;
+      case "condTitulo": next = { ...p, condTitulo: d.value }; break;
+      case "condBox": {
+        const boxes = Array.isArray(p.condBoxes) ? [...p.condBoxes] : [];
+        if (!boxes[d.i]) return;
+        boxes[d.i] = { ...boxes[d.i], [d.f]: d.value };
+        next = { ...p, condBoxes: boxes };
+        break;
+      }
       default: return;
     }
     persist(next);
