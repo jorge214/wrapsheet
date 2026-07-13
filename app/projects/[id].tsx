@@ -185,6 +185,12 @@ export default function ProjectEditor() {
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
   const [fsPreview, setFsPreview] = useState(false);
   const [editForm, setEditForm] = useState(false);
+  // Opções de exportação/impressão (orientação + tamanho da letra).
+  // ATENÇÃO: hooks têm de ficar ANTES do early return de loading (regras dos
+  // hooks) — declará-los mais abaixo deixava o ecrã branco ao carregar.
+  const [exportOpen, setExportOpen] = useState(false);
+  const [expOrientation, setExpOrientation] = useState<"landscape" | "portrait">("landscape");
+  const [expFont, setExpFont] = useState<"normal" | "large" | "xlarge">("normal");
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
   const editIframeRef = useRef<any>(null);
@@ -626,11 +632,6 @@ export default function ProjectEditor() {
     persist(next);
     postEditCalc(next);
   }
-
-  // Opções de exportação/impressão (orientação + tamanho da letra)
-  const [exportOpen, setExportOpen] = useState(false);
-  const [expOrientation, setExpOrientation] = useState<"landscape" | "portrait">("landscape");
-  const [expFont, setExpFont] = useState<"normal" | "large" | "xlarge">("normal");
 
   // ✅ Export robusto: usa SEMPRE o estado atual em memória (ref)
   async function handleExportPDF(opts?: { orientation: "landscape" | "portrait"; fontScale: number }) {
