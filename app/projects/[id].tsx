@@ -231,11 +231,20 @@ export default function ProjectEditor() {
       IVA_percent: Number(fiscalRaw.IVA_percent ?? fiscalRaw.iva ?? fiscalRaw.IVA ?? 0) || 0,
       nota: fiscalRaw.nota ?? "",
     };
+    // Projetos sem condições próprias (sem perfil aplicado) mostram as
+    // predefinidas da app, já editáveis e incluídas no PDF.
+    const condBoxes =
+      Array.isArray(p.condBoxes) && p.condBoxes.length
+        ? p.condBoxes
+        : (p.condicoes || "").trim()
+          ? p.condBoxes
+          : defaultCondBoxes();
     const normalized: ProjectState = {
       ...p,
       tabela: { multHEA: 1.5, multHEB: 2.0, multHR: 3.0, limiar_A: 11, limiar_B: 18, ...p.tabela, ajudas: aj },
       dias,
       fiscal: fiscal as any,
+      condBoxes,
     };
     setProject(normalized);
     projectRef.current = normalized;
