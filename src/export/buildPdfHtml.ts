@@ -1275,10 +1275,7 @@ export function buildEditableSheetHtml(
       <style>
         * { box-sizing: border-box; }
         html, body { margin: 0; }
-        /* width: max-content — o corpo mede pela tabela dos dias (o elemento
-           mais largo); cabeçalho e condições esticam até lá e fica tudo
-           alinhado, mesmo em ecrãs estreitos (iPhone). */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; width: max-content; min-width: 100%; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
         .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
         .titleBox .ei:focus { background: rgba(255,255,255,.18); box-shadow: none; }
@@ -1507,6 +1504,7 @@ export function buildEditableSheetHtml(
           for(var k = rows.length - 1; k >= 2; k--){ rows[k].parentNode.removeChild(rows[k]); }
           var tb = (t.tBodies && t.tBodies[0]) ? t.tBodies[0] : t;
           tb.insertAdjacentHTML('beforeend', html);
+          align();
         };
         // Enter não cria nova linha em campos de uma linha
         document.addEventListener('keydown', function(e){
@@ -1547,6 +1545,16 @@ export function buildEditableSheetHtml(
             else { document.documentElement.style.zoom = String(d.zoom); }
           }
         });
+        // Alinha o corpo com a tabela dos dias (o elemento mais largo): quando
+        // a tabela transborda em ecrãs estreitos, o cabeçalho e as condições
+        // esticam até à largura dela e fica tudo unânime.
+        function align(){
+          var t = document.querySelector('table.days');
+          if(!t || !document.body) return;
+          document.body.style.width = '';
+          var w = t.offsetWidth + 36; /* padding 18px de cada lado */
+          if(w > window.innerWidth + 1){ document.body.style.width = w + 'px'; }
+        }
         function fit(){
           // No nativo (iPhone/iPad) NÃO há auto-zoom: a folha fica ao tamanho
           // natural, tudo alinhado, e o pinch nativo faz o resto.
@@ -1558,11 +1566,12 @@ export function buildEditableSheetHtml(
           var z = w>0 ? Math.min(1, window.innerWidth / w) : 1;
           document.documentElement.style.zoom = String(z);
         }
+        function layout(){ align(); fit(); }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
-        window.addEventListener('orientationchange', function(){ setTimeout(fit, 250); });
-        document.addEventListener('DOMContentLoaded', function(){ fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
-        fit(); setTimeout(fit, 60); post({ type:'ws:ready' });
+        window.addEventListener('orientationchange', function(){ setTimeout(layout, 250); });
+        document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); });
+        layout(); setTimeout(layout, 60); post({ type:'ws:ready' });
       })();
       </script>
     </body>

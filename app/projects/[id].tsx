@@ -1004,6 +1004,90 @@ export default function ProjectEditor() {
     </>
   );
 
+  // Diálogo de exportação (orientação + previews). É renderizado DENTRO do
+  // modal que estiver aberto (editor/preview): no iOS, um Modal irmão de outro
+  // Modal apresentado nunca chega a aparecer — tem de ser filho.
+  const renderExportDialog = () => (
+    <Modal transparent animationType="fade" visible={exportOpen} onRequestClose={() => setExportOpen(false)}>
+      <Pressable
+        style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
+        onPress={() => setExportOpen(false)}
+      >
+        <Pressable
+          style={{ width: "100%", maxWidth: 460, backgroundColor: COLORS.card, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: COLORS.border }}
+          onPress={() => {}}
+        >
+          <Text style={{ fontSize: 17, fontWeight: "900", color: COLORS.text, textAlign: "center", marginBottom: 14 }}>
+            {t("export_pdf", { defaultValue: "Exportar PDF" })}
+          </Text>
+
+          {/* Orientação com pré-visualização real de ambas */}
+          <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
+            {([
+              { k: "landscape", label: t("print_landscape", { defaultValue: "Horizontal" }), ratio: 297 / 210 },
+              { k: "portrait", label: t("print_portrait", { defaultValue: "Vertical" }), ratio: 210 / 297 },
+            ] as const).map((o) => {
+              const on = expOrientation === o.k;
+              return (
+                <Pressable key={o.k} onPress={() => setExpOrientation(o.k)} style={{ flex: 1 }}>
+                  <View
+                    style={{
+                      width: "100%",
+                      aspectRatio: o.ratio,
+                      borderWidth: 2,
+                      borderColor: on ? COLORS.text : COLORS.border,
+                      borderRadius: 10,
+                      overflow: "hidden",
+                      backgroundColor: "#fff",
+                    }}
+                  >
+                    {Platform.OS === "web" ? (
+                      // @ts-ignore — iframe web-only
+                      <iframe
+                        srcDoc={exportPreviewHtml}
+                        scrolling="no"
+                        style={{ width: "100%", height: "100%", border: "none", pointerEvents: "none", overflow: "hidden" } as any}
+                        title={o.label}
+                      />
+                    ) : WebView ? (
+                      <View pointerEvents="none" style={{ flex: 1 }}>
+                        <WebView source={{ html: exportPreviewHtml }} scrollEnabled={false} javaScriptEnabled style={{ flex: 1, backgroundColor: "#fff" }} />
+                      </View>
+                    ) : null}
+                    {/* overlay: o clique seleciona o cartão (o iframe engolia-o) */}
+                    <Pressable
+                      onPress={() => setExpOrientation(o.k)}
+                      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                    />
+                  </View>
+                  <Text style={{ textAlign: "center", marginTop: 6, fontWeight: "900", fontSize: 13, color: on ? COLORS.text : COLORS.sub }}>
+                    {on ? "● " : "○ "}{o.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Pressable
+            onPress={() => {
+              setExportOpen(false);
+              // iOS: o share sheet não consegue apresentar-se enquanto este
+              // modal ainda está a fechar — a ação morria em silêncio.
+              if (Platform.OS === "web") handleExportPDF({ orientation: expOrientation });
+              else setTimeout(() => handleExportPDF({ orientation: expOrientation }), 700);
+            }}
+            style={({ pressed }) => [{ alignItems: "center", paddingVertical: 13, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={{ color: COLORS.bg, fontWeight: "900", fontSize: 15 }}>{t("export_pdf", { defaultValue: "Exportar PDF" })}</Text>
+          </Pressable>
+          <Pressable onPress={() => setExportOpen(false)} style={({ pressed }) => [{ alignItems: "center", paddingVertical: 10, marginTop: 4 }, pressed && { opacity: 0.7 }]}>
+            <Text style={{ color: COLORS.sub, fontWeight: "800", fontSize: 13 }}>{t("cancel", { defaultValue: "Cancelar" })}</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+
   // Página do projeto no telemóvel: só os stats + botão para abrir a folha
   const renderMobileStats = () => {
     const gs = getStrings(i18n.language, regionCode);
@@ -1586,6 +1670,7 @@ export default function ProjectEditor() {
               {renderMobileForm()}
             </ScrollView>
           )}
+          {renderExportDialog()}
         </SafeAreaView>
         </SafeAreaProvider>
       </Modal>
@@ -1643,89 +1728,14 @@ export default function ProjectEditor() {
               </Text>
             </View>
           )}
+          {renderExportDialog()}
         </SafeAreaView>
         </SafeAreaProvider>
       </Modal>
 
-      {/* Opções de exportação/impressão do PDF */}
-      <Modal transparent animationType="fade" visible={exportOpen} onRequestClose={() => setExportOpen(false)}>
-        <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
-          onPress={() => setExportOpen(false)}
-        >
-          <Pressable
-            style={{ width: "100%", maxWidth: 460, backgroundColor: COLORS.card, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: COLORS.border }}
-            onPress={() => {}}
-          >
-            <Text style={{ fontSize: 17, fontWeight: "900", color: COLORS.text, textAlign: "center", marginBottom: 14 }}>
-              {t("export_pdf", { defaultValue: "Exportar PDF" })}
-            </Text>
-
-            {/* Orientação com pré-visualização real de ambas */}
-            <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
-              {([
-                { k: "landscape", label: t("print_landscape", { defaultValue: "Horizontal" }), ratio: 297 / 210 },
-                { k: "portrait", label: t("print_portrait", { defaultValue: "Vertical" }), ratio: 210 / 297 },
-              ] as const).map((o) => {
-                const on = expOrientation === o.k;
-                return (
-                  <Pressable key={o.k} onPress={() => setExpOrientation(o.k)} style={{ flex: 1 }}>
-                    <View
-                      style={{
-                        width: "100%",
-                        aspectRatio: o.ratio,
-                        borderWidth: 2,
-                        borderColor: on ? COLORS.text : COLORS.border,
-                        borderRadius: 10,
-                        overflow: "hidden",
-                        backgroundColor: "#fff",
-                      }}
-                    >
-                      {Platform.OS === "web" ? (
-                        // @ts-ignore — iframe web-only
-                        <iframe
-                          srcDoc={exportPreviewHtml}
-                          scrolling="no"
-                          style={{ width: "100%", height: "100%", border: "none", pointerEvents: "none", overflow: "hidden" } as any}
-                          title={o.label}
-                        />
-                      ) : WebView ? (
-                        <View pointerEvents="none" style={{ flex: 1 }}>
-                          <WebView source={{ html: exportPreviewHtml }} scrollEnabled={false} javaScriptEnabled style={{ flex: 1, backgroundColor: "#fff" }} />
-                        </View>
-                      ) : null}
-                      {/* overlay: o clique seleciona o cartão (o iframe engolia-o) */}
-                      <Pressable
-                        onPress={() => setExpOrientation(o.k)}
-                        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-                      />
-                    </View>
-                    <Text style={{ textAlign: "center", marginTop: 6, fontWeight: "900", fontSize: 13, color: on ? COLORS.text : COLORS.sub }}>
-                      {on ? "● " : "○ "}{o.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Pressable
-              onPress={() => {
-                setExportOpen(false);
-                // iOS: o share sheet não consegue apresentar-se enquanto este
-                // modal ainda está a fechar — a ação morria em silêncio.
-                if (Platform.OS === "web") handleExportPDF({ orientation: expOrientation });
-                else setTimeout(() => handleExportPDF({ orientation: expOrientation }), 700);
-              }}
-              style={({ pressed }) => [{ alignItems: "center", paddingVertical: 13, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
-            >
-              <Text style={{ color: COLORS.bg, fontWeight: "900", fontSize: 15 }}>{t("export_pdf", { defaultValue: "Exportar PDF" })}</Text>
-            </Pressable>
-            <Pressable onPress={() => setExportOpen(false)} style={({ pressed }) => [{ alignItems: "center", paddingVertical: 10, marginTop: 4 }, pressed && { opacity: 0.7 }]}>
-              <Text style={{ color: COLORS.sub, fontWeight: "800", fontSize: 13 }}>{t("cancel", { defaultValue: "Cancelar" })}</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {/* Opções de exportação/impressão do PDF — na página do projeto (sem
+          outro modal aberto); dentro do editor/preview vai a instância nested */}
+      {!editHtml && !showPreview && renderExportDialog()}
 
       {/* Toast de confirmação */}
       {toast && (
