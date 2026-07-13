@@ -1010,6 +1010,10 @@ export function buildPdfHtml(
           /* No vertical, encolhe a folha inteira uniformemente (proporcional e
              legível) em vez de esmagar colunas umas contra as outras. */
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0; ${extra?.orientation === "portrait" ? "zoom: 0.62;" : ""} }
+          /* Horizontal: as condições vão inteiras para a página seguinte se não
+             couberem (como sempre foi em A3); partidas ao meio ficavam com
+             bordas soltas. No vertical fluem logo abaixo do último dia. */
+          ${extra?.orientation === "portrait" ? "" : ".conditions { break-inside: avoid; page-break-inside: avoid; }"}
         }
       </style>
     </head>
