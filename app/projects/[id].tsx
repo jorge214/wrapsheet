@@ -760,6 +760,15 @@ export default function ProjectEditor() {
     if (fx.perDiem != null) patch.ajudas.perDiem = fx.perDiem;
     setP("tabela", patch);
 
+    // Reconstrói já a folha visível (inline no desktop / editor no telemóvel)
+    // com os valores aplicados, sem esperar pelo rebuild com atraso
+    const p2 = projectRef.current;
+    if (p2 && Platform.OS === "web") {
+      const html = buildEditSheet(p2);
+      if (inlineSheet) setInlineHtml(html);
+      if (editHtml) setEditHtmlContent(html);
+    }
+
     showToast(t("toast_profile_applied", { defaultValue: "✓ Perfil aplicado — condições incluídas no PDF" }));
   }
 
@@ -1246,6 +1255,17 @@ export default function ProjectEditor() {
                   {/* Fullscreen: abre a MESMA folha em ecrã inteiro (modal).
                       Ícone do pacote — o carácter ⛶ não existia nas fontes do macOS */}
                   <Ionicons name="expand-outline" size={15} color="#fff" />
+                </Pressable>
+              )}
+
+              {/* Aplicar perfil ativo — botão visível no desktop (vivia na
+                  grelha antiga que foi substituída pela folha) */}
+              {!isPhone && (
+                <Pressable
+                  onPress={handleApplyActiveProfile}
+                  style={({ pressed }) => [ss.applyBtn, pressed && { opacity: 0.85 }]}
+                >
+                  <Text style={ss.applyBtnText}>⤓ {t("apply_profile", { defaultValue: "Aplicar perfil" })}</Text>
                 </Pressable>
               )}
 
@@ -2021,6 +2041,19 @@ const ss = StyleSheet.create({
   },
   exportBtnText: {
     color: "#fff",
+    fontWeight: "900",
+    fontSize: 13,
+  },
+  applyBtn: {
+    borderWidth: 1,
+    borderColor: COLORS.text,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: "transparent",
+  },
+  applyBtnText: {
+    color: COLORS.text,
     fontWeight: "900",
     fontSize: 13,
   },
