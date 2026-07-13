@@ -823,8 +823,11 @@ export function buildPdfHtml(
   const irsPct = extra?.fiscal?.IRS_percent;
   const ivaPct = extra?.fiscal?.IVA_percent;
 
-  // Orientação da impressão (A4 = compatível com impressoras domésticas)
-  const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A4 landscape";
+  // Orientação da impressão. Horizontal = A3 landscape (como sempre foi: a
+  // tabela dos dias precisa desta largura para caber sem cortar nem espremer);
+  // vertical = A4 portrait com a folha encolhida uniformemente (zoom no print).
+  const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
+  const pageMargin = extra?.orientation === "portrait" ? "8mm" : "10mm";
 
   const dayRows = dias
     .map((d, i) => {
@@ -992,13 +995,10 @@ export function buildPdfHtml(
           page-break-inside: avoid;
         }
         @media print {
-          @page { size: ${pageCss}; margin: 8mm; }
+          @page { size: ${pageCss}; margin: ${pageMargin}; }
           /* No vertical, encolhe a folha inteira uniformemente (proporcional e
-             legível) em vez de esmagar colunas umas contra as outras.
-             No horizontal cabe à largura, por isso força-se a tabela dos dias
-             a ocupar exatamente 100% (sem isto transborda e corta à direita). */
+             legível) em vez de esmagar colunas umas contra as outras. */
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0; ${extra?.orientation === "portrait" ? "zoom: 0.62;" : ""} }
-          ${extra?.orientation === "portrait" ? "" : "table.days { table-layout: fixed; } table.days th, table.days td { overflow: hidden; }"}
         }
       </style>
     </head>

@@ -45,13 +45,14 @@ export async function exportPDF(
   try {
     const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extra);
 
-    // A4: horizontal (842×595 pt) por defeito, ou vertical (595×842) se pedido.
-    // Sem largura definida o iOS usava A4 vertical e cortava colunas à direita.
+    // Horizontal = A3 landscape (1191×842 pt, como sempre foi — a tabela dos
+    // dias precisa desta largura); vertical = A4 portrait (595×842), a folha
+    // encolhe uniformemente via zoom no CSS de impressão.
     const portrait = extra?.orientation === "portrait";
     const result = await Print.printToFileAsync({
       html,
-      width: portrait ? 595 : 842,
-      height: portrait ? 842 : 595,
+      width: portrait ? 595 : 1191,
+      height: portrait ? 842 : 842,
     });
     let outUri = result.uri;
 
