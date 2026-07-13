@@ -1,4 +1,5 @@
 // app/projects/[id].tsx
+import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useIsWide } from "../../src/ui/useBreakpoint";
@@ -1187,7 +1188,9 @@ export default function ProjectEditor() {
                   onPress={() => setFsPreview(true)}
                   style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
                 >
-                  <Text style={ss.exportBtnText}>⛶</Text>
+                  {/* Ícone do pacote (glifo embutido) — o carácter ⛶ não existe
+                      nas fontes do macOS e aparecia um símbolo estranho */}
+                  <Ionicons name="expand-outline" size={15} color="#fff" />
                 </Pressable>
               )}
 
