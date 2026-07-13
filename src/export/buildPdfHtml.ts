@@ -994,8 +994,11 @@ export function buildPdfHtml(
         @media print {
           @page { size: ${pageCss}; margin: 8mm; }
           /* No vertical, encolhe a folha inteira uniformemente (proporcional e
-             legível) em vez de esmagar colunas umas contra as outras. */
+             legível) em vez de esmagar colunas umas contra as outras.
+             No horizontal cabe à largura, por isso força-se a tabela dos dias
+             a ocupar exatamente 100% (sem isto transborda e corta à direita). */
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0; ${extra?.orientation === "portrait" ? "zoom: 0.62;" : ""} }
+          ${extra?.orientation === "portrait" ? "" : "table.days { table-layout: fixed; } table.days th, table.days td { overflow: hidden; }"}
         }
       </style>
     </head>
