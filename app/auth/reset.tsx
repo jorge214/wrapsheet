@@ -10,6 +10,7 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, Vi
 import { SafeAreaView } from "react-native-safe-area-context";
 import { applyLangFromUrl } from "../../src/i18n/i18n";
 import { supabase } from "../../src/lib/supabase";
+import { LanguagePicker } from "../../src/ui/LanguagePicker";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 export default function ResetPasswordScreen() {
@@ -62,6 +63,9 @@ export default function ResetPasswordScreen() {
 
   return (
     <SafeAreaView style={s.root}>
+      <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 16, paddingTop: 8 }}>
+        <LanguagePicker />
+      </View>
       <View style={s.content}>
         <Text style={s.title}>{t("auth_forgot_title", { defaultValue: "Repor palavra-passe" })}</Text>
 
