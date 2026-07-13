@@ -956,7 +956,7 @@ export function buildPdfHtml(
         .secTitle { font-weight: 900; font-size: 12px; margin: 8px 0 2px; text-transform: uppercase; }
         .uRow { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; align-items: end; }
         .uk { font-size: 11px; font-weight: 800; padding: 5px 0 3px; }
-        .uv { font-size: 12px; border-bottom: 1px solid #2b2b2b; padding: 5px 2px 3px; min-height: 1.25em; }
+        .uv { font-size: 13.5px; font-weight: 700; border-bottom: 1px solid #2b2b2b; padding: 5px 2px 3px; min-height: 1.25em; }
         /* Caixa lateral (Emitido a / IRS / IVA / Valor Final) — tamanhos uniformes */
         .sideBox .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
         .sideBox .k { font-weight: 800; }
@@ -979,7 +979,7 @@ export function buildPdfHtml(
           display: flex; align-items: center; justify-content: center; text-align: center;
           padding: 6px; border-right: 1px solid #2b2b2b;
         }
-        .condB { padding: 6px 8px; font-size: 10px; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+        .condB { padding: 6px 8px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
         .condImg { max-width: 240px; max-height: 170px; margin-top: 6px; border: 1px solid #999; }
         .condRow { break-inside: avoid; page-break-inside: avoid; }
         /* Keep table rows and the closing blocks from being split across pages */
@@ -1315,7 +1315,7 @@ export function buildEditableSheetHtml(
         .secTitle { font-weight: 900; font-size: 12px; margin: 8px 0 2px; text-transform: uppercase; }
         .uRow { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; align-items: end; }
         .uk { font-size: 11px; font-weight: 800; padding: 5px 0 3px; }
-        .uv { font-size: 12px; border-bottom: 1px solid #2b2b2b; padding: 5px 2px 3px; min-height: 1.25em; min-width: 0; overflow: hidden; }
+        .uv { font-size: 13.5px; font-weight: 700; border-bottom: 1px solid #2b2b2b; padding: 5px 2px 3px; min-height: 1.25em; min-width: 0; overflow: hidden; }
         .uv .ei { display: block; width: 100%; min-height: 1.1em; }
         .sideBox .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
         .sideBox .k { font-weight: 800; }
@@ -1329,7 +1329,7 @@ export function buildEditableSheetHtml(
         .condRow { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
         .condRow:first-of-type { border-top: 0; }
         .condT { background: #e8e8e8; font-weight: 900; font-size: 10px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; border-right: 1px solid #2b2b2b; }
-        .condB { padding: 6px 8px; font-size: 10px; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+        .condB { padding: 6px 8px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
         .condImg { max-width: 240px; max-height: 170px; margin-top: 6px; border: 1px solid #999; }
         .conditionsBody { padding: 8px 10px; font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
         .addDayBar { margin-top: 10px; text-align: left; }

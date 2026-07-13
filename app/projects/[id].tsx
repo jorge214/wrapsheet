@@ -190,7 +190,6 @@ export default function ProjectEditor() {
   // hooks) — declará-los mais abaixo deixava o ecrã branco ao carregar.
   const [exportOpen, setExportOpen] = useState(false);
   const [expOrientation, setExpOrientation] = useState<"landscape" | "portrait">("landscape");
-  const [expFont, setExpFont] = useState<"normal" | "large" | "xlarge">("normal");
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
   const editIframeRef = useRef<any>(null);
@@ -417,6 +416,19 @@ export default function ProjectEditor() {
     );
   }, [project, calculos, totais, regionCode, anyPreview]);
 
+  // Pré-visualização do diálogo de exportação (a forma vertical/horizontal
+  // vem do rácio A4 do contentor; table-layout fixed faz refluir como no print)
+  const exportPreviewHtml = useMemo(() => {
+    if (!exportOpen || !project) return "";
+    const rPreset = getPreset(regionCode);
+    const html = buildPdfHtml(
+      project.perfil, project.projeto, project.dias, calculos, totais, project.tabela as any,
+      project.notas, i18n.language, regionCode, rPreset.currency, t("tax_disclaimer"), project.condicoes,
+      { fiscal: project.fiscal as any, condTitulo: project.condTitulo, condBoxes: project.condBoxes }
+    );
+    return html.replace("</body>", "<style>table.days{table-layout:fixed;width:100%} body{padding:8px}</style></body>");
+  }, [exportOpen, project, calculos, totais, regionCode]);
+
   // Sync to context whenever previewHtml changes
   useEffect(() => {
     if (livePreview && previewHtml) setPreviewHtml(previewHtml);
@@ -634,7 +646,7 @@ export default function ProjectEditor() {
   }
 
   // ✅ Export robusto: usa SEMPRE o estado atual em memória (ref)
-  async function handleExportPDF(opts?: { orientation: "landscape" | "portrait"; fontScale: number }) {
+  async function handleExportPDF(opts?: { orientation: "landscape" | "portrait"; fontScale?: number }) {
     const p = projectRef.current;
 
     if (!p) {
@@ -1616,59 +1628,57 @@ export default function ProjectEditor() {
               {t("export_pdf", { defaultValue: "Exportar PDF" })}
             </Text>
 
-            {/* Orientação */}
-            <Text style={{ color: COLORS.sub, fontSize: 12, fontWeight: "900", marginBottom: 6 }}>
-              {t("print_orientation", { defaultValue: "Orientação" })}
-            </Text>
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+            {/* Orientação com pré-visualização real de ambas */}
+            <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
               {([
-                { k: "landscape", label: t("print_landscape", { defaultValue: "Horizontal" }) },
-                { k: "portrait", label: t("print_portrait", { defaultValue: "Vertical" }) },
+                { k: "landscape", label: t("print_landscape", { defaultValue: "Horizontal" }), ratio: 297 / 210 },
+                { k: "portrait", label: t("print_portrait", { defaultValue: "Vertical" }), ratio: 210 / 297 },
               ] as const).map((o) => {
                 const on = expOrientation === o.k;
                 return (
-                  <Pressable
-                    key={o.k}
-                    onPress={() => setExpOrientation(o.k)}
-                    style={[{ flex: 1, alignItems: "center", paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border }, on && { backgroundColor: COLORS.text, borderColor: COLORS.text }]}
-                  >
-                    <Text style={{ fontWeight: "900", color: on ? COLORS.bg : COLORS.text }}>{o.label}</Text>
+                  <Pressable key={o.k} onPress={() => setExpOrientation(o.k)} style={{ flex: 1 }}>
+                    <View
+                      style={{
+                        width: "100%",
+                        aspectRatio: o.ratio,
+                        borderWidth: 2,
+                        borderColor: on ? COLORS.text : COLORS.border,
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        backgroundColor: "#fff",
+                      }}
+                    >
+                      {Platform.OS === "web" ? (
+                        // @ts-ignore — iframe web-only
+                        <iframe
+                          srcDoc={exportPreviewHtml}
+                          scrolling="no"
+                          style={{ width: "300%", height: "300%", border: "none", transform: "scale(0.3333)", transformOrigin: "top left", pointerEvents: "none" } as any}
+                          title={o.label}
+                        />
+                      ) : WebView ? (
+                        <View pointerEvents="none" style={{ flex: 1 }}>
+                          <WebView source={{ html: exportPreviewHtml }} scrollEnabled={false} javaScriptEnabled style={{ flex: 1, backgroundColor: "#fff" }} />
+                        </View>
+                      ) : null}
+                      {/* overlay: o clique seleciona o cartão (o iframe engolia-o) */}
+                      <Pressable
+                        onPress={() => setExpOrientation(o.k)}
+                        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                      />
+                    </View>
+                    <Text style={{ textAlign: "center", marginTop: 6, fontWeight: "900", fontSize: 13, color: on ? COLORS.text : COLORS.sub }}>
+                      {on ? "● " : "○ "}{o.label}
+                    </Text>
                   </Pressable>
                 );
               })}
             </View>
-
-            {/* Tamanho da letra */}
-            <Text style={{ color: COLORS.sub, fontSize: 12, fontWeight: "900", marginBottom: 6 }}>
-              {t("print_font_size", { defaultValue: "Tamanho da letra" })}
-            </Text>
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 6 }}>
-              {([
-                { k: "normal", label: t("print_font_normal", { defaultValue: "Normal" }) },
-                { k: "large", label: t("print_font_large", { defaultValue: "Grande" }) },
-                { k: "xlarge", label: t("print_font_xlarge", { defaultValue: "Muito grande" }) },
-              ] as const).map((o) => {
-                const on = expFont === o.k;
-                return (
-                  <Pressable
-                    key={o.k}
-                    onPress={() => setExpFont(o.k)}
-                    style={[{ flex: 1, alignItems: "center", paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border }, on && { backgroundColor: COLORS.text, borderColor: COLORS.text }]}
-                  >
-                    <Text style={{ fontWeight: "900", fontSize: 13, color: on ? COLORS.bg : COLORS.text }}>{o.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Text style={{ color: COLORS.sub, fontSize: 11, marginBottom: 16, fontStyle: "italic" }}>
-              {t("print_hint", { defaultValue: "Vertical encolhe a folha para caber numa A4 vertical. Para muitas colunas, Horizontal lê-se melhor." })}
-            </Text>
 
             <Pressable
               onPress={() => {
-                const scale = expFont === "large" ? 1.25 : expFont === "xlarge" ? 1.5 : 1;
                 setExportOpen(false);
-                handleExportPDF({ orientation: expOrientation, fontScale: scale });
+                handleExportPDF({ orientation: expOrientation });
               }}
               style={({ pressed }) => [{ alignItems: "center", paddingVertical: 13, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
             >
