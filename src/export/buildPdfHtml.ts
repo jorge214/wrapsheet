@@ -721,7 +721,18 @@ export type PdfExtra = {
   fiscal?: { IRS_percent?: number; IVA_percent?: number };
   condTitulo?: string;
   condBoxes?: { titulo: string; texto: string; img?: string }[];
+  // Opções de exportação/impressão
+  fontScale?: number; // 1 = normal; >1 = letras/números maiores (legibilidade)
+  orientation?: "landscape" | "portrait"; // orientação da página impressa
 };
+
+// Aplica o multiplicador de tamanho a todos os font-size px do CSS gerado
+// (letras e números da folha e do PDF ficam maiores/menores).
+function applyFontScale(html: string, scale?: number): string {
+  const sc = Number(scale);
+  if (!sc || sc === 1 || !isFinite(sc)) return html;
+  return html.replace(/font-size:\s*([\d.]+)px/g, (_m, n) => `font-size: ${Math.round(Number(n) * sc * 10) / 10}px`);
+}
 
 // Secção de condições de trabalho: caixas (título | texto + imagem) como na
 // folha de referência; cai para o texto corrido antigo se não houver caixas.
@@ -812,6 +823,9 @@ export function buildPdfHtml(
   const irsPct = extra?.fiscal?.IRS_percent;
   const ivaPct = extra?.fiscal?.IVA_percent;
 
+  // Orientação da impressão (A4 = compatível com impressoras domésticas)
+  const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A4 landscape";
+
   const dayRows = dias
     .map((d, i) => {
       const c = calculos[i];
@@ -842,7 +856,7 @@ export function buildPdfHtml(
     })
     .join("");
 
-  return `
+  return applyFontScale(`
   <html>
     <head>
       <meta charset="utf-8" />
@@ -975,8 +989,11 @@ export function buildPdfHtml(
           page-break-inside: avoid;
         }
         @media print {
-          @page { size: A3 landscape; margin: 10mm; }
+          @page { size: ${pageCss}; margin: 8mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          /* Cabe sempre na largura da página escolhida */
+          body { padding: 0; }
+          table.days { table-layout: fixed; width: 100%; }
         }
       </style>
     </head>
@@ -1098,7 +1115,7 @@ export function buildPdfHtml(
       ${taxDisclaimer ? `<div style="margin-top:8px;font-size:9px;color:#999;">${escapeHtml(taxDisclaimer)}</div>` : ""}
     </body>
   </html>
-  `;
+  `, extra?.fontScale);
 }
 
 // ── Editable mirror of the sheet (same format, but with <input> fields) ─────────

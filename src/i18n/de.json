@@ -417,5 +417,13 @@
   "region_dk": "Dänemark",
   "unsaved_changes": "Ungespeicherte Änderungen",
   "unsaved_changes_msg": "Möchtest du die Änderungen vor dem Verlassen speichern?",
-  "ignore": "Verwerfen"
+  "ignore": "Verwerfen",
+  "print_orientation": "Ausrichtung",
+  "print_landscape": "Querformat",
+  "print_portrait": "Hochformat",
+  "print_font_size": "Schriftgröße",
+  "print_font_normal": "Normal",
+  "print_font_large": "Groß",
+  "print_font_xlarge": "Sehr groß",
+  "print_hint": "Hochformat verkleinert den Bogen, damit er auf A4 hoch passt. Bei vielen Spalten ist Querformat besser lesbar."
 }

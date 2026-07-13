@@ -627,8 +627,13 @@ export default function ProjectEditor() {
     postEditCalc(next);
   }
 
+  // Opções de exportação/impressão (orientação + tamanho da letra)
+  const [exportOpen, setExportOpen] = useState(false);
+  const [expOrientation, setExpOrientation] = useState<"landscape" | "portrait">("landscape");
+  const [expFont, setExpFont] = useState<"normal" | "large" | "xlarge">("normal");
+
   // ✅ Export robusto: usa SEMPRE o estado atual em memória (ref)
-  async function handleExportPDF() {
+  async function handleExportPDF(opts?: { orientation: "landscape" | "portrait"; fontScale: number }) {
     const p = projectRef.current;
 
     if (!p) {
@@ -691,7 +696,13 @@ export default function ProjectEditor() {
         rPreset.currency,
         t("tax_disclaimer"),
         p.condicoes,
-        { fiscal: p.fiscal as any, condTitulo: p.condTitulo, condBoxes: p.condBoxes }
+        {
+          fiscal: p.fiscal as any,
+          condTitulo: p.condTitulo,
+          condBoxes: p.condBoxes,
+          orientation: opts?.orientation ?? "landscape",
+          fontScale: opts?.fontScale ?? 1,
+        }
       );
     } catch (e) {
       console.error(e);
@@ -1270,7 +1281,7 @@ export default function ProjectEditor() {
               )}
 
               <Pressable
-                onPress={handleExportPDF}
+                onPress={() => setExportOpen(true)}
                 style={({ pressed }) => [
                   ss.exportBtn,
                   pressed && { opacity: 0.85 },
@@ -1488,7 +1499,7 @@ export default function ProjectEditor() {
                   {saveStatus === "saving" ? t("saving") : `✓ ${t("saved")}`}
                 </Text>
               )}
-              <Pressable onPress={handleExportPDF} hitSlop={8} style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}>
+              <Pressable onPress={() => setExportOpen(true)} hitSlop={8} style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}>
                 <Text style={ss.exportBtnText}>{t("export_pdf")}</Text>
               </Pressable>
               <Pressable onPress={() => setEditHtml(false)} hitSlop={12} style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}>
@@ -1549,7 +1560,7 @@ export default function ProjectEditor() {
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <Pressable
-                onPress={handleExportPDF}
+                onPress={() => setExportOpen(true)}
                 hitSlop={8}
                 style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
               >
@@ -1588,6 +1599,85 @@ export default function ProjectEditor() {
           )}
         </SafeAreaView>
         </SafeAreaProvider>
+      </Modal>
+
+      {/* Opções de exportação/impressão do PDF */}
+      <Modal transparent animationType="fade" visible={exportOpen} onRequestClose={() => setExportOpen(false)}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
+          onPress={() => setExportOpen(false)}
+        >
+          <Pressable
+            style={{ width: "100%", maxWidth: 460, backgroundColor: COLORS.card, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: COLORS.border }}
+            onPress={() => {}}
+          >
+            <Text style={{ fontSize: 17, fontWeight: "900", color: COLORS.text, textAlign: "center", marginBottom: 14 }}>
+              {t("export_pdf", { defaultValue: "Exportar PDF" })}
+            </Text>
+
+            {/* Orientação */}
+            <Text style={{ color: COLORS.sub, fontSize: 12, fontWeight: "900", marginBottom: 6 }}>
+              {t("print_orientation", { defaultValue: "Orientação" })}
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+              {([
+                { k: "landscape", label: t("print_landscape", { defaultValue: "Horizontal" }) },
+                { k: "portrait", label: t("print_portrait", { defaultValue: "Vertical" }) },
+              ] as const).map((o) => {
+                const on = expOrientation === o.k;
+                return (
+                  <Pressable
+                    key={o.k}
+                    onPress={() => setExpOrientation(o.k)}
+                    style={[{ flex: 1, alignItems: "center", paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border }, on && { backgroundColor: COLORS.text, borderColor: COLORS.text }]}
+                  >
+                    <Text style={{ fontWeight: "900", color: on ? COLORS.bg : COLORS.text }}>{o.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Tamanho da letra */}
+            <Text style={{ color: COLORS.sub, fontSize: 12, fontWeight: "900", marginBottom: 6 }}>
+              {t("print_font_size", { defaultValue: "Tamanho da letra" })}
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 6 }}>
+              {([
+                { k: "normal", label: t("print_font_normal", { defaultValue: "Normal" }) },
+                { k: "large", label: t("print_font_large", { defaultValue: "Grande" }) },
+                { k: "xlarge", label: t("print_font_xlarge", { defaultValue: "Muito grande" }) },
+              ] as const).map((o) => {
+                const on = expFont === o.k;
+                return (
+                  <Pressable
+                    key={o.k}
+                    onPress={() => setExpFont(o.k)}
+                    style={[{ flex: 1, alignItems: "center", paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border }, on && { backgroundColor: COLORS.text, borderColor: COLORS.text }]}
+                  >
+                    <Text style={{ fontWeight: "900", fontSize: 13, color: on ? COLORS.bg : COLORS.text }}>{o.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={{ color: COLORS.sub, fontSize: 11, marginBottom: 16, fontStyle: "italic" }}>
+              {t("print_hint", { defaultValue: "Vertical encolhe a folha para caber numa A4 vertical. Para muitas colunas, Horizontal lê-se melhor." })}
+            </Text>
+
+            <Pressable
+              onPress={() => {
+                const scale = expFont === "large" ? 1.25 : expFont === "xlarge" ? 1.5 : 1;
+                setExportOpen(false);
+                handleExportPDF({ orientation: expOrientation, fontScale: scale });
+              }}
+              style={({ pressed }) => [{ alignItems: "center", paddingVertical: 13, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={{ color: COLORS.bg, fontWeight: "900", fontSize: 15 }}>{t("export_pdf", { defaultValue: "Exportar PDF" })}</Text>
+            </Pressable>
+            <Pressable onPress={() => setExportOpen(false)} style={({ pressed }) => [{ alignItems: "center", paddingVertical: 10, marginTop: 4 }, pressed && { opacity: 0.7 }]}>
+              <Text style={{ color: COLORS.sub, fontWeight: "800", fontSize: 13 }}>{t("cancel", { defaultValue: "Cancelar" })}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Toast de confirmação */}

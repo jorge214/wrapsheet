@@ -417,5 +417,13 @@
   "region_dk": "Dinamarca",
   "unsaved_changes": "Alterações por guardar",
   "unsaved_changes_msg": "Queres guardar as alterações antes de sair?",
-  "ignore": "Ignorar"
+  "ignore": "Ignorar",
+  "print_orientation": "Orientação",
+  "print_landscape": "Horizontal",
+  "print_portrait": "Vertical",
+  "print_font_size": "Tamanho da letra",
+  "print_font_normal": "Normal",
+  "print_font_large": "Grande",
+  "print_font_xlarge": "Muito grande",
+  "print_hint": "Vertical encolhe a folha para caber numa A4 vertical. Para muitas colunas, Horizontal lê-se melhor."
 }

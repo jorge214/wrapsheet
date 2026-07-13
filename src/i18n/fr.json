@@ -417,5 +417,13 @@
   "region_dk": "Danemark",
   "unsaved_changes": "Modifications non enregistrées",
   "unsaved_changes_msg": "Voulez-vous enregistrer les modifications avant de quitter ?",
-  "ignore": "Ignorer"
+  "ignore": "Ignorer",
+  "print_orientation": "Orientation",
+  "print_landscape": "Paysage",
+  "print_portrait": "Portrait",
+  "print_font_size": "Taille de police",
+  "print_font_normal": "Normale",
+  "print_font_large": "Grande",
+  "print_font_xlarge": "Très grande",
+  "print_hint": "Le portrait réduit la feuille pour tenir sur une A4 portrait. Avec beaucoup de colonnes, le paysage se lit mieux."
 }

@@ -45,9 +45,14 @@ export async function exportPDF(
   try {
     const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extra);
 
-    // A3 horizontal (1191×842 pt) — sem isto o iOS usa A4 vertical e a folha
-    // sai cortada à direita (faltavam colunas no PDF exportado no telemóvel).
-    const result = await Print.printToFileAsync({ html, width: 1191, height: 842 });
+    // A4: horizontal (842×595 pt) por defeito, ou vertical (595×842) se pedido.
+    // Sem largura definida o iOS usava A4 vertical e cortava colunas à direita.
+    const portrait = extra?.orientation === "portrait";
+    const result = await Print.printToFileAsync({
+      html,
+      width: portrait ? 595 : 842,
+      height: portrait ? 842 : 595,
+    });
     let outUri = result.uri;
 
     const mesNome = new Intl.DateTimeFormat(locale, { month: "long" })

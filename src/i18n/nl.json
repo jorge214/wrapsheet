@@ -417,5 +417,13 @@
   "region_dk": "Denemarken",
   "unsaved_changes": "Niet-opgeslagen wijzigingen",
   "unsaved_changes_msg": "Wil je de wijzigingen opslaan voordat je weggaat?",
-  "ignore": "Negeren"
+  "ignore": "Negeren",
+  "print_orientation": "Oriëntatie",
+  "print_landscape": "Liggend",
+  "print_portrait": "Staand",
+  "print_font_size": "Lettergrootte",
+  "print_font_normal": "Normaal",
+  "print_font_large": "Groot",
+  "print_font_xlarge": "Extra groot",
+  "print_hint": "Staand verkleint het blad om op A4 staand te passen. Bij veel kolommen leest liggend beter."
 }

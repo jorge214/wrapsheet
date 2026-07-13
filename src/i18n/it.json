@@ -417,5 +417,13 @@
   "region_dk": "Danimarca",
   "unsaved_changes": "Modifiche non salvate",
   "unsaved_changes_msg": "Vuoi salvare le modifiche prima di uscire?",
-  "ignore": "Ignora"
+  "ignore": "Ignora",
+  "print_orientation": "Orientamento",
+  "print_landscape": "Orizzontale",
+  "print_portrait": "Verticale",
+  "print_font_size": "Dimensione carattere",
+  "print_font_normal": "Normale",
+  "print_font_large": "Grande",
+  "print_font_xlarge": "Molto grande",
+  "print_hint": "Il verticale riduce il foglio per stare in A4 verticale. Con molte colonne, l orizzontale è più leggibile."
 }

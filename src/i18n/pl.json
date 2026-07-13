@@ -417,5 +417,13 @@
   "region_dk": "Dania",
   "unsaved_changes": "Niezapisane zmiany",
   "unsaved_changes_msg": "Czy chcesz zapisać zmiany przed wyjściem?",
-  "ignore": "Odrzuć"
+  "ignore": "Odrzuć",
+  "print_orientation": "Orientacja",
+  "print_landscape": "Pozioma",
+  "print_portrait": "Pionowa",
+  "print_font_size": "Rozmiar czcionki",
+  "print_font_normal": "Normalny",
+  "print_font_large": "Duży",
+  "print_font_xlarge": "Bardzo duży",
+  "print_hint": "Pionowa zmniejsza arkusz, aby zmieścił się na A4 pionowo. Przy wielu kolumnach pozioma jest czytelniejsza."
 }

@@ -417,5 +417,13 @@
   "region_dk": "Denmark",
   "unsaved_changes": "Unsaved changes",
   "unsaved_changes_msg": "Do you want to save your changes before leaving?",
-  "ignore": "Discard"
+  "ignore": "Discard",
+  "print_orientation": "Orientation",
+  "print_landscape": "Landscape",
+  "print_portrait": "Portrait",
+  "print_font_size": "Font size",
+  "print_font_normal": "Normal",
+  "print_font_large": "Large",
+  "print_font_xlarge": "Extra large",
+  "print_hint": "Portrait shrinks the sheet to fit A4 portrait. With many columns, Landscape reads better."
 }
