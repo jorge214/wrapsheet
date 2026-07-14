@@ -72,6 +72,8 @@ export type ProjetoInfo = {
   semana?: string;
   mes: number;
   ano: number;
+  /** Total de dias editado à mão (decimal); vazio = contagem automática */
+  totalDias?: number;
 };
 
 export type ProjectState = {
@@ -230,6 +232,9 @@ function upgradeProject(raw: any, id: string): ProjectState {
       typeof raw.projeto?.ano === "number"
         ? raw.projeto.ano
         : dayjs().year(),
+    // Total de dias editado à mão na folha (decimal); vazio = contagem automática
+    totalDias:
+      typeof raw.projeto?.totalDias === "number" ? raw.projeto.totalDias : undefined,
   };
 
   const dias: Dia[] =

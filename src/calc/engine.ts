@@ -32,6 +32,7 @@ const ZERO_DAY: CalcDia = {
   HEA_h: 0, HEB_h: 0, HR_h: 0,
   HEA_valor: 0, HEB_valor: 0, HR_valor: 0,
   salarioDia: 0, ajudasTotal: 0, totalDia: 0,
+  ajRef: 0, ajViat: 0, ajTel: 0, ajMat: 0, ajPer: 0,
 };
 
 /**
@@ -106,31 +107,43 @@ export function calcDay(dia: Dia, prox: Dia | undefined, tabela: Tabela): CalcDi
 
   const salarioDia = round2(salarioDiaEfetivo * (dia.meioDia ? 0.5 : 1));
 
+  // Ajudas: override do dia ?? valor global (cada dia é negociado com o produtor)
   const aj = tabela.ajudas || { refeicao: 0, viatura: 0, material: 0, telefone: 0, perDiem: 0 };
-  const ajudasTotal = round2(aj.refeicao + aj.viatura + aj.material + aj.telefone + aj.perDiem);
+  const ajRef  = dia.ajRefeicao ?? aj.refeicao ?? 0;
+  const ajViat = dia.ajViatura  ?? aj.viatura  ?? 0;
+  const ajTel  = dia.ajTelefone ?? aj.telefone ?? 0;
+  const ajMat  = dia.ajMaterial ?? aj.material ?? 0;
+  const ajPer  = dia.ajPerDiem  ?? aj.perDiem  ?? 0;
+  const ajudasTotal = round2(ajRef + ajViat + ajTel + ajMat + ajPer);
+
+  // Horas extra: contagem forçada no dia (se editada) sobrepõe-se à calculada
+  const heA_minEff = dia.heaHoras != null ? Math.round(dia.heaHoras * 60) : heA_min;
+  const heB_minEff = dia.hebHoras != null ? Math.round(dia.hebHoras * 60) : heB_min;
+  const HR_minEff  = dia.hrHoras  != null ? Math.round(dia.hrHoras  * 60) : HR_min;
 
   // Fix #12: use raw (unrounded) hours for monetary calc to avoid intermediate rounding bias
-  const eurHEA = round2(minutesToHoursRaw(heA_min) * rateHEA);
-  const eurHEB = round2(minutesToHoursRaw(heB_min) * rateHEB);
-  const eurHR  = round2(minutesToHoursRaw(HR_min)  * rateHR);
+  const eurHEA = dia.heaValor != null ? round2(dia.heaValor) : round2(minutesToHoursRaw(heA_minEff) * rateHEA);
+  const eurHEB = dia.hebValor != null ? round2(dia.hebValor) : round2(minutesToHoursRaw(heB_minEff) * rateHEB);
+  const eurHR  = dia.hrValor  != null ? round2(dia.hrValor)  : round2(minutesToHoursRaw(HR_minEff)  * rateHR);
 
   const totalDia = round2(salarioDia + eurHEA + eurHEB + eurHR + ajudasTotal);
 
   return {
     HT_min,
     HD_min,
-    HEA_min: heA_min,
-    HEB_min: heB_min,
-    HR_min,
-    HEA_h: minutesToHoursDec(heA_min),
-    HEB_h: minutesToHoursDec(heB_min),
-    HR_h:  minutesToHoursDec(HR_min),
+    HEA_min: heA_minEff,
+    HEB_min: heB_minEff,
+    HR_min: HR_minEff,
+    HEA_h: minutesToHoursDec(heA_minEff),
+    HEB_h: minutesToHoursDec(heB_minEff),
+    HR_h:  minutesToHoursDec(HR_minEff),
     HEA_valor: eurHEA, // Fix #1: expose per-component euro values
     HEB_valor: eurHEB,
     HR_valor:  eurHR,
     salarioDia,
     ajudasTotal,
     totalDia,
+    ajRef: round2(ajRef), ajViat: round2(ajViat), ajTel: round2(ajTel), ajMat: round2(ajMat), ajPer: round2(ajPer),
   };
 }
 

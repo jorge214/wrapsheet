@@ -98,17 +98,24 @@ function NumField({
   COLORS: any;
   styles: any;
 }) {
+  // Buffer de texto enquanto se escreve: sem ele, "23," era normalizado para
+  // "23" a cada tecla e nunca dava para escrever decimais (ex.: IVA 23,2).
+  const [txt, setTxt] = React.useState<string | null>(null);
   return (
     <View style={styles.fieldWrapper}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {editing ? (
         <TextInput
-          value={value != null ? String(value) : ""}
-          onChangeText={(v) => onChange(v.trim() === "" ? undefined : Number(v.replace(",", ".")) || 0)}
+          value={txt ?? (value != null ? String(value).replace(".", ",") : "")}
+          onChangeText={(v) => {
+            setTxt(v);
+            onChange(v.trim() === "" ? undefined : Number(v.replace(",", ".")) || 0);
+          }}
+          onBlur={() => setTxt(null)}
           placeholder="0"
           placeholderTextColor={COLORS.sub}
           style={styles.fieldInput}
-          keyboardType="numeric"
+          keyboardType="decimal-pad"
         />
       ) : (
         <Text style={styles.fieldValue}>{value != null ? `${value}${unit ? " " + unit : ""}` : "—"}</Text>

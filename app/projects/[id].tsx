@@ -548,23 +548,25 @@ export default function ProjectEditor() {
     const tot = calcTotals(calc, p.fiscal as any);
     const cur = getPreset(regionCode).currency;
     const fmt = (n: number) => fmtMoney(Number(n) || 0, cur);
-    const aj: any = p.tabela.ajudas || {};
     const salG = Number(p.tabela.salarioDia || 0);
-    const totalDias = p.dias.reduce((a, x) => a + (x.diaSemTrabalho ? 0 : x.meioDia ? 0.5 : 1), 0);
+    // Total de dias: o valor editado à mão tem prioridade sobre a contagem
+    const totalDias = (p.projeto as any).totalDias ??
+      p.dias.reduce((a, x) => a + (x.diaSemTrabalho ? 0 : x.meioDia ? 0.5 : 1), 0);
     const dec = (min: number) => (Math.max(0, min) / 60).toFixed(1).replace(".", ",");
     const days = p.dias.map((x: any, i) => {
       const c: any = calc[i] || {};
       return {
         sal: fmt(x.salarioDia ?? salG),
         ht: minutesToHM(c.HT_min || 0), hd: minutesToHM(c.HD_min || 0),
-        d_ref: fmt(aj.refeicao || 0), d_per: fmt(aj.perDiem || 0), d_tel: fmt(aj.telefone || 0), d_viat: fmt(aj.viatura || 0), d_mat: fmt(aj.material || 0),
+        // Ajudas efetivas do dia (override do dia ?? global) vêm do motor
+        d_ref: fmt(c.ajRef || 0), d_per: fmt(c.ajPer || 0), d_tel: fmt(c.ajTel || 0), d_viat: fmt(c.ajViat || 0), d_mat: fmt(c.ajMat || 0),
         hea_h: dec(c.HEA_min || 0), hea_v: fmt(c.HEA_valor || 0),
         heb_h: dec(c.HEB_min || 0), heb_v: fmt(c.HEB_valor || 0),
         hr_h: dec(c.HR_min || 0), hr_v: fmt(c.HR_valor || 0),
         tot: fmt(c.totalDia || 0),
       };
     });
-    const payload = { type: "ws:calc", totalDias: String(totalDias), vb: fmt(tot.ValorBruto), irs: fmt(tot.IRS_valor), iva: fmt(tot.IVA_valor), vf: fmt(tot.ValorFinal), days };
+    const payload = { type: "ws:calc", totalDias: String(totalDias).replace(".", ","), vb: fmt(tot.ValorBruto), irs: fmt(tot.IRS_valor), iva: fmt(tot.IVA_valor), vf: fmt(tot.ValorFinal), days };
     if (Platform.OS === "web") {
       editIframeRef.current?.contentWindow?.postMessage(payload, "*");
       inlineSheetRef.current?.contentWindow?.postMessage(payload, "*");
@@ -668,10 +670,30 @@ export default function ProjectEditor() {
     }
     if (d.type !== "ws:edit") return;
     const num = (v: any) => Number(String(v).replace(",", ".")) || 0;
+    // Números escritos na folha podem vir formatados ("250,00 €"). Vazio =
+    // volta ao automático (override removido).
+    const numOpt = (v: any): number | undefined => {
+      const raw = String(v ?? "").replace(/[^\d,.-]/g, "").replace(/\./g, (m, off, str) =>
+        // último separador é o decimal; pontos de milhar caem
+        str.lastIndexOf(",") > str.lastIndexOf(".") ? "" : m
+      ).replace(",", ".");
+      if (raw === "" || raw === "-" || raw === ".") return undefined;
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : undefined;
+    };
+    // Campos numéricos por-dia editáveis diretamente na folha
+    const DIA_NUM = new Set([
+      "salarioDia", "ajRefeicao", "ajViatura", "ajTelefone", "ajMaterial", "ajPerDiem",
+      "heaHoras", "hebHoras", "hrHoras", "heaValor", "hebValor", "hrValor",
+    ]);
     let next: ProjectState = p;
     switch (d.k) {
       case "perfil": next = { ...p, perfil: { ...p.perfil, [d.f]: d.value } }; break;
-      case "projeto": next = { ...p, projeto: { ...p.projeto, [d.f]: d.value } }; break;
+      case "projeto": {
+        const val = d.f === "totalDias" ? numOpt(d.value) : d.value;
+        next = { ...p, projeto: { ...p.projeto, [d.f]: val } };
+        break;
+      }
       case "fiscal": next = { ...p, fiscal: { ...p.fiscal, [d.f]: num(d.value) } }; break;
       case "tabela": next = { ...p, tabela: { ...p.tabela, [d.f]: num(d.value) } }; break;
       case "ajudas": next = { ...p, tabela: { ...p.tabela, ajudas: { ...(p.tabela.ajudas as any), [d.f]: num(d.value) } } }; break;
@@ -683,6 +705,8 @@ export default function ProjectEditor() {
           val = `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
         } else if (d.f === "pago") {
           val = !!d.value;
+        } else if (DIA_NUM.has(d.f)) {
+          val = numOpt(d.value); // undefined = volta ao automático
         }
         next = { ...p, dias: p.dias.map((x, ix) => (ix === d.i ? { ...x, [d.f]: val } : x)) };
         break;

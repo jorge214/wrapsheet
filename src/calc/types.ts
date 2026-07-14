@@ -21,6 +21,20 @@ export type Dia = {
   tempoTransporteMin: number; // minutos (total do dia)
   diaSemTrabalho: boolean;
   pago?: boolean;             // dia já pago pela produtora
+
+  // Overrides por dia, editados diretamente na folha (vazio = automático).
+  // Cada dia é negociado com o produtor — TUDO tem de ser editável.
+  ajRefeicao?: number;
+  ajViatura?: number;
+  ajTelefone?: number;
+  ajMaterial?: number;
+  ajPerDiem?: number;
+  heaHoras?: number;         // horas extra A (contagem) forçadas
+  hebHoras?: number;
+  hrHoras?: number;
+  heaValor?: number;         // € de HE-A forçado (ignora horas × taxa)
+  hebValor?: number;
+  hrValor?: number;
 };
 
 // Tipo canónico — valores sempre em percentagem (ex: 25 significa 25%)
@@ -68,4 +82,12 @@ export type CalcDia = {
   salarioDia: number;
   ajudasTotal: number;
   totalDia: number;
+
+  // Ajudas efetivas do dia (override do dia ?? valor global) — o que a folha
+  // e o PDF mostram em cada linha.
+  ajRef: number;
+  ajViat: number;
+  ajTel: number;
+  ajMat: number;
+  ajPer: number;
 };

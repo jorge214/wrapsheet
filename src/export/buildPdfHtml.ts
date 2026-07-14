@@ -26,6 +26,8 @@ export type PdfProjeto = {
   semana?: string;
   mes: number;
   ano: number;
+  /** Total de dias editado à mão (5,5 / 4,3…); vazio = contagem automática */
+  totalDias?: number;
 };
 
 export type PdfTabela = {
@@ -102,7 +104,7 @@ const STRINGS = {
     totalHours: "TOTAL HORAS",
     description: "DESCRIÇÃO",
     start: "INÍCIO",
-    mealBreak: "REFEIÇÃO",
+    mealBreak: "HORA REFEIÇÃO",
     end: "FIM",
     workHours: "HORAS TRABALHO",
     restHours: "HORAS DESCANSO",
@@ -164,7 +166,7 @@ const STRINGS = {
     totalHours: "TOTAL HOURS",
     description: "DESCRIPTION",
     start: "START",
-    mealBreak: "MEAL",
+    mealBreak: "MEAL TIME",
     end: "END",
     workHours: "WORK HOURS",
     restHours: "REST HOURS",
@@ -226,7 +228,7 @@ const STRINGS = {
     totalHours: "TOTAL HORAS",
     description: "DESCRIPCIÓN",
     start: "INICIO",
-    mealBreak: "COMIDA",
+    mealBreak: "HORA COMIDA",
     end: "FIN",
     workHours: "HORAS TRABAJO",
     restHours: "HORAS DESCANSO",
@@ -288,7 +290,7 @@ const STRINGS = {
     totalHours: "TOTAL HEURES",
     description: "DESCRIPTION",
     start: "DÉBUT",
-    mealBreak: "REPAS",
+    mealBreak: "HEURE REPAS",
     end: "FIN",
     workHours: "HEURES TRAVAIL",
     restHours: "HEURES REPOS",
@@ -350,7 +352,7 @@ const STRINGS = {
     totalHours: "GESAMTSTUNDEN",
     description: "BESCHREIBUNG",
     start: "BEGINN",
-    mealBreak: "PAUSE",
+    mealBreak: "ESSENSZEIT",
     end: "ENDE",
     workHours: "ARBEITSSTUNDEN",
     restHours: "RUHEZEIT",
@@ -412,7 +414,7 @@ const STRINGS = {
     totalHours: "TOTALE ORE",
     description: "DESCRIZIONE",
     start: "INIZIO",
-    mealBreak: "PASTO",
+    mealBreak: "ORA PASTO",
     end: "FINE",
     workHours: "ORE LAVORO",
     restHours: "ORE RIPOSO",
@@ -474,7 +476,7 @@ const STRINGS = {
     totalHours: "TOTAAL UREN",
     description: "OMSCHRIJVING",
     start: "START",
-    mealBreak: "MAALTIJD",
+    mealBreak: "ETENSTIJD",
     end: "EINDE",
     workHours: "WERKUREN",
     restHours: "RUSTUREN",
@@ -536,7 +538,7 @@ const STRINGS = {
     totalHours: "SUMA GODZIN",
     description: "OPIS",
     start: "START",
-    mealBreak: "POSIŁEK",
+    mealBreak: "GODZ. POSIŁKU",
     end: "KONIEC",
     workHours: "GODZINY PRACY",
     restHours: "GODZINY ODPOCZ.",
@@ -598,7 +600,7 @@ const STRINGS = {
     totalHours: "TOTAL HOURS",
     description: "DESCRIPTION",
     start: "START",
-    mealBreak: "MEAL",
+    mealBreak: "MEAL TIME",
     end: "END",
     workHours: "WORK HOURS",
     restHours: "REST HOURS",
@@ -819,7 +821,8 @@ export function buildPdfHtml(
   const valViat = Number(aj.viatura   ?? 0);
   const valMat  = Number(aj.material  ?? 0);
 
-  const totalDias = dias.reduce(
+  // Total de dias: valor editado à mão (5,5 / 4,3…) tem prioridade
+  const totalDias = projeto.totalDias ?? dias.reduce(
     (acc, d) => acc + (d.diaSemTrabalho ? 0 : d.meioDia ? 0.5 : 1),
     0
   );
@@ -853,18 +856,18 @@ export function buildPdfHtml(
           <td>${escapeHtml(d.fim || "")}</td>
           <td>${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
           <td class="blue">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
-          <td class="right">${fmt(valRef)}</td>
-          <td class="right">${fmt(valPer)}</td>
-          <td class="right">${fmt(valTel)}</td>
-          <td class="right">${fmt(valViat)}</td>
-          <td class="right">${fmt(valMat)}</td>
+          <td class="right">${fmt(c?.ajRef ?? valRef)}</td>
+          <td class="right">${fmt(c?.ajViat ?? valViat)}</td>
+          <td class="right">${fmt(c?.ajTel ?? valTel)}</td>
+          <td class="right">${fmt(c?.ajMat ?? valMat)}</td>
+          <td class="right">${fmt(c?.ajPer ?? valPer)}</td>
           <td class="right">${fmtNum((c?.HEA_min ?? 0) / 60, 1)}</td>
           <td class="right">${fmt(c?.HEA_valor ?? 0)}</td>
           <td class="right">${fmtNum((c?.HEB_min ?? 0) / 60, 1)}</td>
           <td class="right">${fmt(c?.HEB_valor ?? 0)}</td>
           <td class="right">${fmtNum((c?.HR_min ?? 0) / 60, 1)}</td>
           <td class="right">${fmt(c?.HR_valor ?? 0)}</td>
-          <td class="right strong">${fmt(c?.totalDia ?? 0)}</td>
+          <td class="right strong tday">${fmt(c?.totalDia ?? 0)}</td>
         </tr>
       `;
     })
@@ -979,7 +982,17 @@ export function buildPdfHtml(
         /* Tabela de valores (rates): colunas uniformes */
         table.rates { table-layout: fixed; margin-top: 18px; }
         table.rates td { word-break: break-word; }
-        td.tdias { background: #fff3bf; font-weight: 900; }
+        /* Total Dias (quantidade) ≠ Total Dia (valor): sem amarelo, valor a
+           vermelho escuro como na folha de referência */
+        td.tdias { background: #fff; font-weight: 900; color: #7a0000; }
+        /* Coluna TOTAL/DIA (valor de cada dia) a amarelo, como na referência */
+        td.tday { background: #fff3bf; }
+        /* Bloco final: Valor Bruto / IRS / IVA / Valor Líquido, alinhado à direita */
+        table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
+        table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
+        table.endTotals td { font-weight: 900; text-align: right; font-size: 11px; min-width: 120px; }
+        table.endTotals tr.net th { font-weight: 900; }
+        table.endTotals tr.net td { background: #fff3bf; }
         /* Condições de trabalho em caixas (como na folha de referência) */
         .condWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
         .condMain {
@@ -1063,14 +1076,14 @@ export function buildPdfHtml(
 
       <table class="rates">
         <tr>
-          <th class="h-total">${escapeHtml(s.totalDays)}</th>
+          <th>${escapeHtml(s.totalDays)}</th>
           <th>${escapeHtml(s.salary)}</th>
           <th>${escapeHtml(s.overtimeA)}</th>
           <th>${escapeHtml(s.overtimeB)}</th>
           <th class="h-blue">${escapeHtml(s.recoveryHours)}</th>
           <th>${escapeHtml(s.meal)}</th>
-          <th>${escapeHtml(s.telephone)}</th>
           <th class="h-olive">${escapeHtml(s.vehicle)}</th>
+          <th>${escapeHtml(s.telephone)}</th>
           <th class="h-purple">${escapeHtml(s.material)}</th>
           <th>${escapeHtml(s.perDiem)}</th>
         </tr>
@@ -1081,8 +1094,8 @@ export function buildPdfHtml(
           <td>${fmt(vHEB)} <span class="mini">${escapeHtml(s.perHour)}</span></td>
           <td>${fmt(vHR)} <span class="mini">${escapeHtml(s.perHour)}</span></td>
           <td>${fmt(valRef)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
-          <td>${fmt(valTel)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
           <td>${fmt(valViat)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
+          <td>${fmt(valTel)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
           <td>${fmt(valMat)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
           <td>${fmt(valPer)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
         </tr>
@@ -1090,16 +1103,15 @@ export function buildPdfHtml(
 
       <table class="days">
         <tr>
-          <th>${escapeHtml(s.day)}</th>
-          <th>${escapeHtml(s.date)}</th>
+          <th colspan="2">${escapeHtml(s.day)}</th>
           <th>${escapeHtml(s.salary)}</th>
           <th colspan="3">${escapeHtml(s.schedule)}</th>
           <th colspan="2">${escapeHtml(s.totalHours)}</th>
           <th>${escapeHtml(s.meal)}</th>
-          <th>${escapeHtml(s.perDiem)}</th>
-          <th>${escapeHtml(s.telephone)}</th>
           <th class="h-olive">${escapeHtml(s.vehicle)}</th>
+          <th>${escapeHtml(s.telephone)}</th>
           <th class="h-purple">${escapeHtml(s.material)}</th>
+          <th>${escapeHtml(s.perDiem)}</th>
           <th colspan="2">${escapeHtml(s.overtimeAFull)}</th>
           <th colspan="2">${escapeHtml(s.overtimeBFull)}</th>
           <th colspan="2" class="h-blue">${escapeHtml(s.recoveryFull)}</th>
@@ -1107,7 +1119,7 @@ export function buildPdfHtml(
         </tr>
         <tr class="subhead">
           <th class="mini">${escapeHtml(s.description)}</th>
-          <th class="mini"></th>
+          <th class="mini">${escapeHtml(s.date)}</th>
           <th class="mini">${escapeHtml(s.day)}</th>
           <th class="mini">${escapeHtml(s.start)}</th>
           <th class="mini">${escapeHtml(s.mealBreak)}</th>
@@ -1115,10 +1127,10 @@ export function buildPdfHtml(
           <th class="mini">${escapeHtml(s.workHours)}</th>
           <th class="mini blue">${escapeHtml(s.restHours)}</th>
           <th class="mini">${escapeHtml(s.perDay)}</th>
-          <th class="mini">${escapeHtml(s.perDay)}</th>
-          <th class="mini">${escapeHtml(s.perDay)}</th>
           <th class="mini h-olive">${escapeHtml(s.perDay)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
           <th class="mini h-purple">${escapeHtml(s.perDay)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
           <th class="mini">${escapeHtml(s.total)}</th>
           <th class="mini">${escapeHtml(s.value)}</th>
           <th class="mini">${escapeHtml(s.total)}</th>
@@ -1128,6 +1140,13 @@ export function buildPdfHtml(
           <th class="mini h-total">${escapeHtml(s.day)}</th>
         </tr>
         ${dayRows}
+      </table>
+
+      <table class="endTotals">
+        <tr><th>${escapeHtml(s.vb)}</th><td>${fmt(totais.ValorBruto)}</td></tr>
+        <tr><th>${escapeHtml(s.irs)}</th><td>${fmt(totais.IRS_valor)}</td></tr>
+        <tr><th>${escapeHtml(s.iva)}</th><td>${fmt(totais.IVA_valor)}</td></tr>
+        <tr class="net"><th>${escapeHtml(s.vf)}</th><td>${fmt(totais.ValorFinal)}</td></tr>
       </table>
 
       ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra)}
@@ -1157,6 +1176,10 @@ const edDi = (i: number, f: string, val: string, cls = "", extra = "") =>
   `<span class="ei ${cls}" ${CE} data-k="dia" data-i="${i}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
 const edMi = (k: string, f: string, val: number) =>
   `<span class="ei money" ${CE} inputmode="decimal" data-k="${k}" data-f="${f}">${escapeHtml(String(val ?? 0))}</span>`;
+// Célula numérica de um DIA, editável E recalculável: o próprio span leva o
+// data-c, para o ws:calc atualizar no sítio (saltando a célula em foco).
+const edNum = (i: number, f: string, cKey: string, val: string) =>
+  `<span class="ei money" ${CE} inputmode="decimal" data-k="dia" data-i="${i}" data-f="${f}" data-c="${cKey}">${escapeHtml(val)}</span>`;
 
 // Só as linhas <tr> da tabela de dias (editáveis). Usado pelo builder e pela
 // app para atualizar a tabela no sítio via window.__wsSetRows(html).
@@ -1183,24 +1206,24 @@ export function buildEditableDayRowsHtml(
         <tr>
           <td class="left">${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
           <td>${edDi(i, "data", formatDatePT(d.data), "date", 'inputmode="numeric"')}</td>
-          <td class="calc" data-c="sal" data-i="${i}">${fmt(eff)}</td>
+          <td>${edNum(i, "salarioDia", "sal", fmt(eff))}</td>
           <td>${edDi(i, "inicio", d.inicio || "", "time", 'inputmode="numeric"')}</td>
           <td>${edDi(i, "refeicaoTrabalho", d.refeicaoTrabalho || "", "time", 'inputmode="numeric"')}</td>
           <td>${edDi(i, "fim", d.fim || "", "time", 'inputmode="numeric"')}</td>
           <td class="calc" data-c="ht" data-i="${i}">${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
           <td class="blue calc" data-c="hd" data-i="${i}">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
-          <td class="calc" data-c="d_ref" data-i="${i}">${fmt(valRef)}</td>
-          <td class="calc" data-c="d_per" data-i="${i}">${fmt(valPer)}</td>
-          <td class="calc" data-c="d_tel" data-i="${i}">${fmt(valTel)}</td>
-          <td class="calc" data-c="d_viat" data-i="${i}">${fmt(valViat)}</td>
-          <td class="calc" data-c="d_mat" data-i="${i}">${fmt(valMat)}</td>
-          <td class="calc" data-c="hea_h" data-i="${i}">${fmtNum((c?.HEA_min ?? 0) / 60, 1)}</td>
-          <td class="calc" data-c="hea_v" data-i="${i}">${fmt(c?.HEA_valor ?? 0)}</td>
-          <td class="calc" data-c="heb_h" data-i="${i}">${fmtNum((c?.HEB_min ?? 0) / 60, 1)}</td>
-          <td class="calc" data-c="heb_v" data-i="${i}">${fmt(c?.HEB_valor ?? 0)}</td>
-          <td class="calc" data-c="hr_h" data-i="${i}">${fmtNum((c?.HR_min ?? 0) / 60, 1)}</td>
-          <td class="calc" data-c="hr_v" data-i="${i}">${fmt(c?.HR_valor ?? 0)}</td>
-          <td class="strong calc" data-c="tot" data-i="${i}">${fmt(c?.totalDia ?? 0)}</td>
+          <td>${edNum(i, "ajRefeicao", "d_ref", fmt(c?.ajRef ?? valRef))}</td>
+          <td>${edNum(i, "ajViatura", "d_viat", fmt(c?.ajViat ?? valViat))}</td>
+          <td>${edNum(i, "ajTelefone", "d_tel", fmt(c?.ajTel ?? valTel))}</td>
+          <td>${edNum(i, "ajMaterial", "d_mat", fmt(c?.ajMat ?? valMat))}</td>
+          <td>${edNum(i, "ajPerDiem", "d_per", fmt(c?.ajPer ?? valPer))}</td>
+          <td>${edNum(i, "heaHoras", "hea_h", fmtNum((c?.HEA_min ?? 0) / 60, 1))}</td>
+          <td>${edNum(i, "heaValor", "hea_v", fmt(c?.HEA_valor ?? 0))}</td>
+          <td>${edNum(i, "hebHoras", "heb_h", fmtNum((c?.HEB_min ?? 0) / 60, 1))}</td>
+          <td>${edNum(i, "hebValor", "heb_v", fmt(c?.HEB_valor ?? 0))}</td>
+          <td>${edNum(i, "hrHoras", "hr_h", fmtNum((c?.HR_min ?? 0) / 60, 1))}</td>
+          <td>${edNum(i, "hrValor", "hr_v", fmt(c?.HR_valor ?? 0))}</td>
+          <td class="strong calc tday" data-c="tot" data-i="${i}">${fmt(c?.totalDia ?? 0)}</td>
         </tr>`;
     })
     .join("");
@@ -1240,7 +1263,7 @@ export function buildEditableSheetHtml(
   const valViat = Number(aj.viatura ?? 0);
   const valMat = Number(aj.material ?? 0);
 
-  const totalDias = dias.reduce((acc, d) => acc + (d.diaSemTrabalho ? 0 : d.meioDia ? 0.5 : 1), 0);
+  const totalDias = projeto.totalDias ?? dias.reduce((acc, d) => acc + (d.diaSemTrabalho ? 0 : d.meioDia ? 0.5 : 1), 0);
   const today = new Date();
   const emitidoA = `${String(today.getDate()).padStart(2, "0")}-${String(today.getMonth() + 1).padStart(2, "0")}-${today.getFullYear()}`;
   const mesNome = getMonthName(projeto.mes, locale);
@@ -1343,7 +1366,15 @@ export function buildEditableSheetHtml(
         .sideBox .vfRow .v { background: #fff3bf; font-weight: 900; }
         table.rates { table-layout: fixed; margin-top: 18px; }
         table.rates td { word-break: break-word; }
-        td.tdias { background: #fff3bf; font-weight: 900; }
+        /* Total Dias (quantidade) ≠ Total Dia (valor): valor a vermelho escuro */
+        td.tdias { background: #fff; font-weight: 900; color: #7a0000; }
+        td.tdias .ei { color: #7a0000; }
+        td.tday { background: #fff3bf; }
+        table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
+        table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
+        table.endTotals td { font-weight: 900; text-align: right; font-size: 11px; min-width: 120px; }
+        table.endTotals tr.net th { font-weight: 900; }
+        table.endTotals tr.net td { background: #fff3bf; }
         .condWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
         .condMain { background: #ffd400; color: #7a0000; font-weight: 900; text-align: center; padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase; }
         .condRow { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
@@ -1410,20 +1441,21 @@ export function buildEditableSheetHtml(
 
       <table class="rates">
         <tr>
-          <th class="h-total">${escapeHtml(s.totalDays)}</th>
+          <th>${escapeHtml(s.totalDays)}</th>
           <th>${escapeHtml(s.salary)}</th><th>${escapeHtml(s.overtimeA)}</th><th>${escapeHtml(s.overtimeB)}</th>
-          <th class="h-blue">${escapeHtml(s.recoveryHours)}</th><th>${escapeHtml(s.meal)}</th><th>${escapeHtml(s.telephone)}</th>
-          <th class="h-olive">${escapeHtml(s.vehicle)}</th><th class="h-purple">${escapeHtml(s.material)}</th><th>${escapeHtml(s.perDiem)}</th>
+          <th class="h-blue">${escapeHtml(s.recoveryHours)}</th><th>${escapeHtml(s.meal)}</th>
+          <th class="h-olive">${escapeHtml(s.vehicle)}</th><th>${escapeHtml(s.telephone)}</th>
+          <th class="h-purple">${escapeHtml(s.material)}</th><th>${escapeHtml(s.perDiem)}</th>
         </tr>
         <tr>
-          <td class="tdias" data-c="totalDias">${fmtNum(totalDias, 1)}</td>
+          <td class="tdias"><span class="ei money" ${CE} inputmode="decimal" data-k="projeto" data-f="totalDias" data-c="totalDias">${fmtNum(totalDias, 1)}</span></td>
           <td>${mi("tabela", "salarioDia", salarioDia)} <span class="mini">${curSym}</span></td>
           <td>${mi("tabela", "rateHEA", Math.round(vHEA * 100) / 100)} ${unitH}</td>
           <td>${mi("tabela", "rateHEB", Math.round(vHEB * 100) / 100)} ${unitH}</td>
           <td>${mi("tabela", "rateHR", Math.round(vHR * 100) / 100)} ${unitH}</td>
           <td>${mi("ajudas", "refeicao", valRef)} ${unitD}</td>
-          <td>${mi("ajudas", "telefone", valTel)} ${unitD}</td>
           <td>${mi("ajudas", "viatura", valViat)} ${unitD}</td>
+          <td>${mi("ajudas", "telefone", valTel)} ${unitD}</td>
           <td>${mi("ajudas", "material", valMat)} ${unitD}</td>
           <td>${mi("ajudas", "perDiem", valPer)} ${unitD}</td>
         </tr>
@@ -1431,25 +1463,32 @@ export function buildEditableSheetHtml(
 
       <table class="days">
         <tr>
-          <th>${escapeHtml(s.day)}</th><th>${escapeHtml(s.date)}</th><th>${escapeHtml(s.salary)}</th>
+          <th colspan="2">${escapeHtml(s.day)}</th><th>${escapeHtml(s.salary)}</th>
           <th colspan="3">${escapeHtml(s.schedule)}</th><th colspan="2">${escapeHtml(s.totalHours)}</th>
-          <th>${escapeHtml(s.meal)}</th><th>${escapeHtml(s.perDiem)}</th><th>${escapeHtml(s.telephone)}</th>
-          <th class="h-olive">${escapeHtml(s.vehicle)}</th><th class="h-purple">${escapeHtml(s.material)}</th>
+          <th>${escapeHtml(s.meal)}</th><th class="h-olive">${escapeHtml(s.vehicle)}</th><th>${escapeHtml(s.telephone)}</th>
+          <th class="h-purple">${escapeHtml(s.material)}</th><th>${escapeHtml(s.perDiem)}</th>
           <th colspan="2">${escapeHtml(s.overtimeAFull)}</th><th colspan="2">${escapeHtml(s.overtimeBFull)}</th>
           <th colspan="2" class="h-blue">${escapeHtml(s.recoveryFull)}</th><th class="h-total">${escapeHtml(s.total)}</th>
         </tr>
         <tr class="subhead">
-          <th class="mini">${escapeHtml(s.description)}</th><th class="mini"></th><th class="mini">${escapeHtml(s.day)}</th>
+          <th class="mini">${escapeHtml(s.description)}</th><th class="mini">${escapeHtml(s.date)}</th><th class="mini">${escapeHtml(s.day)}</th>
           <th class="mini">${escapeHtml(s.start)}</th><th class="mini">${escapeHtml(s.mealBreak)}</th><th class="mini">${escapeHtml(s.end)}</th>
           <th class="mini">${escapeHtml(s.workHours)}</th><th class="mini blue">${escapeHtml(s.restHours)}</th>
-          <th class="mini">${escapeHtml(s.perDay)}</th><th class="mini">${escapeHtml(s.perDay)}</th><th class="mini">${escapeHtml(s.perDay)}</th>
-          <th class="mini h-olive">${escapeHtml(s.perDay)}</th><th class="mini h-purple">${escapeHtml(s.perDay)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th><th class="mini h-olive">${escapeHtml(s.perDay)}</th><th class="mini">${escapeHtml(s.perDay)}</th>
+          <th class="mini h-purple">${escapeHtml(s.perDay)}</th><th class="mini">${escapeHtml(s.perDay)}</th>
           <th class="mini">${escapeHtml(s.total)}</th><th class="mini">${escapeHtml(s.value)}</th>
           <th class="mini">${escapeHtml(s.total)}</th><th class="mini">${escapeHtml(s.value)}</th>
           <th class="mini h-blue">${escapeHtml(s.total)}</th><th class="mini h-blue">${escapeHtml(s.value)}</th>
           <th class="mini h-total">${escapeHtml(s.day)}</th>
         </tr>
         ${dayRows}
+      </table>
+
+      <table class="endTotals">
+        <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
+        <tr><th>${escapeHtml(s.irs)}</th><td data-c="birs">${fmt(totais.IRS_valor)}</td></tr>
+        <tr><th>${escapeHtml(s.iva)}</th><td data-c="biva">${fmt(totais.IVA_valor)}</td></tr>
+        <tr class="net"><th>${escapeHtml(s.vf)}</th><td data-c="net">${fmt(totais.ValorFinal)}</td></tr>
       </table>
 
       <div class="addDayBar">
@@ -1524,7 +1563,14 @@ export function buildEditableSheetHtml(
           post({ type:'ws:edit', k:'dia', f: el.getAttribute('data-f'), i: di(el), value: out });
         }, true);
         function applyCalc(d){
-          function set(sel,val){ var n=document.querySelector(sel); if(n!=null && val!=null) n.textContent = val; }
+          // Nunca reescrever a célula que está a ser editada (perdia-se o cursor
+          // e o que o utilizador estava a escrever)
+          function set(sel,val){
+            var n=document.querySelector(sel);
+            if(n==null || val==null) return;
+            if(n === document.activeElement || n.contains(document.activeElement)) return;
+            n.textContent = val;
+          }
           set('[data-c="totalDias"]', d.totalDias);
           set('[data-c="vb"]', d.vb); set('[data-c="gross"]', d.vb);
           set('[data-c="irs"]', d.irs); set('[data-c="birs"]', d.irs);

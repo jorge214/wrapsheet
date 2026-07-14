@@ -6,7 +6,7 @@
 //   • Desktop (≥1100)   → 256 px left sidebar + content area
 //
 import { Ionicons } from "@expo/vector-icons";
-import { usePathname } from "expo-router";
+import { Redirect, usePathname } from "expo-router";
 import { router } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTranslation } from "react-i18next";
 
+import { useAuth } from "../auth/AuthContext";
 import { useLivePreview } from "../contexts/LivePreviewContext";
 import { useTheme } from "../theme/ThemeProvider";
 import {
@@ -47,9 +48,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { height } = useWindowDimensions();
   const { previewHtml, zoom, setActualZoom, clearPreview } = useLivePreview();
   const pathname = usePathname();
+  const { session, loading } = useAuth();
   const isProjectEditor = /^\/projects\/[^/]+$/.test(pathname);
   const showPreviewPanel = isWide && Platform.OS === "web" && !!previewHtml;
   const iframeRef = useRef<any>(null);
+
+  // Nos ecrãs de autenticação a app "desaparece": sem sidebar (senão dava para
+  // saltar para os Projetos a meio do login/reset).
+  const isAuthScreen = pathname.startsWith("/auth");
+  // Guard global: sem sessão só se veem os ecrãs públicos. Os dados são locais,
+  // por isso sem isto qualquer rota abria os projetos mesmo sem login.
+  const isPublic =
+    isAuthScreen ||
+    pathname === "/" ||
+    pathname === "/onboarding" ||
+    pathname === "/privacy" ||
+    pathname === "/terms";
 
   // Close the live PDF preview whenever we leave the project editor,
   // so it never lingers over other screens (Projects list, Archived, etc.).
@@ -83,13 +97,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [zoom]);
 
+  // (depois de TODOS os hooks — regra dos hooks)
+  if (!loading && !session && !isPublic) return <Redirect href="/auth/login" />;
+
   // IMPORTANTE: a árvore é SEMPRE a mesma (sidebar só aparece em ecrãs largos).
   // Se a estrutura mudasse entre estreito/largo, rodar o telemóvel para
   // horizontal remontava o ecrã inteiro e perdia o estado (ex.: o editor da
   // folha abria e fechava logo ao forçar landscape).
   return (
     <View style={[styles.root, Platform.OS === "web" ? { height } : { flex: 1 }]}>
-      {isWide && <Sidebar />}
+      {isWide && !isAuthScreen && <Sidebar />}
       <View style={styles.content}>
         <View style={isWide ? innerStyle : styles.contentInnerWide}>
           {children}
