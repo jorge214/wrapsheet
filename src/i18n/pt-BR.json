@@ -425,5 +425,7 @@
   "print_font_normal": "Normal",
   "print_font_large": "Grande",
   "print_font_xlarge": "Muito grande",
-  "print_hint": "Vertical reduz a folha para caber em A4 retrato. Com muitas colunas, Horizontal fica mais legível."
+  "print_hint": "Vertical reduz a folha para caber em A4 retrato. Com muitas colunas, Horizontal fica mais legível.",
+  "contact_support_body": "Encontrou um problema, tem uma dúvida ou uma sugestão? Envie uma mensagem — respondemos o mais rápido possível.",
+  "legal_title_short": "Termos e Privacidade"
 }

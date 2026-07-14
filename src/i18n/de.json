@@ -425,5 +425,7 @@
   "print_font_normal": "Normal",
   "print_font_large": "Groß",
   "print_font_xlarge": "Sehr groß",
-  "print_hint": "Hochformat verkleinert den Bogen, damit er auf A4 hoch passt. Bei vielen Spalten ist Querformat besser lesbar."
+  "print_hint": "Hochformat verkleinert den Bogen, damit er auf A4 hoch passt. Bei vielen Spalten ist Querformat besser lesbar.",
+  "contact_support_body": "Problem gefunden, eine Frage oder einen Vorschlag? Schreib uns — wir melden uns so schnell wie möglich.",
+  "legal_title_short": "AGB & Datenschutz"
 }

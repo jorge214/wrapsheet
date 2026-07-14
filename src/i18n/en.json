@@ -425,5 +425,7 @@
   "print_font_normal": "Normal",
   "print_font_large": "Large",
   "print_font_xlarge": "Extra large",
-  "print_hint": "Portrait shrinks the sheet to fit A4 portrait. With many columns, Landscape reads better."
+  "print_hint": "Portrait shrinks the sheet to fit A4 portrait. With many columns, Landscape reads better.",
+  "contact_support_body": "Found a bug, have a question or a suggestion? Send us a message — we'll get back to you as soon as possible.",
+  "legal_title_short": "Terms & Privacy"
 }

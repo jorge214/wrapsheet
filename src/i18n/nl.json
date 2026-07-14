@@ -425,5 +425,7 @@
   "print_font_normal": "Normaal",
   "print_font_large": "Groot",
   "print_font_xlarge": "Extra groot",
-  "print_hint": "Staand verkleint het blad om op A4 staand te passen. Bij veel kolommen leest liggend beter."
+  "print_hint": "Staand verkleint het blad om op A4 staand te passen. Bij veel kolommen leest liggend beter.",
+  "contact_support_body": "Een probleem gevonden, een vraag of een suggestie? Stuur ons een bericht — we reageren zo snel mogelijk.",
+  "legal_title_short": "Voorwaarden en privacy"
 }

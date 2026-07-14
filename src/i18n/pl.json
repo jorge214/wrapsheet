@@ -425,5 +425,7 @@
   "print_font_normal": "Normalny",
   "print_font_large": "Duży",
   "print_font_xlarge": "Bardzo duży",
-  "print_hint": "Pionowa zmniejsza arkusz, aby zmieścił się na A4 pionowo. Przy wielu kolumnach pozioma jest czytelniejsza."
+  "print_hint": "Pionowa zmniejsza arkusz, aby zmieścił się na A4 pionowo. Przy wielu kolumnach pozioma jest czytelniejsza.",
+  "contact_support_body": "Znalazłeś problem, masz pytanie lub sugestię? Napisz do nas — odpowiemy najszybciej, jak to możliwe.",
+  "legal_title_short": "Regulamin i prywatność"
 }

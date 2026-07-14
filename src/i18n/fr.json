@@ -425,5 +425,7 @@
   "print_font_normal": "Normale",
   "print_font_large": "Grande",
   "print_font_xlarge": "Très grande",
-  "print_hint": "Le portrait réduit la feuille pour tenir sur une A4 portrait. Avec beaucoup de colonnes, le paysage se lit mieux."
+  "print_hint": "Le portrait réduit la feuille pour tenir sur une A4 portrait. Avec beaucoup de colonnes, le paysage se lit mieux.",
+  "contact_support_body": "Un problème, une question ou une suggestion ? Écrivez-nous — nous vous répondrons dès que possible.",
+  "legal_title_short": "Conditions et confidentialité"
 }

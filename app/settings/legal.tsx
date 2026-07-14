@@ -18,8 +18,10 @@ export default function LegalScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text style={s.backLink}>‹ {t("back")}</Text>
         </Pressable>
-        <Text style={s.headerTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>
-          {t("settings_terms_privacy")}
+        {/* Título curto no cabeçalho: o completo nunca cabia a 22pt no iPhone
+            e o encolhe-para-caber deixava-o mais pequeno que os outros ecrãs */}
+        <Text style={s.headerTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {t("legal_title_short", { defaultValue: "Termos e Privacidade" })}
         </Text>
         <View style={{ width: 70 }} />
       </View>

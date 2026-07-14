@@ -26,7 +26,7 @@ export default function AboutScreen() {
       <View style={[ss.card, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
         <Text style={[ss.title, { color: COLORS.text }]}>WrapSheet</Text>
         <Text style={{ color: COLORS.sub, marginTop: 6 }}>
-          {t("about_description", { defaultValue: "App para gerir projetos e exportar relatórios de horas para PDF." })}
+          {t("contact_support_body", { defaultValue: "Encontraste um problema, tens uma dúvida ou uma sugestão? Envia-nos uma mensagem — respondemos o mais depressa possível." })}
         </Text>
         <Pressable
           onPress={() => Linking.openURL("mailto:getwrapsheet@gmail.com")}

@@ -425,5 +425,7 @@
   "print_font_normal": "Normal",
   "print_font_large": "Grande",
   "print_font_xlarge": "Muito grande",
-  "print_hint": "Vertical encolhe a folha para caber numa A4 vertical. Para muitas colunas, Horizontal lê-se melhor."
+  "print_hint": "Vertical encolhe a folha para caber numa A4 vertical. Para muitas colunas, Horizontal lê-se melhor.",
+  "contact_support_body": "Encontraste um problema, tens uma dúvida ou uma sugestão? Envia-nos uma mensagem — respondemos o mais depressa possível.",
+  "legal_title_short": "Termos e Privacidade"
 }

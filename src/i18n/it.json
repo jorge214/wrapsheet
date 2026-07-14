@@ -425,5 +425,7 @@
   "print_font_normal": "Normale",
   "print_font_large": "Grande",
   "print_font_xlarge": "Molto grande",
-  "print_hint": "Il verticale riduce il foglio per stare in A4 verticale. Con molte colonne, l orizzontale è più leggibile."
+  "print_hint": "Il verticale riduce il foglio per stare in A4 verticale. Con molte colonne, l orizzontale è più leggibile.",
+  "contact_support_body": "Hai trovato un problema, hai una domanda o un suggerimento? Scrivici — ti risponderemo il prima possibile.",
+  "legal_title_short": "Termini e Privacy"
 }
