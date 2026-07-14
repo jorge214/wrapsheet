@@ -113,6 +113,7 @@ const STRINGS = {
     value: "VALOR",
     notes: "Notas",
     perHour: "/hora",
+    perHourLabel: "Por hora",
     perDayUnit: "/dia",
     overtimeAFull: "HORAS EXTRA A",
     overtimeBFull: "HORAS EXTRA B",
@@ -175,6 +176,7 @@ const STRINGS = {
     value: "VALUE",
     notes: "Notes",
     perHour: "/hour",
+    perHourLabel: "Per hour",
     perDayUnit: "/day",
     overtimeAFull: "OVERTIME A",
     overtimeBFull: "OVERTIME B",
@@ -237,6 +239,7 @@ const STRINGS = {
     value: "VALOR",
     notes: "Notas",
     perHour: "/hora",
+    perHourLabel: "Por hora",
     perDayUnit: "/día",
     overtimeAFull: "HORAS EXTRA A",
     overtimeBFull: "HORAS EXTRA B",
@@ -299,6 +302,7 @@ const STRINGS = {
     value: "VALEUR",
     notes: "Notes",
     perHour: "/heure",
+    perHourLabel: "Par heure",
     perDayUnit: "/jour",
     overtimeAFull: "HEURES SUP A",
     overtimeBFull: "HEURES SUP B",
@@ -361,6 +365,7 @@ const STRINGS = {
     value: "WERT",
     notes: "Notizen",
     perHour: "/Std.",
+    perHourLabel: "Pro Stunde",
     perDayUnit: "/Tag",
     overtimeAFull: "ÜBERSTUNDEN A",
     overtimeBFull: "ÜBERSTUNDEN B",
@@ -423,6 +428,7 @@ const STRINGS = {
     value: "VALORE",
     notes: "Note",
     perHour: "/ora",
+    perHourLabel: "All'ora",
     perDayUnit: "/giorno",
     overtimeAFull: "STRAORDINARIO A",
     overtimeBFull: "STRAORDINARIO B",
@@ -485,6 +491,7 @@ const STRINGS = {
     value: "BEDRAG",
     notes: "Notities",
     perHour: "/uur",
+    perHourLabel: "Per uur",
     perDayUnit: "/dag",
     overtimeAFull: "OVERUREN A",
     overtimeBFull: "OVERUREN B",
@@ -547,6 +554,7 @@ const STRINGS = {
     value: "KWOTA",
     notes: "Notatki",
     perHour: "/godz.",
+    perHourLabel: "Za godz.",
     perDayUnit: "/dzień",
     overtimeAFull: "NADGODZINY A",
     overtimeBFull: "NADGODZINY B",
@@ -609,6 +617,7 @@ const STRINGS = {
     value: "VALUE",
     notes: "Notes",
     perHour: "/hour",
+    perHourLabel: "Per hour",
     perDayUnit: "/day",
     overtimeAFull: "OVERTIME A",
     overtimeBFull: "OVERTIME B",
@@ -678,7 +687,9 @@ export function fmtMoney(n: number, currency = "EUR") {
     style: "currency",
     currency,
     minimumFractionDigits: 2,
-  });
+  // Espaço inquebrável entre número e símbolo: em células estreitas (iPhone)
+  // o "€" caía para a linha de baixo.
+  }).replace(/\s/g, "\u00A0");
 }
 
 // Símbolo da moeda para mostrar junto aos campos (todas as regiões)
@@ -943,11 +954,11 @@ export function buildPdfHtml(
         th.h-olive  { background: #7f7f2e; color: #fff; }
         th.h-purple { background: #7030a0; color: #fff; }
         th.h-total  { background: #bf9000; color: #fff; }
-        .days .subhead th { background: #d9d9d9; color: #111; }
-        .days .subhead th.h-blue   { background: #cfe0f2; color: #1b5fbf; }
-        .days .subhead th.h-olive  { background: #e6e6c8; color: #111; }
-        .days .subhead th.h-purple { background: #e4d6f0; color: #111; }
-        .days .subhead th.h-total  { background: #f2e2b3; color: #111; }
+        .days .subhead th, .rates .subhead th { background: #d9d9d9; color: #111; }
+        .days .subhead th.h-blue, .rates .subhead th.h-blue { background: #cfe0f2; color: #1b5fbf; }
+        .days .subhead th.h-olive, .rates .subhead th.h-olive { background: #e6e6c8; color: #111; }
+        .days .subhead th.h-purple, .rates .subhead th.h-purple { background: #e4d6f0; color: #111; }
+        .days .subhead th.h-total, .rates .subhead th.h-total { background: #f2e2b3; color: #111; }
         .days th { font-size: 11px; }
         .days td { font-size: 11px; }
         .days .mini { font-size: 10px; font-weight: 700; }
@@ -1059,8 +1070,8 @@ export function buildPdfHtml(
         <div class="stack">
           <div class="box sideBox">
             <div class="row"><div class="k">${escapeHtml(s.issuedOn)}</div><div class="v">${escapeHtml(emitidoA)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.irs)} %</div><div class="v">${pct(irsPct)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.iva)} %</div><div class="v">${pct(ivaPct)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.irs)}</div><div class="v">${pct(irsPct)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.iva)}</div><div class="v">${pct(ivaPct)}</div></div>
             <div class="row vfRow"><div class="k">${escapeHtml(s.vf)}</div><div class="v">${fmt(totais.ValorFinal)}</div></div>
           </div>
           <div class="box sideBox">
@@ -1073,7 +1084,7 @@ export function buildPdfHtml(
 
       <table class="rates">
         <tr>
-          <th>${escapeHtml(s.totalDays)}</th>
+          <th rowspan="2">${escapeHtml(s.totalDays)}</th>
           <th>${escapeHtml(s.salary)}</th>
           <th>${escapeHtml(s.overtimeA)}</th>
           <th>${escapeHtml(s.overtimeB)}</th>
@@ -1084,17 +1095,28 @@ export function buildPdfHtml(
           <th class="h-purple">${escapeHtml(s.material)}</th>
           <th>${escapeHtml(s.perDiem)}</th>
         </tr>
+        <tr class="subhead">
+          <th class="mini">${escapeHtml(s.day)}</th>
+          <th class="mini">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini h-blue">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
+          <th class="mini h-olive">${escapeHtml(s.perDay)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
+          <th class="mini h-purple">${escapeHtml(s.perDay)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
+        </tr>
         <tr>
           <td class="tdias">${fmtNum(totalDias, 1)}</td>
           <td>${fmt(salarioDia)}</td>
-          <td>${fmt(vHEA)} <span class="mini">${escapeHtml(s.perHour)}</span></td>
-          <td>${fmt(vHEB)} <span class="mini">${escapeHtml(s.perHour)}</span></td>
-          <td>${fmt(vHR)} <span class="mini">${escapeHtml(s.perHour)}</span></td>
-          <td>${fmt(valRef)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
-          <td>${fmt(valViat)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
-          <td>${fmt(valTel)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
-          <td>${fmt(valMat)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
-          <td>${fmt(valPer)} <span class="mini">${escapeHtml(s.perDayUnit)}</span></td>
+          <td>${fmt(vHEA)}</td>
+          <td>${fmt(vHEB)}</td>
+          <td>${fmt(vHR)}</td>
+          <td>${fmt(valRef)}</td>
+          <td>${fmt(valViat)}</td>
+          <td>${fmt(valTel)}</td>
+          <td>${fmt(valMat)}</td>
+          <td>${fmt(valPer)}</td>
         </tr>
       </table>
 
@@ -1321,11 +1343,11 @@ export function buildEditableSheetHtml(
         th.h-olive { background: #7f7f2e; color: #fff; }
         th.h-purple { background: #7030a0; color: #fff; }
         th.h-total { background: #bf9000; color: #fff; }
-        .days .subhead th { background: #d9d9d9; color: #111; }
-        .days .subhead th.h-blue { background: #cfe0f2; color: #1b5fbf; }
-        .days .subhead th.h-olive { background: #e6e6c8; color: #111; }
-        .days .subhead th.h-purple { background: #e4d6f0; color: #111; }
-        .days .subhead th.h-total { background: #f2e2b3; color: #111; }
+        .days .subhead th, .rates .subhead th { background: #d9d9d9; color: #111; }
+        .days .subhead th.h-blue, .rates .subhead th.h-blue { background: #cfe0f2; color: #1b5fbf; }
+        .days .subhead th.h-olive, .rates .subhead th.h-olive { background: #e6e6c8; color: #111; }
+        .days .subhead th.h-purple, .rates .subhead th.h-purple { background: #e4d6f0; color: #111; }
+        .days .subhead th.h-total, .rates .subhead th.h-total { background: #f2e2b3; color: #111; }
         .days th { font-size: 11px; }
         .days td { font-size: 11px; }
         .days .mini { font-size: 10px; font-weight: 700; }
@@ -1427,8 +1449,8 @@ export function buildEditableSheetHtml(
         <div class="stack">
           <div class="box sideBox">
             <div class="row"><div class="k">${escapeHtml(s.issuedOn)}</div><div class="v">${escapeHtml(emitidoA)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.irs)} %</div><div class="v">${pctEdit("IRS_percent", irsPct)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.iva)} %</div><div class="v">${pctEdit("IVA_percent", ivaPct)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.irs)}</div><div class="v">${pctEdit("IRS_percent", irsPct)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.iva)}</div><div class="v">${pctEdit("IVA_percent", ivaPct)}</div></div>
             <div class="row vfRow"><div class="k">${escapeHtml(s.vf)}</div><div class="v" data-c="vf">${fmt(totais.ValorFinal)}</div></div>
           </div>
           <div class="box sideBox">
@@ -1441,23 +1463,34 @@ export function buildEditableSheetHtml(
 
       <table class="rates">
         <tr>
-          <th>${escapeHtml(s.totalDays)}</th>
+          <th rowspan="2">${escapeHtml(s.totalDays)}</th>
           <th>${escapeHtml(s.salary)}</th><th>${escapeHtml(s.overtimeA)}</th><th>${escapeHtml(s.overtimeB)}</th>
           <th class="h-blue">${escapeHtml(s.recoveryHours)}</th><th>${escapeHtml(s.meal)}</th>
           <th class="h-olive">${escapeHtml(s.vehicle)}</th><th>${escapeHtml(s.telephone)}</th>
           <th class="h-purple">${escapeHtml(s.material)}</th><th>${escapeHtml(s.perDiem)}</th>
         </tr>
+        <tr class="subhead">
+          <th class="mini">${escapeHtml(s.day)}</th>
+          <th class="mini">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini h-blue">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
+          <th class="mini h-olive">${escapeHtml(s.perDay)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
+          <th class="mini h-purple">${escapeHtml(s.perDay)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
+        </tr>
         <tr>
           <td class="tdias"><span class="ei money" ${CE} inputmode="decimal" data-k="projeto" data-f="totalDias" data-c="totalDias">${fmtNum(totalDias, 1)}</span></td>
           <td>${mi("tabela", "salarioDia", salarioDia)} <span class="mini">${curSym}</span></td>
-          <td>${mi("tabela", "rateHEA", Math.round(vHEA * 100) / 100)} ${unitH}</td>
-          <td>${mi("tabela", "rateHEB", Math.round(vHEB * 100) / 100)} ${unitH}</td>
-          <td>${mi("tabela", "rateHR", Math.round(vHR * 100) / 100)} ${unitH}</td>
-          <td>${mi("ajudas", "refeicao", valRef)} ${unitD}</td>
-          <td>${mi("ajudas", "viatura", valViat)} ${unitD}</td>
-          <td>${mi("ajudas", "telefone", valTel)} ${unitD}</td>
-          <td>${mi("ajudas", "material", valMat)} ${unitD}</td>
-          <td>${mi("ajudas", "perDiem", valPer)} ${unitD}</td>
+          <td>${mi("tabela", "rateHEA", Math.round(vHEA * 100) / 100)} <span class="mini">${curSym}</span></td>
+          <td>${mi("tabela", "rateHEB", Math.round(vHEB * 100) / 100)} <span class="mini">${curSym}</span></td>
+          <td>${mi("tabela", "rateHR", Math.round(vHR * 100) / 100)} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "refeicao", valRef)} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "viatura", valViat)} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "telefone", valTel)} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "material", valMat)} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "perDiem", valPer)} <span class="mini">${curSym}</span></td>
         </tr>
       </table>
 
