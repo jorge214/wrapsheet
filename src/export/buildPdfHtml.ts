@@ -977,7 +977,7 @@ export function buildPdfHtml(
         /* Caixa lateral (Emitido a / IRS / IVA / Valor Final) — tamanhos uniformes */
         .sideBox .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
         .sideBox .k { font-weight: 800; }
-        .sideBox .v { text-align: right; font-weight: 700; }
+        .sideBox .v { text-align: right; font-weight: 700; white-space: nowrap; }
         .sideBox .vfRow .v { background: #fff3bf; font-weight: 900; }
         /* Tabela de valores (rates): colunas uniformes */
         table.rates { table-layout: fixed; margin-top: 18px; }
@@ -1061,9 +1061,6 @@ export function buildPdfHtml(
             <div class="row"><div class="k">${escapeHtml(s.issuedOn)}</div><div class="v">${escapeHtml(emitidoA)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.irs)} %</div><div class="v">${pct(irsPct)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.iva)} %</div><div class="v">${pct(ivaPct)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.vb)}</div><div class="v">${fmt(totais.ValorBruto)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.irs)}</div><div class="v">${fmt(totais.IRS_valor)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.iva)}</div><div class="v">${fmt(totais.IVA_valor)}</div></div>
             <div class="row vfRow"><div class="k">${escapeHtml(s.vf)}</div><div class="v">${fmt(totais.ValorFinal)}</div></div>
           </div>
           <div class="box sideBox">
@@ -1362,7 +1359,8 @@ export function buildEditableSheetHtml(
         .uv .ei { display: block; width: 100%; min-height: 1.1em; }
         .sideBox .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
         .sideBox .k { font-weight: 800; }
-        .sideBox .v { text-align: right; font-weight: 700; }
+        /* nowrap: o "%" ficava a cair para a linha de baixo do valor */
+        .sideBox .v { text-align: right; font-weight: 700; white-space: nowrap; }
         .sideBox .vfRow .v { background: #fff3bf; font-weight: 900; }
         table.rates { table-layout: fixed; margin-top: 18px; }
         table.rates td { word-break: break-word; }
@@ -1383,6 +1381,9 @@ export function buildEditableSheetHtml(
         .condB { padding: 6px 8px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
         .condImg { max-width: 240px; max-height: 170px; margin-top: 6px; border: 1px solid #999; }
         .conditionsBody { padding: 8px 10px; font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+        /* Faixa logo abaixo do último dia: botões à esquerda, totais à direita */
+        .afterDays { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .afterDays .endTotals { margin-top: 8px; }
         .addDayBar { margin-top: 10px; text-align: left; }
         .addDayBar button {
           font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px;
@@ -1425,16 +1426,12 @@ export function buildEditableSheetHtml(
             <div class="row"><div class="k">${escapeHtml(s.issuedOn)}</div><div class="v">${escapeHtml(emitidoA)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.irs)} %</div><div class="v">${pctEdit("IRS_percent", irsPct)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.iva)} %</div><div class="v">${pctEdit("IVA_percent", ivaPct)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.vb)}</div><div class="v" data-c="vb">${fmt(totais.ValorBruto)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.irs)}</div><div class="v" data-c="irs">${fmt(totais.IRS_valor)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.iva)}</div><div class="v" data-c="iva">${fmt(totais.IVA_valor)}</div></div>
             <div class="row vfRow"><div class="k">${escapeHtml(s.vf)}</div><div class="v" data-c="vf">${fmt(totais.ValorFinal)}</div></div>
           </div>
           <div class="box sideBox">
             <div class="row"><div class="k">${escapeHtml(s.week)}</div><div class="v">${ti("projeto", "semana", safeStr(projeto.semana ?? ""))}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.month)}</div><div class="v">${escapeHtml(mesNome)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.year)}</div><div class="v">${escapeHtml(String(projeto.ano))}</div></div>
-            <div class="row miniRow"><div class="k"></div><div class="v mini muted">${escapeHtml(mesAnoLabel)}</div></div>
           </div>
         </div>
       </div>
@@ -1484,17 +1481,18 @@ export function buildEditableSheetHtml(
         ${dayRows}
       </table>
 
-      <table class="endTotals">
-        <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
-        <tr><th>${escapeHtml(s.irs)}</th><td data-c="birs">${fmt(totais.IRS_valor)}</td></tr>
-        <tr><th>${escapeHtml(s.iva)}</th><td data-c="biva">${fmt(totais.IVA_valor)}</td></tr>
-        <tr class="net"><th>${escapeHtml(s.vf)}</th><td data-c="net">${fmt(totais.ValorFinal)}</td></tr>
-      </table>
-
-      <div class="addDayBar">
-        <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
-        <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
-        <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
+      <div class="afterDays">
+        <div class="addDayBar">
+          <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
+          <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
+          <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
+        </div>
+        <table class="endTotals">
+          <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
+          <tr><th>${escapeHtml(s.irs)}</th><td data-c="birs">${fmt(totais.IRS_valor)}</td></tr>
+          <tr><th>${escapeHtml(s.iva)}</th><td data-c="biva">${fmt(totais.IVA_valor)}</td></tr>
+          <tr class="net"><th>${escapeHtml(s.vf)}</th><td data-c="net">${fmt(totais.ValorFinal)}</td></tr>
+        </table>
       </div>
 
       ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra, CE)}
