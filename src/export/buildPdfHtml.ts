@@ -896,7 +896,7 @@ export function buildPdfHtml(
           print-color-adjust: exact;
           color-adjust: exact;
         }
-        html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        html { -webkit-print-color-adjust: exact; print-color-adjust: exact; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         body {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
           padding: 18px;
@@ -1318,7 +1318,9 @@ export function buildEditableSheetHtml(
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <style>
         * { box-sizing: border-box; }
-        html, body { margin: 0; }
+        /* Sem "text autosizing" do iPad: o WebKit inflava o texto normal mas
+           não os campos editáveis — os valores ficavam mais pequenos que o % */
+        html, body { margin: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
         .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
