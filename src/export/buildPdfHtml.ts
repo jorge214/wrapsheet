@@ -997,7 +997,9 @@ export function buildPdfHtml(
            vermelho escuro como na folha de referência */
         td.tdias { background: #fff; font-weight: 900; color: #7a0000; }
         /* Coluna TOTAL/DIA (valor de cada dia) a amarelo, como na referência */
-        td.tday { background: #fff3bf; }
+        td.tday { background: #fff3bf; white-space: nowrap; }
+        /* Valores monetários nunca partem linha (o € caía para baixo) */
+        .days td.right { white-space: nowrap; }
         /* Bloco final: Valor Bruto / IRS / IVA / Valor Líquido, alinhado à direita */
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
@@ -1392,7 +1394,11 @@ export function buildEditableSheetHtml(
         /* Total Dias (quantidade) ≠ Total Dia (valor): valor a vermelho escuro */
         td.tdias { background: #fff; font-weight: 900; color: #7a0000; }
         td.tdias .ei { color: #7a0000; }
-        td.tday { background: #fff3bf; }
+        td.tday { background: #fff3bf; white-space: nowrap; }
+        /* Valores monetários nunca partem linha: a coluna alarga em vez de o
+           "€" cair para baixo (acontecia no iPhone a partir de 4 dígitos) */
+        .ei.money { white-space: nowrap; }
+        .days td.calc { white-space: nowrap; }
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
         table.endTotals td { font-weight: 900; text-align: right; font-size: 11px; min-width: 120px; }
