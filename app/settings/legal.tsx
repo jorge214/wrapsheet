@@ -84,10 +84,10 @@ const createStyles = (COLORS: any) =>
       opacity: 0.9,
     },
     headerTitle: {
-      // flex + encolher para caber: em ecrãs estreitos o título completo
-      // ("Termos & Política de Privacidade") não cabe a tamanho fixo
+      // Mesmo tamanho dos outros títulos (ex.: Região = 22); o
+      // adjustsFontSizeToFit no componente encolhe SÓ se não couber.
       flex: 1,
-      fontSize: 17,
+      fontSize: 22,
       fontWeight: "800",
       color: COLORS.text,
       textAlign: "center",

@@ -74,7 +74,9 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
     currency: "EUR",
     currencySymbol: "€",
     taxLabels: { incomeTax: "IR", vat: "TVA" },
-    fiscal: { IRS_percent: 18, IVA_percent: 20 },
+    // FR: não há retenção na fonte nas faturas de independentes (o IR paga-se
+    // por acomptes) — a linha de imposto da folha modela retenção na fatura.
+    fiscal: { IRS_percent: 0, IVA_percent: 20 },
     tabela: {
       H_dia: 10,
       descanso_min: 11,
@@ -112,7 +114,9 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
     currency: "EUR",
     currencySymbol: "€",
     taxLabels: { incomeTax: "ESt", vat: "MwSt" },
-    fiscal: { IRS_percent: 25, IVA_percent: 19 },
+    // DE: sem retenção na fonte nas faturas de freelancers domésticos (a ESt
+    // paga-se por Vorauszahlungen) — 25% era a Abgeltungsteuer, não se aplica.
+    fiscal: { IRS_percent: 0, IVA_percent: 19 },
     tabela: {
       H_dia: 8,
       descanso_min: 11,
