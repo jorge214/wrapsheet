@@ -1280,7 +1280,7 @@ export function buildEditableSheetHtml(
   const irsPct = extra?.fiscal?.IRS_percent;
   const ivaPct = extra?.fiscal?.IVA_percent;
   const pctEdit = (f: string, v?: number) =>
-    `<span class="ei money" ${CE} inputmode="decimal" data-k="fiscal" data-f="${f}">${escapeHtml(String(v ?? 0))}</span>%`;
+    `<span class="ei money pctv" ${CE} inputmode="decimal" data-k="fiscal" data-f="${f}">${escapeHtml(String(v ?? 0))}</span>%`;
 
   const dayRows = buildEditableDayRowsHtml(dias, calculos, tabela, currency);
 
@@ -1347,6 +1347,9 @@ export function buildEditableSheetHtml(
         .ei:focus { background: #eef4ff; box-shadow: inset 0 0 0 1px #1b5fbf; }
         .ei:empty { min-width: 24px; min-height: 1em; }
         .row .v .ei { display: block; width: 100%; min-height: 1.1em; }
+        /* Percentagens: o campo é inline para o "%" ficar ao lado (o block
+           de cima empurrava-o para a linha de baixo) */
+        .row .v .ei.pctv { display: inline-block; width: auto; min-width: 24px; text-align: right; }
         .notes { display: block; width: 100%; min-height: 48px; white-space: pre-wrap; text-align: left; }
         .pago { cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 12px; color: #888; }
         tr.paid .pago { color: #137a3a; }
