@@ -1,9 +1,21 @@
 import { router } from "expo-router";
 import React from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../src/theme/ThemeProvider";
+
+const SUPPORT_EMAIL = "getwrapsheet@gmail.com";
+
+function openSupportEmail() {
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    // Na web o Linking.openURL abria o mailto num separador novo que ficava
+    // em branco — navegar diretamente dispara o cliente de email sem isso.
+    window.location.href = `mailto:${SUPPORT_EMAIL}`;
+    return;
+  }
+  Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
+}
 
 export default function AboutScreen() {
   const { COLORS } = useTheme();
@@ -29,13 +41,17 @@ export default function AboutScreen() {
           {t("contact_support_body", { defaultValue: "Encontraste um problema, tens uma dúvida ou uma sugestão? Envia-nos uma mensagem — respondemos o mais depressa possível." })}
         </Text>
         <Pressable
-          onPress={() => Linking.openURL("mailto:getwrapsheet@gmail.com")}
+          onPress={openSupportEmail}
           style={[ss.btn, { backgroundColor: COLORS.text }]}
         >
           <Text style={[ss.btnText, { color: COLORS.bg }]}>
             {t("about_contact_support", { defaultValue: "Contactar suporte" })}
           </Text>
         </Pressable>
+        {/* Email visível e copiável — no PC nem toda a gente tem cliente de email */}
+        <Text selectable style={{ color: COLORS.sub, marginTop: 10, textAlign: "center", fontWeight: "700" }}>
+          {SUPPORT_EMAIL}
+        </Text>
       </View>
     </SafeAreaView>
   );
