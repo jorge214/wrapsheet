@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../../src/i18n/i18n";
 import {
   Alert,
+  Dimensions,
   Modal,
   Platform,
   Pressable,
@@ -189,12 +190,10 @@ export default function ProjectEditor() {
   // ATENÇÃO: hooks têm de ficar ANTES do early return de loading (regras dos
   // hooks) — declará-los mais abaixo deixava o ecrã branco ao carregar.
   const [exportOpen, setExportOpen] = useState(false);
-  // Export pendente: só corre depois de os modais fecharem DE FACTO (onDismiss).
-  // Apresentar o share sheet durante o fecho de um modal crashava a app no iOS;
-  // e o onDismiss de um modal aninhado noutro modal nunca dispara — por isso,
-  // ao exportar de dentro do editor, fecha-se também o editor e espera-se pelo
-  // onDismiss DELE. waitModal marca esse caso.
-  const pendingExportRef = useRef<null | { orientation: "landscape" | "portrait"; waitModal?: boolean }>(null);
+  // Export pendente: só corre depois de o diálogo fechar DE FACTO (onDismiss).
+  // Apresentar o share sheet durante o fecho de um modal crashava a app no iOS.
+  // No nativo o export só existe na página do projeto (sem modais empilhados).
+  const pendingExportRef = useRef<null | { orientation: "landscape" | "portrait" }>(null);
   const [expOrientation, setExpOrientation] = useState<"landscape" | "portrait">("landscape");
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
@@ -325,18 +324,29 @@ export default function ProjectEditor() {
     if (p) setInlineHtml(buildEditSheet(p));
   }, [editHtml]);
 
+  // Ao sair do editor: iPhone volta ao vertical (a app é portrait-only no
+  // telemóvel); iPad volta a rodar livremente.
+  const restoreOrientation = () => {
+    const scr = Dimensions.get("screen");
+    if (Math.min(scr.width, scr.height) < 600) {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    } else {
+      ScreenOrientation.unlockAsync().catch(() => {});
+    }
+  };
+
   // Nativo (app): bloqueia o editor em horizontal; volta ao normal ao fechar
   useEffect(() => {
     if (Platform.OS === "web" || !editHtml) return;
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
-    return () => { ScreenOrientation.unlockAsync().catch(() => {}); };
+    return () => { restoreOrientation(); };
   }, [editHtml]);
 
   // "Ver" (preview) no nativo também abre em horizontal — a folha é larga
   useEffect(() => {
     if (Platform.OS === "web" || !showPreview) return;
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
-    return () => { ScreenOrientation.unlockAsync().catch(() => {}); };
+    return () => { restoreOrientation(); };
   }, [showPreview]);
 
   async function persist(next: ProjectState) {
@@ -455,10 +465,12 @@ export default function ProjectEditor() {
     b.style.transform = ''; b.style.width = '';
     var w = Math.max(d.scrollWidth, b.scrollWidth);
     if(w <= 0) return;
-    var z = Math.min(1, window.innerWidth / w);
+    // 0.9 = folga à volta; translateX centra a folha no cartão
+    var z = Math.min(1, window.innerWidth / w) * 0.9;
+    var tx = Math.max(0, (window.innerWidth - w * z) / 2);
     b.style.width = w + 'px';
     b.style.transformOrigin = '0 0';
-    b.style.transform = 'scale(' + z + ')';
+    b.style.transform = 'translate(' + tx + 'px, 4px) scale(' + z + ')';
   }
   document.addEventListener('DOMContentLoaded', function(){ fit(); setTimeout(fit, 60); setTimeout(fit, 300); });
   fit();
@@ -1034,11 +1046,9 @@ export default function ProjectEditor() {
       visible={exportOpen}
       onRequestClose={() => setExportOpen(false)}
       onDismiss={() => {
-        // iOS: dispara quando o diálogo terminou mesmo de fechar. Se o export
-        // veio de dentro do editor (waitModal), quem dispara é o onDismiss do
-        // próprio editor — aqui não se faz nada.
-        const job = pendingExportRef.current;
-        if (Platform.OS === "ios" && job && !job.waitModal) setTimeout(runPendingExport, 300);
+        // iOS: dispara quando o diálogo terminou mesmo de fechar — só aqui é
+        // seguro apresentar o share sheet.
+        if (Platform.OS === "ios" && pendingExportRef.current) setTimeout(runPendingExport, 300);
       }}
     >
       <Pressable
@@ -1107,20 +1117,11 @@ export default function ProjectEditor() {
                 handleExportPDF({ orientation: expOrientation });
                 return;
               }
-              // Nativo: fechar dois modais empilhados AO MESMO TEMPO crasha o
-              // iOS — escalona-se: 1º o diálogo, meio segundo depois o editor,
-              // e o export corre no onDismiss do editor. Timer = rede de
-              // segurança (Android não tem onDismiss).
-              const inModal = editHtml || showPreview;
-              pendingExportRef.current = { orientation: expOrientation, waitModal: inModal };
+              // Nativo: agenda; o onDismiss do diálogo (iOS) dispara quando o
+              // fecho termina. Timer = rede de segurança / Android.
+              pendingExportRef.current = { orientation: expOrientation };
               setExportOpen(false);
-              if (Platform.OS === "ios") {
-                if (inModal) setTimeout(() => { setEditHtml(false); setShowPreview(false); }, 500);
-                setTimeout(runPendingExport, 2800);
-              } else {
-                if (inModal) { setEditHtml(false); setShowPreview(false); }
-                setTimeout(runPendingExport, 1200);
-              }
+              setTimeout(runPendingExport, Platform.OS === "ios" ? 2500 : 1200);
             }}
             style={({ pressed }) => [{ alignItems: "center", paddingVertical: 13, borderRadius: 999, backgroundColor: COLORS.text }, pressed && { opacity: 0.85 }]}
           >
@@ -1658,10 +1659,6 @@ export default function ProjectEditor() {
         visible={editHtml}
         supportedOrientations={["portrait", "landscape"]}
         onRequestClose={() => setEditHtml(false)}
-        onDismiss={() => {
-          // Export pedido lá dentro: corre agora que o editor fechou de facto
-          if (Platform.OS === "ios") setTimeout(runPendingExport, 300);
-        }}
       >
         {/* SafeAreaProvider PRÓPRIO dentro do modal: mede a janela do modal e
             acompanha a rotação (os insets do ecrã por trás ficam em portrait
@@ -1679,9 +1676,13 @@ export default function ProjectEditor() {
                   {saveStatus === "saving" ? t("saving") : `✓ ${t("saved")}`}
                 </Text>
               )}
-              <Pressable onPress={() => setExportOpen(true)} hitSlop={8} style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}>
-                <Text style={ss.exportBtnText}>{t("export_pdf")}</Text>
-              </Pressable>
+              {/* Exportar vive na página do projeto: no nativo, abrir o share
+                  sheet por cima deste modal crashava o iOS (web mantém) */}
+              {Platform.OS === "web" && (
+                <Pressable onPress={() => setExportOpen(true)} hitSlop={8} style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}>
+                  <Text style={ss.exportBtnText}>{t("export_pdf")}</Text>
+                </Pressable>
+              )}
               <Pressable onPress={() => setEditHtml(false)} hitSlop={12} style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}>
                 <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
               </Pressable>
@@ -1720,7 +1721,7 @@ export default function ProjectEditor() {
               {renderMobileForm()}
             </ScrollView>
           )}
-          {renderExportDialog()}
+          {Platform.OS === "web" && renderExportDialog()}
         </SafeAreaView>
         </SafeAreaProvider>
       </Modal>
@@ -1732,9 +1733,6 @@ export default function ProjectEditor() {
         visible={showPreview}
         supportedOrientations={["portrait", "landscape"]}
         onRequestClose={() => setShowPreview(false)}
-        onDismiss={() => {
-          if (Platform.OS === "ios") setTimeout(runPendingExport, 300);
-        }}
       >
         <SafeAreaProvider>
         <SafeAreaView edges={["top", "bottom", "left", "right"]} style={ss.previewOverlay}>
@@ -1743,13 +1741,15 @@ export default function ProjectEditor() {
               {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Pressable
-                onPress={() => setExportOpen(true)}
-                hitSlop={8}
-                style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
-              >
-                <Text style={ss.exportBtnText}>{t("export_pdf")}</Text>
-              </Pressable>
+              {Platform.OS === "web" && (
+                <Pressable
+                  onPress={() => setExportOpen(true)}
+                  hitSlop={8}
+                  style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
+                >
+                  <Text style={ss.exportBtnText}>{t("export_pdf")}</Text>
+                </Pressable>
+              )}
               <Pressable
                 onPress={() => setShowPreview(false)}
                 hitSlop={12}
@@ -1781,7 +1781,7 @@ export default function ProjectEditor() {
               </Text>
             </View>
           )}
-          {renderExportDialog()}
+          {Platform.OS === "web" && renderExportDialog()}
         </SafeAreaView>
         </SafeAreaProvider>
       </Modal>
