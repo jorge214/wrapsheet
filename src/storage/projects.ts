@@ -20,6 +20,18 @@ export type Dia = {
   tempoTransporteMin: number;
   diaSemTrabalho: boolean;
   pago?: boolean; // dia já pago
+  // Overrides por dia editados na folha (vazio = automático) — ver calc/types
+  ajRefeicao?: number;
+  ajViatura?: number;
+  ajTelefone?: number;
+  ajMaterial?: number;
+  ajPerDiem?: number;
+  heaHoras?: number;
+  hebHoras?: number;
+  hrHoras?: number;
+  heaValor?: number;
+  hebValor?: number;
+  hrValor?: number;
 };
 
 export type Ajudas = {
@@ -137,6 +149,10 @@ function defaultDia(date: string): Dia {
     meioDia: false,
     tempoTransporteMin: 0,
     diaSemTrabalho: false,
+    // Dia começa a zeros — as ajudas/horas extra só entram quando cobradas
+    // (apagar a célula na folha volta ao automático)
+    ajRefeicao: 0, ajViatura: 0, ajTelefone: 0, ajMaterial: 0, ajPerDiem: 0,
+    heaHoras: 0, hebHoras: 0, hrHoras: 0,
   };
 }
 

@@ -427,5 +427,13 @@
   "print_font_xlarge": "Très grande",
   "print_hint": "Le portrait réduit la feuille pour tenir sur une A4 portrait. Avec beaucoup de colonnes, le paysage se lit mieux.",
   "contact_support_body": "Un problème, une question ou une suggestion ? Écrivez-nous — nous vous répondrons dès que possible.",
-  "legal_title_short": "Conditions et confidentialité"
+  "legal_title_short": "Conditions et confidentialité",
+  "install_desktop_title": "Installez WrapSheet sur votre ordinateur",
+  "install_desktop_body": "Utilisez WrapSheet comme une application à part entière, avec sa fenêtre et son icône — sans navigateur autour.",
+  "install_hint_menu": "Dans le menu du navigateur, choisissez « Installer l'application » — dans Safari sur Mac : Fichier → Ajouter au Dock.",
+  "install_mobile_title": "Emportez WrapSheet avec vous",
+  "install_mobile_body": "Téléchargez l'app pour iPhone et iPad et travaillez où que vous soyez.",
+  "install_now": "Installer",
+  "install_not_now": "Pas maintenant",
+  "install_appstore": "Voir sur l'App Store"
 }

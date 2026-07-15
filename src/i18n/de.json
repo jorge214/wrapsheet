@@ -427,5 +427,13 @@
   "print_font_xlarge": "Sehr groß",
   "print_hint": "Hochformat verkleinert den Bogen, damit er auf A4 hoch passt. Bei vielen Spalten ist Querformat besser lesbar.",
   "contact_support_body": "Problem gefunden, eine Frage oder einen Vorschlag? Schreib uns — wir melden uns so schnell wie möglich.",
-  "legal_title_short": "AGB & Datenschutz"
+  "legal_title_short": "AGB & Datenschutz",
+  "install_desktop_title": "Installiere WrapSheet auf deinem Computer",
+  "install_desktop_body": "Nutze WrapSheet als eigene App mit Fenster und Symbol — ganz ohne Browser drumherum.",
+  "install_hint_menu": "Wähle im Browser-Menü „App installieren“ — in Safari am Mac: Ablage → Zum Dock hinzufügen.",
+  "install_mobile_title": "Nimm WrapSheet überallhin mit",
+  "install_mobile_body": "Lade die App für iPhone und iPad und arbeite von überall.",
+  "install_now": "Installieren",
+  "install_not_now": "Jetzt nicht",
+  "install_appstore": "Im App Store ansehen"
 }

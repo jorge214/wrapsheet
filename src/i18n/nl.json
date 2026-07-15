@@ -427,5 +427,13 @@
   "print_font_xlarge": "Extra groot",
   "print_hint": "Staand verkleint het blad om op A4 staand te passen. Bij veel kolommen leest liggend beter.",
   "contact_support_body": "Een probleem gevonden, een vraag of een suggestie? Stuur ons een bericht — we reageren zo snel mogelijk.",
-  "legal_title_short": "Voorwaarden en privacy"
+  "legal_title_short": "Voorwaarden en privacy",
+  "install_desktop_title": "Installeer WrapSheet op je computer",
+  "install_desktop_body": "Gebruik WrapSheet als een eigen app, met venster en icoon — zonder browser eromheen.",
+  "install_hint_menu": "Kies in het browsermenu “App installeren” — in Safari op de Mac: Archief → Zet in het Dock.",
+  "install_mobile_title": "Neem WrapSheet overal mee",
+  "install_mobile_body": "Download de app voor iPhone en iPad en werk waar je maar wilt.",
+  "install_now": "Installeren",
+  "install_not_now": "Niet nu",
+  "install_appstore": "Bekijk in de App Store"
 }

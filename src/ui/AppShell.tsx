@@ -24,6 +24,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/AuthContext";
 import { useLivePreview } from "../contexts/LivePreviewContext";
 import { useTheme } from "../theme/ThemeProvider";
+import { InstallPrompt } from "./InstallPrompt";
 import {
   SIDEBAR_WIDTH,
   useBreakpoint,
@@ -112,6 +113,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </View>
       </View>
+      {/* Convite para instalar a app (web, fora dos ecrãs de auth) */}
+      {Platform.OS === "web" && !isAuthScreen && <InstallPrompt />}
       {showPreviewPanel && (
         <View style={styles.previewPane}>
           {/* @ts-ignore — iframe is web-only */}

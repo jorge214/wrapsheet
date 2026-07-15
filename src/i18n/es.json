@@ -427,5 +427,13 @@
   "print_font_xlarge": "Muy grande",
   "print_hint": "Vertical reduce la hoja para caber en A4 vertical. Con muchas columnas, Horizontal se lee mejor.",
   "contact_support_body": "¿Has encontrado un problema, tienes una duda o una sugerencia? Envíanos un mensaje y te responderemos lo antes posible.",
-  "legal_title_short": "Términos y Privacidad"
+  "legal_title_short": "Términos y Privacidad",
+  "install_desktop_title": "Instala WrapSheet en tu ordenador",
+  "install_desktop_body": "Usa WrapSheet como una aplicación propia, con ventana e icono — sin abrir el navegador.",
+  "install_hint_menu": "En el menú del navegador elige “Instalar aplicación” — en Safari en Mac: Archivo → Añadir al Dock.",
+  "install_mobile_title": "Lleva WrapSheet contigo",
+  "install_mobile_body": "Descarga la app para iPhone y iPad y trabaja desde cualquier lugar.",
+  "install_now": "Instalar",
+  "install_not_now": "Ahora no",
+  "install_appstore": "Ver en el App Store"
 }

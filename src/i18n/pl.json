@@ -427,5 +427,13 @@
   "print_font_xlarge": "Bardzo duży",
   "print_hint": "Pionowa zmniejsza arkusz, aby zmieścił się na A4 pionowo. Przy wielu kolumnach pozioma jest czytelniejsza.",
   "contact_support_body": "Znalazłeś problem, masz pytanie lub sugestię? Napisz do nas — odpowiemy najszybciej, jak to możliwe.",
-  "legal_title_short": "Regulamin i prywatność"
+  "legal_title_short": "Regulamin i prywatność",
+  "install_desktop_title": "Zainstaluj WrapSheet na komputerze",
+  "install_desktop_body": "Używaj WrapSheet jak osobnej aplikacji, z własnym oknem i ikoną — bez przeglądarki dookoła.",
+  "install_hint_menu": "W menu przeglądarki wybierz „Zainstaluj aplikację” — w Safari na Macu: Plik → Dodaj do Docka.",
+  "install_mobile_title": "Zabierz WrapSheet ze sobą",
+  "install_mobile_body": "Pobierz aplikację na iPhone'a i iPada i pracuj skądkolwiek.",
+  "install_now": "Zainstaluj",
+  "install_not_now": "Nie teraz",
+  "install_appstore": "Zobacz w App Store"
 }

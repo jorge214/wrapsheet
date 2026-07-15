@@ -427,5 +427,13 @@
   "print_font_xlarge": "Extra large",
   "print_hint": "Portrait shrinks the sheet to fit A4 portrait. With many columns, Landscape reads better.",
   "contact_support_body": "Found a bug, have a question or a suggestion? Send us a message — we'll get back to you as soon as possible.",
-  "legal_title_short": "Terms & Privacy"
+  "legal_title_short": "Terms & Privacy",
+  "install_desktop_title": "Install WrapSheet on your computer",
+  "install_desktop_body": "Use WrapSheet as its own app, with a window and icon — no browser around it.",
+  "install_hint_menu": "In your browser menu choose “Install app” — in Safari on Mac: File → Add to Dock.",
+  "install_mobile_title": "Take WrapSheet with you",
+  "install_mobile_body": "Get the app for iPhone and iPad and work from anywhere.",
+  "install_now": "Install",
+  "install_not_now": "Not now",
+  "install_appstore": "View on the App Store"
 }
