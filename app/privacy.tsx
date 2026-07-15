@@ -6,26 +6,31 @@ export default function PrivacyPage() {
       <View style={s.content}>
         <Text style={s.logo}>WrapSheet</Text>
         <Text style={s.title}>Privacy Policy</Text>
-        <Text style={s.updated}>Last updated: May 2026</Text>
+        <Text style={s.updated}>Last updated: July 2026</Text>
 
         <Text style={s.sectionTitle}>1. Data stored</Text>
         <Text style={s.body}>
-          WrapSheet stores your projects, profiles and settings locally on your
-          device. This data is not sent to external servers by the app's author.
+          WrapSheet stores your projects, profiles and settings on your device.
+          If you create an account, this data and your email address are also
+          stored securely on the servers of our database provider (Supabase) to
+          sync across devices. We do not sell or share your data for marketing
+          purposes.
         </Text>
 
         <Text style={s.sectionTitle}>2. Permissions and integrations</Text>
         <Text style={s.body}>
-          Some features, such as file export, may use operating system services
-          or third-party apps (email, cloud storage, etc.). In those cases, the
-          privacy policies of those services apply.
+          Some features use third-party services: account emails (confirmation
+          and password recovery) are sent by our email provider; crash reports
+          help us fix errors (Sentry); file export and sharing use your
+          operating system's services. In those cases, the privacy policies of
+          those services also apply.
         </Text>
 
         <Text style={s.sectionTitle}>3. User rights</Text>
         <Text style={s.body}>
-          You can delete your data at any time by removing projects, profiles,
-          or uninstalling the app. If cloud sync is added in the future, this
-          policy will be updated accordingly.
+          You can delete projects and profiles at any time. You can delete your
+          account and all associated data in Settings → Account → Delete
+          account. For any request about your data, contact us.
         </Text>
 
         <Text style={s.sectionTitle}>4. Contact</Text>

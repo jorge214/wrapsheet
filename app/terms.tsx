@@ -6,7 +6,7 @@ export default function TermsPage() {
       <View style={s.content}>
         <Text style={s.logo}>WrapSheet</Text>
         <Text style={s.title}>Terms of Use</Text>
-        <Text style={s.updated}>Last updated: May 2026</Text>
+        <Text style={s.updated}>Last updated: July 2026</Text>
 
         <Text style={s.sectionTitle}>1. Purpose</Text>
         <Text style={s.body}>
@@ -17,9 +17,10 @@ export default function TermsPage() {
 
         <Text style={s.sectionTitle}>2. Data responsibility</Text>
         <Text style={s.body}>
-          All data entered is stored only on the user's device. You are
-          responsible for keeping your device secure and for backing up your
-          data.
+          Your data is stored on your device and, when you are signed in, it is
+          also synced to your account so you can access it on other devices.
+          You are responsible for keeping your credentials safe and for
+          checking the values on your sheets before sending them.
         </Text>
 
         <Text style={s.sectionTitle}>3. Limitation of liability</Text>
