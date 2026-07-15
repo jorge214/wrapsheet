@@ -630,20 +630,22 @@ export default function ProjectEditor() {
     };
 
     if (d.type === "ws:addDay") {
-      // Novo dia a seguir ao último (mesmos horários, data +1, não pago)
+      // Novo dia DO ZERO (duplicar é o outro botão): data +1 e tudo a zeros —
+      // as ajudas e horas extra só entram quando forem cobradas/negociadas.
+      // Para voltar ao automático numa célula, basta apagá-la.
       const last = p.dias[p.dias.length - 1];
       const nextDate =
         last?.data && dayjs(last.data).isValid()
           ? dayjs(last.data).add(1, "day").format("YYYY-MM-DD")
           : dayjs().format("YYYY-MM-DD");
-      const novo: Dia = last
-        ? ({ ...last, data: nextDate, pago: false } as Dia)
-        : ({
-            descricao: t("day_description_default", { defaultValue: "Filmagem" }),
-            data: nextDate, continuo: false, inicio: "08:00", refeicaoTrabalho: "00:30",
-            jantarTrabalho: "00:00", fim: "20:00", meioDia: false,
-            tempoTransporteMin: 0, diaSemTrabalho: false,
-          } as Dia);
+      const novo: Dia = {
+        descricao: t("day_description_default", { defaultValue: "Filmagem" }),
+        data: nextDate, continuo: false, inicio: "08:00", refeicaoTrabalho: "00:30",
+        jantarTrabalho: "00:00", fim: "20:00", meioDia: false,
+        tempoTransporteMin: 0, diaSemTrabalho: false,
+        ajRefeicao: 0, ajViatura: 0, ajTelefone: 0, ajMaterial: 0, ajPerDiem: 0,
+        heaHoras: 0, hebHoras: 0, hrHoras: 0,
+      } as Dia;
       const next = { ...p, dias: [...p.dias, novo] };
       persist(next);
       pushRows(next);

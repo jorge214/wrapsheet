@@ -1665,12 +1665,30 @@ export function buildEditableSheetHtml(
           var m = document.querySelector('meta[name="viewport"]');
           if(m && m.getAttribute('data-w') !== String(w)){
             m.setAttribute('data-w', String(w));
-            // maximum-scale=1 desliga o auto-zoom do iOS ao focar células com
-            // letra pequena (<16px) — era o "salto" de zoom ao tocar para
-            // editar. O pinch continua a funcionar até ao tamanho natural.
-            m.setAttribute('content', 'width=' + w + ', maximum-scale=1');
+            // Pinch livre até 4× e o zoom FICA onde o deixares (com o limite
+            // a 1 o iOS ressaltava para trás ao largar os dedos).
+            m.setAttribute('content', 'width=' + w + ', maximum-scale=4');
           }
         }
+        // iOS faz zoom automático ao focar texto <16px. Para o impedir SEM
+        // limitar o pinch: ao focar uma célula trava-se a escala máxima na
+        // escala ATUAL (não há para onde saltar); ao sair, liberta-se até 4×.
+        function vpClamp(max){
+          var m = document.querySelector('meta[name="viewport"]');
+          var w = m && m.getAttribute('data-w');
+          if(m && w){ m.setAttribute('content', 'width=' + w + ', maximum-scale=' + max); }
+        }
+        document.addEventListener('focusin', function(e){
+          if(!window.ReactNativeWebView) return;
+          var el = e.target;
+          if(!el.classList || !el.classList.contains('ei')) return;
+          var sc = (window.visualViewport && window.visualViewport.scale) || 1;
+          vpClamp(sc + 0.001);
+        }, true);
+        document.addEventListener('focusout', function(e){
+          if(!window.ReactNativeWebView) return;
+          vpClamp(4);
+        }, true);
         function layout(){ align(); nativeFit(); fit(); }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
