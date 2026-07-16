@@ -63,16 +63,17 @@ export async function setAppLanguage(code: LangCode) {
   await i18n.changeLanguage(code);
 
   // Mantém a língua nos metadados da conta: os emails do servidor (recuperação
-  // de password, confirmação de eliminação) usam-na. Fire-and-forget — mudar de
-  // língua offline ou sem sessão não pode falhar. (Import dinâmico: o supabase
-  // não é preciso no arranque do i18n, que corre antes de tudo.)
-  try {
-    const { supabase } = await import("../lib/supabase");
-    const { data } = await supabase.auth.getSession();
-    if (data.session) {
-      supabase.auth.updateUser({ data: { lang: code } }).catch(() => {});
-    }
-  } catch {}
+  // de password, confirmação de eliminação) usam-na. Totalmente desanexado —
+  // a troca de língua na UI não espera pela rede nem pode falhar por causa dela.
+  void (async () => {
+    try {
+      const { supabase } = await import("../lib/supabase");
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        await supabase.auth.updateUser({ data: { lang: code } });
+      }
+    } catch {}
+  })();
 }
 
 // Aplica a língua vinda de um parâmetro ?lang= no URL (web).

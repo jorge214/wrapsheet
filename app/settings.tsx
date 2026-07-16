@@ -3,17 +3,16 @@ import { router, useFocusEffect } from "expo-router";
 import { useIsWide } from "../src/ui/useBreakpoint";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { getPreset } from "../src/constants/countryPresets";
 import { getSettings } from "../src/storage/appSettings";
 
 export default function SettingsScreen() {
-  const { COLORS, mode, setMode } = useTheme();
+  const { COLORS } = useTheme();
   const { t } = useTranslation();
   const isWide = useIsWide();
-  const darkOn = mode === "dark";
 
   const [regionCode, setRegionCode] = React.useState<string>("pt");
 
@@ -97,21 +96,6 @@ export default function SettingsScreen() {
               />
             </View>
           </Pressable>
-        </Section>
-
-        {/* Aparência */}
-        <Section title={t("settings_section_appearance", { defaultValue: "Aparência" })} COLORS={COLORS}>
-          <View style={[ss.row, { borderColor: COLORS.border }]}>
-            <Text style={[ss.rowLabel, { color: COLORS.text }]}>
-              {t("settings_dark_mode", { defaultValue: "Modo escuro" })}
-            </Text>
-
-            <Switch
-              value={darkOn}
-              onValueChange={(v) => setMode(v ? "dark" : "light")}
-              trackColor={{ false: "#ccc", true: COLORS.accent }}
-            />
-          </View>
         </Section>
 
         {/* Subscrição */}

@@ -61,6 +61,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // A renovação automática falhou → o Supabase emite SIGNED_OUT; limpamos.
       if (event === "SIGNED_OUT") { setSession(null); return; }
+      // Atualizações de metadados (ex.: gravar a língua na conta ao mudá-la
+      // nas Definições) não mudam a sessão — trocar o objeto aqui fazia a app
+      // inteira re-renderizar e saltar para a página inicial.
+      if (event === "USER_UPDATED") return;
       setSession(session);
     });
 

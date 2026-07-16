@@ -1,13 +1,5 @@
 // src/theme/ThemeProvider.tsx
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { Appearance } from "react-native";
+import React, { createContext, useContext, useMemo } from "react";
 
 type ThemeMode = "light" | "dark";
 
@@ -26,8 +18,6 @@ type Theme = {
   setMode: (m: ThemeMode) => Promise<void>;
   toggle: () => Promise<void>;
 };
-
-const STORAGE_KEY = "app:theme";
 
 const light = {
   bg: "#F6F7F9",
@@ -54,45 +44,17 @@ const dark = {
 const ThemeContext = createContext<Theme | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>("light");
-
-  // Carrega o tema guardado ou usa o tema do sistema na primeira vez
-  useEffect(() => {
-    (async () => {
-      try {
-        const saved = (await AsyncStorage.getItem(STORAGE_KEY)) as
-          | ThemeMode
-          | null;
-
-        if (saved === "light" || saved === "dark") {
-          setModeState(saved);
-        } else {
-          const sys = Appearance.getColorScheme();
-          setModeState(sys === "dark" ? "dark" : "light");
-        }
-      } catch (e) {
-        // se der erro, fica em "light" por defeito
-        const sys = Appearance.getColorScheme();
-        setModeState(sys === "dark" ? "dark" : "light");
-      }
-    })();
-  }, []);
-
+  // Modo escuro removido: a app é sempre clara. A estrutura (mode/setMode/
+  // toggle e a paleta dark) fica intacta porque dezenas de ecrãs consomem
+  // useTheme() — e para o dark poder voltar um dia sem arqueologia.
   const value = useMemo<Theme>(
     () => ({
-      mode,
-      COLORS: mode === "dark" ? dark : light,
-      setMode: async (m: ThemeMode) => {
-        setModeState(m);
-        await AsyncStorage.setItem(STORAGE_KEY, m);
-      },
-      toggle: async () => {
-        const next = mode === "dark" ? "light" : "dark";
-        setModeState(next);
-        await AsyncStorage.setItem(STORAGE_KEY, next);
-      },
+      mode: "light",
+      COLORS: light,
+      setMode: async () => {},
+      toggle: async () => {},
     }),
-    [mode]
+    []
   );
 
   return (
