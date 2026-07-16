@@ -24,6 +24,17 @@ async function guard(label: string, fn: () => Promise<void>): Promise<void> {
   }
 }
 
+// Erros devolvidos (não lançados) pelo PostgREST. 23503 = violação de foreign
+// key no user_id: a conta foi apagada no servidor mas o token deste aparelho
+// ainda está vivo (~1h) — sessão fantasma. Corta já a sessão local em vez de
+// esperar que o token expire.
+async function syncErr(label: string, error: any): Promise<void> {
+  console.error(`[sync] ${label}:`, error?.message ?? error);
+  if (error?.code === "23503") {
+    await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+  }
+}
+
 /* ---------- Upload local → Supabase ---------- */
 
 async function uploadProjects(userId: string): Promise<void> {
@@ -38,7 +49,7 @@ async function uploadProjects(userId: string): Promise<void> {
   }));
 
   const { error } = await supabase.from("projects").upsert(rows, {});
-  if (error) console.error("[sync] uploadProjects:", error.message);
+  if (error) await syncErr("uploadProjects", error);
 }
 
 async function uploadProfiles(userId: string): Promise<void> {
@@ -53,7 +64,7 @@ async function uploadProfiles(userId: string): Promise<void> {
   }));
 
   const { error } = await supabase.from("profiles").upsert(rows, {});
-  if (error) console.error("[sync] uploadProfiles:", error.message);
+  if (error) await syncErr("uploadProfiles", error);
 }
 
 /* ---------- Download Supabase → local ---------- */
@@ -102,7 +113,7 @@ export async function syncProjectToCloud(userId: string, project: ProjectState):
       { id: project.id, user_id: userId, data: project, updated_at: project.updatedAt },
       {}
     );
-    if (error) console.error("[sync] syncProjectToCloud:", error.message);
+    if (error) await syncErr("syncProjectToCloud", error);
   });
 }
 
@@ -112,14 +123,14 @@ export async function syncProfileToCloud(userId: string, profile: Profile): Prom
       { id: profile.id, user_id: userId, data: profile, updated_at: new Date().toISOString() },
       {}
     );
-    if (error) console.error("[sync] syncProfileToCloud:", error.message);
+    if (error) await syncErr("syncProfileToCloud", error);
   });
 }
 
 export async function deleteProjectFromCloud(userId: string, projectId: string): Promise<void> {
   await guard("deleteProjectFromCloud", async () => {
     const { error } = await supabase.from("projects").delete().eq("id", projectId).eq("user_id", userId);
-    if (error) console.error("[sync] deleteProjectFromCloud:", error.message);
+    if (error) await syncErr("deleteProjectFromCloud", error);
   });
 }
 
@@ -128,7 +139,7 @@ export async function deleteProjectFromCloud(userId: string, projectId: string):
 export async function deleteProfileFromCloud(userId: string, profileId: string): Promise<void> {
   await guard("deleteProfileFromCloud", async () => {
     const { error } = await supabase.from("profiles").delete().eq("id", profileId).eq("user_id", userId);
-    if (error) console.error("[sync] deleteProfileFromCloud:", error.message);
+    if (error) await syncErr("deleteProfileFromCloud", error);
   });
 }
 
