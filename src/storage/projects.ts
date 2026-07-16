@@ -638,7 +638,10 @@ export async function renameProject(id: string, newName: string): Promise<void> 
     ...project,
     projeto: {
       ...project.projeto,
-      filme: newName.trim(),
+      // "titulo" é o nome do projeto na app (lista, cabeçalho, barra da folha).
+      // Escrever em "filme" não mudava nada visível (titulo ganha sempre) e
+      // ainda alterava o campo FILME da folha.
+      titulo: newName.trim(),
     },
   };
 
