@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../src/auth/AuthContext";
 import { supabase } from "../../src/lib/supabase";
+import { clearLocalUserData, forgetLastUser } from "../../src/storage/clearLocal";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 export default function AccountScreen() {
@@ -80,6 +81,10 @@ export default function AccountScreen() {
       Alert.alert(t("error"), t("auth_delete_account_error"));
       return;
     }
+    // A conta morreu — os dados locais também: senão ficavam no aparelho e
+    // a próxima conta a entrar herdava-os (e o sync enviava-os para ela).
+    await clearLocalUserData();
+    await forgetLastUser();
     await signOut();
     router.replace("/auth/login");
   }
