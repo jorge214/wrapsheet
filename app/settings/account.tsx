@@ -20,7 +20,7 @@ import { useTheme } from "../../src/theme/ThemeProvider";
 
 export default function AccountScreen() {
   const { COLORS, mode } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, signOut } = useAuth();
 
   const [newPassword, setNewPassword] = useState("");
@@ -72,7 +72,10 @@ export default function AccountScreen() {
   }
 
   async function doDeleteAccount() {
-    const { error } = await supabase.rpc("delete_user");
+    // A língua atual da app segue no pedido — o email de confirmação da
+    // eliminação sai nessa língua (binários antigos sem este campo caem
+    // na língua guardada nos metadados da conta).
+    const { error } = await supabase.rpc("delete_user", { p_lang: i18n.language });
     if (error) {
       Alert.alert(t("error"), t("auth_delete_account_error"));
       return;
