@@ -6,7 +6,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next";
 import i18n from "../../src/i18n/i18n";
 import {
-  ActionSheetIOS,
   Alert,
   Modal,
   Platform,
@@ -217,28 +216,6 @@ export default function ProjectsScreen() {
     showToast(t("toast_deleted", { defaultValue: "Projeto apagado" }), "danger");
   }
 
-  async function confirmDelete(row: Row) {
-    if (Platform.OS === "web") {
-      const ok = (window as any).confirm(
-        `${t("delete_project_title")}\n${t("delete_project_msg")}`
-      );
-      if (ok) await doDelete(row);
-      return;
-    }
-    Alert.alert(
-      t("delete_project_title"),
-      t("delete_project_msg"),
-      [
-        { text: t("cancel"), style: "cancel" },
-        {
-          text: t("delete"),
-          style: "destructive",
-          onPress: () => doDelete(row),
-        },
-      ]
-    );
-  }
-
   async function handleNewProject() {
     if (projects.length >= FREE_PROJECT_LIMIT) {
       router.push("/settings/plan");
@@ -422,39 +399,9 @@ export default function ProjectsScreen() {
   // Menu ÚNICO do projeto — a página do projeto usa exatamente os mesmos
   // itens, pela mesma ordem. Mudanças aqui devem refletir-se lá.
   function openProjectOptions(project: Row) {
-    const title = project.nome || t("unnamed_project");
-    const paidToggleLabel = project.archived
-      ? t("mark_to_receive", { defaultValue: "Marcar como a receber" })
-      : t("mark_paid", { defaultValue: "Marcar como pago" });
-    const togglePaid = () =>
-      project.archived ? unarchiveRow(project) : markPaidArchive(project);
-
-    if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          title,
-          options: [
-            paidToggleLabel,
-            t("rename"),
-            t("duplicate"),
-            t("clear_project", { defaultValue: "Limpar projeto" }),
-            t("delete"),
-            t("cancel"),
-          ],
-          cancelButtonIndex: 5,
-          destructiveButtonIndex: [3, 4] as any,
-        },
-        (index) => {
-          if (index === 0) togglePaid();
-          if (index === 1) openRenameDialog(project);
-          if (index === 2) openDuplicateDialog(project);
-          if (index === 3) clearRow(project);
-          if (index === 4) confirmDelete(project);
-        }
-      );
-      return;
-    }
-    // Android e web: modal customizado
+    // Modal customizado (cartão branco) em TODAS as plataformas — o mesmo
+    // estilo do menu da página do projeto. (O ActionSheet nativo do iOS
+    // destoava: escuro, letras azuis.)
     setOptsProject(project);
   }
 
