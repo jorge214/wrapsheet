@@ -396,7 +396,8 @@ export default function ProjectsScreen() {
       .map((p) => parseMMYYYY(p.mes || "")?.y)
       .filter((y): y is number => !!y);
     const minY = years.length ? Math.min(...years, nowY) : nowY;
-    return { minY, maxY: nowY + 1 };
+    // Projetos podem ser planeados com muita antecedência — deixa ir até 2050
+    return { minY, maxY: 2050 };
   }, [allItems]);
 
   function selectMonth(m: number, y: number) {

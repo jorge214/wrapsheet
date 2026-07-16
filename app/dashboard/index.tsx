@@ -118,7 +118,8 @@ export default function DashboardScreen() {
     load();
   }, [load]);
 
-  // Limites de ano do seletor: do ano mais antigo com dados até ao ano seguinte
+  // Limites de ano do seletor: do ano mais antigo com dados até 2050
+  // (projetos podem ser planeados com muita antecedência)
   const yearBounds = useMemo(() => {
     const nowY = new Date().getFullYear();
     const dataYears = [...projects, ...archived]
@@ -126,9 +127,9 @@ export default function DashboardScreen() {
       .filter((y) => !!y);
     return {
       minY: Math.min(nowY, ...(dataYears.length ? dataYears : [nowY])),
-      maxY: Math.max(nowY, ano) + 1,
+      maxY: 2050,
     };
-  }, [projects, archived, ano]);
+  }, [projects, archived]);
 
   const monthKey = toMMYYYY(mes, ano);
 

@@ -1091,43 +1091,9 @@ export default function ProjectEditor() {
   }
 
 
-  // Definições avançadas (parâmetros de horas + fiscal). No telemóvel vão
-  // para dentro do ecrã inteiro; no desktop ficam por baixo da folha.
-  const renderAdvanced = () => (
-    <>
-      <Section title={t("table_params")} collapsible defaultCollapsed>
-        <Grid2>
-          <Num label={t("hours_day")} value={project!.tabela.H_dia} onChange={(n) => setP("tabela", { ...project!.tabela, H_dia: n })} />
-          <Num label={t("min_rest")} value={project!.tabela.descanso_min} onChange={(n) => setP("tabela", { ...project!.tabela, descanso_min: n })} />
-        </Grid2>
-        <Text style={ss.helperTitle}>{t("base_hour_mult")}</Text>
-        <Text style={ss.fieldHint}>{t("mult_writethrough_hint", { defaultValue: "Ao alterar um multiplicador, a taxa {{sym}}/h correspondente é recalculada a partir do salário atual.", sym: getPreset(regionCode).currencySymbol })}</Text>
-        <Grid3>
-          <Num label={t("mult_hea")} value={project!.tabela.multHEA ?? 1.5} onChange={(n) => applyMult("multHEA", "rateHEA", n || 1.5)} />
-          <Num label={t("mult_heb")} value={project!.tabela.multHEB ?? 2.0} onChange={(n) => applyMult("multHEB", "rateHEB", n || 2.0)} />
-          <Num label={t("mult_hr")} value={project!.tabela.multHR ?? 3.0} onChange={(n) => applyMult("multHR", "rateHR", n || 3.0)} />
-        </Grid3>
-        <Text style={ss.helperTitle}>{t("threshold_ab")}</Text>
-        <Grid3>
-          <Num label={t("threshold_a")} value={project!.tabela.limiar_A ?? 11} onChange={(n) => setP("tabela", { ...project!.tabela, limiar_A: n || 11 })} />
-          <Num label={t("threshold_b")} value={project!.tabela.limiar_B ?? 18} onChange={(n) => setP("tabela", { ...project!.tabela, limiar_B: n || 18 })} />
-          <Num label={t("threshold_hr")} value={(project!.tabela as any).limiar_HR ?? project!.tabela.descanso_min ?? 11} onChange={(n) => setP("tabela", { ...project!.tabela, limiar_HR: n || 11 } as any)} />
-        </Grid3>
-      </Section>
-
-      <Section title={t("fiscal_section")} collapsible defaultCollapsed>
-        <Grid3>
-          <Num label={taxLabels.incomeTax} value={project!.fiscal.IRS_percent} onChange={(n) => setP("fiscal", { ...project!.fiscal, IRS_percent: n })} />
-          <Num label={taxLabels.vat} value={project!.fiscal.IVA_percent} onChange={(n) => setP("fiscal", { ...project!.fiscal, IVA_percent: n })} />
-        </Grid3>
-        <View style={{ marginTop: 4 }}>
-          <Text style={ss.label}>{t("observation")}</Text>
-          <TextInput style={ss.input} placeholder={t("fiscal_note_placeholder")} placeholderTextColor={COLORS.sub} value={project!.fiscal.nota ?? ""} onChangeText={(v) => setP("fiscal", { ...project!.fiscal, nota: v })} />
-        </View>
-        <View style={ss.disclaimerBox}><Text style={ss.disclaimerText}>{t("tax_disclaimer")}</Text></View>
-      </Section>
-    </>
-  );
+  // (As secções "Parâmetros da tabela" e "Fiscal" saíram daqui: todos os
+  // valores editam-se diretamente na folha; os parâmetros de base vêm do
+  // perfil aplicado.)
 
   // Diálogo de exportação (orientação + previews). É renderizado DENTRO do
   // modal que estiver aberto (editor/preview): no iOS, um Modal irmão de outro
@@ -1289,8 +1255,6 @@ export default function ProjectEditor() {
           <StatLine label={gs.vf} value={money(totais.ValorFinal)} strong last />
         </View>
 
-        {/* Parâmetros avançados (tabela + fiscal) também no touch */}
-        <View style={{ marginTop: 14 }}>{renderAdvanced()}</View>
       </View>
     );
   };
@@ -1425,8 +1389,6 @@ export default function ProjectEditor() {
         <Section title={L(gs.workConditions)}>
           <Input value={p.condicoes || ""} onChangeText={(v) => setP("condicoes", v)} multiline placeholder="…" compact />
         </Section>
-
-        {renderAdvanced()}
 
         <Section title={t("totals", { defaultValue: "Totais" })}>
           <View style={ss.metricsRow}>
@@ -1599,7 +1561,6 @@ export default function ProjectEditor() {
                 } as any}
                 title="Folha editável"
               />
-              <View style={{ marginTop: 12 }}>{renderAdvanced()}</View>
             </>
           )}
         </View>
@@ -1733,7 +1694,6 @@ export default function ProjectEditor() {
             <ScrollView horizontal>
               <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
             </ScrollView>
-            {isPhone && <View style={{ marginTop: 16 }}>{renderAdvanced()}</View>}
           </ScrollView>
         </SafeAreaView>
       </Modal>
