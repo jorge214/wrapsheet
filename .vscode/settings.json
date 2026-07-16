@@ -1,5 +1,5 @@
 {
-  "gitdoc.enabled": true,
+  "gitdoc.enabled": false,
   "gitdoc.autoPush": "onCommit",
   "gitdoc.autoPull": "onCommit",
   "gitdoc.commitMessageFormat": "Auto-save: {{date}}",
