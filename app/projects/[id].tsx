@@ -5,7 +5,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
-import { syncProjectToCloud } from "../../src/sync/syncService";
+import { deleteProjectFromCloud, syncProjectToCloud } from "../../src/sync/syncService";
 import { useTranslation } from "react-i18next";
 import i18n from "../../src/i18n/i18n";
 import {
@@ -41,7 +41,15 @@ import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
 import { getSettings } from "../../src/storage/appSettings";
 import { defaultCondBoxes, getActiveProfile } from "../../src/storage/profile";
-import { getProject, saveProject } from "../../src/storage/projects";
+import {
+  deleteArchivedProject,
+  deleteProject,
+  duplicateProject,
+  getProject,
+  markProjectPaidAndArchive,
+  markProjectToReceive,
+  saveProject,
+} from "../../src/storage/projects";
 import EditableSheet, { SHEET_W } from "../../src/ui/EditableSheet";
 
 /* ---------- Paleta (manual, neutra) ---------- */
@@ -962,14 +970,79 @@ export default function ProjectEditor() {
     }
   }
 
+  // ------- Menu ⋯ (itens IDÊNTICOS ao menu da lista de projetos) -------
+
+  function askConfirm(title: string, msg: string, onYes: () => void, yesLabel: string, destructive = false) {
+    if (Platform.OS === "web") {
+      if ((window as any).confirm(`${title}\n\n${msg}`)) onYes();
+      return;
+    }
+    Alert.alert(title, msg, [
+      { text: t("cancel"), style: "cancel" },
+      { text: yesLabel, style: destructive ? "destructive" : "default", onPress: onYes },
+    ]);
+  }
+
+  // pago ⟺ arquivado: marcar como pago arquiva; "a receber" desarquiva
+  function handleTogglePaid() {
+    const p = projectRef.current!;
+    if (p.pago) {
+      askConfirm(
+        t("mark_to_receive", { defaultValue: "Marcar como a receber" }),
+        t("unarchive_msg", { defaultValue: "Volta para 'A Receber' como não pago. Podes voltar a marcar como pago depois." }),
+        async () => {
+          await markProjectToReceive(p.id);
+          await loadProject();
+          showToast(t("toast_unarchived", { defaultValue: "✓ Projeto de volta a 'A Receber'" }));
+        },
+        t("mark_to_receive", { defaultValue: "Marcar como a receber" })
+      );
+    } else {
+      askConfirm(
+        t("mark_paid_title", { defaultValue: "Marcar como pago" }),
+        t("mark_paid_archive_msg", { defaultValue: "O projeto passa a Pago e vai para Arquivados. Podes reverter em Arquivados › Desarquivar." }),
+        async () => {
+          await markProjectPaidAndArchive(p.id);
+          await loadProject();
+          showToast(t("toast_paid_archived", { defaultValue: "✓ Projeto marcado como pago e arquivado" }));
+        },
+        t("mark_paid", { defaultValue: "Marcar como pago" })
+      );
+    }
+  }
+
+  async function handleDuplicate() {
+    try {
+      const newId = await duplicateProject(projectRef.current!.id);
+      router.push(`/projects/${newId}`);
+    } catch (e) {
+      console.error("Erro ao duplicar projeto", e);
+    }
+  }
+
+  function handleDeleteProject() {
+    const p = projectRef.current!;
+    askConfirm(
+      t("delete_project_title"),
+      t("delete_project_msg"),
+      async () => {
+        // idempotentes: cobre o projeto esteja onde estiver (ativo/arquivado)
+        await deleteProject(p.id).catch(() => {});
+        await deleteArchivedProject(p.id).catch(() => {});
+        if (user) await deleteProjectFromCloud(user.id, p.id);
+        router.replace("/projects");
+      },
+      t("delete"),
+      true
+    );
+  }
+
   async function handleClearAll() {
     const p = projectRef.current!;
-    Alert.alert(t("clear_all"), t("are_you_sure"), [
-      { text: t("cancel"), style: "cancel" },
-      {
-        text: t("delete"),
-        style: "destructive",
-        onPress: async () => {
+    askConfirm(
+      t("clear_project", { defaultValue: "Limpar projeto" }),
+      t("are_you_sure"),
+      async () => {
           const today = dayjs().format("YYYY-MM-DD");
           const empty: ProjectState = {
             ...p,
@@ -1011,9 +1084,10 @@ export default function ProjectEditor() {
             ],
           };
           await persist(empty);
-        },
       },
-    ]);
+      t("delete"),
+      true
+    );
   }
 
 
@@ -1548,23 +1622,33 @@ export default function ProjectEditor() {
           >
             <Text style={ss.menuTitle}>{t("options")}</Text>
 
+            {/* Itens idênticos ao menu ⋯ da lista de projetos. "Aplicar perfil
+                ativo" saiu daqui: já existe como botão na própria página.
+                Nota iOS: Alerts durante o fecho de um modal são engolidos —
+                daí o setTimeout de 450ms em tudo o que confirma. */}
             <MenuItem
               label={project.pago
-                ? t("mark_unpaid", { defaultValue: "Marcar como não pago" })
+                ? t("mark_to_receive", { defaultValue: "Marcar como a receber" })
                 : t("mark_paid", { defaultValue: "Marcar como pago" })}
               onPress={() => {
                 setMenuOpen(false);
-                setP("pago", !project.pago as any);
+                setTimeout(() => handleTogglePaid(), 450);
               }}
             />
 
             <MenuItem
-              label={t("apply_active_profile")}
+              label={t("rename")}
               onPress={() => {
                 setMenuOpen(false);
-                // Espera o menu fechar: no iOS, Alerts/ações durante o fecho
-                // de um modal são engolidos silenciosamente.
-                setTimeout(() => handleApplyActiveProfile(), 450);
+                setTimeout(() => openRenameTitle(), 450);
+              }}
+            />
+
+            <MenuItem
+              label={t("duplicate")}
+              onPress={() => {
+                setMenuOpen(false);
+                setTimeout(() => handleDuplicate(), 450);
               }}
             />
 
@@ -1573,7 +1657,16 @@ export default function ProjectEditor() {
               tone="danger"
               onPress={() => {
                 setMenuOpen(false);
-                handleClearAll();
+                setTimeout(() => handleClearAll(), 450);
+              }}
+            />
+
+            <MenuItem
+              label={t("delete")}
+              tone="danger"
+              onPress={() => {
+                setMenuOpen(false);
+                setTimeout(() => handleDeleteProject(), 450);
               }}
             />
 

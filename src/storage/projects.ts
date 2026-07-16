@@ -572,6 +572,56 @@ export async function markProjectPaidAndArchive(id: string): Promise<void> {
   await archiveProject(id);
 }
 
+// voltar a "A Receber": desarquiva (se estiver arquivado) e desmarca o pago.
+// Cobre também o estado legado "pago mas não arquivado" que a versão antiga
+// do menu do projeto criava.
+export async function markProjectToReceive(id: string): Promise<void> {
+  await unarchiveProject(id); // no-op se não estiver arquivado
+  const p = await getProject(id);
+  if (p && p.pago) await saveProject({ ...p, pago: false });
+}
+
+// Zera a folha (mesmo shape do "Limpar projeto" da página do projeto):
+// limpa perfil/produção/fiscal/notas/condições e deixa um único dia por
+// preencher. Mantém id, tarifas da tabela e o estado pago/arquivado.
+export async function clearProjectData(
+  id: string,
+  dayDescription: string
+): Promise<ProjectState | null> {
+  const p = await getProject(id);
+  if (!p) return null;
+  const empty: ProjectState = {
+    ...p,
+    perfil: {
+      nome: "", email: "", telefone: "", departamento: "",
+      funcao: "", empresa: "", nif: "", iban: "", swift: "",
+    },
+    projeto: {
+      filme: "", produtora: "", nifProdutora: "", semana: "",
+      mes: dayjs().month() + 1, ano: dayjs().year(),
+    },
+    notas: "",
+    condicoes: "",
+    fiscal: { IRS_percent: 0, IVA_percent: 0, nota: "" },
+    dias: [
+      {
+        descricao: dayDescription,
+        data: dayjs().format("YYYY-MM-DD"),
+        continuo: false,
+        inicio: "08:00",
+        refeicaoTrabalho: "00:30",
+        jantarTrabalho: "00:00",
+        fim: "20:00",
+        meioDia: false,
+        tempoTransporteMin: 0,
+        diaSemTrabalho: false,
+      },
+    ],
+  };
+  await saveProject(empty);
+  return empty;
+}
+
 /* ------------ NOVO: RENOMEAR PROJETO ------------ */
 
 export async function setProjectPaid(id: string, pago: boolean): Promise<void> {

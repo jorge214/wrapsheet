@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ProjectListItem as Project } from "../../src/storage/projects";
 import {
+  clearProjectData,
   createProject,
   deleteProject,
   deleteArchivedProject,
@@ -29,13 +30,13 @@ import {
   listProjects,
   listArchivedProjects,
   markProjectPaidAndArchive,
+  markProjectToReceive,
   renameProject,
-  unarchiveProject,
 } from "../../src/storage/projects";
 
 type Row = Project & { archived?: boolean };
 import { useAuth } from "../../src/auth/AuthContext";
-import { deleteProjectFromCloud } from "../../src/sync/syncService";
+import { deleteProjectFromCloud, syncProjectToCloud } from "../../src/sync/syncService";
 import { FREE_PROJECT_LIMIT } from "../../src/storage/freeTier";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { MonthYearPicker } from "../../src/ui/MonthYearPicker";
@@ -170,20 +171,38 @@ export default function ProjectsScreen() {
     );
   }
 
-  // Desarquivar → volta a "A Receber" (não pago)
+  // Voltar a "A Receber" (não pago)
   function unarchiveRow(row: Row) {
     askConfirm(
-      t("unarchive_title", { defaultValue: "Desarquivar" }),
+      t("mark_to_receive", { defaultValue: "Marcar como a receber" }),
       t("unarchive_msg", {
         defaultValue: "Volta para 'A Receber' como não pago. Podes voltar a marcar como pago depois.",
       }),
       async () => {
-        await unarchiveProject(row.id);
+        await markProjectToReceive(row.id);
         setTab("areceber");
         await loadProjects();
         showToast(t("toast_unarchived", { defaultValue: "✓ Projeto de volta a 'A Receber'" }));
       },
-      t("unarchive", { defaultValue: "Desarquivar" })
+      t("mark_to_receive", { defaultValue: "Marcar como a receber" })
+    );
+  }
+
+  // Limpar projeto (zera a folha; mantém o projeto na lista)
+  function clearRow(row: Row) {
+    askConfirm(
+      t("clear_project", { defaultValue: "Limpar projeto" }),
+      t("are_you_sure", { defaultValue: "Tens a certeza?" }),
+      async () => {
+        const cleared = await clearProjectData(
+          row.id,
+          t("day_description_default", { defaultValue: "Dia 1" })
+        );
+        if (cleared && user) syncProjectToCloud(user.id, cleared as any);
+        await loadProjects();
+      },
+      t("clear_project", { defaultValue: "Limpar projeto" }),
+      true
     );
   }
 
@@ -399,40 +418,39 @@ export default function ProjectsScreen() {
   }
 
   // ------- OPÇÕES DO CARD -------
+  // Menu ÚNICO do projeto — a página do projeto usa exatamente os mesmos
+  // itens, pela mesma ordem. Mudanças aqui devem refletir-se lá.
   function openProjectOptions(project: Row) {
     const title = project.nome || t("unnamed_project");
+    const paidToggleLabel = project.archived
+      ? t("mark_to_receive", { defaultValue: "Marcar como a receber" })
+      : t("mark_paid", { defaultValue: "Marcar como pago" });
+    const togglePaid = () =>
+      project.archived ? unarchiveRow(project) : markPaidArchive(project);
+
     if (Platform.OS === "ios") {
-      if (project.archived) {
-        ActionSheetIOS.showActionSheetWithOptions(
-          {
-            title,
-            options: [t("unarchive", { defaultValue: "Desarquivar" }), t("rename"), t("duplicate"), t("delete"), t("cancel")],
-            cancelButtonIndex: 4,
-            destructiveButtonIndex: 3,
-          },
-          (index) => {
-            if (index === 0) unarchiveRow(project);
-            if (index === 1) openRenameDialog(project);
-            if (index === 2) openDuplicateDialog(project);
-            if (index === 3) confirmDelete(project);
-          }
-        );
-      } else {
-        ActionSheetIOS.showActionSheetWithOptions(
-          {
-            title,
-            options: [t("mark_paid", { defaultValue: "Marcar como pago" }), t("rename"), t("duplicate"), t("delete"), t("cancel")],
-            cancelButtonIndex: 4,
-            destructiveButtonIndex: 3,
-          },
-          (index) => {
-            if (index === 0) markPaidArchive(project);
-            if (index === 1) openRenameDialog(project);
-            if (index === 2) openDuplicateDialog(project);
-            if (index === 3) confirmDelete(project);
-          }
-        );
-      }
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title,
+          options: [
+            paidToggleLabel,
+            t("rename"),
+            t("duplicate"),
+            t("clear_project", { defaultValue: "Limpar projeto" }),
+            t("delete"),
+            t("cancel"),
+          ],
+          cancelButtonIndex: 5,
+          destructiveButtonIndex: [3, 4] as any,
+        },
+        (index) => {
+          if (index === 0) togglePaid();
+          if (index === 1) openRenameDialog(project);
+          if (index === 2) openDuplicateDialog(project);
+          if (index === 3) clearRow(project);
+          if (index === 4) confirmDelete(project);
+        }
+      );
       return;
     }
     // Android e web: modal customizado
@@ -523,26 +541,21 @@ export default function ProjectsScreen() {
               onPress={() => openProject(p.id)}
               style={({ pressed, hovered }: any) => [
                 s.card,
-                p.pago && s.cardPaid,
+                p.archived && s.cardPaid,
                 Platform.OS === "web" && hovered && { borderColor: COLORS.text, opacity: 1 },
                 pressed && { opacity: 0.96 },
               ]}
             >
               <View style={s.cardTopRow}>
                 <View style={{ flex: 1, paddingRight: 10 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text style={[s.title, { flexShrink: 1 }]} numberOfLines={1}>
-                      {p.nome ||
-                        t("unnamed_project", {
-                          defaultValue: "Projeto sem nome",
-                        })}
-                    </Text>
-                    {p.pago && (
-                      <View style={s.paidBadge}>
-                        <Text style={s.paidBadgeText}>✓ {t("paid", { defaultValue: "Pago" })}</Text>
-                      </View>
-                    )}
-                  </View>
+                  {/* O estado pago/a receber mostra-se APENAS no chip à direita
+                      — sem badge duplicado junto ao nome */}
+                  <Text style={[s.title, { flexShrink: 1 }]} numberOfLines={1}>
+                    {p.nome ||
+                      t("unnamed_project", {
+                        defaultValue: "Projeto sem nome",
+                      })}
+                  </Text>
 
                   <Text style={s.subtitle} numberOfLines={1}>
                     {(p.cliente || "—") + " · " + (p.mes || "--/----")}
@@ -648,7 +661,7 @@ export default function ProjectsScreen() {
                 {[
                   optsProject?.archived
                     ? {
-                        label: t("unarchive", { defaultValue: "Desarquivar" }),
+                        label: t("mark_to_receive", { defaultValue: "Marcar como a receber" }),
                         onPress: () => { const proj = optsProject!; setOptsProject(null); unarchiveRow(proj); },
                       }
                     : {
@@ -662,6 +675,12 @@ export default function ProjectsScreen() {
                     <Text style={s.optText}>{opt.label}</Text>
                   </Pressable>
                 ))}
+                <Pressable
+                  style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]}
+                  onPress={() => { const proj = optsProject!; setOptsProject(null); clearRow(proj); }}
+                >
+                  <Text style={[s.optText, { color: COLORS.danger }]}>{t("clear_project", { defaultValue: "Limpar projeto" })}</Text>
+                </Pressable>
                 <Pressable
                   style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]}
                   onPress={() => setDeleteConfirm(true)}
