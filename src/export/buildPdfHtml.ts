@@ -1244,7 +1244,7 @@ export function buildEditableDayRowsHtml(
           <td>${edNum(i, "hebValor", "heb_v", fmt(c?.HEB_valor ?? 0))}</td>
           <td>${edNum(i, "hrHoras", "hr_h", fmtNum((c?.HR_min ?? 0) / 60, 1))}</td>
           <td>${edNum(i, "hrValor", "hr_v", fmt(c?.HR_valor ?? 0))}</td>
-          <td class="strong calc tday" data-c="tot" data-i="${i}">${fmt(c?.totalDia ?? 0)}</td>
+          <td class="strong tday">${edNum(i, "totalDia", "tot", fmt(c?.totalDia ?? 0))}</td>
         </tr>`;
     })
     .join("");

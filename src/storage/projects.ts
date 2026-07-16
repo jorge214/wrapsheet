@@ -32,6 +32,8 @@ export type Dia = {
   heaValor?: number;
   hebValor?: number;
   hrValor?: number;
+  /** Total do dia negociado à mão (vazio = soma automática) */
+  totalDia?: number;
 };
 
 export type Ajudas = {

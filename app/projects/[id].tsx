@@ -694,7 +694,7 @@ export default function ProjectEditor() {
     // Campos numéricos por-dia editáveis diretamente na folha
     const DIA_NUM = new Set([
       "salarioDia", "ajRefeicao", "ajViatura", "ajTelefone", "ajMaterial", "ajPerDiem",
-      "heaHoras", "hebHoras", "hrHoras", "heaValor", "hebValor", "hrValor",
+      "heaHoras", "hebHoras", "hrHoras", "heaValor", "hebValor", "hrValor", "totalDia",
     ]);
     let next: ProjectState = p;
     switch (d.k) {

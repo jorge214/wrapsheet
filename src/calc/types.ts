@@ -35,6 +35,8 @@ export type Dia = {
   heaValor?: number;         // € de HE-A forçado (ignora horas × taxa)
   hebValor?: number;
   hrValor?: number;
+  /** Total do dia negociado à mão (vazio = soma automática) */
+  totalDia?: number;
 };
 
 // Tipo canónico — valores sempre em percentagem (ex: 25 significa 25%)

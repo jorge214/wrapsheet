@@ -126,7 +126,12 @@ export function calcDay(dia: Dia, prox: Dia | undefined, tabela: Tabela): CalcDi
   const eurHEB = dia.hebValor != null ? round2(dia.hebValor) : round2(minutesToHoursRaw(heB_minEff) * rateHEB);
   const eurHR  = dia.hrValor  != null ? round2(dia.hrValor)  : round2(minutesToHoursRaw(HR_minEff)  * rateHR);
 
-  const totalDia = round2(salarioDia + eurHEA + eurHEB + eurHR + ajudasTotal);
+  // Total do dia negociado à mão ganha à soma automática (ex.: dia de
+  // preparação em que as 15h são pagas como normais — o utilizador zera as
+  // HE e escreve o total acordado). Vazio na folha = volta a esta soma.
+  const totalDia = dia.totalDia != null
+    ? round2(dia.totalDia)
+    : round2(salarioDia + eurHEA + eurHEB + eurHR + ajudasTotal);
 
   return {
     HT_min,
