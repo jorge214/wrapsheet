@@ -151,10 +151,10 @@ function defaultDia(date: string): Dia {
     meioDia: false,
     tempoTransporteMin: 0,
     diaSemTrabalho: false,
-    // Dia começa a zeros — as ajudas/horas extra só entram quando cobradas
-    // (apagar a célula na folha volta ao automático)
+    // Ajudas a 0 — só entram quando negociadas/cobradas. Horas extra SEM
+    // override: calculam automaticamente pelas condições do perfil (forçar
+    // um valor — incluindo 0 — faz-se na folha; apagar volta ao automático).
     ajRefeicao: 0, ajViatura: 0, ajTelefone: 0, ajMaterial: 0, ajPerDiem: 0,
-    heaHoras: 0, hebHoras: 0, hrHoras: 0,
   };
 }
 

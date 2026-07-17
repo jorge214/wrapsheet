@@ -651,8 +651,10 @@ export default function ProjectEditor() {
         data: nextDate, continuo: false, inicio: "08:00", refeicaoTrabalho: "00:30",
         jantarTrabalho: "00:00", fim: "20:00", meioDia: false,
         tempoTransporteMin: 0, diaSemTrabalho: false,
+        // Ajudas a 0 (só entram quando negociadas); horas extra SEM override —
+        // calculam automaticamente pelas condições do perfil (o utilizador
+        // pode depois forçar 0 ou outro valor na própria folha).
         ajRefeicao: 0, ajViatura: 0, ajTelefone: 0, ajMaterial: 0, ajPerDiem: 0,
-        heaHoras: 0, hebHoras: 0, hrHoras: 0,
       } as Dia;
       const next = { ...p, dias: [...p.dias, novo] };
       persist(next);
