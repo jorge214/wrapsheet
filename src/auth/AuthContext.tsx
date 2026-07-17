@@ -44,8 +44,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error && isInvalidRefreshToken(error)) {
           await supabase.auth.signOut({ scope: "local" }).catch(() => {});
           setSession(null);
+        } else if (session) {
+          // Sessão guardada ≠ conta viva: se a conta foi apagada no servidor,
+          // o access token continua válido ~1h ("sessão fantasma") e o
+          // renovador automático rebentava mais tarde fora de qualquer
+          // try/catch nosso. Valida com o servidor antes de aceitar.
+          const { error: userErr } = await supabase.auth.getUser();
+          const status = (userErr as any)?.status;
+          // Só corta em erros de autenticação (401/403/404). Falhas de rede
+          // (offline) mantêm a sessão — a app funciona local sem internet.
+          if (userErr && (status === 401 || status === 403 || status === 404)) {
+            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+            setSession(null);
+          } else {
+            setSession(session);
+          }
         } else {
-          setSession(session ?? null);
+          setSession(null);
         }
       } catch (e: any) {
         if (isInvalidRefreshToken(e)) {
