@@ -1,6 +1,5 @@
 // src/stats/monthSummary.ts
 import { calcAll, calcTotals } from "../calc/engine";
-import { getActiveProfile } from "../storage/profile";
 import { Dia, listAllProjectsFull } from "../storage/projects";
 
 /**
@@ -75,13 +74,6 @@ export type MonthSummary = {
 export async function getMonthSummary(mes: number, ano: number): Promise<MonthSummary> {
   const all = await listAllProjectsFull();
 
-  // Os impostos do Painel seguem o REGIME FISCAL DO PERFIL ATIVO (o IRS/IVA
-  // é do técnico, não do projeto). Só se o perfil não definir é que se usa
-  // o fiscal gravado em cada projeto.
-  const prof: any = await getActiveProfile().catch(() => null);
-  const profIRS = prof?.fiscal?.IRS_percent;
-  const profIVA = prof?.fiscal?.IVA_percent;
-
   const inMonth = all.filter((p: any) => p?.projeto?.mes === mes && p?.projeto?.ano === ano);
 
   let totalMinutos = 0;
@@ -112,11 +104,13 @@ export async function getMonthSummary(mes: number, ano: number): Promise<MonthSu
         (dc?.HEA_min ?? 0) + (dc?.HEB_min ?? 0) + (dc?.HR_min ?? 0);
     }
 
-    // fiscal pode estar como { irs, iva } ou { IRS_percent, IVA_percent };
-    // o perfil ativo tem prioridade sobre o fiscal do projeto
+    // fiscal pode estar como { irs, iva } ou { IRS_percent, IVA_percent }.
+    // Cada projeto usa o SEU fiscal — a mesma conta da folha e do PDF. (O
+    // perfil ativo NÃO tem prioridade aqui: o Painel mostrava 23% em projetos
+    // cuja folha dizia outra coisa, ex. região fiscal francesa a 0%.)
     const rawFiscal: any = p.fiscal ?? {};
-    const irsRaw = profIRS ?? rawFiscal.irs ?? rawFiscal.IRS_percent ?? 0;
-    const ivaRaw = profIVA ?? rawFiscal.iva ?? rawFiscal.IVA_percent ?? 0;
+    const irsRaw = rawFiscal.IRS_percent ?? rawFiscal.irs ?? 0;
+    const ivaRaw = rawFiscal.IVA_percent ?? rawFiscal.iva ?? 0;
 
     // calcTotals espera percentagem em 0..100 (engine divide /100)
     // então convertemos 0.23->23 e 23->23
@@ -173,11 +167,6 @@ export async function getYearSummary(ano: number): Promise<YearSummary> {
   const all = await listAllProjectsFull();
   const inYear = all.filter((p: any) => p?.projeto?.ano === ano);
 
-  // Mesmo critério do resumo mensal: o regime fiscal do perfil ativo manda
-  const prof: any = await getActiveProfile().catch(() => null);
-  const profIRS = prof?.fiscal?.IRS_percent;
-  const profIVA = prof?.fiscal?.IVA_percent;
-
   let totalMinutos = 0;
   let totalDiasTrabalho = 0;
   let totalValorBruto = 0;
@@ -194,8 +183,9 @@ export async function getYearSummary(ano: number): Promise<YearSummary> {
 
     const diasCalc = calcAll(p.dias, p.tabela);
     const rawFiscal: any = p.fiscal ?? {};
-    const irsPct = normalizePercent(profIRS ?? rawFiscal.irs ?? rawFiscal.IRS_percent ?? 0) * 100;
-    const ivaPct = normalizePercent(profIVA ?? rawFiscal.iva ?? rawFiscal.IVA_percent ?? 0) * 100;
+    // Mesmo critério do resumo mensal: o fiscal de cada projeto manda
+    const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? 0) * 100;
+    const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? 0) * 100;
     const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
 
     totalValorBruto += totals.ValorBruto;
