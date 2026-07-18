@@ -39,7 +39,7 @@ if (Platform.OS !== "web") {
 import { exportPDF } from "../../src/export/pdf";
 import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
-import { getSettings } from "../../src/storage/appSettings";
+import { getEffectiveFiscal, getSettings } from "../../src/storage/appSettings";
 import { defaultCondBoxes, getActiveProfile } from "../../src/storage/profile";
 import {
   deleteArchivedProject,
@@ -1061,7 +1061,8 @@ export default function ProjectEditor() {
             },
             notas: "",
             condicoes: "",
-            fiscal: { IRS_percent: 0, IVA_percent: 0, nota: "" },
+            // Impostos voltam à predefinição da app (Região Fiscal), não a 0/0
+            fiscal: { ...(await getEffectiveFiscal()), nota: "" } as any,
             dias: [
               {
                 descricao: t("day_description_default"),

@@ -49,7 +49,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // o access token continua válido ~1h ("sessão fantasma") e o
           // renovador automático rebentava mais tarde fora de qualquer
           // try/catch nosso. Valida com o servidor antes de aceitar.
-          const { error: userErr } = await supabase.auth.getUser();
+          // Com teto de 4s: rede lenta não pode atrasar o arranque — se não
+          // responder a tempo, seguimos com a sessão (igual a estar offline).
+          const { error: userErr } = await Promise.race([
+            supabase.auth.getUser(),
+            new Promise<any>((res) => setTimeout(() => res({ error: null }), 4000)),
+          ]);
           const status = (userErr as any)?.status;
           // Só corta em erros de autenticação (401/403/404). Falhas de rede
           // (offline) mantêm a sessão — a app funciona local sem internet.

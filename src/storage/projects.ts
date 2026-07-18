@@ -604,7 +604,8 @@ export async function clearProjectData(
     },
     notas: "",
     condicoes: "",
-    fiscal: { IRS_percent: 0, IVA_percent: 0, nota: "" },
+    // Impostos voltam à predefinição da app (Região Fiscal), não a 0/0
+    fiscal: { ...effectiveFiscalOf(await getSettings()), nota: "" },
     dias: [
       {
         descricao: dayDescription,
