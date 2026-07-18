@@ -420,7 +420,8 @@ type Props = {
   onRemoveDia: (i: number) => void;
   onNotas: (v: string) => void;
   onCondicoes: (v: string) => void;
-  onApplyProfile: () => void;
+  /** (Opcional — o perfil ativo aplica-se sozinho a projetos novos) */
+  onApplyProfile?: () => void;
 };
 
 export default function EditableSheet(props: Props) {
@@ -471,9 +472,9 @@ export default function EditableSheet(props: Props) {
       <View style={sh.headGrid}>
         <View style={{ flex: 1.55 }}>
           <Box>
-            <BoxTitle right={<Pressable onPress={onApplyProfile} style={({ pressed }) => [sh.applyBtn, pressed && { opacity: 0.85 }]}><Text style={sh.applyTxt}>{applyLabel} ⤓</Text></Pressable>}>
-              {s.personalData}
-            </BoxTitle>
+            {/* (Botão "Aplicar perfil" removido: o perfil ativo entra
+                automaticamente em cada projeto novo) */}
+            <BoxTitle>{s.personalData}</BoxTitle>
             <KV label={s.name} value={perfil.nome} onChangeText={(v) => onPerfil({ nome: v })} />
             <KV label={s.role} value={perfil.funcao} onChangeText={(v) => onPerfil({ funcao: v })} />
             <KV label={s.phone} value={perfil.telefone} onChangeText={(v) => onPerfil({ telefone: v })} keyboardType="phone-pad" />

@@ -40,7 +40,7 @@ import { exportPDF } from "../../src/export/pdf";
 import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
 import { getEffectiveFiscal, getSettings } from "../../src/storage/appSettings";
-import { defaultCondBoxes, getActiveProfile } from "../../src/storage/profile";
+import { defaultCondBoxes } from "../../src/storage/profile";
 import {
   deleteArchivedProject,
   deleteProject,
@@ -817,70 +817,9 @@ export default function ProjectEditor() {
     }
   }
 
-  async function handleApplyActiveProfile() {
-    const act = await getActiveProfile();
-    if (!act) {
-      // Toast além do Alert: no iOS um Alert disparado enquanto um modal fecha
-      // pode ser engolido — o toast é nosso e aparece sempre.
-      showToast(t("no_active_profile", { defaultValue: "Sem perfil ativo. Define um em Perfis." }));
-      Alert.alert(t("profile"), t("no_active_profile"));
-      return;
-    }
-    setP("perfil", {
-      nome: act.nome,
-      email: act.email,
-      telefone: act.telefone,
-      departamento: act.departamento,
-      funcao: act.funcao,
-      empresa: act.empresa ?? "",
-      nif: act.nif ?? "",
-      iban: act.iban ?? "",
-      swift: act.swift ?? "",
-    });
-
-    // Condições de trabalho (texto + caixas + título anual). Se o perfil ainda
-    // não tiver caixas nem texto, aplica o modelo predefinido — assim as
-    // condições saem SEMPRE no fim do PDF depois de aplicar o perfil.
-    if ((act as any).condicoes) setP("condicoes", (act as any).condicoes);
-    const profBoxes = Array.isArray((act as any).condBoxes) && (act as any).condBoxes.length
-      ? (act as any).condBoxes
-      : (!(act as any).condicoes ? defaultCondBoxes() : undefined);
-    if (profBoxes) setP("condBoxes", profBoxes);
-    if ((act as any).condTitulo) setP("condTitulo", (act as any).condTitulo);
-
-    // (Impostos NÃO vêm do perfil: a fonte global é Definições › Região
-    // Fiscal; exceções editam-se diretamente na folha do projeto.)
-
-    // Condições fixas (linha de taxas): salário, taxas HE €/h e ajudas
-    const fx = (act as any).fixas || {};
-    const cur = projectRef.current!.tabela;
-    const patch: any = { ...cur, ajudas: { ...cur.ajudas } };
-    if (fx.salarioDia != null) patch.salarioDia = fx.salarioDia;
-    if (fx.rateHEA != null) patch.rateHEA = fx.rateHEA;
-    if (fx.rateHEB != null) patch.rateHEB = fx.rateHEB;
-    if (fx.rateHR != null) patch.rateHR = fx.rateHR;
-    if (fx.hDia != null) patch.H_dia = fx.hDia;
-    if (fx.heaFromHour != null) patch.limiar_A = fx.heaFromHour - 1;
-    if (fx.hebFromHour != null) patch.limiar_B = fx.hebFromHour - 1;
-    if (fx.hrRestBelow != null) patch.limiar_HR = fx.hrRestBelow;
-    if (fx.refeicao != null) patch.ajudas.refeicao = fx.refeicao;
-    if (fx.telefone != null) patch.ajudas.telefone = fx.telefone;
-    if (fx.viatura != null) patch.ajudas.viatura = fx.viatura;
-    if (fx.material != null) patch.ajudas.material = fx.material;
-    if (fx.perDiem != null) patch.ajudas.perDiem = fx.perDiem;
-    setP("tabela", patch);
-
-    // Reconstrói já a folha visível (inline no desktop / editor no telemóvel)
-    // com os valores aplicados, sem esperar pelo rebuild com atraso
-    const p2 = projectRef.current;
-    if (p2 && Platform.OS === "web") {
-      const html = buildEditSheet(p2);
-      if (inlineSheet) setInlineHtml(html);
-      if (editHtml) setEditHtmlContent(html);
-    }
-
-    showToast(t("toast_profile_applied", { defaultValue: "✓ Perfil aplicado — condições incluídas no PDF" }));
-  }
+  // ("Aplicar perfil ativo" foi removido: o perfil ativo aplica-se sozinho a
+  // cada projeto NOVO no createProject — dados pessoais, condições, salário,
+  // taxas €/h, regras de HE e ajudas. Tudo continua editável na folha.)
 
   // Write-through: editar um multiplicador recalcula a taxa €/h a partir do salário atual
   function applyMult(
@@ -1245,12 +1184,6 @@ export default function ProjectEditor() {
           </View>
         </Pressable>
 
-        {/* Botão direto (fora do menu ⋯): no iOS a ação disparada durante o
-            fecho do menu podia ser engolida sem feedback nenhum */}
-        <Pressable onPress={handleApplyActiveProfile} style={({ pressed }) => [ss.mOpenBtnGhost, pressed && { opacity: 0.9 }]}>
-          <Text style={ss.mOpenBtnGhostText}>⤓ {t("apply_active_profile", { defaultValue: "Aplicar perfil ativo" })}</Text>
-        </Pressable>
-
         <View style={ss.mStatsPanel}>
           <StatLine label={gs.totalDays} value={String(totalDias)} />
           <StatLine label={gs.vb} value={money(totais.ValorBruto)} />
@@ -1290,11 +1223,6 @@ export default function ProjectEditor() {
           title={L(gs.personalData)}
           collapsible
           defaultCollapsed
-          right={
-            <Pressable onPress={handleApplyActiveProfile} style={({ pressed }) => [ss.pill, pressed && { opacity: 0.85 }]}>
-              <Text style={ss.pillText}>{t("apply_profile")} ⤓</Text>
-            </Pressable>
-          }
         >
           <Input label={L(gs.name)} value={p.perfil.nome} onChangeText={(v) => setP("perfil", { ...p.perfil, nome: v })} />
           <Input label={L(gs.role)} value={p.perfil.funcao} onChangeText={(v) => setP("perfil", { ...p.perfil, funcao: v })} />
@@ -1434,7 +1362,6 @@ export default function ProjectEditor() {
       onRemoveDia={removeDia}
       onNotas={(v) => setP("notas", v)}
       onCondicoes={(v) => setP("condicoes", v)}
-      onApplyProfile={handleApplyActiveProfile}
     />
   );
 
@@ -1509,17 +1436,6 @@ export default function ProjectEditor() {
                   {/* Fullscreen: abre a MESMA folha em ecrã inteiro (modal).
                       Ícone do pacote — o carácter ⛶ não existia nas fontes do macOS */}
                   <Ionicons name="expand-outline" size={15} color="#fff" />
-                </Pressable>
-              )}
-
-              {/* Aplicar perfil ativo — botão visível no desktop (vivia na
-                  grelha antiga que foi substituída pela folha) */}
-              {!isPhone && (
-                <Pressable
-                  onPress={handleApplyActiveProfile}
-                  style={({ pressed }) => [ss.applyBtn, pressed && { opacity: 0.85 }]}
-                >
-                  <Text style={ss.applyBtnText}>⤓ {t("apply_profile", { defaultValue: "Aplicar perfil" })}</Text>
                 </Pressable>
               )}
 
