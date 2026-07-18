@@ -23,6 +23,7 @@ import { ProjectListItem as Project } from "../../src/storage/projects";
 import {
   clearProjectData,
   createProject,
+  getProject,
   deleteProject,
   deleteArchivedProject,
   duplicateProjectToMonth,
@@ -162,6 +163,10 @@ export default function ProjectsScreen() {
       }),
       async () => {
         await markProjectPaidAndArchive(row.id);
+        // Empurra já para a cloud — sem isto o outro aparelho só sabia do
+        // estado novo no sync de arranque/foreground seguinte
+        const p = await getProject(row.id);
+        if (p && user) syncProjectToCloud(user.id, p as any);
         setTab("arquivados");
         await loadProjects();
         showToast(t("toast_paid_archived", { defaultValue: "✓ Projeto marcado como pago e arquivado" }));
@@ -179,6 +184,8 @@ export default function ProjectsScreen() {
       }),
       async () => {
         await markProjectToReceive(row.id);
+        const p = await getProject(row.id);
+        if (p && user) syncProjectToCloud(user.id, p as any);
         setTab("areceber");
         await loadProjects();
         showToast(t("toast_unarchived", { defaultValue: "✓ Projeto de volta a 'A Receber'" }));

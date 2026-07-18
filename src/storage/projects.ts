@@ -298,9 +298,16 @@ export async function getProject(id: string): Promise<ProjectState | null> {
   }
 }
 
-// guardar / atualizar projeto completo
-export async function saveProject(p: ProjectState): Promise<void> {
-  const updatedAt = new Date().toISOString();
+// guardar / atualizar projeto completo.
+// keepTimestamp: usado pelo sync ao aplicar dados vindos da cloud — preserva
+// o updatedAt remoto (carimbar "agora" fazia cada download parecer uma edição
+// nova e os aparelhos entravam em pingue-pongue de uploads).
+export async function saveProject(
+  p: ProjectState,
+  opts?: { keepTimestamp?: boolean }
+): Promise<void> {
+  const updatedAt =
+    opts?.keepTimestamp && p.updatedAt ? p.updatedAt : new Date().toISOString();
   const toSave: ProjectState = { ...p, updatedAt };
 
   const archivedIndex = await readIndex(KEY_ARCHIVED_INDEX);

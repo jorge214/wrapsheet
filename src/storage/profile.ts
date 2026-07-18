@@ -55,6 +55,8 @@ export type Profile = {
     hebFromHour?: number; // HE-B a partir desta hora de trabalho (default 19)
     hrRestBelow?: number; // Recuperação se descanso entre dias < N horas (default 10)
   };
+  /** Carimbo da última edição — o sync usa-o para decidir quem ganha */
+  updatedAt?: string;
 };
 
 /* ---------- Keys ---------- */
@@ -107,15 +109,25 @@ export async function getProfileById(id: string): Promise<Profile | null> {
   return list.find((p) => p.id === id) ?? null;
 }
 
-export async function upsertProfile(p: Profile): Promise<Profile> {
+export async function upsertProfile(
+  p: Profile,
+  opts?: { keepTimestamp?: boolean }
+): Promise<Profile> {
   const list = await readList();
   const idx = list.findIndex((x) => x.id === p.id);
 
-  if (idx >= 0) list[idx] = p;
-  else list.push(p);
+  // keepTimestamp: o sync preserva o carimbo remoto ao aplicar (ver saveProject)
+  const toSave: Profile = {
+    ...p,
+    updatedAt:
+      opts?.keepTimestamp && p.updatedAt ? p.updatedAt : new Date().toISOString(),
+  };
+
+  if (idx >= 0) list[idx] = toSave;
+  else list.push(toSave);
 
   await writeList(list);
-  return p;
+  return toSave;
 }
 
 export async function createProfile(): Promise<Profile> {

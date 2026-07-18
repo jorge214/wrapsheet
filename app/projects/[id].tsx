@@ -987,6 +987,10 @@ export default function ProjectEditor() {
         async () => {
           await markProjectToReceive(p.id);
           await loadProject();
+          // Empurra já o estado novo para a cloud (o outro aparelho não
+          // pode ficar à espera do sync de foreground)
+          const cur = projectRef.current;
+          if (cur && user) syncProjectToCloud(user.id, cur as any);
           showToast(t("toast_unarchived", { defaultValue: "✓ Projeto de volta a 'A Receber'" }));
         },
         t("mark_to_receive", { defaultValue: "Marcar como a receber" })
@@ -998,6 +1002,8 @@ export default function ProjectEditor() {
         async () => {
           await markProjectPaidAndArchive(p.id);
           await loadProject();
+          const cur = projectRef.current;
+          if (cur && user) syncProjectToCloud(user.id, cur as any);
           showToast(t("toast_paid_archived", { defaultValue: "✓ Projeto marcado como pago e arquivado" }));
         },
         t("mark_paid", { defaultValue: "Marcar como pago" })
@@ -1124,15 +1130,18 @@ export default function ProjectEditor() {
             {t("export_pdf", { defaultValue: "Exportar PDF" })}
           </Text>
 
-          {/* Orientação com pré-visualização real de ambas */}
-          <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
+          {/* Orientação com pré-visualização real de ambas. Larguras 2:1 —
+              com os rácios A4 (√2 e 1/√2) as duas miniaturas ficam com a
+              MESMA altura, alinhadas e centradas (antes o horizontal era um
+              cartãozinho baixo ao lado de um vertical gigante). */}
+          <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", justifyContent: "center", marginBottom: 14 }}>
             {([
-              { k: "landscape", label: t("print_landscape", { defaultValue: "Horizontal" }), ratio: 297 / 210 },
-              { k: "portrait", label: t("print_portrait", { defaultValue: "Vertical" }), ratio: 210 / 297 },
+              { k: "landscape", label: t("print_landscape", { defaultValue: "Horizontal" }), ratio: 297 / 210, flex: 2 },
+              { k: "portrait", label: t("print_portrait", { defaultValue: "Vertical" }), ratio: 210 / 297, flex: 1 },
             ] as const).map((o) => {
               const on = expOrientation === o.k;
               return (
-                <Pressable key={o.k} onPress={() => setExpOrientation(o.k)} style={{ flex: 1 }}>
+                <Pressable key={o.k} onPress={() => setExpOrientation(o.k)} style={{ flex: o.flex }}>
                   <View
                     style={{
                       width: "100%",
