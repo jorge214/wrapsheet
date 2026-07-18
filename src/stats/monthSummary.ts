@@ -75,11 +75,10 @@ export type MonthSummary = {
 export async function getMonthSummary(mes: number, ano: number): Promise<MonthSummary> {
   const all = await listAllProjectsFull();
 
-  // O Painel usa o imposto SELECIONADO na app (Definições › Região Fiscal:
-  // standard do país ou valores personalizados) para todos os projetos.
+  // Cada projeto é taxado com o fiscal DA SUA FOLHA (podem coexistir 5
+  // regimes no mesmo mês — trabalhos em países diferentes). As taxas da
+  // Região Fiscal servem só de fallback para projetos sem fiscal gravado.
   const eff = effectiveFiscalOf(await getSettings());
-  const irsPct = normalizePercent(eff.IRS_percent) * 100;
-  const ivaPct = normalizePercent(eff.IVA_percent) * 100;
 
   const inMonth = all.filter((p: any) => p?.projeto?.mes === mes && p?.projeto?.ano === ano);
 
@@ -111,6 +110,9 @@ export async function getMonthSummary(mes: number, ano: number): Promise<MonthSu
         (dc?.HEA_min ?? 0) + (dc?.HEB_min ?? 0) + (dc?.HR_min ?? 0);
     }
 
+    const rawFiscal: any = p.fiscal ?? {};
+    const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? eff.IRS_percent) * 100;
+    const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? eff.IVA_percent) * 100;
     const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
 
     totalValorBruto += totals.ValorBruto;
@@ -161,10 +163,8 @@ export async function getYearSummary(ano: number): Promise<YearSummary> {
   const all = await listAllProjectsFull();
   const inYear = all.filter((p: any) => p?.projeto?.ano === ano);
 
-  // Mesmo critério do resumo mensal: o imposto selecionado na app manda
+  // Mesmo critério do resumo mensal: cada projeto com o fiscal da sua folha
   const eff = effectiveFiscalOf(await getSettings());
-  const irsPct = normalizePercent(eff.IRS_percent) * 100;
-  const ivaPct = normalizePercent(eff.IVA_percent) * 100;
 
   let totalMinutos = 0;
   let totalDiasTrabalho = 0;
@@ -181,6 +181,9 @@ export async function getYearSummary(ano: number): Promise<YearSummary> {
     }
 
     const diasCalc = calcAll(p.dias, p.tabela);
+    const rawFiscal: any = p.fiscal ?? {};
+    const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? eff.IRS_percent) * 100;
+    const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? eff.IVA_percent) * 100;
     const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
 
     totalValorBruto += totals.ValorBruto;
