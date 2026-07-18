@@ -30,7 +30,9 @@ export default function OnboardingScreen() {
       setActiveIndex(activeIndex + 1);
     } else {
       await completeOnboarding();
-      router.replace("/");
+      // Primeiro utilizador → criar conta (o ecrã de registo tem link
+      // "já tenho conta" para quem só reinstalou)
+      router.replace("/auth/register");
     }
   }
 

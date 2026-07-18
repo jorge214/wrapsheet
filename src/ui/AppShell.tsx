@@ -23,8 +23,10 @@ import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../auth/AuthContext";
 import { useLivePreview } from "../contexts/LivePreviewContext";
+import { getSettings } from "../storage/appSettings";
 import { useTheme } from "../theme/ThemeProvider";
 import { InstallPrompt } from "./InstallPrompt";
+import { runNavGuard } from "./navGuard";
 import {
   SIDEBAR_WIDTH,
   useBreakpoint,
@@ -57,6 +59,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Nos ecrãs de autenticação a app "desaparece": sem sidebar (senão dava para
   // saltar para os Projetos a meio do login/reset).
   const isAuthScreen = pathname.startsWith("/auth");
+
+  // Primeira abertura: slides de introdução antes do login. Relê a flag a cada
+  // navegação (depois do "Começar" fica true e não volta a aparecer). Os ecrãs
+  // /auth/* ficam de fora para não sequestrar links de email (reset/confirmação).
+  const [onbComplete, setOnbComplete] = React.useState<boolean | null>(null);
+  useEffect(() => {
+    getSettings()
+      .then((s) => setOnbComplete(!!s.onboardingComplete))
+      .catch(() => setOnbComplete(true));
+  }, [pathname]);
   // Guard global: sem sessão só se veem os ecrãs públicos. Os dados são locais,
   // por isso sem isto qualquer rota abria os projetos mesmo sem login.
   const isPublic =
@@ -99,6 +111,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [zoom]);
 
   // (depois de TODOS os hooks — regra dos hooks)
+  // 1º arranque sem sessão → introdução (slides); só depois o login.
+  if (
+    !loading &&
+    !session &&
+    onbComplete === false &&
+    !isAuthScreen &&
+    pathname !== "/onboarding" &&
+    pathname !== "/privacy" &&
+    pathname !== "/terms"
+  ) {
+    return <Redirect href="/onboarding" />;
+  }
   if (!loading && !session && !isPublic) return <Redirect href="/auth/login" />;
 
   // IMPORTANTE: a árvore é SEMPRE a mesma (sidebar só aparece em ecrãs largos).
@@ -238,7 +262,9 @@ function NavButton({
 }) {
   return (
     <Pressable
-      onPress={() => router.push(item.route as any)}
+      // O guard deixa ecrãs com alterações por gravar (Perfil) mostrar o
+      // popup Guardar/Ignorar antes de sair — para qualquer destino do menu
+      onPress={() => runNavGuard(() => router.push(item.route as any))}
       style={({ pressed, hovered }: any) => [
         styles.navItem,
         active && {

@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import { clearNavGuard, setNavGuard } from "../../src/ui/navGuard";
 
 import {
   CondBox,
@@ -181,46 +182,65 @@ export default function ProfileEditScreen() {
     })();
   }, [id, t]);
 
-  // Voltar: se houver alterações por gravar, abre o popup Guardar/Ignorar
+  // Popup Guardar/Ignorar em QUALQUER saída com alterações por gravar:
+  // botão Voltar E navegação pela barra lateral (Projetos/Painel/Definições…),
+  // via navGuard. O destino escolhido fica em pendingNavRef e é executado
+  // depois da decisão no popup.
   const [leaveConfirm, setLeaveConfirm] = useState(false);
+  const pRef = React.useRef<Profile | null>(null);
+  const originalRef = React.useRef<Profile | null>(null);
+  const userRef = React.useRef(user);
+  const skipAutosaveRef = React.useRef(false);
+  const pendingNavRef = React.useRef<() => void>(() => router.back());
+  useEffect(() => { pRef.current = p; }, [p]);
+  useEffect(() => { originalRef.current = original; }, [original]);
+  useEffect(() => { userRef.current = user; }, [user]);
+
+  const isDirtyNow = () => {
+    const cur = pRef.current;
+    return !!cur && JSON.stringify(cur) !== JSON.stringify(originalRef.current);
+  };
+
   function handleCancel() {
-    const isDirty = JSON.stringify(p) !== JSON.stringify(original);
-    if (!isDirty) {
+    if (!isDirtyNow()) {
       router.back();
       return;
     }
+    pendingNavRef.current = () => router.back();
     setLeaveConfirm(true);
   }
   async function leaveSaving() {
     setLeaveConfirm(false);
     const ok = await handleSave();
-    if (ok) router.back();
+    if (ok) {
+      skipAutosaveRef.current = true;
+      pendingNavRef.current();
+    }
   }
   function leaveIgnoring() {
     setLeaveConfirm(false);
     // Escolha explícita de NÃO guardar — o autosave de saída tem de a respeitar
     skipAutosaveRef.current = true;
-    router.back();
+    pendingNavRef.current();
   }
 
-  // Sair por QUALQUER outro caminho (barra lateral Projetos/Painel, etc.)
-  // guarda automaticamente: o popup só está ligado ao botão Voltar e, sem
-  // isto, navegar pelo menu no PC/iPad saía sem guardar nem avisar.
-  const pRef = React.useRef<Profile | null>(null);
-  const originalRef = React.useRef<Profile | null>(null);
-  const userRef = React.useRef(user);
-  const skipAutosaveRef = React.useRef(false);
-  useEffect(() => { pRef.current = p; }, [p]);
-  useEffect(() => { originalRef.current = original; }, [original]);
-  useEffect(() => { userRef.current = user; }, [user]);
   useFocusEffect(
     React.useCallback(() => {
+      // Regista o guard: a barra lateral pergunta-nos antes de navegar
+      setNavGuard((navigate) => {
+        if (!isDirtyNow()) return false; // nada por gravar → segue
+        pendingNavRef.current = navigate;
+        setLeaveConfirm(true);
+        return true; // navegamos nós, depois da escolha no popup
+      });
       return () => {
+        clearNavGuard();
+        // Rede de segurança para caminhos não intercetáveis (gesto/atalhos do
+        // browser): guarda silenciosamente em vez de perder as alterações.
         if (skipAutosaveRef.current) { skipAutosaveRef.current = false; return; }
         const cur = pRef.current;
-        const orig = originalRef.current;
         if (!cur) return;
-        if (JSON.stringify(cur) === JSON.stringify(orig)) return;
+        if (JSON.stringify(cur) === JSON.stringify(originalRef.current)) return;
         const nome = (cur.nome || "").trim();
         if (!nome) return; // sem nome válido não há gravação silenciosa
         upsertProfile({ ...cur, nome })
