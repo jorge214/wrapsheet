@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
 import i18n from "../i18n/i18n";
 import { getPreset } from "../constants/countryPresets";
-import { getSettings } from "./appSettings";
+import { effectiveFiscalOf, getSettings } from "./appSettings";
 import { CondBox, getActiveProfile } from "./profile";
 
 /* ------------ Tipos internos ------------ */
@@ -344,7 +344,6 @@ export async function createProject(): Promise<string> {
   const perfil = active ? blankPerfil(active as any) : blankPerfil();
   const condicoesFromProfile = (active as any)?.condicoes || "";
   const fixas = (active as any)?.fixas || {};
-  const profFiscal = (active as any)?.fiscal || {};
 
   const projeto: ProjetoInfo = {
     titulo: "",
@@ -387,11 +386,12 @@ export async function createProject(): Promise<string> {
     perfil,
     projeto,
     tabela,
+    // Impostos: a fonte é GLOBAL (Definições › Região Fiscal — standard do
+    // país ou valores personalizados lá). O perfil não mexe em taxas; a folha
+    // de cada projeto pode depois sobrepor num trabalho-exceção.
     fiscal: {
       ...defaultFiscal(),
-      ...preset.fiscal,
-      ...(profFiscal.IRS_percent != null ? { IRS_percent: Number(profFiscal.IRS_percent) } : {}),
-      ...(profFiscal.IVA_percent != null ? { IVA_percent: Number(profFiscal.IVA_percent) } : {}),
+      ...effectiveFiscalOf(settings),
     },
     dias: [defaultDia(today)],
     notas: "",

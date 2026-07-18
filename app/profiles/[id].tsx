@@ -87,6 +87,7 @@ function NumField({
   editing,
   onChange,
   unit,
+  placeholder,
   COLORS,
   styles,
 }: {
@@ -95,6 +96,7 @@ function NumField({
   editing: boolean;
   onChange: (n: number | undefined) => void;
   unit?: string;
+  placeholder?: string;
   COLORS: any;
   styles: any;
 }) {
@@ -112,7 +114,7 @@ function NumField({
             onChange(v.trim() === "" ? undefined : Number(v.replace(",", ".")) || 0);
           }}
           onBlur={() => setTxt(null)}
-          placeholder="0"
+          placeholder={placeholder ?? "0"}
           placeholderTextColor={COLORS.sub}
           style={styles.fieldInput}
           keyboardType="decimal-pad"
@@ -272,10 +274,6 @@ export default function ProfileEditScreen() {
   const fixas = p.fixas ?? {};
   const setFixas = (patch: Partial<NonNullable<Profile["fixas"]>>) =>
     setP({ ...p, fixas: { ...fixas, ...patch } });
-  const fiscalV = p.fiscal ?? {};
-  const setFiscal = (patch: Partial<NonNullable<Profile["fiscal"]>>) =>
-    setP({ ...p, fiscal: { ...fiscalV, ...patch } });
-
   // ── Condições de trabalho em caixas ──
   const boxes: CondBox[] = p.condBoxes ?? [];
   const setBoxes = (next: CondBox[]) => setP({ ...p, condBoxes: next });
@@ -398,17 +396,9 @@ export default function ProfileEditScreen() {
           <NumField label={`${gs.perDiem} (${preset.sym})`} value={fixas.perDiem} editing={editing} onChange={(n) => setFixas({ perDiem: n })} COLORS={COLORS} styles={s} />
         </View>
 
-        {/* Regime Fiscal (movido de Definições) — percentagens editáveis, incl. 0% */}
-        <View style={s.card}>
-          <Text style={s.fieldLabel}>
-            {t("tax_regime", { defaultValue: "Regime Fiscal" })}
-          </Text>
-          <Text style={s.fieldHint}>
-            {t("tax_regime_hint", { defaultValue: "Percentagens aplicadas aos valores. Deixa a 0% se não aplicável (ex.: empresa unipessoal). Predefinição pelo país em Definições › Região." })}
-          </Text>
-          <NumField label={preset.taxIncome} unit="%" value={fiscalV.IRS_percent ?? preset.IRS_percent} editing={editing} onChange={(n) => setFiscal({ IRS_percent: n ?? 0 })} COLORS={COLORS} styles={s} />
-          <NumField label={preset.taxVat} unit="%" value={fiscalV.IVA_percent ?? preset.IVA_percent} editing={editing} onChange={(n) => setFiscal({ IVA_percent: n ?? 0 })} COLORS={COLORS} styles={s} />
-        </View>
+        {/* (Regime Fiscal saiu do perfil: os impostos definem-se em
+            Definições › Região Fiscal e valem para a app toda; exceções
+            editam-se diretamente na folha de cada projeto.) */}
 
         {/* Regras de horas extra + Condições de trabalho (última secção) */}
         <View style={s.card}>

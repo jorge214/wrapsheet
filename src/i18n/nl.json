@@ -436,5 +436,7 @@
   "install_now": "Installeren",
   "install_not_now": "Niet nu",
   "install_appstore": "Bekijk in de App Store",
-  "mark_to_receive": "Markeren als te ontvangen"
+  "mark_to_receive": "Markeren als te ontvangen",
+  "region_taxes_title": "Tarieven toegepast in de app",
+  "region_taxes_hint": "Kies een land om zijn standaard te gebruiken; je kunt de waarden handmatig aanpassen. Ze gelden voor nieuwe projecten en het Dashboard — op elke sheet kun je ze altijd wijzigen als een klus een uitzondering is."
 }

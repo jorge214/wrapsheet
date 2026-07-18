@@ -436,5 +436,7 @@
   "install_now": "Installa",
   "install_not_now": "Non ora",
   "install_appstore": "Vedi sull'App Store",
-  "mark_to_receive": "Segna come da incassare"
+  "mark_to_receive": "Segna come da incassare",
+  "region_taxes_title": "Aliquote applicate nell'app",
+  "region_taxes_hint": "Scegli un paese per usare il suo standard; puoi regolare i valori a mano. Si applicano ai nuovi progetti e al Pannello — su ogni foglio puoi sempre modificarli se un lavoro fa eccezione."
 }

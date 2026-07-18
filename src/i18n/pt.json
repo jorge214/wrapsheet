@@ -436,5 +436,7 @@
   "install_now": "Instalar",
   "install_not_now": "Agora não",
   "install_appstore": "Ver na App Store",
-  "mark_to_receive": "Marcar como a receber"
+  "mark_to_receive": "Marcar como a receber",
+  "region_taxes_title": "Taxas aplicadas na app",
+  "region_taxes_hint": "Escolhe um país para usares o standard dele; podes ajustar os valores à mão. Aplicam-se aos projetos novos e ao Painel — em cada folha podes sempre alterar se um trabalho fugir à regra."
 }

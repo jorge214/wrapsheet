@@ -1,5 +1,6 @@
 // src/stats/monthSummary.ts
 import { calcAll, calcTotals } from "../calc/engine";
+import { effectiveFiscalOf, getSettings } from "../storage/appSettings";
 import { Dia, listAllProjectsFull } from "../storage/projects";
 
 /**
@@ -74,6 +75,12 @@ export type MonthSummary = {
 export async function getMonthSummary(mes: number, ano: number): Promise<MonthSummary> {
   const all = await listAllProjectsFull();
 
+  // O Painel usa o imposto SELECIONADO na app (Definições › Região Fiscal:
+  // standard do país ou valores personalizados) para todos os projetos.
+  const eff = effectiveFiscalOf(await getSettings());
+  const irsPct = normalizePercent(eff.IRS_percent) * 100;
+  const ivaPct = normalizePercent(eff.IVA_percent) * 100;
+
   const inMonth = all.filter((p: any) => p?.projeto?.mes === mes && p?.projeto?.ano === ano);
 
   let totalMinutos = 0;
@@ -103,19 +110,6 @@ export async function getMonthSummary(mes: number, ano: number): Promise<MonthSu
       totalMinutosExtra +=
         (dc?.HEA_min ?? 0) + (dc?.HEB_min ?? 0) + (dc?.HR_min ?? 0);
     }
-
-    // fiscal pode estar como { irs, iva } ou { IRS_percent, IVA_percent }.
-    // Cada projeto usa o SEU fiscal — a mesma conta da folha e do PDF. (O
-    // perfil ativo NÃO tem prioridade aqui: o Painel mostrava 23% em projetos
-    // cuja folha dizia outra coisa, ex. região fiscal francesa a 0%.)
-    const rawFiscal: any = p.fiscal ?? {};
-    const irsRaw = rawFiscal.IRS_percent ?? rawFiscal.irs ?? 0;
-    const ivaRaw = rawFiscal.IVA_percent ?? rawFiscal.iva ?? 0;
-
-    // calcTotals espera percentagem em 0..100 (engine divide /100)
-    // então convertemos 0.23->23 e 23->23
-    const irsPct = normalizePercent(irsRaw) * 100;
-    const ivaPct = normalizePercent(ivaRaw) * 100;
 
     const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
 
@@ -167,6 +161,11 @@ export async function getYearSummary(ano: number): Promise<YearSummary> {
   const all = await listAllProjectsFull();
   const inYear = all.filter((p: any) => p?.projeto?.ano === ano);
 
+  // Mesmo critério do resumo mensal: o imposto selecionado na app manda
+  const eff = effectiveFiscalOf(await getSettings());
+  const irsPct = normalizePercent(eff.IRS_percent) * 100;
+  const ivaPct = normalizePercent(eff.IVA_percent) * 100;
+
   let totalMinutos = 0;
   let totalDiasTrabalho = 0;
   let totalValorBruto = 0;
@@ -182,10 +181,6 @@ export async function getYearSummary(ano: number): Promise<YearSummary> {
     }
 
     const diasCalc = calcAll(p.dias, p.tabela);
-    const rawFiscal: any = p.fiscal ?? {};
-    // Mesmo critério do resumo mensal: o fiscal de cada projeto manda
-    const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? 0) * 100;
-    const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? 0) * 100;
     const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
 
     totalValorBruto += totals.ValorBruto;

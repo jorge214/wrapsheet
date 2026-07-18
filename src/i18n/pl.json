@@ -436,5 +436,7 @@
   "install_now": "Zainstaluj",
   "install_not_now": "Nie teraz",
   "install_appstore": "Zobacz w App Store",
-  "mark_to_receive": "Oznacz jako do otrzymania"
+  "mark_to_receive": "Oznacz jako do otrzymania",
+  "region_taxes_title": "Stawki stosowane w aplikacji",
+  "region_taxes_hint": "Wybierz kraj, aby użyć jego standardu; wartości możesz dostosować ręcznie. Obowiązują dla nowych projektów i Panelu — w każdym arkuszu zawsze możesz je zmienić, jeśli zlecenie jest wyjątkiem."
 }

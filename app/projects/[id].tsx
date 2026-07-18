@@ -848,16 +848,8 @@ export default function ProjectEditor() {
     if (profBoxes) setP("condBoxes", profBoxes);
     if ((act as any).condTitulo) setP("condTitulo", (act as any).condTitulo);
 
-    // Regime fiscal do perfil (IRS/IVA %)
-    const pf = (act as any).fiscal || {};
-    if (pf.IRS_percent != null || pf.IVA_percent != null) {
-      const curFiscal = projectRef.current!.fiscal as any;
-      setP("fiscal", {
-        ...curFiscal,
-        ...(pf.IRS_percent != null ? { IRS_percent: Number(pf.IRS_percent) } : {}),
-        ...(pf.IVA_percent != null ? { IVA_percent: Number(pf.IVA_percent) } : {}),
-      });
-    }
+    // (Impostos NÃO vêm do perfil: a fonte global é Definições › Região
+    // Fiscal; exceções editam-se diretamente na folha do projeto.)
 
     // Condições fixas (linha de taxas): salário, taxas HE €/h e ajudas
     const fx = (act as any).fixas || {};

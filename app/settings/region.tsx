@@ -2,10 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { REGION_LIST, RegionCode } from "../../src/constants/countryPresets";
-import { getSettings, setRegion } from "../../src/storage/appSettings";
+import { REGION_LIST, RegionCode, getPreset } from "../../src/constants/countryPresets";
+import { getSettings, setCustomFiscal, setRegion } from "../../src/storage/appSettings";
 import { Flag } from "../../src/ui/Flag";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
@@ -14,16 +14,59 @@ export default function RegionScreen() {
   const { t } = useTranslation();
 
   const [active, setActive] = React.useState<RegionCode | undefined>(undefined);
+  // Taxas personalizadas (undefined = standard do país). São a fonte global
+  // de impostos da app: projetos novos e Painel usam-nas.
+  const [customIRS, setCustomIRS] = React.useState<number | undefined>(undefined);
+  const [customIVA, setCustomIVA] = React.useState<number | undefined>(undefined);
+  // Buffers de texto para dar para escrever decimais ("23,")
+  const [irsTxt, setIrsTxt] = React.useState<string | null>(null);
+  const [ivaTxt, setIvaTxt] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    getSettings().then((s) => setActive((s.region as RegionCode) ?? "pt"));
+    getSettings().then((s) => {
+      setActive((s.region as RegionCode) ?? "pt");
+      setCustomIRS(s.fiscalIRS);
+      setCustomIVA(s.fiscalIVA);
+    });
   }, []);
 
+  const preset = getPreset(active ?? "pt");
+  const effIRS = customIRS ?? preset.fiscal.IRS_percent;
+  const effIVA = customIVA ?? preset.fiscal.IVA_percent;
+
   async function select(code: RegionCode) {
+    // Escolher o país adota o standard dele (limpa personalizações);
+    // fica na página para se poder ajustar os valores à mão.
     await setRegion(code);
     setActive(code);
-    router.back();
+    setCustomIRS(undefined);
+    setCustomIVA(undefined);
+    setIrsTxt(null);
+    setIvaTxt(null);
   }
+
+  function parseNum(v: string): number | undefined {
+    const raw = v.trim().replace(",", ".");
+    if (raw === "") return undefined;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : undefined;
+  }
+
+  async function changeIRS(v: string) {
+    setIrsTxt(v);
+    const n = parseNum(v);
+    setCustomIRS(n);
+    await setCustomFiscal(n, customIVA);
+  }
+
+  async function changeIVA(v: string) {
+    setIvaTxt(v);
+    const n = parseNum(v);
+    setCustomIVA(n);
+    await setCustomFiscal(customIRS, n);
+  }
+
+  const fmtPct = (n: number) => String(n).replace(".", ",");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -37,6 +80,52 @@ export default function RegionScreen() {
             {t("settings_section_region")}
           </Text>
           <View style={{ width: 70 }} />
+        </View>
+
+        {/* Taxas em vigor na app (standard do país, editáveis à mão) */}
+        <View style={[ss.taxCard, { borderColor: COLORS.border, backgroundColor: COLORS.card }]}>
+          <Text style={[ss.taxTitle, { color: COLORS.text }]}>
+            {t("region_taxes_title", { defaultValue: "Taxas aplicadas na app" })}
+          </Text>
+          <Text style={[ss.taxHint, { color: COLORS.sub }]}>
+            {t("region_taxes_hint", {
+              defaultValue:
+                "Escolhe um país para usares o standard dele; podes ajustar os valores à mão. Aplicam-se aos projetos novos e ao Painel — em cada folha podes sempre alterar se um trabalho fugir à regra.",
+            })}
+          </Text>
+          <View style={ss.taxRow}>
+            <Text style={[ss.taxLabel, { color: COLORS.text }]}>{preset.taxLabels.incomeTax}</Text>
+            <View style={ss.taxInputWrap}>
+              <TextInput
+                value={irsTxt ?? (customIRS != null ? fmtPct(customIRS) : "")}
+                onChangeText={changeIRS}
+                onBlur={() => setIrsTxt(null)}
+                placeholder={fmtPct(preset.fiscal.IRS_percent)}
+                placeholderTextColor={COLORS.sub}
+                keyboardType="decimal-pad"
+                style={[ss.taxInput, { color: COLORS.text, borderColor: COLORS.border, backgroundColor: COLORS.bg }]}
+              />
+              <Text style={[ss.taxUnit, { color: COLORS.sub }]}>%</Text>
+            </View>
+          </View>
+          <View style={ss.taxRow}>
+            <Text style={[ss.taxLabel, { color: COLORS.text }]}>{preset.taxLabels.vat}</Text>
+            <View style={ss.taxInputWrap}>
+              <TextInput
+                value={ivaTxt ?? (customIVA != null ? fmtPct(customIVA) : "")}
+                onChangeText={changeIVA}
+                onBlur={() => setIvaTxt(null)}
+                placeholder={fmtPct(preset.fiscal.IVA_percent)}
+                placeholderTextColor={COLORS.sub}
+                keyboardType="decimal-pad"
+                style={[ss.taxInput, { color: COLORS.text, borderColor: COLORS.border, backgroundColor: COLORS.bg }]}
+              />
+              <Text style={[ss.taxUnit, { color: COLORS.sub }]}>%</Text>
+            </View>
+          </View>
+          <Text style={[ss.taxNow, { color: COLORS.sub }]}>
+            {preset.taxLabels.incomeTax} {fmtPct(effIRS)}% · {preset.taxLabels.vat} {fmtPct(effIVA)}%
+          </Text>
         </View>
 
         <Text style={[ss.hint, { color: COLORS.sub }]}>
@@ -91,6 +180,32 @@ const ss = StyleSheet.create({
   },
   headerTitle: { fontSize: 22, fontWeight: "800" },
   backLink: { fontSize: 15, fontWeight: "800", width: 70, opacity: 0.9 },
+  taxCard: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    gap: 10,
+  },
+  taxTitle: { fontSize: 14, fontWeight: "800" },
+  taxHint: { fontSize: 12, lineHeight: 17 },
+  taxRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  taxLabel: { fontSize: 15, fontWeight: "700" },
+  taxInputWrap: { flexDirection: "row", alignItems: "center", gap: 6 },
+  taxInput: {
+    minWidth: 90,
+    textAlign: "right",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  taxUnit: { fontSize: 14, fontWeight: "700" },
+  taxNow: { fontSize: 12, textAlign: "right" },
   hint: {
     fontSize: 12,
     paddingHorizontal: 16,

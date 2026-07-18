@@ -464,7 +464,14 @@ export default function ProjectsScreen() {
               onPress={() => setTab(f.key)}
               style={({ pressed }) => [s.folderTab, on && s.folderTabOn, pressed && { opacity: 0.85 }]}
             >
-              <Text style={[s.folderTabText, on && s.folderTabTextOn]} numberOfLines={1}>
+              {/* Encolhe a letra em vez de cortar ("Arquivados…") — os três
+                  separadores têm a mesma largura e este rótulo é o maior */}
+              <Text
+                style={[s.folderTabText, on && s.folderTabTextOn]}
+                numberOfLines={1}
+                adjustsFontSizeToFit={Platform.OS !== "web"}
+                minimumFontScale={0.7}
+              >
                 {f.label} ({f.n})
               </Text>
             </Pressable>
@@ -508,11 +515,6 @@ export default function ProjectsScreen() {
                   <Text style={s.subtitle} numberOfLines={1}>
                     {(p.cliente || "—") + " · " + (p.mes || "--/----")}
                   </Text>
-
-                  <Text style={s.subtitle} numberOfLines={1}>
-                    {t("updated_at", { defaultValue: "Atualizado:" })}{" "}
-                    <Text style={s.subtitleStrong}>{updatedLabel}</Text>
-                  </Text>
                 </View>
 
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -551,6 +553,13 @@ export default function ProjectsScreen() {
                   </Pressable>
                 </View>
               </View>
+
+              {/* Linha própria a toda a largura: com o chip "A Receber" (mais
+                  largo que "Pago") ao lado, a hora ficava cortada ("18…") */}
+              <Text style={s.subtitle} numberOfLines={1}>
+                {t("updated_at", { defaultValue: "Atualizado:" })}{" "}
+                <Text style={s.subtitleStrong}>{updatedLabel}</Text>
+              </Text>
             </Pressable>
           );
         })}
