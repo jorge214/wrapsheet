@@ -1,5 +1,5 @@
 // app/profiles/[id].tsx
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
 import { deleteProfileFromCloud, syncProfileToCloud } from "../../src/sync/syncService";
@@ -198,8 +198,40 @@ export default function ProfileEditScreen() {
   }
   function leaveIgnoring() {
     setLeaveConfirm(false);
+    // Escolha explícita de NÃO guardar — o autosave de saída tem de a respeitar
+    skipAutosaveRef.current = true;
     router.back();
   }
+
+  // Sair por QUALQUER outro caminho (barra lateral Projetos/Painel, etc.)
+  // guarda automaticamente: o popup só está ligado ao botão Voltar e, sem
+  // isto, navegar pelo menu no PC/iPad saía sem guardar nem avisar.
+  const pRef = React.useRef<Profile | null>(null);
+  const originalRef = React.useRef<Profile | null>(null);
+  const userRef = React.useRef(user);
+  const skipAutosaveRef = React.useRef(false);
+  useEffect(() => { pRef.current = p; }, [p]);
+  useEffect(() => { originalRef.current = original; }, [original]);
+  useEffect(() => { userRef.current = user; }, [user]);
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        if (skipAutosaveRef.current) { skipAutosaveRef.current = false; return; }
+        const cur = pRef.current;
+        const orig = originalRef.current;
+        if (!cur) return;
+        if (JSON.stringify(cur) === JSON.stringify(orig)) return;
+        const nome = (cur.nome || "").trim();
+        if (!nome) return; // sem nome válido não há gravação silenciosa
+        upsertProfile({ ...cur, nome })
+          .then((saved) => {
+            setActiveProfileId(saved.id).catch(() => {});
+            if (userRef.current) syncProfileToCloud(userRef.current.id, saved);
+          })
+          .catch(() => {});
+      };
+    }, [])
+  );
 
   async function handleSave(): Promise<boolean> {
     if (!p || saving) return false;
