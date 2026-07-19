@@ -1605,6 +1605,24 @@ export function buildEditableSheetHtml(
           var el = e.target;
           if(e.key==='Enter' && el.classList && el.classList.contains('ei') && !el.classList.contains('notes')){ e.preventDefault(); el.blur(); }
         }, true);
+        // Células numéricas: tocar seleciona o VALOR TODO — escrever substitui
+        // ("12" → 12,00). Sem isto, no telemóvel o cursor caía onde o dedo
+        // acertava (ex.: a seguir à vírgula: "0,aqui00").
+        document.addEventListener('focusin', function(e){
+          var el = e.target;
+          if(!el.classList || !el.classList.contains('ei')) return;
+          if(!el.classList.contains('money') && !el.classList.contains('time')) return;
+          setTimeout(function(){
+            if(document.activeElement !== el) return;
+            try{
+              var r = document.createRange();
+              r.selectNodeContents(el);
+              var s = window.getSelection();
+              s.removeAllRanges();
+              s.addRange(r);
+            }catch(err){}
+          }, 0);
+        }, true);
         // Normaliza as horas para HH:MM ao sair do campo (edição livre dígito a dígito)
         document.addEventListener('blur', function(e){
           var el = e.target;
