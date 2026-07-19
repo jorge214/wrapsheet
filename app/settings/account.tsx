@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -60,10 +61,16 @@ export default function AccountScreen() {
     router.replace("/auth/login");
   }
 
+  // Popup próprio (não o confirm() do browser): a app instalada do Chrome
+  // bloqueia os diálogos nativos da web e o botão parecia não fazer nada.
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   function handleDeleteAccount() {
     if (Platform.OS === "web") {
-      const ok = (window as any).confirm(`${t("auth_delete_account")}\n${t("auth_delete_account_confirm")}`);
-      if (ok) doDeleteAccount();
+      setDeleteError(null);
+      setConfirmDeleteOpen(true);
       return;
     }
     Alert.alert(t("auth_delete_account"), t("auth_delete_account_confirm"), [
@@ -73,14 +80,19 @@ export default function AccountScreen() {
   }
 
   async function doDeleteAccount() {
+    setDeleting(true);
     // A língua atual da app segue no pedido — o email de confirmação da
     // eliminação sai nessa língua (binários antigos sem este campo caem
     // na língua guardada nos metadados da conta).
     const { error } = await supabase.rpc("delete_user", { p_lang: i18n.language });
+    setDeleting(false);
     if (error) {
+      // Na web o Alert nativo não existe — o erro aparece no próprio popup
+      setDeleteError(t("auth_delete_account_error"));
       Alert.alert(t("error"), t("auth_delete_account_error"));
       return;
     }
+    setConfirmDeleteOpen(false);
     // A conta morreu — os dados locais também: senão ficavam no aparelho e
     // a próxima conta a entrar herdava-os (e o sync enviava-os para ela).
     await clearLocalUserData();
@@ -196,6 +208,33 @@ export default function AccountScreen() {
         </View>
 
       </ScrollView>
+
+      {/* Confirmação de eliminação de conta (web) — popup próprio */}
+      <Modal transparent animationType="fade" visible={confirmDeleteOpen} onRequestClose={() => setConfirmDeleteOpen(false)}>
+        <Pressable style={s.modalBackdrop} onPress={() => !deleting && setConfirmDeleteOpen(false)}>
+          <Pressable style={s.modalCard} onPress={() => {}}>
+            <Text style={s.modalTitle}>{t("auth_delete_account")}</Text>
+            <Text style={s.modalMsg}>{t("auth_delete_account_confirm")}</Text>
+            {deleteError && <Text style={s.modalError}>{deleteError}</Text>}
+            <Pressable
+              style={({ pressed }) => [s.modalDeleteBtn, pressed && { opacity: 0.85 }, deleting && { opacity: 0.6 }]}
+              onPress={doDeleteAccount}
+              disabled={deleting}
+            >
+              {deleting
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={s.modalDeleteText}>{t("delete")}</Text>}
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [s.modalCancelBtn, pressed && { opacity: 0.7 }]}
+              onPress={() => setConfirmDeleteOpen(false)}
+              disabled={deleting}
+            >
+              <Text style={s.modalCancelText}>{t("cancel")}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -274,4 +313,33 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
 
     dangerBtn: { flexDirection: "row", alignItems: "center" },
     dangerBtnText: { fontWeight: "700", fontSize: 15 },
+
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 24,
+    },
+    modalCard: {
+      width: "100%",
+      maxWidth: 420,
+      backgroundColor: COLORS.card,
+      borderRadius: 18,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    modalTitle: { fontSize: 17, fontWeight: "900", color: COLORS.text, textAlign: "center", marginBottom: 8 },
+    modalMsg: { fontSize: 14, color: COLORS.sub, textAlign: "center", marginBottom: 16, lineHeight: 20 },
+    modalError: { fontSize: 13, color: COLORS.danger, textAlign: "center", marginBottom: 12, fontWeight: "700" },
+    modalDeleteBtn: {
+      backgroundColor: COLORS.danger,
+      borderRadius: 999,
+      paddingVertical: 13,
+      alignItems: "center",
+    },
+    modalDeleteText: { color: "#fff", fontWeight: "900", fontSize: 15 },
+    modalCancelBtn: { alignItems: "center", paddingVertical: 12, marginTop: 4 },
+    modalCancelText: { color: COLORS.sub, fontWeight: "800", fontSize: 13 },
   });
