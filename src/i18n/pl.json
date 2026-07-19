@@ -438,5 +438,9 @@
   "install_appstore": "Zobacz w App Store",
   "mark_to_receive": "Oznacz jako do otrzymania",
   "region_taxes_title": "Stawki stosowane w aplikacji",
-  "region_taxes_hint": "Wybierz kraj, aby użyć jego standardu; wartości możesz dostosować ręcznie. Obowiązują dla nowych projektów i Panelu — w każdym arkuszu zawsze możesz je zmienić, jeśli zlecenie jest wyjątkiem."
+  "region_taxes_hint": "Wybierz kraj, aby użyć jego standardu; wartości możesz dostosować ręcznie. Obowiązują dla nowych projektów i Panelu — w każdym arkuszu zawsze możesz je zmienić, jeśli zlecenie jest wyjątkiem.",
+  "onboarding_s4_title": "Utwórz swój profil",
+  "onboarding_s4_sub": "Dane osobowe, wynagrodzenie, stawki i warunki pracy — stosowane automatycznie do każdego nowego projektu.",
+  "onboarding_s5_title": "Śledź wszystko w Panelu",
+  "onboarding_s5_sub": "Sumy miesięczne i roczne, zapłacone i do otrzymania — zawsze aktualne, na wszystkich Twoich urządzeniach."
 }

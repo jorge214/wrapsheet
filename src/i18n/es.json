@@ -438,5 +438,9 @@
   "install_appstore": "Ver en el App Store",
   "mark_to_receive": "Marcar como a cobrar",
   "region_taxes_title": "Tasas aplicadas en la app",
-  "region_taxes_hint": "Elige un país para usar su estándar; puedes ajustar los valores a mano. Se aplican a los proyectos nuevos y al Panel — en cada hoja siempre puedes cambiarlos si un trabajo es una excepción."
+  "region_taxes_hint": "Elige un país para usar su estándar; puedes ajustar los valores a mano. Se aplican a los proyectos nuevos y al Panel — en cada hoja siempre puedes cambiarlos si un trabajo es una excepción.",
+  "onboarding_s4_title": "Crea tu perfil",
+  "onboarding_s4_sub": "Datos personales, salario, tarifas y condiciones de trabajo — aplicados automáticamente a cada proyecto nuevo.",
+  "onboarding_s5_title": "Síguelo en el Panel",
+  "onboarding_s5_sub": "Totales del mes y del año, pagados y por cobrar — siempre al día, en todos tus dispositivos."
 }

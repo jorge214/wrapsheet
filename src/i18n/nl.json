@@ -438,5 +438,9 @@
   "install_appstore": "Bekijk in de App Store",
   "mark_to_receive": "Markeren als te ontvangen",
   "region_taxes_title": "Tarieven toegepast in de app",
-  "region_taxes_hint": "Kies een land om zijn standaard te gebruiken; je kunt de waarden handmatig aanpassen. Ze gelden voor nieuwe projecten en het Dashboard — op elke sheet kun je ze altijd wijzigen als een klus een uitzondering is."
+  "region_taxes_hint": "Kies een land om zijn standaard te gebruiken; je kunt de waarden handmatig aanpassen. Ze gelden voor nieuwe projecten en het Dashboard — op elke sheet kun je ze altijd wijzigen als een klus een uitzondering is.",
+  "onboarding_s4_title": "Maak je profiel aan",
+  "onboarding_s4_sub": "Persoonlijke gegevens, salaris, tarieven en werkomstandigheden — automatisch toegepast op elk nieuw project.",
+  "onboarding_s5_title": "Volg alles op het Dashboard",
+  "onboarding_s5_sub": "Maand- en jaartotalen, betaald en te ontvangen — altijd actueel, op al je apparaten."
 }

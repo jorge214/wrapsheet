@@ -438,5 +438,9 @@
   "install_appstore": "View on the App Store",
   "mark_to_receive": "Mark as to receive",
   "region_taxes_title": "Taxes applied in the app",
-  "region_taxes_hint": "Pick a country to use its standard; you can adjust the values by hand. They apply to new projects and the Dashboard — on each sheet you can still change them if a job is an exception."
+  "region_taxes_hint": "Pick a country to use its standard; you can adjust the values by hand. They apply to new projects and the Dashboard — on each sheet you can still change them if a job is an exception.",
+  "onboarding_s4_title": "Create your profile",
+  "onboarding_s4_sub": "Personal details, salary, rates and working conditions — applied automatically to every new project.",
+  "onboarding_s5_title": "Track it on the Dashboard",
+  "onboarding_s5_sub": "Monthly and yearly totals, paid and to receive — always up to date, on all your devices."
 }

@@ -438,5 +438,9 @@
   "install_appstore": "Vedi sull'App Store",
   "mark_to_receive": "Segna come da incassare",
   "region_taxes_title": "Aliquote applicate nell'app",
-  "region_taxes_hint": "Scegli un paese per usare il suo standard; puoi regolare i valori a mano. Si applicano ai nuovi progetti e al Pannello — su ogni foglio puoi sempre modificarli se un lavoro fa eccezione."
+  "region_taxes_hint": "Scegli un paese per usare il suo standard; puoi regolare i valori a mano. Si applicano ai nuovi progetti e al Pannello — su ogni foglio puoi sempre modificarli se un lavoro fa eccezione.",
+  "onboarding_s4_title": "Crea il tuo profilo",
+  "onboarding_s4_sub": "Dati personali, salario, tariffe e condizioni di lavoro — applicati automaticamente a ogni nuovo progetto.",
+  "onboarding_s5_title": "Segui tutto nel Pannello",
+  "onboarding_s5_sub": "Totali del mese e dell'anno, pagati e da incassare — sempre aggiornati, su tutti i tuoi dispositivi."
 }

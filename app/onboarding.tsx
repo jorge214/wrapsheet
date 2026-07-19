@@ -14,9 +14,13 @@ type Slide = {
   subKey: string;
 };
 
+// Fluxo: bem-vindo → perfil (aplica-se sozinho aos projetos novos) →
+// registar horas → acompanhar no Painel → exportar o PDF (fecho forte)
 const SLIDES: Slide[] = [
   { icon: "film-outline", titleKey: "onboarding_s1_title", subKey: "onboarding_s1_sub" },
+  { icon: "person-outline", titleKey: "onboarding_s4_title", subKey: "onboarding_s4_sub" },
   { icon: "time-outline", titleKey: "onboarding_s2_title", subKey: "onboarding_s2_sub" },
+  { icon: "stats-chart-outline", titleKey: "onboarding_s5_title", subKey: "onboarding_s5_sub" },
   { icon: "document-text-outline", titleKey: "onboarding_s3_title", subKey: "onboarding_s3_sub" },
 ];
 

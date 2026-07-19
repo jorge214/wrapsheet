@@ -438,5 +438,9 @@
   "install_appstore": "Im App Store ansehen",
   "mark_to_receive": "Als ausstehend markieren",
   "region_taxes_title": "In der App angewendete Sätze",
-  "region_taxes_hint": "Wähle ein Land, um dessen Standard zu nutzen; die Werte lassen sich von Hand anpassen. Sie gelten für neue Projekte und das Dashboard — auf jedem Bogen kannst du sie ändern, wenn ein Job eine Ausnahme ist."
+  "region_taxes_hint": "Wähle ein Land, um dessen Standard zu nutzen; die Werte lassen sich von Hand anpassen. Sie gelten für neue Projekte und das Dashboard — auf jedem Bogen kannst du sie ändern, wenn ein Job eine Ausnahme ist.",
+  "onboarding_s4_title": "Erstelle dein Profil",
+  "onboarding_s4_sub": "Persönliche Daten, Gage, Sätze und Arbeitsbedingungen — automatisch auf jedes neue Projekt angewendet.",
+  "onboarding_s5_title": "Behalte alles im Dashboard",
+  "onboarding_s5_sub": "Monats- und Jahressummen, bezahlt und ausstehend — immer aktuell, auf allen deinen Geräten."
 }
