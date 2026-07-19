@@ -1368,9 +1368,12 @@ export default function ProjectEditor() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView
-        // Desktop (folha inline): margem pequena no fundo — os 160px são para
-        // o scroll do telemóvel não tapar conteúdo com o teclado/botões
-        contentContainerStyle={{ paddingBottom: inlineSheet ? 16 : 160 }}
+        // Desktop (folha inline): a página exterior NÃO faz scroll — a folha
+        // ocupa a janela e só existe a barra interna da própria folha.
+        // (Os 160px de fundo são para o scroll do telemóvel.)
+        contentContainerStyle={{ paddingBottom: inlineSheet ? 0 : 160 }}
+        scrollEnabled={!inlineSheet}
+        showsVerticalScrollIndicator={!inlineSheet}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
       >
@@ -1476,9 +1479,10 @@ export default function ProjectEditor() {
                 srcDoc={inlineHtml}
                 style={{
                   width: "100%",
-                  // Folha até ao fundo da janela, só com uma margenzinha
-                  // (cabeçalho ~70px + margens ~40px)
-                  height: Math.max(560, winH - 112),
+                  // Folha até ao fundo da janela (cabeçalho + margens ~96px);
+                  // o scroll exterior está desativado, por isso isto tem de
+                  // caber certinho na janela
+                  height: Math.max(560, winH - 96),
                   border: "1px solid #E5E6EA",
                   borderRadius: 10,
                   backgroundColor: "#fff",
