@@ -1474,7 +1474,9 @@ export default function ProjectEditor() {
                 srcDoc={inlineHtml}
                 style={{
                   width: "100%",
-                  height: Math.max(560, winH - 230),
+                  // Sem as secções que viviam por baixo (parâmetros/fiscal), a
+                  // folha estende-se até quase ao fundo da janela
+                  height: Math.max(560, winH - 150),
                   border: "1px solid #E5E6EA",
                   borderRadius: 10,
                   backgroundColor: "#fff",
