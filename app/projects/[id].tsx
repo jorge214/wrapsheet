@@ -1368,7 +1368,9 @@ export default function ProjectEditor() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 160 }}
+        // Desktop (folha inline): margem pequena no fundo — os 160px são para
+        // o scroll do telemóvel não tapar conteúdo com o teclado/botões
+        contentContainerStyle={{ paddingBottom: inlineSheet ? 16 : 160 }}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
       >
@@ -1474,9 +1476,9 @@ export default function ProjectEditor() {
                 srcDoc={inlineHtml}
                 style={{
                   width: "100%",
-                  // Sem as secções que viviam por baixo (parâmetros/fiscal), a
-                  // folha estende-se até quase ao fundo da janela
-                  height: Math.max(560, winH - 150),
+                  // Folha até ao fundo da janela, só com uma margenzinha
+                  // (cabeçalho ~70px + margens ~40px)
+                  height: Math.max(560, winH - 112),
                   border: "1px solid #E5E6EA",
                   borderRadius: 10,
                   backgroundColor: "#fff",
