@@ -693,6 +693,11 @@ export default function ProjectEditor() {
       const n = Number(raw);
       return Number.isFinite(n) ? n : undefined;
     };
+    // Campos de UMA linha: quebras de linha coladas/inseridas no contenteditable
+    // ficavam gravadas e rendiam uma linha fantasma no cabeçalho (o browser dá
+    // white-space:pre-wrap a contenteditable). Achata para espaço único.
+    const oneLine = (v: any) =>
+      String(v ?? "").replace(/\s*[\r\n]+\s*/g, " ").trim();
     // Campos numéricos por-dia editáveis diretamente na folha
     const DIA_NUM = new Set([
       "salarioDia", "ajRefeicao", "ajViatura", "ajTelefone", "ajMaterial", "ajPerDiem",
@@ -700,9 +705,9 @@ export default function ProjectEditor() {
     ]);
     let next: ProjectState = p;
     switch (d.k) {
-      case "perfil": next = { ...p, perfil: { ...p.perfil, [d.f]: d.value } }; break;
+      case "perfil": next = { ...p, perfil: { ...p.perfil, [d.f]: oneLine(d.value) } }; break;
       case "projeto": {
-        const val = d.f === "totalDias" ? numOpt(d.value) : d.value;
+        const val = d.f === "totalDias" ? numOpt(d.value) : oneLine(d.value);
         next = { ...p, projeto: { ...p.projeto, [d.f]: val } };
         break;
       }
@@ -725,7 +730,7 @@ export default function ProjectEditor() {
       }
       case "notas": next = { ...p, notas: d.value }; break;
       case "condicoes": next = { ...p, condicoes: d.value }; break;
-      case "condTitulo": next = { ...p, condTitulo: d.value }; break;
+      case "condTitulo": next = { ...p, condTitulo: oneLine(d.value) }; break;
       case "condBox": {
         const boxes = Array.isArray(p.condBoxes) ? [...p.condBoxes] : [];
         if (!boxes[d.i]) return;

@@ -219,6 +219,11 @@ function blankPerfil(from?: Perfil): Perfil {
 function upgradeProject(raw: any, id: string): ProjectState {
   const today = dayjs().format("YYYY-MM-DD");
 
+  // Quebras de linha presas em campos de UMA linha (coladas no contenteditable
+  // da folha) rendiam linhas fantasma no cabeçalho — sanear ao carregar cura
+  // os dados antigos.
+  const oneLine = (v: any) => String(v ?? "").replace(/\s*[\r\n]+\s*/g, " ").trim();
+
   const tabela = {
     ...defaultTabela(),
     ...(raw.tabela || {}),
@@ -236,16 +241,28 @@ function upgradeProject(raw: any, id: string): ProjectState {
     nota: rawFiscal.nota ?? "",
   };
 
-  const perfil = blankPerfil(raw.perfil);
+  const perfilRaw = blankPerfil(raw.perfil);
+  const perfil: Perfil = {
+    ...perfilRaw,
+    nome: oneLine(perfilRaw.nome),
+    email: oneLine(perfilRaw.email),
+    telefone: oneLine(perfilRaw.telefone),
+    departamento: oneLine(perfilRaw.departamento),
+    funcao: oneLine(perfilRaw.funcao),
+    empresa: oneLine(perfilRaw.empresa),
+    nif: oneLine(perfilRaw.nif),
+    iban: oneLine(perfilRaw.iban),
+    swift: oneLine(perfilRaw.swift),
+  };
 
   const projeto: ProjetoInfo = {
-    titulo: raw.projeto?.titulo || "",
+    titulo: oneLine(raw.projeto?.titulo),
     // Título da barra vermelha da folha (independente do nome do projeto)
-    folhaTitulo: raw.projeto?.folhaTitulo || "",
-    filme: raw.projeto?.filme || raw.nome || "",
-    produtora: raw.projeto?.produtora || raw.cliente || "",
-    nifProdutora: raw.projeto?.nifProdutora || "",
-    semana: raw.projeto?.semana || "",
+    folhaTitulo: oneLine(raw.projeto?.folhaTitulo),
+    filme: oneLine(raw.projeto?.filme || raw.nome),
+    produtora: oneLine(raw.projeto?.produtora || raw.cliente),
+    nifProdutora: oneLine(raw.projeto?.nifProdutora),
+    semana: oneLine(raw.projeto?.semana),
     mes:
       typeof raw.projeto?.mes === "number"
         ? raw.projeto.mes
