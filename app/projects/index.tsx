@@ -236,6 +236,27 @@ export default function ProjectsScreen() {
     }
   }
 
+  // ------- RENOMEAR INLINE (web): clicar no título edita-o ali mesmo -------
+  const [titleEditId, setTitleEditId] = useState<string | null>(null);
+  const [titleEditVal, setTitleEditVal] = useState("");
+  async function commitTitleEdit() {
+    const id = titleEditId;
+    if (!id) return;
+    const name = titleEditVal.trim();
+    setTitleEditId(null);
+    const row = [...projects, ...archived].find((r) => r.id === id);
+    if (!name || name === (row?.nome || "")) return; // vazio/igual = não mexe
+    try {
+      await renameProject(id, name);
+      const p = await getProject(id);
+      if (p && user) syncProjectToCloud(user.id, p as any);
+      await loadProjects();
+      showToast(t("toast_renamed", { defaultValue: "✓ Projeto renomeado" }));
+    } catch (e) {
+      console.error("Erro ao renomear projeto", e);
+    }
+  }
+
   // ------- RENOMEAR -------
   function openRenameDialog(project: Project) {
     setRenameId(project.id);
@@ -511,13 +532,43 @@ export default function ProjectsScreen() {
               <View style={s.cardTopRow}>
                 <View style={{ flex: 1, paddingRight: 10 }}>
                   {/* O estado pago/a receber mostra-se APENAS no chip à direita
-                      — sem badge duplicado junto ao nome */}
-                  <Text style={[s.title, { flexShrink: 1 }]} numberOfLines={1}>
-                    {p.nome ||
-                      t("unnamed_project", {
-                        defaultValue: "Projeto sem nome",
-                      })}
-                  </Text>
+                      — sem badge duplicado junto ao nome.
+                      Na web, clicar no TÍTULO edita-o ali mesmo (Enter/clicar
+                      fora grava, Esc cancela); o resto do cartão abre o projeto. */}
+                  {titleEditId === p.id ? (
+                    <Pressable onPress={(e: any) => e?.stopPropagation?.()}>
+                      <TextInput
+                        value={titleEditVal}
+                        onChangeText={setTitleEditVal}
+                        autoFocus
+                        placeholder={t("unnamed_project", { defaultValue: "Projeto sem nome" })}
+                        placeholderTextColor={COLORS.sub}
+                        onSubmitEditing={commitTitleEdit}
+                        onBlur={commitTitleEdit}
+                        onKeyPress={(e: any) => {
+                          if (e?.nativeEvent?.key === "Escape") setTitleEditId(null);
+                        }}
+                        style={[s.title, s.titleInput]}
+                      />
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      disabled={Platform.OS !== "web"}
+                      onPress={(e: any) => {
+                        e?.stopPropagation?.();
+                        setTitleEditVal(p.nome || "");
+                        setTitleEditId(p.id);
+                      }}
+                      style={Platform.OS === "web" ? ({ cursor: "text", alignSelf: "flex-start" } as any) : undefined}
+                    >
+                      <Text style={[s.title, { flexShrink: 1 }]} numberOfLines={1}>
+                        {p.nome ||
+                          t("unnamed_project", {
+                            defaultValue: "Projeto sem nome",
+                          })}
+                      </Text>
+                    </Pressable>
+                  )}
 
                   <Text style={s.subtitle} numberOfLines={1}>
                     {(p.cliente || "—") + " · " + (p.mes || "--/----")}
@@ -926,6 +977,16 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     paidBadgeText: { color: "#137a3a", fontSize: 11, fontWeight: "900" },
 
     title: { color: COLORS.text, fontSize: 18, fontWeight: "900" },
+    // Edição inline do título no cartão (web): mesmo tipo de letra, com um
+    // sublinhado discreto a marcar o modo de edição
+    titleInput: {
+      paddingVertical: 0,
+      paddingHorizontal: 0,
+      borderBottomWidth: 2,
+      borderColor: COLORS.text,
+      minWidth: 220,
+      ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+    },
     subtitle: { color: COLORS.sub, fontSize: 13, marginTop: 4 },
     subtitleStrong: { color: COLORS.text, fontWeight: "900" },
 
