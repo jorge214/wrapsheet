@@ -1435,8 +1435,11 @@ export function buildEditableSheetHtml(
           margin-right: 8px;
         }
         .addDayBar .delBtn { border-color: #c05050; color: #c05050; background: #fff; }
-        /* Botões por linha: duplicar (⧉) e remover (✕) o dia — não saem no print */
-        .rowBtns { float: right; white-space: nowrap; margin-left: 6px; }
+        /* Botões por linha: duplicar (⧉) e remover (✕) o dia — não saem no print.
+           SEMPRE por baixo da descrição, e a coluna com largura FIXA (a célula
+           não estica/encolhe com o texto — texto longo quebra dentro dela). */
+        table.days .ei.left { display: block; width: 88px; white-space: normal; }
+        .rowBtns { display: block; white-space: nowrap; margin-top: 2px; }
         .rbtn { cursor: pointer; user-select: none; -webkit-user-select: none; color: #9a9a9a; font-size: 12px; padding: 0 4px; }
         .rbtn.rdel { color: #c05050; }
         @media print { .addDayBar, .rowBtns { display: none; } }
