@@ -55,6 +55,14 @@ export default function Root({ children }: { children: React.ReactNode }) {
               input, textarea { cursor: text !important; }
               /* Remove tap highlight on mobile web */
               * { -webkit-tap-highlight-color: transparent; }
+              /* Sem cursor de escrita a piscar fora de campos de texto:
+                 clicar em rótulos ("Voltar", títulos, botões) deixava um
+                 caret visível (ex.: caret browsing do Chrome ligado por F7).
+                 O caret fica invisível em todo o lado exceto onde se escreve. */
+              body { caret-color: transparent; }
+              input, textarea, [contenteditable="true"], [contenteditable=""] {
+                caret-color: auto;
+              }
               /* Prevent text selection on buttons */
               [role="button"] { user-select: none; -webkit-user-select: none; }
               /* Smooth transitions on interactive elements */
