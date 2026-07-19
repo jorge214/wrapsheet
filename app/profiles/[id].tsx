@@ -82,6 +82,22 @@ function ProfileField({
   );
 }
 
+// Campo multi-linha que CRESCE com o conteúdo, sem scroll interno.
+// No telemóvel/iPad o input nativo já se ajusta sozinho; na web o <textarea>
+// tinha altura fixa e obrigava a fazer scroll enquanto se escrevia.
+function AutoGrowTextInput({ style, minHeight = 80, ...props }: any) {
+  const [h, setH] = React.useState(0);
+  return (
+    <TextInput
+      {...props}
+      multiline
+      scrollEnabled={false}
+      onContentSizeChange={(e: any) => setH(e?.nativeEvent?.contentSize?.height ?? 0)}
+      style={[style, { textAlignVertical: "top", minHeight, height: Math.max(minHeight, h + 28) }]}
+    />
+  );
+}
+
 function NumField({
   label,
   value,
@@ -508,13 +524,12 @@ export default function ProfileEditScreen() {
                       <Text style={[s.condMiniBtnText, { color: COLORS.danger }]}>✕</Text>
                     </Pressable>
                   </View>
-                  <TextInput
+                  <AutoGrowTextInput
                     value={b.texto}
-                    onChangeText={(v) => setBox(i, { texto: v })}
+                    onChangeText={(v: string) => setBox(i, { texto: v })}
                     placeholder={t("box_text_ph", { defaultValue: "Texto da condição…" })}
                     placeholderTextColor={COLORS.sub}
-                    style={[s.fieldInput, { minHeight: 80, textAlignVertical: "top", marginTop: 8 }]}
-                    multiline
+                    style={[s.fieldInput, { marginTop: 8 }]}
                   />
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 }}>
                     {b.img ? (
