@@ -1,5 +1,6 @@
 import { Session, User } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Platform } from "react-native";
 import i18n from "../i18n/i18n";
 import { supabase } from "../lib/supabase";
 
@@ -25,6 +26,38 @@ const AuthContext = createContext<AuthContextType | null>(null);
 function isInvalidRefreshToken(err: any): boolean {
   const msg = String(err?.message ?? err ?? "").toLowerCase();
   return msg.includes("refresh token") || err?.code === "refresh_token_not_found";
+}
+
+// ── Silenciador do "último suspiro" ──────────────────────────────────────────
+// O renovador automático do auth-js rejeita uma promise INTERNA quando o
+// refresh token guardado já morreu (reload a meio da rotação, conta apagada).
+// Não há onde a apanhar por fora — em dev pintava um erro vermelho a cada
+// arranque com sessão órfã. Interceta-se o rastreador global de rejeições:
+// para ESTE erro purga-se a sessão local (cai no login) e cala-se o aviso;
+// qualquer outro erro segue o tratamento normal.
+function swallowInvalidRefresh(error: any): boolean {
+  if (!isInvalidRefreshToken(error)) return false;
+  supabase.auth.signOut({ scope: "local" }).catch(() => {});
+  return true;
+}
+if (Platform.OS === "web") {
+  if (typeof window !== "undefined") {
+    window.addEventListener("unhandledrejection", (e: any) => {
+      if (swallowInvalidRefresh(e?.reason)) e.preventDefault?.();
+    });
+  }
+} else {
+  const hermes = (global as any)?.HermesInternal;
+  if (hermes?.enablePromiseRejectionTracker) {
+    hermes.enablePromiseRejectionTracker({
+      allRejections: true,
+      onUnhandled: (id: number, error: any) => {
+        if (swallowInvalidRefresh(error)) return;
+        console.warn(`Possible unhandled promise rejection (id: ${id}):`, error);
+      },
+      onHandled: () => {},
+    });
+  }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
