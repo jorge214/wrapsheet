@@ -389,7 +389,7 @@ function CalcTxt({ children, align = "center", strong, blue }: { children: React
 
 /* ---------------- Props ---------------- */
 type Perfil = { nome: string; email: string; telefone: string; departamento: string; funcao: string; empresa?: string; nif?: string; iban?: string; swift?: string };
-type Projeto = { titulo?: string; filme: string; produtora: string; nifProdutora?: string; semana?: string; mes: number; ano: number };
+type Projeto = { titulo?: string; folhaTitulo?: string; filme: string; produtora: string; nifProdutora?: string; semana?: string; mes: number; ano: number };
 type Ajudas = { refeicao?: number; viatura?: number; material?: number; telefone?: number; perDiem?: number };
 type Tabela = { salarioDia?: number; H_dia: number; multHEA?: number; multHEB?: number; multHR?: number; rateHEA?: number; rateHEB?: number; rateHR?: number; ajudas?: Ajudas };
 
@@ -457,12 +457,13 @@ export default function EditableSheet(props: Props) {
   );
   return (
     <View style={{ width: SHEET_W }}>
-      {/* ── Title bar (editable — título é independente do nome do filme) ── */}
+      {/* ── Barra vermelha: título PRÓPRIO da folha — independente do nome
+          do projeto na app (editar aqui não renomeia o projeto) ── */}
       <View style={sh.titleBar}>
         <LocalTextInput
           style={sh.titleInput}
-          value={projeto.titulo ?? ""}
-          onChangeText={(v) => onProjeto({ titulo: v })}
+          value={projeto.folhaTitulo ?? ""}
+          onChangeText={(v) => onProjeto({ folhaTitulo: v })}
           placeholder={titlePlaceholder}
           placeholderTextColor="rgba(255,255,255,0.85)"
         />

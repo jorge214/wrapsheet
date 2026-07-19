@@ -80,6 +80,8 @@ export type Perfil = {
 
 export type ProjetoInfo = {
   titulo?: string;
+  /** Título da barra vermelha da FOLHA — independente do nome do projeto na app */
+  folhaTitulo?: string;
   filme: string;
   produtora: string;
   nifProdutora?: string;
@@ -238,6 +240,8 @@ function upgradeProject(raw: any, id: string): ProjectState {
 
   const projeto: ProjetoInfo = {
     titulo: raw.projeto?.titulo || "",
+    // Título da barra vermelha da folha (independente do nome do projeto)
+    folhaTitulo: raw.projeto?.folhaTitulo || "",
     filme: raw.projeto?.filme || raw.nome || "",
     produtora: raw.projeto?.produtora || raw.cliente || "",
     nifProdutora: raw.projeto?.nifProdutora || "",

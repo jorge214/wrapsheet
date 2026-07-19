@@ -20,6 +20,8 @@ export type PdfPerfil = {
 
 export type PdfProjeto = {
   titulo?: string;
+  /** Título da barra vermelha da folha — independente do nome do projeto na app */
+  folhaTitulo?: string;
   filme: string;
   produtora: string;
   nifProdutora?: string;
@@ -63,6 +65,7 @@ export type PdfTotais = {
 const STRINGS = {
   pt: {
     title: "PUBLICIDADE",
+    titlePh: "TÍTULO",
     subtitle: "Folha de Pagamentos",
     personalData: "DADOS PESSOAIS",
     film: "FILME:",
@@ -126,6 +129,7 @@ const STRINGS = {
   },
   en: {
     title: "ADVERTISING",
+    titlePh: "TITLE",
     subtitle: "Timesheet",
     personalData: "PERSONAL DATA",
     film: "FILM:",
@@ -189,6 +193,7 @@ const STRINGS = {
   },
   es: {
     title: "PUBLICIDAD",
+    titlePh: "TÍTULO",
     subtitle: "Hoja de Pagos",
     personalData: "DATOS PERSONALES",
     film: "PELÍCULA:",
@@ -252,6 +257,7 @@ const STRINGS = {
   },
   fr: {
     title: "PUBLICITÉ",
+    titlePh: "TITRE",
     subtitle: "Feuille de Paie",
     personalData: "DONNÉES PERSONNELLES",
     film: "FILM :",
@@ -315,6 +321,7 @@ const STRINGS = {
   },
   de: {
     title: "WERBUNG",
+    titlePh: "TITEL",
     subtitle: "Gehaltsabrechnung",
     personalData: "PERSÖNLICHE DATEN",
     film: "FILM:",
@@ -378,6 +385,7 @@ const STRINGS = {
   },
   it: {
     title: "PUBBLICITÀ",
+    titlePh: "TITOLO",
     subtitle: "Foglio paga",
     personalData: "DATI PERSONALI",
     film: "FILM:",
@@ -441,6 +449,7 @@ const STRINGS = {
   },
   nl: {
     title: "RECLAME",
+    titlePh: "TITEL",
     subtitle: "Urenstaat",
     personalData: "PERSOONLIJKE GEGEVENS",
     film: "FILM:",
@@ -504,6 +513,7 @@ const STRINGS = {
   },
   pl: {
     title: "REKLAMA",
+    titlePh: "TYTUŁ",
     subtitle: "Karta godzin",
     personalData: "DANE OSOBOWE",
     film: "FILM:",
@@ -567,6 +577,7 @@ const STRINGS = {
   },
   uk: {
     title: "ADVERTISING",
+    titlePh: "TITLE",
     subtitle: "Timesheet",
     personalData: "PERSONAL DATA",
     film: "FILM:",
@@ -1045,7 +1056,7 @@ export function buildPdfHtml(
     </head>
     <body>
       <div class="titleBox">
-        ${escapeHtml(projeto.titulo || projeto.filme || s.title)}
+        ${escapeHtml(projeto.folhaTitulo || projeto.filme || s.title)}
       </div>
 
       <div class="headgrid">
@@ -1432,7 +1443,9 @@ export function buildEditableSheetHtml(
       </style>
     </head>
     <body>
-      <div class="titleBox">${ti("projeto", "titulo", projeto.titulo || "", `placeholder="${escapeHtml(s.title)}"`)}</div>
+      <!-- Barra vermelha: título PRÓPRIO da folha (editar aqui NÃO mexe no
+           nome do projeto na app, e renomear o projeto não mexe aqui) -->
+      <div class="titleBox">${ti("projeto", "folhaTitulo", projeto.folhaTitulo || "", `placeholder="${escapeHtml((s as any).titlePh || s.title)}"`)}</div>
 
       <div class="headgrid">
         <div class="stack">

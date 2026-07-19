@@ -9,7 +9,7 @@ export type Perfil = {
 };
 
 export type Projeto = {
-  titulo?: string; filme: string; produtora: string; nifProdutora?: string;
+  titulo?: string; folhaTitulo?: string; filme: string; produtora: string; nifProdutora?: string;
   semana?: string; mes: number; ano: number;
   /** Total de dias editado à mão na folha (5,5 / 4,3…); vazio = contagem automática */
   totalDias?: number;
