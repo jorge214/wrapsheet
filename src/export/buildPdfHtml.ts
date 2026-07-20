@@ -1663,22 +1663,47 @@ export function buildEditableSheetHtml(
         // dois pontos aparecem a partir do 3º dígito.
         function fmtTime(text, final){
           var d = String(text||'').replace(/\D/g,'').slice(0,4);
-          if(!final){ return d.length<=2 ? d : d.slice(0,2)+':'+d.slice(2); }
+          if(!final){
+            // Ao vivo: "0" → "0"; "08" → "08:" (os : aparecem logo, a pedir
+            // os minutos); "0805" → "08:05"
+            if(d.length < 2) return d;
+            return d.slice(0,2)+':'+d.slice(2);
+          }
+          // Ao sair: completa o que faltar
           if(d.length===0) return '';
           if(d.length===1) return '0'+d+':00';
           if(d.length===2) return d+':00';
-          if(d.length===3) return '0'+d.charAt(0)+':'+d.slice(1);
+          if(d.length===3) return d.slice(0,2)+':0'+d.charAt(2);
           return d.slice(0,2)+':'+d.slice(2);
         }
-        // Reformatar A CADA tecla lutava com o teclado do iOS (saíam ":::").
-        // Em vez disso: ao ENTRAR na célula o valor vira dígitos simples
-        // ("08:00" → "0800", tudo selecionado — escrever substitui); os dois
-        // pontos entram na formatação canónica ao SAIR.
+        // Ao ENTRAR na célula o valor vira dígitos simples ("08:00" → "0800",
+        // tudo selecionado — escrever substitui). Ao ESCREVER, o formato ao
+        // vivo entra ("08" → "08:", "0805" → "08:05") com guarda de
+        // reentrância — era a falta dela que fazia sair ":::" no iOS.
         document.addEventListener('focusin', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('time')) return;
           var d = String(el.textContent||'').replace(/\D/g,'').slice(0,4);
           if(d !== el.textContent){ el.textContent = d; }
+        }, true);
+        function caretEnd(el){
+          try{
+            var r=document.createRange(); r.selectNodeContents(el); r.collapse(false);
+            var s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+          }catch(err){}
+        }
+        var timeBusy = false;
+        document.addEventListener('input', function(e){
+          var el = e.target;
+          if(timeBusy) return;
+          if(!el.classList || !el.classList.contains('time')) return;
+          var out = fmtTime(el.textContent, false);
+          if(out !== el.textContent){
+            timeBusy = true;
+            el.textContent = out;
+            caretEnd(el);
+            timeBusy = false;
+          }
         }, true);
         document.addEventListener('blur', function(e){
           var el = e.target;
