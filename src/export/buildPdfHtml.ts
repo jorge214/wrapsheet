@@ -1589,6 +1589,12 @@ export function buildEditableSheetHtml(
         document.addEventListener('input', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('ei')) return;
+          // Horas têm formatador e post próprios (só no blur, já em HH:MM —
+          // ver mais abaixo). Postar aqui TAMBÉM mandava, a cada tecla, os
+          // dígitos ainda por formatar ("0","08","080") e isso ia parar
+          // diretamente ao campo da hora do dia, sem os dois pontos — era
+          // isto que corrompia o valor gravado, não o formatador em si.
+          if(el.classList.contains('time')) return;
           post({ type:'ws:edit', k: el.getAttribute('data-k'), f: el.getAttribute('data-f'), i: di(el), value: el.textContent });
         }, true);
         // Barra de dias: adicionar / duplicar último / remover último
@@ -1633,19 +1639,26 @@ export function buildEditableSheetHtml(
         // Células numéricas: tocar seleciona o VALOR TODO — escrever substitui
         // ("12" → 12,00). Sem isto, no telemóvel o cursor caía onde o dedo
         // acertava (ex.: a seguir à vírgula: "0,aqui00").
+        function selectAll(el){
+          try{
+            var r = document.createRange();
+            r.selectNodeContents(el);
+            var s = window.getSelection();
+            s.removeAllRanges();
+            s.addRange(r);
+          }catch(err){}
+        }
+        // Só dinheiro aqui — as horas selecionam-se já mais abaixo, no MESMO
+        // focusin síncrono que converte para dígitos (um setTimeout(0) para
+        // as duas coisas dava tempo a um utilizador rápido escrever 1-2
+        // teclas ANTES da seleção acontecer, e essa seleção tardia comia-as).
         document.addEventListener('focusin', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('ei')) return;
-          if(!el.classList.contains('money') && !el.classList.contains('time')) return;
+          if(!el.classList.contains('money')) return;
           setTimeout(function(){
             if(document.activeElement !== el) return;
-            try{
-              var r = document.createRange();
-              r.selectNodeContents(el);
-              var s = window.getSelection();
-              s.removeAllRanges();
-              s.addRange(r);
-            }catch(err){}
+            selectAll(el);
           }, 0);
         }, true);
         // Ao SAIR de qualquer célula editável, pede à app um re-push dos
@@ -1685,6 +1698,7 @@ export function buildEditableSheetHtml(
           if(!el.classList || !el.classList.contains('time')) return;
           var d = String(el.textContent||'').replace(/\D/g,'').slice(0,4);
           if(d !== el.textContent){ el.textContent = d; }
+          selectAll(el);
         }, true);
         function caretEnd(el){
           try{
