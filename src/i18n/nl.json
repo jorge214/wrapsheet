@@ -442,5 +442,7 @@
   "onboarding_s4_title": "Maak je profiel aan",
   "onboarding_s4_sub": "Persoonlijke gegevens, salaris, tarieven en werkomstandigheden — automatisch toegepast op elk nieuw project.",
   "onboarding_s5_title": "Volg alles op het Dashboard",
-  "onboarding_s5_sub": "Maand- en jaartotalen, betaald en te ontvangen — altijd actueel, op al je apparaten."
+  "onboarding_s5_sub": "Maand- en jaartotalen, betaald en te ontvangen — altijd actueel, op al je apparaten.",
+  "search_by_name": "Zoeken op naam",
+  "no_search_results": "Geen projecten gevonden"
 }

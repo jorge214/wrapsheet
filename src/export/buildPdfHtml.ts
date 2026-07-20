@@ -1032,6 +1032,11 @@ export function buildPdfHtml(
           background: #ffd400; color: #7a0000; font-weight: 900; text-align: center;
           padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase;
         }
+        /* Notas (opcional): mesma caixa das condições; só sai no PDF se preenchida */
+        .notesWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
+        .notesTitle { background: #ffd400; color: #7a0000; font-weight: 900; text-align: center;
+          padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase; }
+        .notesArea { padding: 8px 10px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
         .condRow { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
         .condRow:first-of-type { border-top: 0; }
         .condT {
@@ -1195,6 +1200,8 @@ export function buildPdfHtml(
 
       ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra)}
 
+      ${notas && notas.trim() ? `<div class="notesWrap"><div class="notesTitle">${escapeHtml(s.notes)}</div><div class="notesArea">${escapeHtml(notas)}</div></div>` : ""}
+
       ${taxDisclaimer ? `<div style="margin-top:8px;font-size:9px;color:#999;">${escapeHtml(taxDisclaimer)}</div>` : ""}
     </body>
   </html>
@@ -1230,6 +1237,11 @@ const edNum = (i: number, f: string, cKey: string, val: string) =>
 // exato e mudar .value nunca redispara 'input', por isso a máscara é estável.
 const edTime = (i: number, f: string, val: string) =>
   `<input class="ei time" type="text" inputmode="numeric" autocomplete="off" data-k="dia" data-i="${i}" data-f="${f}" value="${escapeHtml(val || "")}">`;
+// Data: <input> com máscara DD/MM/YYYY — as "/" são postas pela máscara e
+// nunca se apagam (só se editam os números); apagar uma "/" repõe-na. (Antes
+// era contenteditable e, apagada uma "/", ficava-se sem forma de a repor.)
+const edDate = (i: number, val: string) =>
+  `<input class="ei date" type="text" inputmode="numeric" autocomplete="off" size="10" data-k="dia" data-i="${i}" data-f="data" value="${escapeHtml(val || "")}">`;
 
 // Só as linhas <tr> da tabela de dias (editáveis). Usado pelo builder e pela
 // app para atualizar a tabela no sítio via window.__wsSetRows(html).
@@ -1255,7 +1267,7 @@ export function buildEditableDayRowsHtml(
       return `
         <tr>
           <td class="left">${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
-          <td>${edDi(i, "data", formatDatePT(d.data), "date", 'inputmode="numeric"')}</td>
+          <td>${edDate(i, formatDatePT(d.data))}</td>
           <td>${edNum(i, "salarioDia", "sal", fmt(eff))}</td>
           <td class="timeCell">${edTime(i, "inicio", d.inicio || "")}</td>
           <td class="timeCell">${edTime(i, "refeicaoTrabalho", d.refeicaoTrabalho || "")}</td>
@@ -1266,7 +1278,7 @@ export function buildEditableDayRowsHtml(
           <td>${edNum(i, "ajViatura", "d_viat", fmt(c?.ajViat ?? valViat))}</td>
           <td>${edNum(i, "ajTelefone", "d_tel", fmt(c?.ajTel ?? valTel))}</td>
           <td>${edNum(i, "ajMaterial", "d_mat", fmt(c?.ajMat ?? valMat))}</td>
-          <td>${edNum(i, "ajPerDiem", "d_per", fmt(c?.ajPer ?? valPer))}</td>
+          <td class="perDiemDay">${edNum(i, "ajPerDiem", "d_per", fmt(c?.ajPer ?? valPer))}</td>
           <td>${edNum(i, "heaHoras", "hea_h", fmtNum((c?.HEA_min ?? 0) / 60, 1))}</td>
           <td class="otVal">${edNum(i, "heaValor", "hea_v", fmt(c?.HEA_valor ?? 0))}</td>
           <td>${edNum(i, "hebHoras", "heb_h", fmtNum((c?.HEB_min ?? 0) / 60, 1))}</td>
@@ -1452,8 +1464,10 @@ export function buildEditableSheetHtml(
            ficava apertado. O espaço vem da folga das colunas mais largas (a
            tabela reparte a 100%). */
         .days td.otVal { min-width: 64px; }
-        /* MEAL "Por dia" um nadinha mais largo (espaço vem da coluna DESCRIÇÃO). */
+        /* MEAL e PER DIEMS "Por dia" um nadinha mais largos (o espaço vem da
+           coluna DESCRIÇÃO, que ficou um pouco mais estreita). */
         .days td.mealDay { min-width: 54px; }
+        .days td.perDiemDay { min-width: 54px; }
         .days td.calc { white-space: nowrap; }
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
@@ -1462,6 +1476,10 @@ export function buildEditableSheetHtml(
         table.endTotals tr.net td { background: #fff3bf; }
         .condWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
         .condMain { background: #ffd400; color: #7a0000; font-weight: 900; text-align: center; padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase; }
+        /* Notas (opcional): cresce sozinha com o texto; só sai no PDF se preenchida */
+        .notesWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
+        .notesTitle { background: #ffd400; color: #7a0000; font-weight: 900; text-align: center; padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase; }
+        .notesArea { padding: 8px 10px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; min-height: 44px; }
         .condRow { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
         .condRow:first-of-type { border-top: 0; }
         .condT { background: #e8e8e8; font-weight: 900; font-size: 10px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; border-right: 1px solid #2b2b2b; }
@@ -1484,7 +1502,7 @@ export function buildEditableSheetHtml(
         /* Botões por linha: duplicar (⧉) e remover (✕) o dia — não saem no print.
            SEMPRE por baixo da descrição, e a coluna com largura FIXA (a célula
            não estica/encolhe com o texto — texto longo quebra dentro dela). */
-        table.days .ei.left { display: block; width: 78px; white-space: normal; }
+        table.days .ei.left { display: block; width: 72px; white-space: normal; }
         .rowBtns { display: block; white-space: nowrap; margin-top: 2px; }
         .rbtn { cursor: pointer; user-select: none; -webkit-user-select: none; color: #9a9a9a; font-size: 12px; padding: 0 4px; }
         .rbtn.rdel { color: #c05050; }
@@ -1603,6 +1621,11 @@ export function buildEditableSheetHtml(
 
       ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra, CE)}
 
+      <div class="notesWrap">
+        <div class="notesTitle">${escapeHtml(s.notes)}</div>
+        <div class="ei notes notesArea" ${CE} data-k="notas" data-f="notas" placeholder="…">${escapeHtml(notas || "")}</div>
+      </div>
+
       <script>
       (function(){
         function post(m){ try{
@@ -1613,12 +1636,10 @@ export function buildEditableSheetHtml(
         document.addEventListener('input', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('ei')) return;
-          // Horas têm formatador e post próprios (só no blur, já em HH:MM —
-          // ver mais abaixo). Postar aqui TAMBÉM mandava, a cada tecla, os
-          // dígitos ainda por formatar ("0","08","080") e isso ia parar
-          // diretamente ao campo da hora do dia, sem os dois pontos — era
-          // isto que corrompia o valor gravado, não o formatador em si.
-          if(el.classList.contains('time')) return;
+          // As HORAS e a DATA são <input> com máscara e post próprios (só no
+          // blur). Postar aqui também mandava, a cada tecla, texto por formatar
+          // que ia parar diretamente ao campo — era isto que corrompia o valor.
+          if(el.tagName === 'INPUT') return;
           post({ type:'ws:edit', k: el.getAttribute('data-k'), f: el.getAttribute('data-f'), i: di(el), value: el.textContent });
         }, true);
         // Barra de dias: adicionar / duplicar último / remover último
@@ -1755,6 +1776,43 @@ export function buildEditableSheetHtml(
           var out = fmtTime(el.value, true);
           el.value = out;
           post({ type:'ws:edit', k:'dia', f: el.getAttribute('data-f'), i: di(el), value: out });
+        }, true);
+        // DATA — <input> com máscara DD/MM/YYYY. As "/" são geradas pela máscara
+        // (aparecem ao 3º e 5º dígito) e não se apagam: apagar dígitos repõe-nas.
+        // O cursor é reposto pela CONTAGEM de dígitos à esquerda (dá para editar
+        // no meio, não só no fim).
+        function isDateInput(el){
+          return el && el.tagName === 'INPUT' && el.classList && el.classList.contains('date');
+        }
+        function fmtDate(text){
+          var d = String(text||'').replace(/\\D/g,'').slice(0,8);
+          var out = d.slice(0,2);
+          if(d.length > 2) out += '/' + d.slice(2,4);
+          if(d.length > 4) out += '/' + d.slice(4,8);
+          return out;
+        }
+        function isDigit(ch){ var c = ch.charCodeAt(0); return c >= 48 && c <= 57; }
+        document.addEventListener('input', function(e){
+          var el = e.target;
+          if(!isDateInput(el)) return;
+          var caret = el.selectionStart || 0;
+          // quantos dígitos ficam à esquerda do cursor (as "/" não contam)
+          var before = 0, k;
+          for(k = 0; k < caret && k < el.value.length; k++){ if(isDigit(el.value.charAt(k))) before++; }
+          var out = fmtDate(el.value);
+          if(out !== el.value){ el.value = out; }
+          // repõe o cursor depois do mesmo nº de dígitos (salta a "/" que venha a seguir)
+          var pos = 0, seen = 0;
+          while(pos < out.length && seen < before){ if(isDigit(out.charAt(pos))) seen++; pos++; }
+          if(out.charAt(pos) === '/') pos++;
+          try{ el.setSelectionRange(pos, pos); }catch(err){}
+        }, true);
+        document.addEventListener('blur', function(e){
+          var el = e.target;
+          if(!isDateInput(el)) return;
+          var out = fmtDate(el.value);
+          el.value = out;
+          post({ type:'ws:edit', k:'dia', f:'data', i: di(el), value: out });
         }, true);
         function applyCalc(d){
           // Nunca reescrever a célula que está a ser editada (perdia-se o cursor

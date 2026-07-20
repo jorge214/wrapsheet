@@ -442,5 +442,7 @@
   "onboarding_s4_title": "Create your profile",
   "onboarding_s4_sub": "Personal details, salary, rates and working conditions — applied automatically to every new project.",
   "onboarding_s5_title": "Track it on the Dashboard",
-  "onboarding_s5_sub": "Monthly and yearly totals, paid and to receive — always up to date, on all your devices."
+  "onboarding_s5_sub": "Monthly and yearly totals, paid and to receive — always up to date, on all your devices.",
+  "search_by_name": "Search by name",
+  "no_search_results": "No projects found"
 }

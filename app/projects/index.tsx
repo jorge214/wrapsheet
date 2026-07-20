@@ -83,6 +83,8 @@ export default function ProjectsScreen() {
 
   // pasta ativa: todos / a receber / arquivados (pagos)
   const [tab, setTab] = useState<"todos" | "areceber" | "arquivados">("todos");
+  // Pesquisa por nome (procura em TODOS os meses/pastas quando preenchida)
+  const [search, setSearch] = useState("");
 
   // filtro mês
   const now = new Date();
@@ -394,6 +396,14 @@ export default function ProjectsScreen() {
     return monthScope;
   }, [monthScope, tab]);
 
+  // Lista a mostrar: com pesquisa preenchida, procura pelo NOME em TODOS os
+  // meses e pastas (ignora o mês/pasta selecionados); senão, a lista normal.
+  const searchQuery = search.trim().toLowerCase();
+  const displayList = useMemo(() => {
+    if (!searchQuery) return filteredProjects;
+    return allItems.filter((p) => (p.nome || "").toLowerCase().includes(searchQuery));
+  }, [searchQuery, allItems, filteredProjects]);
+
   // Limite do range de meses: do ano mais antigo com dados até ao ano seguinte
   const yearBounds = useMemo(() => {
     const nowY = new Date().getFullYear();
@@ -448,6 +458,26 @@ export default function ProjectsScreen() {
         </Text>
 
         {!isWide && <View style={{ width: 70 }} />}
+      </View>
+
+      {/* PESQUISA por nome — procura em todos os meses/pastas */}
+      <View style={s.searchWrap}>
+        <Text style={s.searchIcon}>🔍</Text>
+        <TextInput
+          style={s.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder={t("search_by_name", { defaultValue: "Search by name" })}
+          placeholderTextColor={COLORS.sub}
+          returnKeyType="search"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {search.length > 0 && (
+          <Pressable onPress={() => setSearch("")} hitSlop={10} style={s.searchClear}>
+            <Text style={s.searchClearText}>✕</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* MÊS com setas de navegação */}
@@ -511,7 +541,7 @@ export default function ProjectsScreen() {
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
       >
-        {filteredProjects.map((p) => {
+        {displayList.map((p) => {
           const updatedLabel = p.updatedAt
             ? dayjs(p.updatedAt).isValid()
               ? dayjs(p.updatedAt).format("DD/MM/YYYY HH:mm")
@@ -622,18 +652,20 @@ export default function ProjectsScreen() {
           );
         })}
 
-        {filteredProjects.length === 0 ? (
+        {displayList.length === 0 ? (
           <View style={s.emptyBox}>
             <Text style={s.emptyTitle}>
-              {t("no_projects_in_month", {
-                defaultValue: "Sem projetos neste mês",
-              })}
+              {searchQuery
+                ? t("no_search_results", { defaultValue: "No projects found" })
+                : t("no_projects_in_month", { defaultValue: "Sem projetos neste mês" })}
             </Text>
-            <Text style={s.emptySub}>
-              {t("no_projects_in_month_sub", {
-                defaultValue: "Cria um novo projeto para começar.",
-              })}
-            </Text>
+            {!searchQuery && (
+              <Text style={s.emptySub}>
+                {t("no_projects_in_month_sub", {
+                  defaultValue: "Cria um novo projeto para começar.",
+                })}
+              </Text>
+            )}
           </View>
         ) : null}
 
@@ -891,6 +923,24 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     monthLabel: { fontSize: 18, fontWeight: "900", color: COLORS.text },
     monthHint: { marginTop: 2, color: COLORS.sub, fontSize: 12 },
 
+    searchWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginHorizontal: 16,
+      marginTop: 4,
+      marginBottom: 2,
+      paddingHorizontal: 12,
+      height: 40,
+      backgroundColor: COLORS.card,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      borderRadius: 10,
+    },
+    searchIcon: { fontSize: 14, opacity: 0.55 },
+    searchInput: { flex: 1, fontSize: 15, color: COLORS.text, paddingVertical: 0 },
+    searchClear: { padding: 4 },
+    searchClearText: { fontSize: 14, color: COLORS.sub, fontWeight: "800" },
     monthNav: {
       flexDirection: "row",
       alignItems: "center",

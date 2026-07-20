@@ -442,5 +442,7 @@
   "onboarding_s4_title": "Utwórz swój profil",
   "onboarding_s4_sub": "Dane osobowe, wynagrodzenie, stawki i warunki pracy — stosowane automatycznie do każdego nowego projektu.",
   "onboarding_s5_title": "Śledź wszystko w Panelu",
-  "onboarding_s5_sub": "Sumy miesięczne i roczne, zapłacone i do otrzymania — zawsze aktualne, na wszystkich Twoich urządzeniach."
+  "onboarding_s5_sub": "Sumy miesięczne i roczne, zapłacone i do otrzymania — zawsze aktualne, na wszystkich Twoich urządzeniach.",
+  "search_by_name": "Szukaj według nazwy",
+  "no_search_results": "Nie znaleziono projektów"
 }

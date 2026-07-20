@@ -442,5 +442,7 @@
   "onboarding_s4_title": "Crie seu perfil",
   "onboarding_s4_sub": "Dados pessoais, salário, taxas e condições de trabalho — aplicados automaticamente a cada projeto novo.",
   "onboarding_s5_title": "Acompanhe no Painel",
-  "onboarding_s5_sub": "Totais do mês e do ano, pagos e a receber — sempre em dia, em todos os seus dispositivos."
+  "onboarding_s5_sub": "Totais do mês e do ano, pagos e a receber — sempre em dia, em todos os seus dispositivos.",
+  "search_by_name": "Buscar por nome",
+  "no_search_results": "Nenhum projeto encontrado"
 }

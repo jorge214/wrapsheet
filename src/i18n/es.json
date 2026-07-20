@@ -442,5 +442,7 @@
   "onboarding_s4_title": "Crea tu perfil",
   "onboarding_s4_sub": "Datos personales, salario, tarifas y condiciones de trabajo — aplicados automáticamente a cada proyecto nuevo.",
   "onboarding_s5_title": "Síguelo en el Panel",
-  "onboarding_s5_sub": "Totales del mes y del año, pagados y por cobrar — siempre al día, en todos tus dispositivos."
+  "onboarding_s5_sub": "Totales del mes y del año, pagados y por cobrar — siempre al día, en todos tus dispositivos.",
+  "search_by_name": "Buscar por nombre",
+  "no_search_results": "No se encontraron proyectos"
 }

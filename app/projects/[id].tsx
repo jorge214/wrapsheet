@@ -350,22 +350,20 @@ export default function ProjectEditor() {
     }
   };
 
-  // Nativo (app): o editor ABRE em horizontal (formato natural da folha),
-  // mas depois a rotação fica LIVRE — quem preferir editar na vertical roda
-  // o telemóvel e a folha reajusta-se. Ao fechar volta ao normal.
+  // Nativo (app): o editor abre na orientação ATUAL (retrato) e a rotação fica
+  // LIVRE — SEM forçar horizontal. Quem quiser a folha maior roda o telemóvel;
+  // ao fechar volta ao normal (retrato no telemóvel).
   useEffect(() => {
     if (Platform.OS === "web" || !editHtml) return;
-    let t: any;
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE)
-      .then(() => { t = setTimeout(() => ScreenOrientation.unlockAsync().catch(() => {}), 1200); })
-      .catch(() => {});
-    return () => { if (t) clearTimeout(t); restoreOrientation(); };
+    ScreenOrientation.unlockAsync().catch(() => {});
+    return () => { restoreOrientation(); };
   }, [editHtml]);
 
-  // "Ver" (preview) no nativo também abre em horizontal — a folha é larga
+  // "Ver" (preview) no nativo: também deixa rodar livremente, sem forçar
+  // horizontal — abre em retrato e roda-se à mão se se quiser.
   useEffect(() => {
     if (Platform.OS === "web" || !showPreview) return;
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
+    ScreenOrientation.unlockAsync().catch(() => {});
     return () => { restoreOrientation(); };
   }, [showPreview]);
 
