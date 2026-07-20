@@ -1584,7 +1584,7 @@ export function buildEditableSheetHtml(
           <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
           <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
           <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
-          <span class="buildTag">HORAS v3 ✓</span>
+          <span class="buildTag">HORAS v4 ✓</span>
         </div>
         <table class="endTotals">
           <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
@@ -1692,7 +1692,11 @@ export function buildEditableSheetHtml(
         // 3-4 dígitos = HH:MM ("845"→08:45, "0845"→08:45). Ao escrever, os
         // dois pontos aparecem a partir do 3º dígito.
         function fmtTime(text, final){
-          var d = String(text||'').replace(/\D/g,'').slice(0,4);
+          // \\D e não \D: este script vai dentro de um template literal, e aí
+          // o \D era comido como escape de string e virava "D" — a regex passava
+          // a apagar a letra "D" em vez dos não-dígitos, os ":" nunca eram
+          // removidos e acumulavam ("80:"→"80::"→"80:::"). ERA ISTO o tempo todo.
+          var d = String(text||'').replace(/\\D/g,'').slice(0,4);
           if(!final){
             // Ao vivo: "0" → "0"; "08" → "08:" (os : aparecem logo, a pedir
             // os minutos); "0805" → "08:05"
@@ -1718,7 +1722,7 @@ export function buildEditableSheetHtml(
         document.addEventListener('focusin', function(e){
           var el = e.target;
           if(!isTimeInput(el)) return;
-          el.value = String(el.value||'').replace(/\D/g,'').slice(0,4);
+          el.value = String(el.value||'').replace(/\\D/g,'').slice(0,4);
           setTimeout(function(){ if(document.activeElement===el){ try{ el.select(); }catch(err){} } }, 0);
         }, true);
         // Ao ESCREVER: máscara ao vivo ("08"→"08:", "0845"→"08:45"), cursor no fim.
