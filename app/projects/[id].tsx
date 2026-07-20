@@ -29,6 +29,7 @@ import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml, buildEditableSheetHtml, buildEditableDayRowsHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
 import { formatNumber } from "../../src/format/money";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ScreenOrientation from "expo-screen-orientation";
 
 // WebView só no nativo (na web usamos <iframe>); evita puxá-lo para o bundle web.
@@ -193,6 +194,15 @@ export default function ProjectEditor() {
     toastTimer.current = setTimeout(() => setToast(null), 2600);
   }
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+  // Dica "roda o telemóvel": pode ser fechada no ✕ e fica fechada para sempre.
+  const [rotateHintOff, setRotateHintOff] = useState(false);
+  useEffect(() => {
+    AsyncStorage.getItem("ui:rotateHintOff").then((v) => { if (v === "1") setRotateHintOff(true); }).catch(() => {});
+  }, []);
+  const dismissRotateHint = () => {
+    setRotateHintOff(true);
+    AsyncStorage.setItem("ui:rotateHintOff", "1").catch(() => {});
+  };
   const [fsPreview, setFsPreview] = useState(false);
   const [editForm, setEditForm] = useState(false);
   // Opções de exportação/impressão (orientação + tamanho da letra).
@@ -1658,10 +1668,15 @@ export default function ProjectEditor() {
               <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
             </Pressable>
           </View>
-          {isPhone && isPortrait && (
-            <Text style={ss.rotateHint}>
-              {t("rotate_hint", { defaultValue: "Roda o telemóvel para a horizontal para veres a folha maior." })}
-            </Text>
+          {isPhone && isPortrait && !rotateHintOff && (
+            <View style={ss.rotateHintRow}>
+              <Text style={[ss.rotateHint, { flex: 1 }]}>
+                {t("rotate_hint", { defaultValue: "Roda o telemóvel para a horizontal para veres a folha maior." })}
+              </Text>
+              <Pressable onPress={dismissRotateHint} hitSlop={10} style={ss.rotateHintX}>
+                <Text style={ss.rotateHintXText}>✕</Text>
+              </Pressable>
+            </View>
           )}
           <ScrollView
             contentContainerStyle={{ padding: 12, paddingBottom: 160 }}
@@ -1743,10 +1758,15 @@ export default function ProjectEditor() {
               </Pressable>
             </View>
           </View>
-          {isPhone && isPortrait && (
-            <Text style={ss.rotateHint}>
-              {t("rotate_hint", { defaultValue: "Roda o telemóvel para a horizontal para veres a folha maior." })}
-            </Text>
+          {isPhone && isPortrait && !rotateHintOff && (
+            <View style={ss.rotateHintRow}>
+              <Text style={[ss.rotateHint, { flex: 1 }]}>
+                {t("rotate_hint", { defaultValue: "Roda o telemóvel para a horizontal para veres a folha maior." })}
+              </Text>
+              <Pressable onPress={dismissRotateHint} hitSlop={10} style={ss.rotateHintX}>
+                <Text style={ss.rotateHintXText}>✕</Text>
+              </Pressable>
+            </View>
           )}
           {Platform.OS === "web" ? (
             // @ts-ignore — iframe é web-only
@@ -2922,6 +2942,9 @@ const ss = StyleSheet.create({
   fsCtaText: { color: COLORS.text, fontWeight: "900", fontSize: 15 },
   fsCtaHint: { color: COLORS.sub, fontSize: 12, marginTop: 3, textAlign: "center" },
   rotateHint: { color: COLORS.sub, fontSize: 12, textAlign: "center", paddingHorizontal: 16, paddingBottom: 6 },
+  rotateHintRow: { flexDirection: "row", alignItems: "center", paddingRight: 10 },
+  rotateHintX: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 6 },
+  rotateHintXText: { color: COLORS.sub, fontSize: 13, fontWeight: "800" },
 
   /* ---- Mobile project stats ---- */
   mStatsTitle: { color: COLORS.text, fontSize: 22, fontWeight: "900", marginTop: 4 },

@@ -1734,31 +1734,27 @@ export function buildEditableSheetHtml(
         // 3-4 dígitos = HH:MM ("845"→08:45, "0845"→08:45). Ao escrever, os
         // dois pontos aparecem a partir do 3º dígito.
         function fmtTime(text, final, deleting){
-          // \\D e não \D: este script vai dentro de um template literal, e aí
-          // o \D era comido como escape de string e virava "D" — a regex passava
-          // a apagar a letra "D" em vez dos não-dígitos, os ":" nunca eram
-          // removidos e acumulavam ("80:"→"80::"→"80:::"). ERA ISTO o tempo todo.
+          // \\D (não \D): este script vai dentro de um template literal e o \D
+          // era comido como escape de string (virava "D").
           var d = String(text||'').replace(/\\D/g,'').slice(0,4);
-          if(!final){
-            // Ao vivo: "0" → "0"; "08" → "08:" (os : aparecem logo, a pedir
-            // os minutos); "0805" → "08:05".
-            if(d.length < 2) return d;
-            // Ao APAGAR não voltar a pôr os ":" com 2 dígitos — senão "08:"
-            // nunca descia a "08" e ficava-se preso no apagar.
-            if(d.length === 2) return deleting ? d : d + ':';
-            return d.slice(0,2)+':'+d.slice(2);
-          }
-          // Ao sair: hora e minutos a partir dos dígitos, limitado a 23:59.
-          // 3 dígitos: se os 2 primeiros formam hora válida (<=23) é HH:0M
-          // ("085"->08:05); senão o 1º dígito é a hora e os 2 últimos os
-          // minutos ("835"->08:35, "240"->02:40).
           if(d.length===0) return '';
-          var hh, mm;
-          if(d.length<=2){ hh=d; mm='00'; }
-          else if(d.length===3){
-            if(parseInt(d.slice(0,2),10) <= 23){ hh=d.slice(0,2); mm='0'+d.charAt(2); }
-            else { hh=d.charAt(0); mm=d.slice(1,3); }
-          } else { hh=d.slice(0,2); mm=d.slice(2,4); }
+          // A hora tem 2 dígitos SE os 2 primeiros formarem hora válida (<=23);
+          // senão só 1 ("83" não é hora -> hora=8). O resto são os minutos.
+          var hourLen = (d.length>=2 && parseInt(d.slice(0,2),10)<=23) ? 2 : 1;
+          if(!final){
+            // Ao vivo, sem nunca mostrar uma hora inválida (nada de "83:").
+            if(d.length===1) return d;                 // "8"
+            var hL = d.slice(0,hourLen), mL = d.slice(hourLen);
+            // ainda sem minutos: "13"->"13:"; ao apagar deixa descer ("13")
+            if(mL.length===0) return deleting ? hL : hL+':';
+            return hL+':'+mL;                          // "134"->"13:4", "835"->"8:35", "24"->"2:4"
+          }
+          // Ao sair: completa e limita a 23:59. Um único dígito de minutos vale
+          // as DEZENAS ("4"->"40"): "134"->13:40, "24"->02:40, "835"->08:35,
+          // "085"->08:50. Escrito por extenso ("0835") mantém-se 08:35.
+          var hh = d.slice(0,hourLen);
+          var rest = d.slice(hourLen);
+          var mm = rest.length===0 ? '00' : (rest.length===1 ? rest+'0' : rest.slice(0,2));
           var h = Math.min(23, parseInt(hh,10)||0);
           var m = Math.min(59, parseInt(mm,10)||0);
           return (h<10?'0'+h:''+h)+':'+(m<10?'0'+m:''+m);
