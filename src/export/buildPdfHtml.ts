@@ -1268,11 +1268,11 @@ export function buildEditableDayRowsHtml(
           <td>${edNum(i, "ajMaterial", "d_mat", fmt(c?.ajMat ?? valMat))}</td>
           <td>${edNum(i, "ajPerDiem", "d_per", fmt(c?.ajPer ?? valPer))}</td>
           <td>${edNum(i, "heaHoras", "hea_h", fmtNum((c?.HEA_min ?? 0) / 60, 1))}</td>
-          <td>${edNum(i, "heaValor", "hea_v", fmt(c?.HEA_valor ?? 0))}</td>
+          <td class="otVal">${edNum(i, "heaValor", "hea_v", fmt(c?.HEA_valor ?? 0))}</td>
           <td>${edNum(i, "hebHoras", "heb_h", fmtNum((c?.HEB_min ?? 0) / 60, 1))}</td>
-          <td>${edNum(i, "hebValor", "heb_v", fmt(c?.HEB_valor ?? 0))}</td>
+          <td class="otVal">${edNum(i, "hebValor", "heb_v", fmt(c?.HEB_valor ?? 0))}</td>
           <td>${edNum(i, "hrHoras", "hr_h", fmtNum((c?.HR_min ?? 0) / 60, 1))}</td>
-          <td>${edNum(i, "hrValor", "hr_v", fmt(c?.HR_valor ?? 0))}</td>
+          <td class="otVal">${edNum(i, "hrValor", "hr_v", fmt(c?.HR_valor ?? 0))}</td>
           <td class="strong tday">${edNum(i, "totalDia", "tot", fmt(c?.totalDia ?? 0))}</td>
         </tr>`;
     })
@@ -1448,6 +1448,10 @@ export function buildEditableSheetHtml(
            incluído) no PC e no telemóvel. */
         .days td.timeCell { width: 56px; min-width: 56px; padding-left: 4px; padding-right: 4px; }
         input.ei.time { letter-spacing: normal; }
+        /* Valor das horas extra (A/B/Recuperação) um pouco mais largo — "30,00 €"
+           ficava apertado. O espaço vem da folga das colunas mais largas (a
+           tabela reparte a 100%). */
+        .days td.otVal { min-width: 64px; }
         .days td.calc { white-space: nowrap; }
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
@@ -1469,10 +1473,6 @@ export function buildEditableSheetHtml(
         .afterDays { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
         .afterDays .endTotals { margin-top: 8px; }
         .addDayBar { margin-top: 10px; text-align: left; }
-        /* Etiqueta de diagnóstico: confirma que este é o código novo (input das
-           horas). Remover depois de validado. */
-        .buildTag { display: inline-block; margin-left: 10px; padding: 4px 10px; border-radius: 999px;
-          background: #1f7a37; color: #fff; font-weight: 800; font-size: 12px; vertical-align: middle; }
         .addDayBar button {
           font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px;
           border: 2px solid #2b2b2b; border-radius: 999px; background: #f2f2f2; color: #111; cursor: pointer;
@@ -1590,7 +1590,6 @@ export function buildEditableSheetHtml(
           <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
           <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
           <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
-          <span class="buildTag">HORAS v6 ✓</span>
         </div>
         <table class="endTotals">
           <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
