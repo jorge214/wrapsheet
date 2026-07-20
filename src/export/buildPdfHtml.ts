@@ -1463,6 +1463,10 @@ export function buildEditableSheetHtml(
         .afterDays { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
         .afterDays .endTotals { margin-top: 8px; }
         .addDayBar { margin-top: 10px; text-align: left; }
+        /* Etiqueta de diagnóstico: confirma que este é o código novo (input das
+           horas). Remover depois de validado. */
+        .buildTag { display: inline-block; margin-left: 10px; padding: 4px 10px; border-radius: 999px;
+          background: #1f7a37; color: #fff; font-weight: 800; font-size: 12px; vertical-align: middle; }
         .addDayBar button {
           font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px;
           border: 2px solid #2b2b2b; border-radius: 999px; background: #f2f2f2; color: #111; cursor: pointer;
@@ -1580,6 +1584,7 @@ export function buildEditableSheetHtml(
           <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
           <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
           <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
+          <span class="buildTag">HORAS v2 ✓</span>
         </div>
         <table class="endTotals">
           <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
