@@ -1257,9 +1257,9 @@ export function buildEditableDayRowsHtml(
           <td class="left">${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
           <td>${edDi(i, "data", formatDatePT(d.data), "date", 'inputmode="numeric"')}</td>
           <td>${edNum(i, "salarioDia", "sal", fmt(eff))}</td>
-          <td>${edTime(i, "inicio", d.inicio || "")}</td>
-          <td>${edTime(i, "refeicaoTrabalho", d.refeicaoTrabalho || "")}</td>
-          <td>${edTime(i, "fim", d.fim || "")}</td>
+          <td class="timeCell">${edTime(i, "inicio", d.inicio || "")}</td>
+          <td class="timeCell">${edTime(i, "refeicaoTrabalho", d.refeicaoTrabalho || "")}</td>
+          <td class="timeCell">${edTime(i, "fim", d.fim || "")}</td>
           <td class="calc" data-c="ht" data-i="${i}">${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
           <td class="blue calc" data-c="hd" data-i="${i}">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
           <td>${edNum(i, "ajRefeicao", "d_ref", fmt(c?.ajRef ?? valRef))}</td>
@@ -1442,6 +1442,12 @@ export function buildEditableSheetHtml(
           -webkit-appearance: none; appearance: none; border-radius: 0; }
         input.ei::placeholder { color: #b3b3b3; }
         input.ei:focus { background: #eef4ff; outline: none; box-shadow: inset 0 0 0 1px #1b5fbf; }
+        /* Células de hora: pouco padding lateral e letra ligeiramente apertada
+           para "00:30"/"20:00" (5 caracteres) caberem nas colunas estreitas do
+           telemóvel — o <input> corta o que não cabe (o antigo campo transbordava
+           visível, o input não). */
+        .days td.timeCell { padding-left: 2px; padding-right: 2px; }
+        input.ei.time { letter-spacing: -0.3px; }
         .days td.calc { white-space: nowrap; }
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
@@ -1584,7 +1590,7 @@ export function buildEditableSheetHtml(
           <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
           <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
           <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
-          <span class="buildTag">HORAS v4 ✓</span>
+          <span class="buildTag">HORAS v5 ✓</span>
         </div>
         <table class="endTotals">
           <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
@@ -1691,7 +1697,7 @@ export function buildEditableSheetHtml(
         // saíam ":::"). Regra: 2 dígitos = hora certa ("08"→08:00, "12"→12:00);
         // 3-4 dígitos = HH:MM ("845"→08:45, "0845"→08:45). Ao escrever, os
         // dois pontos aparecem a partir do 3º dígito.
-        function fmtTime(text, final){
+        function fmtTime(text, final, deleting){
           // \\D e não \D: este script vai dentro de um template literal, e aí
           // o \D era comido como escape de string e virava "D" — a regex passava
           // a apagar a letra "D" em vez dos não-dígitos, os ":" nunca eram
@@ -1699,8 +1705,11 @@ export function buildEditableSheetHtml(
           var d = String(text||'').replace(/\\D/g,'').slice(0,4);
           if(!final){
             // Ao vivo: "0" → "0"; "08" → "08:" (os : aparecem logo, a pedir
-            // os minutos); "0805" → "08:05"
+            // os minutos); "0805" → "08:05".
             if(d.length < 2) return d;
+            // Ao APAGAR não voltar a pôr os ":" com 2 dígitos — senão "08:"
+            // nunca descia a "08" e ficava-se preso no apagar.
+            if(d.length === 2) return deleting ? d : d + ':';
             return d.slice(0,2)+':'+d.slice(2);
           }
           // Ao sair: completa o que faltar
@@ -1729,9 +1738,14 @@ export function buildEditableSheetHtml(
         document.addEventListener('input', function(e){
           var el = e.target;
           if(!isTimeInput(el)) return;
-          var out = fmtTime(el.value, false);
-          if(out !== el.value){ el.value = out; }
-          try{ el.setSelectionRange(el.value.length, el.value.length); }catch(err){}
+          var deleting = !!(e.inputType && e.inputType.indexOf('delete') === 0);
+          var out = fmtTime(el.value, false, deleting);
+          // Só mexer no cursor quando REESCREVEMOS de facto — ao apagar sem
+          // alteração, deixar o cursor onde o browser o pôs.
+          if(out !== el.value){
+            el.value = out;
+            try{ el.setSelectionRange(out.length, out.length); }catch(err){}
+          }
         }, true);
         // Ao SAIR: completa ("08:"→"08:00", "08:5"→"08:05") e grava.
         document.addEventListener('blur', function(e){
