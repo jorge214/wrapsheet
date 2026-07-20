@@ -225,6 +225,24 @@ function upgradeProject(raw: any, id: string): ProjectState {
   const oneLine = (v: any) =>
     String(v ?? "").replace(/\s*[\r\n\u2028\u2029\u0085]+\s*/g, " ").trim();
 
+  // Horas partidas por vers\u00f5es antigas (o contenteditable deixava "00:::",
+  // "08::0"\u2026). Curar ao carregar torna-as v\u00e1lidas em toda a app (folha, c\u00e1lculo
+  // e PDF). J\u00e1 em HH:MM = mant\u00e9m; sen\u00e3o reconstr\u00f3i a partir dos d\u00edgitos.
+  const cleanTime = (v: any): string => {
+    const s = String(v ?? "").trim();
+    const m = /^(\d{1,2}):(\d{2})$/.exec(s);
+    if (m) {
+      const h = Math.min(23, Number(m[1]) || 0);
+      const mm = Math.min(59, Number(m[2]) || 0);
+      return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+    }
+    const d = s.replace(/\D/g, "").slice(0, 4);
+    if (!d) return "";
+    if (d.length <= 2) return `${d.padStart(2, "0")}:00`;
+    if (d.length === 3) return `${d.slice(0, 2)}:0${d.charAt(2)}`;
+    return `${d.slice(0, 2)}:${d.slice(2)}`;
+  };
+
   const tabela = {
     ...defaultTabela(),
     ...(raw.tabela || {}),
@@ -279,7 +297,13 @@ function upgradeProject(raw: any, id: string): ProjectState {
 
   const dias: Dia[] =
     Array.isArray(raw.dias) && raw.dias.length > 0
-      ? raw.dias
+      ? raw.dias.map((d: any) => ({
+          ...d,
+          inicio: cleanTime(d.inicio),
+          fim: cleanTime(d.fim),
+          refeicaoTrabalho: cleanTime(d.refeicaoTrabalho),
+          jantarTrabalho: d.jantarTrabalho == null ? d.jantarTrabalho : cleanTime(d.jantarTrabalho),
+        }))
       : [defaultDia(today)];
 
   return {
