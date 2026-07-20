@@ -233,8 +233,15 @@ export default function ProjectEditor() {
   }, []);
 
   const loadProject = useCallback(async () => {
-    const p = await getProject(id!);
-    if (!p) return;
+    let p = await getProject(id!);
+    // Ao abrir logo a seguir a uma troca de conta/sync, o armazenamento local
+    // pode estar a meio de uma limpeza e o projeto ainda não chegou da cloud —
+    // dava "a carregar" para sempre. Tenta algumas vezes antes de desistir.
+    for (let tries = 0; !p && tries < 12; tries++) {
+      await new Promise((r) => setTimeout(r, 300));
+      p = await getProject(id!);
+    }
+    if (!p) { router.replace("/projects"); return; }
 
     const aj = p.tabela.ajudas ?? { refeicao: 0, viatura: 0, material: 0, telefone: 0, perDiem: 0 };
     const dias = p.dias.map((d) => ({ jantarTrabalho: "00:00", tempoTransporteMin: 0, ...d })) as Dia[];

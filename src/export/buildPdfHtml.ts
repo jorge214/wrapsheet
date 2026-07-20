@@ -1224,6 +1224,12 @@ const edMi = (k: string, f: string, val: number, cKey = "") =>
 // data-c, para o ws:calc atualizar no sítio (saltando a célula em foco).
 const edNum = (i: number, f: string, cKey: string, val: string) =>
   `<span class="ei money" ${CE} inputmode="decimal" data-k="dia" data-i="${i}" data-f="${f}" data-c="${cKey}">${escapeHtml(val)}</span>`;
+// Horas: <input> REAL (não contenteditable). O contenteditable obrigava a
+// reescrever o textContent a cada tecla e o cursor descontrolava-se — dava
+// "08::0" e comia dígitos, em qualquer motor. Um input tem setSelectionRange
+// exato e mudar .value nunca redispara 'input', por isso a máscara é estável.
+const edTime = (i: number, f: string, val: string) =>
+  `<input class="ei time" type="text" inputmode="numeric" autocomplete="off" data-k="dia" data-i="${i}" data-f="${f}" value="${escapeHtml(val || "")}">`;
 
 // Só as linhas <tr> da tabela de dias (editáveis). Usado pelo builder e pela
 // app para atualizar a tabela no sítio via window.__wsSetRows(html).
@@ -1251,9 +1257,9 @@ export function buildEditableDayRowsHtml(
           <td class="left">${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
           <td>${edDi(i, "data", formatDatePT(d.data), "date", 'inputmode="numeric"')}</td>
           <td>${edNum(i, "salarioDia", "sal", fmt(eff))}</td>
-          <td>${edDi(i, "inicio", d.inicio || "", "time", 'inputmode="numeric"')}</td>
-          <td>${edDi(i, "refeicaoTrabalho", d.refeicaoTrabalho || "", "time", 'inputmode="numeric"')}</td>
-          <td>${edDi(i, "fim", d.fim || "", "time", 'inputmode="numeric"')}</td>
+          <td>${edTime(i, "inicio", d.inicio || "")}</td>
+          <td>${edTime(i, "refeicaoTrabalho", d.refeicaoTrabalho || "")}</td>
+          <td>${edTime(i, "fim", d.fim || "")}</td>
           <td class="calc" data-c="ht" data-i="${i}">${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
           <td class="blue calc" data-c="hd" data-i="${i}">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
           <td>${edNum(i, "ajRefeicao", "d_ref", fmt(c?.ajRef ?? valRef))}</td>
@@ -1430,6 +1436,12 @@ export function buildEditableSheetHtml(
         /* Valores monetários nunca partem linha: a coluna alarga em vez de o
            "€" cair para baixo (acontecia no iPhone a partir de 4 dígitos) */
         .ei.money { white-space: nowrap; }
+        /* Horas são <input> reais — sem moldura, iguais às outras células */
+        input.ei { border: 0; margin: 0; padding: 0; font: inherit; color: #111;
+          text-align: center; width: 100%; box-sizing: border-box; background: transparent;
+          -webkit-appearance: none; appearance: none; border-radius: 0; }
+        input.ei::placeholder { color: #b3b3b3; }
+        input.ei:focus { background: #eef4ff; outline: none; box-shadow: inset 0 0 0 1px #1b5fbf; }
         .days td.calc { white-space: nowrap; }
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
@@ -1689,41 +1701,35 @@ export function buildEditableSheetHtml(
           if(d.length===3) return d.slice(0,2)+':0'+d.charAt(2);
           return d.slice(0,2)+':'+d.slice(2);
         }
-        // Ao ENTRAR na célula o valor vira dígitos simples ("08:00" → "0800",
-        // tudo selecionado — escrever substitui). Ao ESCREVER, o formato ao
-        // vivo entra ("08" → "08:", "0805" → "08:05") com guarda de
-        // reentrância — era a falta dela que fazia sair ":::" no iOS.
+        // Horas = <input> real. Aqui manda-se em .value (não textContent) e o
+        // cursor põe-se com setSelectionRange — exato em qualquer motor,
+        // incluindo o WebKit do iPhone. Mudar .value NÃO redispara 'input',
+        // por isso não é preciso guarda de reentrância nem há ":::".
+        function isTimeInput(el){
+          return el && el.tagName === 'INPUT' && el.classList && el.classList.contains('time');
+        }
+        // Ao ENTRAR: valor vira dígitos simples ("08:00"→"0800"), tudo
+        // selecionado — a primeira tecla substitui.
         document.addEventListener('focusin', function(e){
           var el = e.target;
-          if(!el.classList || !el.classList.contains('time')) return;
-          var d = String(el.textContent||'').replace(/\D/g,'').slice(0,4);
-          if(d !== el.textContent){ el.textContent = d; }
-          selectAll(el);
+          if(!isTimeInput(el)) return;
+          el.value = String(el.value||'').replace(/\D/g,'').slice(0,4);
+          setTimeout(function(){ if(document.activeElement===el){ try{ el.select(); }catch(err){} } }, 0);
         }, true);
-        function caretEnd(el){
-          try{
-            var r=document.createRange(); r.selectNodeContents(el); r.collapse(false);
-            var s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
-          }catch(err){}
-        }
-        var timeBusy = false;
+        // Ao ESCREVER: máscara ao vivo ("08"→"08:", "0845"→"08:45"), cursor no fim.
         document.addEventListener('input', function(e){
           var el = e.target;
-          if(timeBusy) return;
-          if(!el.classList || !el.classList.contains('time')) return;
-          var out = fmtTime(el.textContent, false);
-          if(out !== el.textContent){
-            timeBusy = true;
-            el.textContent = out;
-            caretEnd(el);
-            timeBusy = false;
-          }
+          if(!isTimeInput(el)) return;
+          var out = fmtTime(el.value, false);
+          if(out !== el.value){ el.value = out; }
+          try{ el.setSelectionRange(el.value.length, el.value.length); }catch(err){}
         }, true);
+        // Ao SAIR: completa ("08:"→"08:00", "08:5"→"08:05") e grava.
         document.addEventListener('blur', function(e){
           var el = e.target;
-          if(!el.classList || !el.classList.contains('time')) return;
-          var out = fmtTime(el.textContent, true);
-          if(out !== el.textContent){ el.textContent = out; }
+          if(!isTimeInput(el)) return;
+          var out = fmtTime(el.value, true);
+          el.value = out;
           post({ type:'ws:edit', k:'dia', f: el.getAttribute('data-f'), i: di(el), value: out });
         }, true);
         function applyCalc(d){
