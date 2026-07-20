@@ -1262,7 +1262,7 @@ export function buildEditableDayRowsHtml(
           <td class="timeCell">${edTime(i, "fim", d.fim || "")}</td>
           <td class="calc" data-c="ht" data-i="${i}">${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
           <td class="blue calc" data-c="hd" data-i="${i}">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
-          <td>${edNum(i, "ajRefeicao", "d_ref", fmt(c?.ajRef ?? valRef))}</td>
+          <td class="mealDay">${edNum(i, "ajRefeicao", "d_ref", fmt(c?.ajRef ?? valRef))}</td>
           <td>${edNum(i, "ajViatura", "d_viat", fmt(c?.ajViat ?? valViat))}</td>
           <td>${edNum(i, "ajTelefone", "d_tel", fmt(c?.ajTel ?? valTel))}</td>
           <td>${edNum(i, "ajMaterial", "d_mat", fmt(c?.ajMat ?? valMat))}</td>
@@ -1452,6 +1452,8 @@ export function buildEditableSheetHtml(
            ficava apertado. O espaço vem da folga das colunas mais largas (a
            tabela reparte a 100%). */
         .days td.otVal { min-width: 64px; }
+        /* MEAL "Por dia" um nadinha mais largo (espaço vem da coluna DESCRIÇÃO). */
+        .days td.mealDay { min-width: 54px; }
         .days td.calc { white-space: nowrap; }
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
@@ -1482,7 +1484,7 @@ export function buildEditableSheetHtml(
         /* Botões por linha: duplicar (⧉) e remover (✕) o dia — não saem no print.
            SEMPRE por baixo da descrição, e a coluna com largura FIXA (a célula
            não estica/encolhe com o texto — texto longo quebra dentro dela). */
-        table.days .ei.left { display: block; width: 88px; white-space: normal; }
+        table.days .ei.left { display: block; width: 78px; white-space: normal; }
         .rowBtns { display: block; white-space: nowrap; margin-top: 2px; }
         .rbtn { cursor: pointer; user-select: none; -webkit-user-select: none; color: #9a9a9a; font-size: 12px; padding: 0 4px; }
         .rbtn.rdel { color: #c05050; }
