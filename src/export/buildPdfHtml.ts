@@ -1748,12 +1748,20 @@ export function buildEditableSheetHtml(
             if(d.length === 2) return deleting ? d : d + ':';
             return d.slice(0,2)+':'+d.slice(2);
           }
-          // Ao sair: completa o que faltar
+          // Ao sair: hora e minutos a partir dos dígitos, limitado a 23:59.
+          // 3 dígitos: se os 2 primeiros formam hora válida (<=23) é HH:0M
+          // ("085"->08:05); senão o 1º dígito é a hora e os 2 últimos os
+          // minutos ("835"->08:35, "240"->02:40).
           if(d.length===0) return '';
-          if(d.length===1) return '0'+d+':00';
-          if(d.length===2) return d+':00';
-          if(d.length===3) return d.slice(0,2)+':0'+d.charAt(2);
-          return d.slice(0,2)+':'+d.slice(2);
+          var hh, mm;
+          if(d.length<=2){ hh=d; mm='00'; }
+          else if(d.length===3){
+            if(parseInt(d.slice(0,2),10) <= 23){ hh=d.slice(0,2); mm='0'+d.charAt(2); }
+            else { hh=d.charAt(0); mm=d.slice(1,3); }
+          } else { hh=d.slice(0,2); mm=d.slice(2,4); }
+          var h = Math.min(23, parseInt(hh,10)||0);
+          var m = Math.min(59, parseInt(mm,10)||0);
+          return (h<10?'0'+h:''+h)+':'+(m<10?'0'+m:''+m);
         }
         // Horas = <input> real. Aqui manda-se em .value (não textContent) e o
         // cursor põe-se com setSelectionRange — exato em qualquer motor,

@@ -91,9 +91,12 @@ function AutoGrowTextInput({ style, minHeight = 80, ...props }: any) {
     <TextInput
       {...props}
       multiline
-      scrollEnabled={false}
+      // scrollEnabled fica LIGADO (default): com ele desligado + altura fixa,
+      // o contentSize.height passava a reportar a moldura e não o texto, e a
+      // altura crescia sem parar (gigante no telemóvel, +altura a cada letra
+      // no PC). Agora a altura = altura real do conteúdo, sem somar padding.
       onContentSizeChange={(e: any) => setH(e?.nativeEvent?.contentSize?.height ?? 0)}
-      style={[style, { textAlignVertical: "top", minHeight, height: Math.max(minHeight, h + 28) }]}
+      style={[style, { textAlignVertical: "top", minHeight, height: Math.max(minHeight, h) }]}
     />
   );
 }
