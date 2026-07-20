@@ -443,6 +443,8 @@
   "onboarding_s4_sub": "Persoonlijke gegevens, salaris, tarieven en werkomstandigheden — automatisch toegepast op elk nieuw project.",
   "onboarding_s5_title": "Volg alles op het Dashboard",
   "onboarding_s5_sub": "Maand- en jaartotalen, betaald en te ontvangen — altijd actueel, op al je apparaten.",
-  "search_by_name": "Zoeken op naam",
-  "no_search_results": "Geen projecten gevonden"
+  "search_by_name": "Zoeken op naam of productiebedrijf",
+  "no_search_results": "Geen projecten gevonden",
+  "home_active_projects_one": "{{n}} actief project",
+  "home_active_projects_other": "{{n}} actieve projecten"
 }

@@ -43,7 +43,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Conta */}
-        <Section title={t("account_title").toUpperCase()} COLORS={COLORS}>
+        <Section title={t("account_title")} COLORS={COLORS}>
           <Pressable
             onPress={() => router.push("/settings/account")}
             style={[ss.row, { borderColor: COLORS.border }]}

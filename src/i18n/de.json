@@ -443,6 +443,8 @@
   "onboarding_s4_sub": "Persönliche Daten, Gage, Sätze und Arbeitsbedingungen — automatisch auf jedes neue Projekt angewendet.",
   "onboarding_s5_title": "Behalte alles im Dashboard",
   "onboarding_s5_sub": "Monats- und Jahressummen, bezahlt und ausstehend — immer aktuell, auf allen deinen Geräten.",
-  "search_by_name": "Nach Name suchen",
-  "no_search_results": "Keine Projekte gefunden"
+  "search_by_name": "Nach Name oder Produktionsfirma suchen",
+  "no_search_results": "Keine Projekte gefunden",
+  "home_active_projects_one": "{{n}} aktives Projekt",
+  "home_active_projects_other": "{{n}} aktive Projekte"
 }

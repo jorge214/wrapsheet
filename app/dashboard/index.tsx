@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CURRENCY } from "../../src/calc/engine";
+import { formatMoneyApp, formatNumber } from "../../src/format/money";
 import { getPreset } from "../../src/constants/countryPresets";
 import { getSettings } from "../../src/storage/appSettings";
 import i18n from "../../src/i18n/i18n";
@@ -43,20 +44,15 @@ function toMMYYYY(m: number, y: number) {
   return `${mm}/${y}`;
 }
 
-// tenta formatar números PT (11,5 / 0,00 etc)
+// Formatação centralizada (agrupa milhares mesmo no Hermes do telemóvel — o
+// Intl não agrupava lá). Mesma função usada no ecrã inicial, para os números
+// coincidirem.
 function formatNumberPT(n: number, digits = 0) {
-  try {
-    return new Intl.NumberFormat("pt-PT", {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    }).format(n);
-  } catch {
-    return String(Number(n ?? 0).toFixed(digits)).replace(".", ",");
-  }
+  return formatNumber(n ?? 0, digits);
 }
 
 function formatMoneyPT(n: number) {
-  return `${CURRENCY} ${formatNumberPT(n ?? 0, 2)}`;
+  return formatMoneyApp(n ?? 0, CURRENCY);
 }
 
 export default function DashboardScreen() {

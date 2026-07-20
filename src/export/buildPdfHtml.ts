@@ -702,14 +702,25 @@ function safeStr(v: any) {
 }
 
 export function fmtMoney(n: number, currency = "EUR") {
-  const locale = currency === "GBP" ? "en-GB" : "pt-PT";
-  return Number(n || 0).toLocaleString(locale, {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  // Espaço inquebrável entre número e símbolo: em células estreitas (iPhone)
-  // o "€" caía para a linha de baixo.
-  }).replace(/\s/g, "\u00A0");
+  // Agrupamento manual dos milhares (o Hermes do RN nao agrupa com
+  // toLocaleString -> saia "4342,00" no telemovel). Resultado: "4.342,00 EUR".
+  const NBSP = String.fromCharCode(0xa0);
+  const sym = currencySymbol(currency);
+  const v = Number(n);
+  const safe = Number.isFinite(v) ? v : 0;
+  const neg = safe < 0;
+  const parts = Math.abs(safe).toFixed(2).split(".");
+  const intPart = parts[0];
+  const dec = parts[1];
+  if (currency === "GBP") {
+    // GBP 1,234.00 -> simbolo a frente, milhares "," decimais "."
+    const g = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return (neg ? "-" : "") + sym + g + "." + dec;
+  }
+  // 1.234,00 EUR -> milhares ".", decimais ",", simbolo a direita, com
+  // espaco inquebravel (em celulas estreitas o simbolo caia para baixo).
+  const g = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return (neg ? "-" : "") + g + "," + dec + NBSP + sym;
 }
 
 // Símbolo da moeda para mostrar junto aos campos (todas as regiões)
@@ -1267,7 +1278,7 @@ export function buildEditableDayRowsHtml(
       return `
         <tr>
           <td class="left">${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
-          <td>${edDate(i, formatDatePT(d.data))}</td>
+          <td class="dateCell">${edDate(i, formatDatePT(d.data))}</td>
           <td>${edNum(i, "salarioDia", "sal", fmt(eff))}</td>
           <td class="timeCell">${edTime(i, "inicio", d.inicio || "")}</td>
           <td class="timeCell">${edTime(i, "refeicaoTrabalho", d.refeicaoTrabalho || "")}</td>
@@ -1460,6 +1471,9 @@ export function buildEditableSheetHtml(
            incluído) no PC e no telemóvel. */
         .days td.timeCell { width: 56px; min-width: 56px; padding-left: 4px; padding-right: 4px; }
         input.ei.time { letter-spacing: normal; }
+        /* DATA é <input> (não transborda como o contenteditable) — coluna com
+           largura para "06/07/2026" inteiro, senão ficava cortada. */
+        .days td.dateCell { width: 82px; min-width: 82px; padding-left: 4px; padding-right: 4px; }
         /* Valor das horas extra (A/B/Recuperação) um pouco mais largo — "30,00 €"
            ficava apertado. O espaço vem da folga das colunas mais largas (a
            tabela reparte a 100%). */

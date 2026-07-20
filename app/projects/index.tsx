@@ -29,10 +29,14 @@ import {
   duplicateProjectToMonth,
   listProjects,
   listArchivedProjects,
+  listAllProjectsFull,
   markProjectPaidAndArchive,
   markProjectToReceive,
   renameProject,
 } from "../../src/storage/projects";
+import { effectiveFiscalOf, getSettings } from "../../src/storage/appSettings";
+import { projectFinalValue } from "../../src/stats/monthSummary";
+import { formatMoneyApp } from "../../src/format/money";
 
 type Row = Project & { archived?: boolean };
 import { useAuth } from "../../src/auth/AuthContext";
@@ -69,6 +73,7 @@ export default function ProjectsScreen() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [archived, setArchived] = useState<Project[]>([]);
+  const [valores, setValores] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
 
   // Mensagem (toast) após uma ação — verde para sucesso, vermelho para apagar
@@ -109,14 +114,22 @@ export default function ProjectsScreen() {
   const loadProjects = useCallback(async () => {
     setLoading(true);
     try {
-      const [list, arch] = await Promise.all([
+      const [list, arch, full, settings] = await Promise.all([
         listProjects(),
         listArchivedProjects(),
+        listAllProjectsFull(),
+        getSettings(),
       ]);
       const byDate = (a: Project, b: Project) =>
         (b.updatedAt || "").localeCompare(a.updatedAt || "");
       setProjects([...list].sort(byDate));
       setArchived([...arch].sort(byDate));
+      // Valor final (a receber) por projeto — mesma regra fiscal do Dashboard,
+      // para o número por linha bater certo com o resumo.
+      const eff = effectiveFiscalOf(settings);
+      const vmap: Record<string, number> = {};
+      for (const p of full) vmap[p.id] = projectFinalValue(p, eff);
+      setValores(vmap);
     } finally {
       setLoading(false);
     }
@@ -472,7 +485,7 @@ export default function ProjectsScreen() {
           style={s.searchInput}
           value={search}
           onChangeText={setSearch}
-          placeholder={t("search_by_name", { defaultValue: "Search by name" })}
+          placeholder={t("search_by_name", { defaultValue: "Search by name or production company" })}
           placeholderTextColor={COLORS.sub}
           returnKeyType="search"
           autoCapitalize="none"
@@ -596,7 +609,7 @@ export default function ProjectsScreen() {
                       }}
                       style={Platform.OS === "web" ? ({ cursor: "text", alignSelf: "flex-start" } as any) : undefined}
                     >
-                      <Text style={[s.title, { flexShrink: 1 }]} numberOfLines={1}>
+                      <Text style={[s.title, { flexShrink: 1 }]} numberOfLines={2}>
                         {p.nome ||
                           t("unnamed_project", {
                             defaultValue: "Projeto sem nome",
@@ -610,46 +623,49 @@ export default function ProjectsScreen() {
                   </Text>
                 </View>
 
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  {/* O botão mostra o ESTADO atual; tocar alterna (com confirmação) */}
-                  {p.archived ? (
-                    <Pressable
-                      hitSlop={8}
-                      onPress={(e: any) => { e?.stopPropagation?.(); unarchiveRow(p); }}
-                      style={({ pressed }) => [s.payBtn, s.payBtnOn, pressed && { opacity: 0.7 }]}
-                    >
-                      <Text style={[s.payBtnText, s.payBtnTextOn]}>✓ {t("paid", { defaultValue: "Pago" })}</Text>
-                    </Pressable>
-                  ) : (
-                    <Pressable
-                      hitSlop={8}
-                      onPress={(e: any) => { e?.stopPropagation?.(); markPaidArchive(p); }}
-                      style={({ pressed }) => [s.payBtn, pressed && { opacity: 0.7 }]}
-                    >
-                      <Text style={s.payBtnText}>{t("to_receive", { defaultValue: "A Receber" })}</Text>
-                    </Pressable>
-                  )}
-
-                  <Pressable
-                    hitSlop={12}
-                    onPress={(e: any) => {
-                      e?.stopPropagation?.();
-                      openProjectOptions(p);
-                    }}
-                    style={({ pressed, hovered }: any) => [
-                      s.moreBtn,
-                      Platform.OS === "web" && hovered && { borderColor: COLORS.text },
-                      pressed && { opacity: 0.7 },
-                    ]}
-                  >
-                    <Text style={s.moreText}>⋯</Text>
-                  </Pressable>
-                </View>
+                <Pressable
+                  hitSlop={12}
+                  onPress={(e: any) => {
+                    e?.stopPropagation?.();
+                    openProjectOptions(p);
+                  }}
+                  style={({ pressed, hovered }: any) => [
+                    s.moreBtn,
+                    Platform.OS === "web" && hovered && { borderColor: COLORS.text },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={s.moreText}>⋯</Text>
+                </Pressable>
               </View>
 
-              {/* Linha própria a toda a largura: com o chip "A Receber" (mais
-                  largo que "Pago") ao lado, a hora ficava cortada ("18…") */}
-              <Text style={s.subtitle} numberOfLines={1}>
+              {/* Estado (pago / a receber — alterna ao tocar) + VALOR do trabalho
+                  na mesma linha. O valor é a informação mais útil desta lista. */}
+              <View style={s.statusRow}>
+                {p.archived ? (
+                  <Pressable
+                    hitSlop={8}
+                    onPress={(e: any) => { e?.stopPropagation?.(); unarchiveRow(p); }}
+                    style={({ pressed }) => [s.payBtn, s.payBtnOn, pressed && { opacity: 0.7 }]}
+                  >
+                    <Text style={[s.payBtnText, s.payBtnTextOn]}>✓ {t("paid", { defaultValue: "Pago" })}</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    hitSlop={8}
+                    onPress={(e: any) => { e?.stopPropagation?.(); markPaidArchive(p); }}
+                    style={({ pressed }) => [s.payBtn, pressed && { opacity: 0.7 }]}
+                  >
+                    <Text style={s.payBtnText}>{t("to_receive", { defaultValue: "A Receber" })}</Text>
+                  </Pressable>
+                )}
+                <Text style={s.cardValue} numberOfLines={1}>
+                  {formatMoneyApp(valores[p.id] ?? 0)}
+                </Text>
+              </View>
+
+              {/* Data de atualização a toda a largura, por baixo */}
+              <Text style={[s.subtitle, { marginTop: 8 }]} numberOfLines={1}>
                 {t("updated_at", { defaultValue: "Atualizado:" })}{" "}
                 <Text style={s.subtitleStrong}>{updatedLabel}</Text>
               </Text>
@@ -1019,6 +1035,16 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       alignItems: "flex-start",
       justifyContent: "space-between",
     },
+
+    // Estado + valor na mesma linha (chip à esquerda, valor à direita)
+    statusRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 12,
+      gap: 10,
+    },
+    cardValue: { color: COLORS.text, fontWeight: "900", fontSize: 17 },
 
     cardPaid: { borderLeftWidth: 5, borderLeftColor: "#1a9c4e" },
     paidBadge: {

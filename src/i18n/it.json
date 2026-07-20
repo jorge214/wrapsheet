@@ -443,6 +443,8 @@
   "onboarding_s4_sub": "Dati personali, salario, tariffe e condizioni di lavoro — applicati automaticamente a ogni nuovo progetto.",
   "onboarding_s5_title": "Segui tutto nel Pannello",
   "onboarding_s5_sub": "Totali del mese e dell'anno, pagati e da incassare — sempre aggiornati, su tutti i tuoi dispositivi.",
-  "search_by_name": "Cerca per nome",
-  "no_search_results": "Nessun progetto trovato"
+  "search_by_name": "Cerca per nome o casa di produzione",
+  "no_search_results": "Nessun progetto trovato",
+  "home_active_projects_one": "{{n}} progetto attivo",
+  "home_active_projects_other": "{{n}} progetti attivi"
 }

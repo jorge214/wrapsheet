@@ -45,12 +45,30 @@ function normalizePercent(v: any): number {
 }
 
 /**
+ * Valor final (líquido / a receber) de UM projeto, com a MESMA regra fiscal do
+ * Dashboard: o fiscal da própria folha e, se não houver, o efetivo da Região
+ * Fiscal (eff). Usado na lista de projetos para mostrar o valor por linha.
+ */
+export function projectFinalValue(
+  p: any,
+  eff: { IRS_percent: number; IVA_percent: number }
+): number {
+  const diasCalc = calcAll(p.dias, p.tabela);
+  const rawFiscal: any = p.fiscal ?? {};
+  const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? eff.IRS_percent) * 100;
+  const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? eff.IVA_percent) * 100;
+  const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
+  return Math.round((totals.ValorFinal || 0) * 100) / 100;
+}
+
+/**
  * Resumo de horas + valores de um mês.
  */
 export type MonthSummary = {
   mes: number;
   ano: number;
   totalProjects: number;
+  activeProjects: number; // projetos não pagos (ativos / a receber) no mês
   totalDiasTrabalho: number;
   totalHoras: number;
   totalMinutos: number;
@@ -132,6 +150,7 @@ export async function getMonthSummary(mes: number, ano: number): Promise<MonthSu
     mes,
     ano,
     totalProjects: inMonth.length,
+    activeProjects: inMonth.filter((p: any) => !p.pago).length,
     totalDiasTrabalho,
     totalHoras,
     totalMinutos,

@@ -28,6 +28,7 @@ import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engin
 import { Dia } from "../../src/calc/types";
 import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml, buildEditableSheetHtml, buildEditableDayRowsHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
+import { formatNumber } from "../../src/format/money";
 import * as ScreenOrientation from "expo-screen-orientation";
 
 // WebView só no nativo (na web usamos <iframe>); evita puxá-lo para o bundle web.
@@ -602,8 +603,7 @@ export default function ProjectEditor() {
     });
     // Linha das taxas globais: número com 2 casas (o símbolo € é um span à
     // parte nessas células) — "7" volta como "7,00" ao sair da célula
-    const dec2 = (n: any) =>
-      (Math.round((Number(n) || 0) * 100) / 100).toFixed(2).replace(".", ",");
+    const dec2 = (n: any) => formatNumber(Number(n) || 0, 2);
     const hDia = p.tabela.H_dia || 11;
     const base = salG / hDia;
     const g = {
