@@ -1657,8 +1657,19 @@ export function buildEditableSheetHtml(
           if(!el.classList || !el.classList.contains('ei')) return;
           setTimeout(function(){ post({ type:'ws:blur' }); }, 50);
         }, true);
-        // Horas: os dois pontos aparecem ENQUANTO se escreve (ver só "0080"
-        // até sair da célula era confuso depois da seleção-total)
+        // Horas — UM formatador canónico (os dois antigos andavam à bulha e
+        // saíam ":::"). Regra: 2 dígitos = hora certa ("08"→08:00, "12"→12:00);
+        // 3-4 dígitos = HH:MM ("845"→08:45, "0845"→08:45). Ao escrever, os
+        // dois pontos aparecem a partir do 3º dígito.
+        function fmtTime(text, final){
+          var d = String(text||'').replace(/\D/g,'').slice(0,4);
+          if(!final){ return d.length<=2 ? d : d.slice(0,2)+':'+d.slice(2); }
+          if(d.length===0) return '';
+          if(d.length===1) return '0'+d+':00';
+          if(d.length===2) return d+':00';
+          if(d.length===3) return '0'+d.charAt(0)+':'+d.slice(1);
+          return d.slice(0,2)+':'+d.slice(2);
+        }
         function caretEnd(el){
           try{
             var r=document.createRange(); r.selectNodeContents(el); r.collapse(false);
@@ -1668,19 +1679,13 @@ export function buildEditableSheetHtml(
         document.addEventListener('input', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('time')) return;
-          var d = (el.textContent||'').replace(/\D/g,'').slice(0,4);
-          var out = d.length<=2 ? d : d.slice(0,2)+':'+d.slice(2);
+          var out = fmtTime(el.textContent, false);
           if(out !== el.textContent){ el.textContent = out; caretEnd(el); }
         }, true);
-        // Normaliza as horas para HH:MM ao sair do campo (edição livre dígito a dígito)
         document.addEventListener('blur', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('time')) return;
-          var v = (el.textContent||'').replace(/[.;,hH\\s]/g, ':').trim();
-          var m = /^(\\d{1,2}):(\\d{2})$/.exec(v);
-          var out;
-          if(m){ out = ('0'+m[1]).slice(-2)+':'+m[2]; }
-          else { var d = (el.textContent||'').replace(/\\D/g,'').slice(0,4); out = d.length<=2 ? d : d.slice(0,2)+':'+d.slice(2); }
+          var out = fmtTime(el.textContent, true);
           if(out !== el.textContent){ el.textContent = out; }
           post({ type:'ws:edit', k:'dia', f: el.getAttribute('data-f'), i: di(el), value: out });
         }, true);
