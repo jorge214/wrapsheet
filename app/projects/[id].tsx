@@ -464,6 +464,11 @@ export default function ProjectEditor() {
     // transform:scale funciona igual na web e no WKWebView (o zoom por CSS e o
     // viewport dinâmico não — o iOS trava a escala mínima em 0,25).
     return html.replace(
+      // Sem viewport, o WKWebView assume 980px de largura — no telemóvel as
+      // miniaturas ficavam com escala e centragem erradas (innerWidth mentia)
+      "<head>",
+      `<head><meta name="viewport" content="width=device-width, initial-scale=1">`
+    ).replace(
       "</body>",
       `<style>html{overflow:hidden} body{padding:6px}</style><script>
 (function(){

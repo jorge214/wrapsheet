@@ -1412,7 +1412,10 @@ export function buildEditableSheetHtml(
         .uRow { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; align-items: end; }
         .uk { font-size: 11px; font-weight: 800; padding: 5px 0 3px; }
         .uv { font-size: 13.5px; font-weight: 700; border-bottom: 1px solid #2b2b2b; padding: 5px 2px 3px; min-height: 1.25em; min-width: 0; overflow: hidden; }
-        .uv .ei { display: block; width: 100%; min-height: 1.1em; }
+        /* nowrap: no iOS o contenteditable ganha pre-wrap do próprio WebKit e
+           rendia uma linha fantasma alternada no cabeçalho mesmo com dados
+           limpos — proibir quebras aqui torna o layout imune em qualquer motor */
+        .uv .ei { display: block; width: 100%; min-height: 1.1em; white-space: nowrap; overflow: hidden; }
         .sideBox .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
         .sideBox .k { font-weight: 800; }
         /* nowrap: o "%" ficava a cair para a linha de baixo do valor */
