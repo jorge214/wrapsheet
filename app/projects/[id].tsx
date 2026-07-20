@@ -484,12 +484,14 @@ export default function ProjectEditor() {
     var w = Math.max(d.scrollWidth, b.scrollWidth);
     if(w <= 0) return;
     if(window.ReactNativeWebView){
-      // iOS (WKWebView): transform+innerWidth mentem em frames pequenos.
-      // A técnica que funciona (a mesma do editor): declarar a largura REAL
-      // da página no viewport e o WKWebView encaixa-a sozinho no cartão.
-      var mv = document.querySelector('meta[name="viewport"]');
-      if(!mv){ mv = document.createElement('meta'); mv.setAttribute('name','viewport'); document.head.appendChild(mv); }
-      mv.setAttribute('content', 'width=' + (w + 16));
+      // Nativo: NADA de truques de viewport (o WKWebView amplia quando a
+      // página é mais estreita que o frame e o conteúdo transborda do cartão).
+      // Em vez disso reporta-se o tamanho real à app — o RN faz a escala.
+      try{
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          t: 'pv', w: w, h: Math.max(d.scrollHeight, b.scrollHeight)
+        }));
+      }catch(err){}
       return;
     }
     // Web: 0.9 = folga à volta; translateX centra a folha no cartão
@@ -1917,7 +1919,11 @@ function Grid3({ children }: { children: React.ReactNode }) {
 // do WKWebView, que informa mal a largura em frames pequenos.
 function NativeThumb({ html }: { html: string }) {
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
-  const PW = 1500; // largura de layout da folha; o viewport interno auto-ajusta
+  // Largura REAL do conteúdo, reportada pela própria página (postMessage
+  // 'pv') — a escala fica exata e nada transborda do cartão
+  const [cw, setCw] = useState<number | null>(null);
+  const PW = cw ?? 1500;
+  const scale = box ? box.w / PW : 1;
   return (
     <View
       pointerEvents="none"
@@ -1928,12 +1934,23 @@ function NativeThumb({ html }: { html: string }) {
         <View
           style={{
             width: PW,
-            height: box.h / (box.w / PW),
-            transform: [{ scale: box.w / PW }],
+            height: box.h / scale,
+            transform: [{ scale }],
             transformOrigin: "top left",
           } as any}
         >
-          <WebView source={{ html }} scrollEnabled={false} javaScriptEnabled style={{ flex: 1, backgroundColor: "#fff" }} />
+          <WebView
+            source={{ html }}
+            scrollEnabled={false}
+            javaScriptEnabled
+            onMessage={(e: any) => {
+              try {
+                const d = JSON.parse(e?.nativeEvent?.data ?? "{}");
+                if (d?.t === "pv" && d.w > 0) setCw(d.w + 16);
+              } catch {}
+            }}
+            style={{ flex: 1, backgroundColor: "#fff" }}
+          />
         </View>
       ) : null}
     </View>

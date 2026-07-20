@@ -1670,17 +1670,15 @@ export function buildEditableSheetHtml(
           if(d.length===3) return '0'+d.charAt(0)+':'+d.slice(1);
           return d.slice(0,2)+':'+d.slice(2);
         }
-        function caretEnd(el){
-          try{
-            var r=document.createRange(); r.selectNodeContents(el); r.collapse(false);
-            var s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
-          }catch(err){}
-        }
-        document.addEventListener('input', function(e){
+        // Reformatar A CADA tecla lutava com o teclado do iOS (saíam ":::").
+        // Em vez disso: ao ENTRAR na célula o valor vira dígitos simples
+        // ("08:00" → "0800", tudo selecionado — escrever substitui); os dois
+        // pontos entram na formatação canónica ao SAIR.
+        document.addEventListener('focusin', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('time')) return;
-          var out = fmtTime(el.textContent, false);
-          if(out !== el.textContent){ el.textContent = out; caretEnd(el); }
+          var d = String(el.textContent||'').replace(/\D/g,'').slice(0,4);
+          if(d !== el.textContent){ el.textContent = d; }
         }, true);
         document.addEventListener('blur', function(e){
           var el = e.target;
