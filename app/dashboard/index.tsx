@@ -20,10 +20,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CURRENCY } from "../../src/calc/engine";
 import { formatMoneyApp, formatNumber } from "../../src/format/money";
 import { getPreset } from "../../src/constants/countryPresets";
-import { getSettings } from "../../src/storage/appSettings";
+import { effectiveFiscalOf, getSettings } from "../../src/storage/appSettings";
 import i18n from "../../src/i18n/i18n";
-import { getMonthSummary, getYearSummary, MonthSummary, YearSummary } from "../../src/stats/monthSummary";
+import { getMonthSummary, getYearSummary, MonthSummary, projectFinalValue, YearSummary } from "../../src/stats/monthSummary";
 import {
+  listAllProjectsFull,
   listArchivedProjects,
   listProjects,
   ProjectListItem,
@@ -67,6 +68,7 @@ export default function DashboardScreen() {
 
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [archived, setArchived] = useState<ProjectListItem[]>([]);
+  const [valores, setValores] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [monthSummary, setMonthSummary] = useState<MonthSummary | null>(null);
   const [yearSummary, setYearSummary] = useState<YearSummary | null>(null);
@@ -87,12 +89,19 @@ export default function DashboardScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [activeList, archivedList, summary, ySummary] = await Promise.all([
+      const [activeList, archivedList, summary, ySummary, full, settings] = await Promise.all([
         listProjects(),
         listArchivedProjects(),
         getMonthSummary(mes, ano),
         getYearSummary(ano),
+        listAllProjectsFull(),
+        getSettings(),
       ]);
+      // Valor final por projeto (mesma regra fiscal do resumo/lista)
+      const eff = effectiveFiscalOf(settings);
+      const vmap: Record<string, number> = {};
+      for (const p of full) vmap[p.id] = projectFinalValue(p, eff);
+      setValores(vmap);
 
       const sortByUpdated = (arr: ProjectListItem[]) =>
         [...arr].sort((a, b) => {
@@ -375,34 +384,33 @@ export default function DashboardScreen() {
                     Platform.OS === "web" && hovered && { opacity: 0.88 },
                   ]}
                 >
-                  <View style={s.recentCard}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.recentTitle} numberOfLines={1}>
-                          {p.nome || t("project_unnamed", { defaultValue: "Projeto sem nome" })}
-                        </Text>
-                        <Text style={s.recentSub} numberOfLines={1}>
-                          {(p.cliente || "—") + " · " + (p.mes || "--/----")}
-                        </Text>
-                        <Text style={s.recentSub} numberOfLines={1}>
-                          {t("updated_at", { defaultValue: "Atualizado:" })}{" "}
-                          <Text style={s.recentSubStrong}>{updated}</Text>
-                        </Text>
-                      </View>
+                  <View style={[s.recentCard, p.status === "archived" && s.recentCardPaid]}>
+                    <Text style={s.recentTitle} numberOfLines={2}>
+                      {p.nome || t("project_unnamed", { defaultValue: "Projeto sem nome" })}
+                    </Text>
+                    <Text style={s.recentSub} numberOfLines={1}>
+                      {(p.cliente || "—") + " · " + (p.mes || "--/----")}
+                    </Text>
 
-                      <View
-                        style={[
-                          s.badge,
-                          p.status === "active" ? s.badgeActive : s.badgeArchived,
-                        ]}
-                      >
-                        <Text style={s.badgeText}>
-                          {p.status === "active"
-                            ? t("status_active", { defaultValue: "Ativo" })
-                            : t("status_archived", { defaultValue: "Arquivado" })}
+                    {/* Mesmo formato da lista de projetos: estado (a receber /
+                        ✓ pago em verde) + valor do trabalho na mesma linha */}
+                    <View style={s.recentStatusRow}>
+                      <View style={[s.payBtn, p.status === "archived" && s.payBtnOn]}>
+                        <Text style={[s.payBtnText, p.status === "archived" && s.payBtnTextOn]}>
+                          {p.status === "archived"
+                            ? "✓ " + t("paid", { defaultValue: "Pago" })
+                            : t("to_receive", { defaultValue: "A Receber" })}
                         </Text>
                       </View>
+                      <Text style={s.recentValue} numberOfLines={1}>
+                        {formatMoneyApp(valores[p.id] ?? 0)}
+                      </Text>
                     </View>
+
+                    <Text style={[s.recentSub, { marginTop: 8 }]} numberOfLines={1}>
+                      {t("updated_at", { defaultValue: "Atualizado:" })}{" "}
+                      <Text style={s.recentSubStrong}>{updated}</Text>
+                    </Text>
                   </View>
                 </Pressable>
               );
@@ -562,21 +570,27 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     },
     recentSubStrong: { color: COLORS.text, fontWeight: "900" },
 
-    badge: {
-      paddingHorizontal: 12,
-      paddingVertical: 7,
+    // Cartão de projeto no Dashboard — mesmo formato da lista de Projetos
+    recentCardPaid: { borderLeftWidth: 5, borderLeftColor: "#1a9c4e" },
+    recentStatusRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 12,
+      gap: 10,
+    },
+    recentValue: { color: COLORS.text, fontWeight: "900", fontSize: 17 },
+    payBtn: {
+      paddingVertical: 6,
+      paddingHorizontal: 10,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: COLORS.border,
-      backgroundColor: "transparent",
+      backgroundColor: COLORS.card,
     },
-    badgeActive: {},
-    badgeArchived: {},
-    badgeText: {
-      fontSize: 13,
-      fontWeight: "900",
-      color: COLORS.sub,
-    },
+    payBtnOn: { borderColor: "#1a9c4e", backgroundColor: "#e4f6ea" },
+    payBtnText: { color: COLORS.sub, fontWeight: "900", fontSize: 12 },
+    payBtnTextOn: { color: "#137a3a" },
 
     /* Modal (igual aos projetos) */
     modalBackdrop: {

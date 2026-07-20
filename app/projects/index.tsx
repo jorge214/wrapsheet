@@ -531,7 +531,7 @@ export default function ProjectsScreen() {
         {([
           { key: "todos", label: t("all_months", { defaultValue: "Todos" }), n: counts.todos },
           { key: "areceber", label: t("to_receive", { defaultValue: "A Receber" }), n: counts.areceber },
-          { key: "arquivados", label: t("archived_title", { defaultValue: "Arquivados" }), n: counts.arquivados },
+          { key: "arquivados", label: t("paid_plural", { defaultValue: "Pagos" }), n: counts.arquivados },
         ] as const).map((f) => {
           const on = tab === f.key;
           return (
