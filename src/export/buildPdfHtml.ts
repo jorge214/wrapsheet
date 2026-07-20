@@ -1335,6 +1335,10 @@ export function buildEditableSheetHtml(
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
         .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
+        /* Placeholder em campos vazios — contenteditable não mostra o
+           atributo placeholder sozinho, é preciso desenhá-lo */
+        .ei:empty::before { content: attr(placeholder); color: #b3b3b3; }
+        .titleBox .ei:empty::before { color: rgba(255,255,255,0.85); }
         .titleBox .ei:focus { background: rgba(255,255,255,.18); box-shadow: none; }
         .headgrid { margin-top: 10px; display: grid; grid-template-columns: 40% 20%; justify-content: space-between; gap: 0; align-items: start; }
         .stack { display: flex; flex-direction: column; gap: 10px; }
