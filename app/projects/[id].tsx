@@ -595,7 +595,24 @@ export default function ProjectEditor() {
         tot: fmt(c.totalDia || 0),
       };
     });
-    const payload = { type: "ws:calc", totalDias: String(totalDias).replace(".", ","), vb: fmt(tot.ValorBruto), irs: fmt(tot.IRS_valor), iva: fmt(tot.IVA_valor), vf: fmt(tot.ValorFinal), days };
+    // Linha das taxas globais: número com 2 casas (o símbolo € é um span à
+    // parte nessas células) — "7" volta como "7,00" ao sair da célula
+    const dec2 = (n: any) =>
+      (Math.round((Number(n) || 0) * 100) / 100).toFixed(2).replace(".", ",");
+    const hDia = p.tabela.H_dia || 11;
+    const base = salG / hDia;
+    const g = {
+      g_sal: dec2(salG),
+      g_hea: dec2(p.tabela.rateHEA ?? base * Number(p.tabela.multHEA ?? 1.5)),
+      g_heb: dec2(p.tabela.rateHEB ?? base * Number(p.tabela.multHEB ?? 2.0)),
+      g_hr: dec2(p.tabela.rateHR ?? base * Number(p.tabela.multHR ?? 3.0)),
+      g_ref: dec2(p.tabela.ajudas?.refeicao),
+      g_viat: dec2(p.tabela.ajudas?.viatura),
+      g_tel: dec2(p.tabela.ajudas?.telefone),
+      g_mat: dec2(p.tabela.ajudas?.material),
+      g_per: dec2(p.tabela.ajudas?.perDiem),
+    };
+    const payload = { type: "ws:calc", totalDias: String(totalDias).replace(".", ","), vb: fmt(tot.ValorBruto), irs: fmt(tot.IRS_valor), iva: fmt(tot.IVA_valor), vf: fmt(tot.ValorFinal), g, days };
     if (Platform.OS === "web") {
       editIframeRef.current?.contentWindow?.postMessage(payload, "*");
       inlineSheetRef.current?.contentWindow?.postMessage(payload, "*");

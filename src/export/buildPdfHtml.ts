@@ -1218,8 +1218,8 @@ const edTi = (k: string, f: string, val: string, extra = "") =>
   `<span class="ei" ${CE} data-k="${k}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
 const edDi = (i: number, f: string, val: string, cls = "", extra = "") =>
   `<span class="ei ${cls}" ${CE} data-k="dia" data-i="${i}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
-const edMi = (k: string, f: string, val: number) =>
-  `<span class="ei money" ${CE} inputmode="decimal" data-k="${k}" data-f="${f}">${escapeHtml(String(val ?? 0))}</span>`;
+const edMi = (k: string, f: string, val: number, cKey = "") =>
+  `<span class="ei money" ${CE} inputmode="decimal" data-k="${k}" data-f="${f}"${cKey ? ` data-c="${cKey}"` : ""}>${escapeHtml(String(val ?? 0))}</span>`;
 // Célula numérica de um DIA, editável E recalculável: o próprio span leva o
 // data-c, para o ws:calc atualizar no sítio (saltando a célula em foco).
 const edNum = (i: number, f: string, cKey: string, val: string) =>
@@ -1528,15 +1528,15 @@ export function buildEditableSheetHtml(
         </tr>
         <tr>
           <td class="tdias"><span class="ei money" ${CE} inputmode="decimal" data-k="projeto" data-f="totalDias" data-c="totalDias">${fmtNum(totalDias, 1)}</span></td>
-          <td>${mi("tabela", "salarioDia", salarioDia)} <span class="mini">${curSym}</span></td>
-          <td>${mi("tabela", "rateHEA", Math.round(vHEA * 100) / 100)} <span class="mini">${curSym}</span></td>
-          <td>${mi("tabela", "rateHEB", Math.round(vHEB * 100) / 100)} <span class="mini">${curSym}</span></td>
-          <td>${mi("tabela", "rateHR", Math.round(vHR * 100) / 100)} <span class="mini">${curSym}</span></td>
-          <td>${mi("ajudas", "refeicao", valRef)} <span class="mini">${curSym}</span></td>
-          <td>${mi("ajudas", "viatura", valViat)} <span class="mini">${curSym}</span></td>
-          <td>${mi("ajudas", "telefone", valTel)} <span class="mini">${curSym}</span></td>
-          <td>${mi("ajudas", "material", valMat)} <span class="mini">${curSym}</span></td>
-          <td>${mi("ajudas", "perDiem", valPer)} <span class="mini">${curSym}</span></td>
+          <td>${mi("tabela", "salarioDia", salarioDia, "g_sal")} <span class="mini">${curSym}</span></td>
+          <td>${mi("tabela", "rateHEA", Math.round(vHEA * 100) / 100, "g_hea")} <span class="mini">${curSym}</span></td>
+          <td>${mi("tabela", "rateHEB", Math.round(vHEB * 100) / 100, "g_heb")} <span class="mini">${curSym}</span></td>
+          <td>${mi("tabela", "rateHR", Math.round(vHR * 100) / 100, "g_hr")} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "refeicao", valRef, "g_ref")} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "viatura", valViat, "g_viat")} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "telefone", valTel, "g_tel")} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "material", valMat, "g_mat")} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "perDiem", valPer, "g_per")} <span class="mini">${curSym}</span></td>
         </tr>
       </table>
 
@@ -1697,6 +1697,8 @@ export function buildEditableSheetHtml(
             n.textContent = val;
           }
           set('[data-c="totalDias"]', d.totalDias);
+          // Linha das taxas globais (salário, HE €/h, ajudas): "7" → "7,00"
+          if(d.g){ for(var gk in d.g){ set('[data-c="'+gk+'"]', d.g[gk]); } }
           set('[data-c="vb"]', d.vb); set('[data-c="gross"]', d.vb);
           set('[data-c="irs"]', d.irs); set('[data-c="birs"]', d.irs);
           set('[data-c="iva"]', d.iva); set('[data-c="biva"]', d.iva);
