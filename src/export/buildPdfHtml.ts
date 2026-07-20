@@ -1442,12 +1442,12 @@ export function buildEditableSheetHtml(
           -webkit-appearance: none; appearance: none; border-radius: 0; }
         input.ei::placeholder { color: #b3b3b3; }
         input.ei:focus { background: #eef4ff; outline: none; box-shadow: inset 0 0 0 1px #1b5fbf; }
-        /* Células de hora: pouco padding lateral e letra ligeiramente apertada
-           para "00:30"/"20:00" (5 caracteres) caberem nas colunas estreitas do
-           telemóvel — o <input> corta o que não cabe (o antigo campo transbordava
-           visível, o input não). */
-        .days td.timeCell { padding-left: 2px; padding-right: 2px; }
-        input.ei.time { letter-spacing: -0.3px; }
+        /* Células de hora com largura própria e folgada: as colunas encolhiam
+           ao tamanho do cabeçalho curto ("FIM"/"END") e o "20:00"/"00:30" ficava
+           encavalitado. Uma largura fixa dá espaço em toda a coluna (cabeçalho
+           incluído) no PC e no telemóvel. */
+        .days td.timeCell { width: 56px; min-width: 56px; padding-left: 4px; padding-right: 4px; }
+        input.ei.time { letter-spacing: normal; }
         .days td.calc { white-space: nowrap; }
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
@@ -1590,7 +1590,7 @@ export function buildEditableSheetHtml(
           <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
           <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
           <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
-          <span class="buildTag">HORAS v5 ✓</span>
+          <span class="buildTag">HORAS v6 ✓</span>
         </div>
         <table class="endTotals">
           <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
