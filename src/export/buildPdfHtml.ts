@@ -1648,6 +1648,30 @@ export function buildEditableSheetHtml(
             }catch(err){}
           }, 0);
         }, true);
+        // Ao SAIR de qualquer célula editável, pede à app um re-push dos
+        // valores calculados/formatados: a célula já não está focada e o
+        // ws:calc pode reescrevê-la ("12" volta a "12,00 €"; vazio volta ao
+        // automático). Sem isto, depois da seleção-total o € não voltava.
+        document.addEventListener('focusout', function(e){
+          var el = e.target;
+          if(!el.classList || !el.classList.contains('ei')) return;
+          setTimeout(function(){ post({ type:'ws:blur' }); }, 50);
+        }, true);
+        // Horas: os dois pontos aparecem ENQUANTO se escreve (ver só "0080"
+        // até sair da célula era confuso depois da seleção-total)
+        function caretEnd(el){
+          try{
+            var r=document.createRange(); r.selectNodeContents(el); r.collapse(false);
+            var s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+          }catch(err){}
+        }
+        document.addEventListener('input', function(e){
+          var el = e.target;
+          if(!el.classList || !el.classList.contains('time')) return;
+          var d = (el.textContent||'').replace(/\D/g,'').slice(0,4);
+          var out = d.length<=2 ? d : d.slice(0,2)+':'+d.slice(2);
+          if(out !== el.textContent){ el.textContent = out; caretEnd(el); }
+        }, true);
         // Normaliza as horas para HH:MM ao sair do campo (edição livre dígito a dígito)
         document.addEventListener('blur', function(e){
           var el = e.target;

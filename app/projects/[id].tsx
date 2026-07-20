@@ -631,6 +631,9 @@ export default function ProjectEditor() {
     const p = projectRef.current;
     if (!p) return;
     if (d.type === "ws:ready") { postEditCalc(p); return; }
+    // Saiu de uma célula: re-push dos valores formatados (a célula já não está
+    // focada, o ws:calc pode reescrevê-la — "12" → "12,00 €", vazio → automático)
+    if (d.type === "ws:blur") { postEditCalc(p); return; }
 
     // Tudo o que segue vem da própria folha e persiste o projeto — marca para
     // o efeito da folha inline NÃO a recarregar (perdia o foco/scroll)
@@ -1120,9 +1123,7 @@ export default function ProjectEditor() {
                         title={o.label}
                       />
                     ) : WebView ? (
-                      <View pointerEvents="none" style={{ flex: 1 }}>
-                        <WebView source={{ html: exportPreviewHtml }} scrollEnabled={false} javaScriptEnabled style={{ flex: 1, backgroundColor: "#fff" }} />
-                      </View>
+                      <NativeThumb html={exportPreviewHtml} />
                     ) : null}
                     {/* overlay: o clique seleciona o cartão (o iframe engolia-o) */}
                     <Pressable
@@ -1906,6 +1907,34 @@ function Grid3({ children }: { children: React.ReactNode }) {
     </View>
   );
 }
+// Miniatura nativa do Exportar PDF: a app mede a caixinha e encolhe uma
+// folha em tamanho real com transform do RN — o encaixe deixa de depender
+// do WKWebView, que informa mal a largura em frames pequenos.
+function NativeThumb({ html }: { html: string }) {
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  const PW = 1500; // largura de layout da folha; o viewport interno auto-ajusta
+  return (
+    <View
+      pointerEvents="none"
+      style={{ flex: 1, overflow: "hidden" }}
+      onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+    >
+      {box && WebView ? (
+        <View
+          style={{
+            width: PW,
+            height: box.h / (box.w / PW),
+            transform: [{ scale: box.w / PW }],
+            transformOrigin: "top left",
+          } as any}
+        >
+          <WebView source={{ html }} scrollEnabled={false} javaScriptEnabled style={{ flex: 1, backgroundColor: "#fff" }} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function Grid4({ children }: { children: React.ReactNode }) {
   return (
     <View style={ss.gridRow}>
