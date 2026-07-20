@@ -478,7 +478,16 @@ export default function ProjectEditor() {
     b.style.transform = ''; b.style.width = '';
     var w = Math.max(d.scrollWidth, b.scrollWidth);
     if(w <= 0) return;
-    // 0.9 = folga à volta; translateX centra a folha no cartão
+    if(window.ReactNativeWebView){
+      // iOS (WKWebView): transform+innerWidth mentem em frames pequenos.
+      // A técnica que funciona (a mesma do editor): declarar a largura REAL
+      // da página no viewport e o WKWebView encaixa-a sozinho no cartão.
+      var mv = document.querySelector('meta[name="viewport"]');
+      if(!mv){ mv = document.createElement('meta'); mv.setAttribute('name','viewport'); document.head.appendChild(mv); }
+      mv.setAttribute('content', 'width=' + (w + 16));
+      return;
+    }
+    // Web: 0.9 = folga à volta; translateX centra a folha no cartão
     var z = Math.min(1, window.innerWidth / w) * 0.9;
     var tx = Math.max(0, (window.innerWidth - w * z) / 2);
     b.style.width = w + 'px';
