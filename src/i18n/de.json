@@ -446,5 +446,7 @@
   "search_by_name": "Nach Name oder Produktionsfirma suchen",
   "no_search_results": "Keine Projekte gefunden",
   "home_active_projects_one": "{{n}} aktives Projekt",
-  "home_active_projects_other": "{{n}} aktive Projekte"
+  "home_active_projects_other": "{{n}} aktive Projekte",
+  "home_days_one": "Tag",
+  "home_days_other": "Tage"
 }

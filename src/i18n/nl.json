@@ -446,5 +446,7 @@
   "search_by_name": "Zoeken op naam of productiebedrijf",
   "no_search_results": "Geen projecten gevonden",
   "home_active_projects_one": "{{n}} actief project",
-  "home_active_projects_other": "{{n}} actieve projecten"
+  "home_active_projects_other": "{{n}} actieve projecten",
+  "home_days_one": "dag",
+  "home_days_other": "dagen"
 }

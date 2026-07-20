@@ -1806,6 +1806,14 @@ export function buildEditableSheetHtml(
           return out;
         }
         function isDigit(ch){ var c = ch.charCodeAt(0); return c >= 48 && c <= 57; }
+        // Ao ENTRAR na data: selecionar tudo — escrever substitui a data
+        // inteira. Apagar só uma parte fazia o resto "deslizar" (apagar o dia
+        // em "06/07/2026" dava "07/20/26"); retypar de fresco evita isso.
+        document.addEventListener('focusin', function(e){
+          var el = e.target;
+          if(!isDateInput(el)) return;
+          setTimeout(function(){ if(document.activeElement===el){ try{ el.select(); }catch(err){} } }, 0);
+        }, true);
         document.addEventListener('input', function(e){
           var el = e.target;
           if(!isDateInput(el)) return;

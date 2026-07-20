@@ -446,5 +446,7 @@
   "search_by_name": "Szukaj wg nazwy lub firmy produkcyjnej",
   "no_search_results": "Nie znaleziono projektów",
   "home_active_projects_one": "{{n}} aktywny projekt",
-  "home_active_projects_other": "{{n}} aktywne projekty"
+  "home_active_projects_other": "{{n}} aktywne projekty",
+  "home_days_one": "dzień",
+  "home_days_other": "dni"
 }

@@ -89,9 +89,10 @@ export default function HomeHub() {
     { n: nActive, defaultValue: nActive === 1 ? "{{n}} active project" : "{{n}} active projects" }
   );
 
-  // Subtítulo dinâmico dos Projetos: projeto ativo mais recente + nº de dias
+  // Subtítulo dinâmico dos Projetos: projeto ativo mais recente + nº de dias.
+  // "dias" em minúscula (é a meio de frase, não um título).
   const projectsSubtitle = latest
-    ? `${latest.nome} · ${latest.dias} ${latest.dias === 1 ? t("day", { defaultValue: "Dia" }) : t("days", { defaultValue: "Dias" })}`
+    ? `${latest.nome} · ${latest.dias} ${t(latest.dias === 1 ? "home_days_one" : "home_days_other", { defaultValue: latest.dias === 1 ? "day" : "days" })}`
     : t("home_projects_sub", { defaultValue: "Gerir e editar relatórios" });
 
   return (
@@ -113,22 +114,20 @@ export default function HomeHub() {
             mais quer ver ao abrir a app. Toca para abrir o Dashboard. */}
         <Pressable
           onPress={() => router.push("/dashboard")}
-          style={({ pressed }) => [s.summaryCard, { borderColor: COLORS.border }, pressed && { opacity: 0.96 }]}
+          style={({ pressed }) => [s.summaryCard, pressed && { opacity: 0.92 }]}
         >
-          <Text style={[s.summaryMonth, { color: COLORS.sub }]}>{monthLabel}</Text>
+          <Text style={s.summaryMonth}>{monthLabel}</Text>
           {summary === null ? (
-            <Text style={[s.summaryFigure, { color: COLORS.sub }]}> </Text>
+            <Text style={s.summaryFigure}> </Text>
           ) : hasData ? (
             <>
-              <Text style={[s.summaryFigure, { color: COLORS.text }]}>
-                {formatMoneyApp(summary.totalReceber)}
-              </Text>
-              <Text style={[s.summarySub, { color: COLORS.sub }]}>
+              <Text style={s.summaryFigure}>{formatMoneyApp(summary.totalReceber)}</Text>
+              <Text style={s.summarySub}>
                 {t("to_receive", { defaultValue: "A Receber" })} · {activeLabel}
               </Text>
             </>
           ) : (
-            <Text style={[s.summaryEmpty, { color: COLORS.sub }]}>
+            <Text style={s.summaryEmpty}>
               {t("no_projects_in_month", { defaultValue: "Sem projetos neste mês" })}
             </Text>
           )}
@@ -195,19 +194,21 @@ const s = StyleSheet.create({
   },
   list: { paddingHorizontal: 16, paddingTop: 16 },
 
-  // Cartão-resumo (mesma linguagem visual dos botões: cantos arredondados,
-  // moldura, sem cor). O valor grande é o foco.
+  // Cartão-resumo: fundo preto sólido (como o ícone da app) para ser o foco
+  // visual — o valor a receber lê-se primeiro. Mesmos cantos/padding/espaço dos
+  // botões; só muda o preenchimento e as cores do texto.
   summaryCard: {
     padding: 22,
     borderRadius: 16,
     borderWidth: 2,
+    borderColor: "#000",
     marginBottom: 12,
-    backgroundColor: "transparent",
+    backgroundColor: "#000",
   },
-  summaryMonth: { fontSize: 13, fontWeight: "700" },
-  summaryFigure: { fontSize: 34, fontWeight: "900", marginTop: 6 },
-  summarySub: { fontSize: 13, marginTop: 6 },
-  summaryEmpty: { fontSize: 16, fontWeight: "700", marginTop: 8 },
+  summaryMonth: { fontSize: 13, fontWeight: "700", color: "rgba(255,255,255,0.55)" },
+  summaryFigure: { fontSize: 34, fontWeight: "900", marginTop: 6, color: "#ffffff" },
+  summarySub: { fontSize: 13, marginTop: 6, color: "rgba(255,255,255,0.6)" },
+  summaryEmpty: { fontSize: 16, fontWeight: "700", marginTop: 8, color: "rgba(255,255,255,0.7)" },
 
   card: {
     flexDirection: "row",

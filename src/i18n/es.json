@@ -446,5 +446,7 @@
   "search_by_name": "Buscar por nombre o productora",
   "no_search_results": "No se encontraron proyectos",
   "home_active_projects_one": "{{n}} proyecto activo",
-  "home_active_projects_other": "{{n}} proyectos activos"
+  "home_active_projects_other": "{{n}} proyectos activos",
+  "home_days_one": "día",
+  "home_days_other": "días"
 }
