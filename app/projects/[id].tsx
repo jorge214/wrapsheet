@@ -697,7 +697,7 @@ export default function ProjectEditor() {
     // ficavam gravadas e rendiam uma linha fantasma no cabeçalho (o browser dá
     // white-space:pre-wrap a contenteditable). Achata para espaço único.
     const oneLine = (v: any) =>
-      String(v ?? "").replace(/\s*[\r\n]+\s*/g, " ").trim();
+      String(v ?? "").replace(/\s*[\r\n\u2028\u2029\u0085]+\s*/g, " ").trim();
     // Campos numéricos por-dia editáveis diretamente na folha
     const DIA_NUM = new Set([
       "salarioDia", "ajRefeicao", "ajViatura", "ajTelefone", "ajMaterial", "ajPerDiem",

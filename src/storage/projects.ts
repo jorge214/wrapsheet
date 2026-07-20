@@ -222,7 +222,8 @@ function upgradeProject(raw: any, id: string): ProjectState {
   // Quebras de linha presas em campos de UMA linha (coladas no contenteditable
   // da folha) rendiam linhas fantasma no cabeçalho — sanear ao carregar cura
   // os dados antigos.
-  const oneLine = (v: any) => String(v ?? "").replace(/\s*[\r\n]+\s*/g, " ").trim();
+  const oneLine = (v: any) =>
+    String(v ?? "").replace(/\s*[\r\n\u2028\u2029\u0085]+\s*/g, " ").trim();
 
   const tabela = {
     ...defaultTabela(),

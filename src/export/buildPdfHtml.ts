@@ -689,7 +689,16 @@ function escapeHtml(s: string) {
 }
 
 function safeStr(v: any) {
-  return v == null ? "" : String(v);
+  // Campos de UMA linha do cabeçalho: além de \r\n, o iOS insere separadores
+  // de linha invisíveis (U+2028/U+2029/NEL) via teclado/autofill — em
+  // contenteditable (pre-wrap) rendem linhas fantasma que desalinhavam o
+  // cabeçalho. Achatar aqui protege a folha venha o valor de onde vier.
+  return v == null
+    ? ""
+    : String(v)
+        .replace(/[\r\n\u2028\u2029\u0085]+/g, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
 }
 
 export function fmtMoney(n: number, currency = "EUR") {
@@ -1031,7 +1040,10 @@ export function buildPdfHtml(
           padding: 6px; border-right: 1px solid #2b2b2b;
         }
         .condB { padding: 6px 8px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
-        .condImg { max-width: 240px; max-height: 170px; margin-top: 6px; border: 1px solid #999; }
+        /* Imagem da condição: centrada na caixa, proporções mantidas,
+           limitada à largura da caixa (antes ficava encostada e com um teto
+           fixo de 240px que desalinhava no PDF) */
+        .condImg { display: block; margin: 8px auto 2px; max-width: 70%; max-height: 240px; border: 1px solid #999; }
         .condRow { break-inside: avoid; page-break-inside: avoid; }
         /* Keep table rows and the closing blocks from being split across pages.
            NOTA: as condições NÃO levam break-inside:avoid no bloco inteiro —
@@ -1427,7 +1439,10 @@ export function buildEditableSheetHtml(
         .condRow:first-of-type { border-top: 0; }
         .condT { background: #e8e8e8; font-weight: 900; font-size: 10px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; border-right: 1px solid #2b2b2b; }
         .condB { padding: 6px 8px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
-        .condImg { max-width: 240px; max-height: 170px; margin-top: 6px; border: 1px solid #999; }
+        /* Imagem da condição: centrada na caixa, proporções mantidas,
+           limitada à largura da caixa (antes ficava encostada e com um teto
+           fixo de 240px que desalinhava no PDF) */
+        .condImg { display: block; margin: 8px auto 2px; max-width: 70%; max-height: 240px; border: 1px solid #999; }
         .conditionsBody { padding: 8px 10px; font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
         /* Faixa logo abaixo do último dia: botões à esquerda, totais à direita */
         .afterDays { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
