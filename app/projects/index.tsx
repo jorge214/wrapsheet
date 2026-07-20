@@ -396,12 +396,17 @@ export default function ProjectsScreen() {
     return monthScope;
   }, [monthScope, tab]);
 
-  // Lista a mostrar: com pesquisa preenchida, procura pelo NOME em TODOS os
-  // meses e pastas (ignora o mês/pasta selecionados); senão, a lista normal.
+  // Lista a mostrar: com pesquisa preenchida, procura pelo NOME do projeto E
+  // pelo nome da PRODUTORA (cliente), em TODOS os meses e pastas (ignora o
+  // mês/pasta selecionados); senão, a lista normal.
   const searchQuery = search.trim().toLowerCase();
   const displayList = useMemo(() => {
     if (!searchQuery) return filteredProjects;
-    return allItems.filter((p) => (p.nome || "").toLowerCase().includes(searchQuery));
+    return allItems.filter(
+      (p) =>
+        (p.nome || "").toLowerCase().includes(searchQuery) ||
+        (p.cliente || "").toLowerCase().includes(searchQuery)
+    );
   }, [searchQuery, allItems, filteredProjects]);
 
   // Limite do range de meses: do ano mais antigo com dados até ao ano seguinte
