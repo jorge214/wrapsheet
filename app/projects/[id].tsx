@@ -1729,11 +1729,10 @@ export default function ProjectEditor() {
               {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              {saveStatus !== "idle" && (
-                <Text style={[ss.saveStatus, saveStatus === "saved" && { color: "#1a9c4e" }]} numberOfLines={1}>
-                  {saveStatus === "saving" ? t("saving") : `✓ ${t("saved")}`}
-                </Text>
-              )}
+              {/* Sem "A guardar/Guardado" aqui: aparecia/desaparecia a cada tecla
+                  e, ao entrar na linha, espremia o título (flex:1) que encolhia e
+                  voltava — parecia que o título "mexia" ao editar a barra vermelha.
+                  A folha grava sozinha; o indicador fica na página do projeto. */}
               {/* Exportar vive na página do projeto: no nativo, abrir o share
                   sheet por cima deste modal crashava o iOS (web mantém) */}
               {Platform.OS === "web" && (
