@@ -1072,13 +1072,19 @@ export function buildPdfHtml(
         }
         @media print {
           @page { size: ${pageCss}; margin: ${pageMargin}; }
-          /* No vertical, encolhe a folha inteira uniformemente (proporcional e
-             legível) em vez de esmagar colunas umas contra as outras. */
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0; ${extra?.orientation === "portrait" ? "zoom: 0.62;" : ""} }
-          /* Horizontal: as condições vão inteiras para a página seguinte se não
-             couberem (como sempre foi em A3); partidas ao meio ficavam com
-             bordas soltas. No vertical fluem logo abaixo do último dia. */
-          ${extra?.orientation === "portrait" ? "" : ".conditions { break-inside: avoid; page-break-inside: avoid; }"}
+          /* IMPORTANTE: NADA de "zoom" aqui. O zoom no @media print parte a
+             paginação no WebKit (motor do expo-print no iOS) — a partir de um
+             certo nº de dias a folha passa para uma 2.ª página e o excesso era
+             CORTADO. No vertical, encolhe-se via font-size (abaixo), que pagina
+             a sério. */
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0; }
+          /* As condições NÃO levam break-inside:avoid no bloco inteiro: o bloco
+             é maior que uma página e o WebKit, sem conseguir mantê-lo junto,
+             CORTAVA o fim. Fluem e partem entre linhas (cada .condRow fica
+             inteira, ver acima) — igual à tabela dos dias, que nunca cortou. */
+          ${extra?.orientation === "portrait"
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th, .days td { font-size: 8px; } .secTitle { font-size: 10px; }"
+            : ""}
         }
       </style>
     </head>
