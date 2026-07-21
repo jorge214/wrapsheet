@@ -37,13 +37,13 @@ export default function PlanScreen() {
             {t("plan_free_price", { defaultValue: "0 €" })}
           </Text>
           <Text style={s.cardSub}>
-            {t("plan_free_desc", { defaultValue: "Começa grátis, sem limites." })}
+            {t("plan_free_desc", { defaultValue: "Começa já, sem limites." })}
           </Text>
 
           <View style={s.bulletList}>
             <Bullet text={t("plan_free_item1", { defaultValue: "Projetos ilimitados" })} />
             <Bullet text={t("plan_free_item2", { defaultValue: "Exports de PDF ilimitados" })} />
-            <Bullet text={t("plan_free_item3", { defaultValue: "Backups locais e sincronização" })} />
+            <Bullet text={t("plan_free_item3", { defaultValue: "Backups locais e sincronização entre dispositivos" })} />
             <Bullet text={t("plan_free_item4", { defaultValue: "1 perfil de técnico" })} />
           </View>
 
@@ -65,34 +65,24 @@ export default function PlanScreen() {
           </Text>
           <Text style={s.cardSub}>
             {t("plan_pro_desc", {
-              defaultValue:
-                "No futuro poderás ter funcionalidades extra, como sincronização na nuvem ou templates avançados.",
+              defaultValue: "Funcionalidades adicionais em preparação.",
             })}
           </Text>
 
           <View style={s.bulletList}>
-            <Bullet muted text={t("plan_pro_item1", { defaultValue: "Sincronização entre dispositivos" })} />
-            <Bullet muted text={t("plan_pro_item2", { defaultValue: "Modelos personalizados de relatório" })} />
-            <Bullet muted text={t("plan_pro_item3", { defaultValue: "Mais opções de exportação e automação" })} />
-            <Bullet muted text={t("plan_pro_item4", { defaultValue: "Arquivar projetos" })} />
-            <Bullet muted text={t("plan_pro_item5", { defaultValue: "Todos os regimes fiscais" })} />
-            <Bullet muted text={t("plan_pro_item6", { defaultValue: "Vários perfis" })} />
+            <Bullet muted text={t("plan_pro_item1", { defaultValue: "Vários perfis" })} />
+            <Bullet muted text={t("plan_pro_item2", { defaultValue: "Todos os regimes fiscais" })} />
+            <Bullet muted text={t("plan_pro_item3", { defaultValue: "Arquivo de projetos" })} />
+            <Bullet muted text={t("plan_pro_item4", { defaultValue: "Relatórios agregados por produção" })} />
           </View>
 
           <Text style={s.mutedInfo}>
             {t("plan_pro_note", {
               defaultValue:
-                "Esta secção é apenas informativa. Ainda não há subscrição ativa nem pagamentos dentro da aplicação.",
+                "Esta secção é apenas informativa. Não há subscrição ativa nem pagamentos dentro da aplicação.",
             })}
           </Text>
         </View>
-
-        <Text style={s.footerNote}>
-          {t("plan_footer_note", {
-            defaultValue:
-              "Grátis, sem subscrições nem pagamentos dentro da aplicação.",
-          })}
-        </Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -219,11 +209,5 @@ const createStyles = (COLORS: any) =>
       fontSize: 12,
       color: COLORS.sub,
       fontStyle: "italic",
-    },
-    footerNote: {
-      fontSize: 12,
-      color: COLORS.sub,
-      textAlign: "center",
-      marginTop: 4,
     },
   });
