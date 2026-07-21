@@ -57,6 +57,17 @@ export async function exportPDF(
   }
 
   // Desktop / Android: hidden iframe + browser print dialog
+  // Só aqui (Blink/Gecko): se as condições/notas não couberem no resto da
+  // página, o bloco salta INTEIRO para a página seguinte — caixa fechada em
+  // vez de partida ao meio. Não se injeta no iOS: no WebKit um bloco maior que
+  // uma página com break-inside:avoid é CORTADO no fim (o bug do expo-print);
+  // lá o bloco flui e parte entre linhas, com as molduras clonadas
+  // (box-decoration-break no CSS partilhado). Nos Blink/Gecko um bloco maior
+  // que a página ignora o avoid e parte na mesma — nunca perde conteúdo.
+  const desktopPrintCss =
+    "<style>@media print{ .condWrap, .notesWrap { break-inside: avoid; page-break-inside: avoid; } }</style>";
+  const htmlDesktop = html.replace("</head>", desktopPrintCss + "</head>");
+
   const iframe = document.createElement("iframe");
   iframe.style.cssText =
     "position:fixed;left:-9999px;top:0;width:1px;height:1px;border:none;";
@@ -64,7 +75,7 @@ export async function exportPDF(
 
   const doc = iframe.contentDocument!;
   doc.open();
-  doc.write(html);
+  doc.write(htmlDesktop);
   doc.close();
 
   await new Promise<void>((r) => setTimeout(r, 700));

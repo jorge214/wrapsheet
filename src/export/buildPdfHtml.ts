@@ -1064,10 +1064,14 @@ export function buildPdfHtml(
            fixo de 240px que desalinhava no PDF) */
         .condImg { display: block; margin: 8px auto 2px; max-width: 70%; max-height: 240px; border: 1px solid #999; }
         .condRow { break-inside: avoid; page-break-inside: avoid; }
-        /* Keep table rows and the closing blocks from being split across pages.
-           NOTA: as condições NÃO levam break-inside:avoid no bloco inteiro —
-           senão saltavam por inteiro para a página seguinte; cada .condRow
-           individual é que se mantém inteira. */
+        /* Se a caixa das condições/notas partir entre páginas, cada fragmento
+           fecha a própria moldura (borda em cima e em baixo) — sem os traços
+           laterais abertos até ao fundo da página. O salto do bloco inteiro
+           para a página seguinte é injetado só no print de desktop (pdf.web.ts):
+           no WebKit do iOS, break-inside:avoid num bloco maior que a página
+           CORTA o fim (o bug antigo do expo-print). */
+        .condWrap, .notesWrap { -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+        .condMain, .notesTitle { break-after: avoid; page-break-after: avoid; }
         tr { break-inside: avoid; page-break-inside: avoid; }
         .bottomGrid, .bottomGrid .box {
           break-inside: avoid;
@@ -1083,10 +1087,11 @@ export function buildPdfHtml(
           /* A tabela dos dias tem 20 colunas: em A4 não cabe ao tamanho de ecrã
              e era cortada à direita. No print encolhe-se só a tabela para caber
              na largura A4 — landscape 8px (cabe em 277mm), portrait 6px (cabe em
-             194mm). O resto da folha fica ao tamanho normal. */
+             194mm). As condições/notas também encolhem um pouco, para o bloco
+             inteiro caber numa página (e não ter de partir). */
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th, .days td { font-size: 6px; padding: 1.5px; } .days .mini { font-size: 5.5px; } .secTitle { font-size: 10px; }"
-            : ".days th, .days td { font-size: 8px; padding: 2px; } .days .mini { font-size: 7px; }"}
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th, .days td { font-size: 6px; padding: 1.5px; } .days .mini { font-size: 5.5px; } .secTitle { font-size: 10px; } .condMain, .notesTitle { font-size: 10px; } .condT { font-size: 8.5px; } .condB, .conditionsBody, .notesArea { font-size: 9.5px; }"
+            : ".days th, .days td { font-size: 8px; padding: 2px; } .days .mini { font-size: 7px; } .condMain, .notesTitle { font-size: 11px; } .condT { font-size: 9px; } .condB, .conditionsBody, .notesArea { font-size: 10px; }"}
         }
       </style>
     </head>
