@@ -899,20 +899,20 @@ export function buildPdfHtml(
           <td class="right">${fmt((d as any).salarioDia ?? salarioDia)}</td>
           <td>${escapeHtml(d.inicio || "")}</td>
           <td>${escapeHtml(d.refeicaoTrabalho || "")}</td>
-          <td>${escapeHtml(d.fim || "")}</td>
+          <td class="cFim">${escapeHtml(d.fim || "")}</td>
           <td>${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
           <td class="blue">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
           <td class="right">${fmt(c?.ajRef ?? valRef)}</td>
           <td class="right">${fmt(c?.ajViat ?? valViat)}</td>
           <td class="right">${fmt(c?.ajTel ?? valTel)}</td>
           <td class="right">${fmt(c?.ajMat ?? valMat)}</td>
-          <td class="right">${fmt(c?.ajPer ?? valPer)}</td>
+          <td class="right cPer">${fmt(c?.ajPer ?? valPer)}</td>
           <td class="right">${fmtNum((c?.HEA_min ?? 0) / 60, 1)}</td>
           <td class="right">${fmt(c?.HEA_valor ?? 0)}</td>
           <td class="right">${fmtNum((c?.HEB_min ?? 0) / 60, 1)}</td>
           <td class="right">${fmt(c?.HEB_valor ?? 0)}</td>
           <td class="right">${fmtNum((c?.HR_min ?? 0) / 60, 1)}</td>
-          <td class="right">${fmt(c?.HR_valor ?? 0)}</td>
+          <td class="right cRecV">${fmt(c?.HR_valor ?? 0)}</td>
           <td class="right strong tday">${fmt(c?.totalDia ?? 0)}</td>
         </tr>
       `;
@@ -1035,6 +1035,18 @@ export function buildPdfHtml(
         td.tday { background: #fff3bf; white-space: nowrap; }
         /* Valores monetários nunca partem linha (o € caía para baixo) */
         .days td.right { white-space: nowrap; }
+        /* Larguras mínimas (só mordem no vertical, onde a tabela é mais larga
+           que o A4 e as colunas apertam; no horizontal A3 há folga e não têm
+           efeito): FIM e PER DIEMS um pouco maiores, e as colunas de VALOR das
+           horas extra/recuperação uniformes e largas o suficiente para o
+           cabeçalho ("HORAS RECUPERAÇÃO", "ERHOLUNGSZEIT"…) caber a 8px sem
+           sair da caixa. O deficit vai para as colunas de texto, que refluem. */
+        .days td.cFim { min-width: 38px; }
+        .days td.cPer { min-width: 46px; }
+        .days td.cRecV { min-width: 44px; }
+        /* Salvaguarda multilíngue: se uma palavra for ainda mais comprida,
+           parte-a dentro da caixa em vez de a deixar transbordar. */
+        .days th.h-blue[colspan="2"] { overflow-wrap: anywhere; }
         /* Bloco final: Valor Bruto / IRS / IVA / Valor Líquido, alinhado à direita */
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
