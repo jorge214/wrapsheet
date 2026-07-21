@@ -884,7 +884,9 @@ export function buildPdfHtml(
   // portrait com a tabela encolhida por font-size (sem zoom, que parte a
   // paginação no WebKit).
   const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
-  const pageMargin = extra?.orientation === "portrait" ? "8mm" : "10mm";
+  // Horizontal: 14mm — ao encaixar a folha A3 em papel A4 a margem encolhe
+  // ~0.7x, portanto isto dá ~10mm reais (10mm davam ~7mm, quase sem margem).
+  const pageMargin = extra?.orientation === "portrait" ? "8mm" : "14mm";
 
   const dayRows = dias
     .map((d, i) => {
@@ -1070,6 +1072,10 @@ export function buildPdfHtml(
            CORTA o fim (o bug antigo do expo-print). */
         .condWrap, .notesWrap { -webkit-box-decoration-break: clone; box-decoration-break: clone; }
         .condMain, .notesTitle { break-after: avoid; page-break-after: avoid; }
+        /* Os totais finais (Bruto/IRS/IVA/Líquido) saltam inteiros de página —
+           partiam a meio (Bruto numa página, o resto na seguinte). Bloco
+           pequeno: o avoid é seguro em todos os motores, incl. WebKit. */
+        table.endTotals { break-inside: avoid; page-break-inside: avoid; }
         tr { break-inside: avoid; page-break-inside: avoid; }
         .bottomGrid, .bottomGrid .box {
           break-inside: avoid;
@@ -1082,8 +1088,13 @@ export function buildPdfHtml(
              certo nº de dias a folha passa para uma 2.ª página e o excesso era
              CORTADO. Encolhe-se via font-size (abaixo), que pagina a sério. */
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0; }
+          /* Vertical: a folha é mais larga que o A4 e o motor encolhe-a toda
+             para caber (shrink-to-fit). O que manda no tamanho impresso é o
+             rácio letra/largura da tabela: 9.5px com padding 4x2 imprime ~26%
+             maior que os antigos 8px com padding 6 (e o resto da folha até
+             fica um nadinha maior). Medido: 812px de largura -> escala 0.90. */
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th, .days td { font-size: 8px; } .secTitle { font-size: 10px; }"
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th, .days td { font-size: 9.5px; padding: 4px 2px; } .secTitle { font-size: 10px; }"
             : ""}
         }
       </style>
