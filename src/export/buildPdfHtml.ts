@@ -1109,7 +1109,7 @@ export function buildPdfHtml(
              (números ~10px efetivos vs 6.8px originais; campos e cabeçalho
              sem qualquer encolhimento). Medido com sonda de largura no Blink. */
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 2px; } .secTitle { font-size: 10px; }"
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 2px; } .secTitle { font-size: 10px; } .rates th { font-size: 8px; } .rates th.h-blue { overflow-wrap: anywhere; }"
             : ""}
         }
       </style>
