@@ -879,14 +879,12 @@ export function buildPdfHtml(
   const irsPct = extra?.fiscal?.IRS_percent;
   const ivaPct = extra?.fiscal?.IVA_percent;
 
-  // Orientação da impressão. Ambas em A4 (o papel universal): os browsers
-  // imprimem A4 por defeito e o seletor de papel do diálogo IGNORA o size do
-  // @page (só o motor headless/expo-print é que o respeita) — pedir A3 fazia a
-  // folha ser CORTADA à direita no PC. Solução: caber em A4 encolhendo a tabela
-  // dos dias no @media print (landscape 8px, portrait 6px — ver abaixo), que
-  // pagina a sério (nada de zoom/transform, que parte a paginação no WebKit).
-  const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A4 landscape";
-  const pageMargin = extra?.orientation === "portrait" ? "8mm" : "8mm";
+  // Orientação da impressão. Horizontal = A3 landscape (a tabela dos dias
+  // precisa desta largura para caber sem cortar nem espremer); vertical = A4
+  // portrait com a tabela encolhida por font-size (sem zoom, que parte a
+  // paginação no WebKit).
+  const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
+  const pageMargin = extra?.orientation === "portrait" ? "8mm" : "10mm";
 
   const dayRows = dias
     .map((d, i) => {
@@ -1084,14 +1082,9 @@ export function buildPdfHtml(
              certo nº de dias a folha passa para uma 2.ª página e o excesso era
              CORTADO. Encolhe-se via font-size (abaixo), que pagina a sério. */
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0; }
-          /* A tabela dos dias tem 20 colunas: em A4 não cabe ao tamanho de ecrã
-             e era cortada à direita. No print encolhe-se só a tabela para caber
-             na largura A4 — landscape 8px (cabe em 277mm), portrait 6px (cabe em
-             194mm). As condições/notas também encolhem um pouco, para o bloco
-             inteiro caber numa página (e não ter de partir). */
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th, .days td { font-size: 6px; padding: 1.5px; } .days .mini { font-size: 5.5px; } .secTitle { font-size: 10px; } .condMain, .notesTitle { font-size: 10px; } .condT { font-size: 8.5px; } .condB, .conditionsBody, .notesArea { font-size: 9.5px; }"
-            : ".days th, .days td { font-size: 8px; padding: 2px; } .days .mini { font-size: 7px; } .condMain, .notesTitle { font-size: 11px; } .condT { font-size: 9px; } .condB, .conditionsBody, .notesArea { font-size: 10px; }"}
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th, .days td { font-size: 8px; } .secTitle { font-size: 10px; }"
+            : ""}
         }
       </style>
     </head>
