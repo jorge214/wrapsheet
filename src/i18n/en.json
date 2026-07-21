@@ -453,5 +453,12 @@
   "plan_pro_item6": "Multiple profiles",
   "region_ot_generic_badge": "Generic overtime",
   "region_ot_unverified_title": "Overtime not verified",
-  "region_ot_unverified_warning": "The overtime thresholds and multipliers for this region are generic and must be adjusted to your local collective agreement or contract before use."
+  "region_ot_unverified_warning": "The overtime thresholds and multipliers for this region are generic and must be adjusted to your local collective agreement or contract before use.",
+  "profile_limit_title": "Making sheets for more than one person?",
+  "profile_limit_text": "The app is designed for one technician. If you manage a team or make sheets for several people, tell us how you work and we'll enable it for you right away, at no cost.",
+  "profile_limit_message_ph": "How do you work today?",
+  "profile_limit_send": "Send",
+  "profile_limit_sent_title": "Request sent",
+  "profile_limit_sent_msg": "Thanks! We'll get back to you shortly to enable it.",
+  "profile_limit_error": "Could not send. Try again or email getwrapsheet@gmail.com."
 }

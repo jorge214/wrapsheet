@@ -453,5 +453,12 @@
   "plan_pro_item6": "Meerdere profielen",
   "region_ot_generic_badge": "Generiek overwerk",
   "region_ot_unverified_title": "Overwerk niet geverifieerd",
-  "region_ot_unverified_warning": "De overwerkdrempels en -multipliers voor deze regio zijn generiek en moeten vóór gebruik worden aangepast aan de lokale cao of het contract."
+  "region_ot_unverified_warning": "De overwerkdrempels en -multipliers voor deze regio zijn generiek en moeten vóór gebruik worden aangepast aan de lokale cao of het contract.",
+  "profile_limit_title": "Maak je overzichten voor meer dan één persoon?",
+  "profile_limit_text": "De app is bedoeld voor één technicus. Als je een team beheert of overzichten voor meerdere mensen maakt, vertel ons hoe je werkt en we schakelen het meteen gratis in.",
+  "profile_limit_message_ph": "Hoe werk je nu?",
+  "profile_limit_send": "Versturen",
+  "profile_limit_sent_title": "Verzoek verstuurd",
+  "profile_limit_sent_msg": "Bedankt! We nemen snel contact op om het in te schakelen.",
+  "profile_limit_error": "Versturen mislukt. Probeer opnieuw of mail naar getwrapsheet@gmail.com."
 }

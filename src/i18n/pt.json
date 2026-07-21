@@ -453,5 +453,12 @@
   "plan_pro_item6": "Vários perfis",
   "region_ot_generic_badge": "Horas extra genéricas",
   "region_ot_unverified_title": "Horas extra por confirmar",
-  "region_ot_unverified_warning": "Os limiares e multiplicadores de horas extra desta região são genéricos e têm de ser ajustados ao acordo coletivo ou contrato local antes de usar."
+  "region_ot_unverified_warning": "Os limiares e multiplicadores de horas extra desta região são genéricos e têm de ser ajustados ao acordo coletivo ou contrato local antes de usar.",
+  "profile_limit_title": "A fazer folhas para mais do que uma pessoa?",
+  "profile_limit_text": "A app está pensada para um técnico. Se geres uma equipa ou fazes folhas para várias pessoas, conta-nos como trabalhas e ativamos-te já, sem custo.",
+  "profile_limit_message_ph": "Como trabalhas hoje?",
+  "profile_limit_send": "Enviar",
+  "profile_limit_sent_title": "Pedido enviado",
+  "profile_limit_sent_msg": "Obrigado! Entramos em contacto em breve para te ativar.",
+  "profile_limit_error": "Não foi possível enviar. Tenta novamente ou escreve para getwrapsheet@gmail.com."
 }

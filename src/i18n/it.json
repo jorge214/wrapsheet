@@ -453,5 +453,12 @@
   "plan_pro_item6": "Più profili",
   "region_ot_generic_badge": "Straordinari generici",
   "region_ot_unverified_title": "Straordinari non verificati",
-  "region_ot_unverified_warning": "Le soglie e i moltiplicatori degli straordinari di questa regione sono generici e devono essere adattati al contratto collettivo o locale prima dell'uso."
+  "region_ot_unverified_warning": "Le soglie e i moltiplicatori degli straordinari di questa regione sono generici e devono essere adattati al contratto collettivo o locale prima dell'uso.",
+  "profile_limit_title": "Fai i fogli per più di una persona?",
+  "profile_limit_text": "L'app è pensata per un tecnico. Se gestisci una squadra o fai i fogli per più persone, raccontaci come lavori e lo attiviamo subito, senza costi.",
+  "profile_limit_message_ph": "Come lavori oggi?",
+  "profile_limit_send": "Invia",
+  "profile_limit_sent_title": "Richiesta inviata",
+  "profile_limit_sent_msg": "Grazie! Ti ricontattiamo a breve per attivarlo.",
+  "profile_limit_error": "Invio non riuscito. Riprova o scrivi a getwrapsheet@gmail.com."
 }

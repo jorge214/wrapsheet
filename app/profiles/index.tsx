@@ -65,6 +65,18 @@ export default function ProfilesListScreen() {
   );
 
   async function handleNew() {
+    // Limite de 1 perfil. Se já existe pelo menos um perfil — e a conta não foi
+    // desbloqueada à mão (app_metadata.profiles_unlocked, só service-role) —, em
+    // vez de criar abre o ecrã de contacto. Quem já tem vários perfis mantém-nos:
+    // o limite só trava a CRIAÇÃO de novos, nunca a edição/uso dos existentes.
+    const unlocked = (user?.app_metadata as any)?.profiles_unlocked === true;
+    if (!unlocked) {
+      const existing = await listProfiles();
+      if (existing.length >= 1) {
+        router.push("/profiles/unlock");
+        return;
+      }
+    }
     const p = await createProfile();
     await setActiveProfileId(p.id);
     router.push(`/profiles/${p.id}?edit=1`);
