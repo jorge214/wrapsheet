@@ -35,6 +35,25 @@ export async function exportPDF(
     notas, locale, region, currency, taxDisclaimer, condicoes, extra
   );
 
+  // A folha tem de sair IGUAL no PC e no telemóvel. No vertical, as condições
+  // saltam INTEIRAS para uma página nova (break-before) em vez de partirem a
+  // meio a seguir à tabela — o MESMO CSS nos dois. Usa-se break-before (não
+  // break-inside:avoid) porque no WebKit do iOS um bloco maior que a página com
+  // avoid é CORTADO; break-before é sempre seguro (se passar de uma página,
+  // parte limpo com as molduras fechadas — box-decoration-break no CSS
+  // partilhado). Só se aplica quando há condições substanciais.
+  const condChars =
+    (condicoes ?? "").length +
+    (extra?.condBoxes ?? []).reduce(
+      (n, b) => n + (b?.titulo ?? "").length + (b?.texto ?? "").length,
+      0
+    );
+  const isPortrait = extra?.orientation === "portrait";
+  const condVerticalCss =
+    condChars > 1200 && isPortrait
+      ? "<style>@media print{ .condWrap { break-before: page; page-break-before: always; } }</style>"
+      : "";
+
   // iOS Safari: iframe.contentWindow.print() prints the parent app page, not the iframe.
   // Open the PDF HTML as a blob URL in a new tab — user sees the PDF, taps
   // Safari's share button → Print to get the proper iOS share / save sheet.
@@ -47,27 +66,8 @@ export async function exportPDF(
     // The print dialog on iOS shows the correct content preview + "Save to Files" / AirPrint.
     const printScript =
       '<scr' + 'ipt>window.addEventListener("load",function(){setTimeout(function(){window.print();},400);});<\/scr' + 'ipt>';
-    // Condições substanciais: no iOS vão INTEIRAS para uma página nova (como no
-    // desktop, que as salta para a página seguinte quando não cabem a seguir à
-    // tabela). Usa-se break-before (empurrar para página nova) e NÃO
-    // break-inside:avoid, porque no WebKit do iOS um bloco maior que a página
-    // com avoid é CORTADO (o bug antigo do expo-print). break-before é sempre
-    // seguro: se as condições couberem numa página ficam inteiras; se passarem
-    // de uma página, partem limpas entre linhas com as molduras fechadas
-    // (box-decoration-break no CSS partilhado) — nunca se perde conteúdo.
-    const condChars =
-      (condicoes ?? "").length +
-      (extra?.condBoxes ?? []).reduce(
-        (n, b) => n + (b?.titulo ?? "").length + (b?.texto ?? "").length,
-        0
-      );
-    // Só no vertical (o horizontal do telemóvel já estava bom e não se mexe).
-    const condFitCss =
-      condChars > 1200 && extra?.orientation === "portrait"
-        ? "<style>@media print{ .condWrap { break-before: page; } }</style>"
-        : "";
     const htmlWithPrint = html
-      .replace("</head>", condFitCss + "</head>")
+      .replace("</head>", condVerticalCss + "</head>")
       .replace("</body>", printScript + "</body>");
     const blob = new Blob([htmlWithPrint], { type: "text/html; charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -77,16 +77,14 @@ export async function exportPDF(
     return;
   }
 
-  // Desktop / Android: hidden iframe + browser print dialog
-  // Só aqui (Blink/Gecko): se as condições/notas não couberem no resto da
-  // página, o bloco salta INTEIRO para a página seguinte — caixa fechada em
-  // vez de partida ao meio. Não se injeta no iOS: no WebKit um bloco maior que
-  // uma página com break-inside:avoid é CORTADO no fim (o bug do expo-print);
-  // lá o bloco flui e parte entre linhas, com as molduras clonadas
-  // (box-decoration-break no CSS partilhado). Nos Blink/Gecko um bloco maior
-  // que a página ignora o avoid e parte na mesma — nunca perde conteúdo.
-  const desktopPrintCss =
-    "<style>@media print{ .condWrap, .notesWrap { break-inside: avoid; page-break-inside: avoid; } }</style>";
+  // Desktop / Android: hidden iframe + browser print dialog.
+  // VERTICAL: exatamente o mesmo CSS do telemóvel (condVerticalCss) para a
+  // folha sair igual nos dois. HORIZONTAL: mantém-se o break-inside:avoid de
+  // sempre (o bloco salta inteiro para a página seguinte quando não cabe; no
+  // Blink um bloco maior que a página parte na mesma, nunca corta).
+  const desktopPrintCss = isPortrait
+    ? condVerticalCss
+    : "<style>@media print{ .condWrap, .notesWrap { break-inside: avoid; page-break-inside: avoid; } }</style>";
   const htmlDesktop = html.replace("</head>", desktopPrintCss + "</head>");
 
   const iframe = document.createElement("iframe");
