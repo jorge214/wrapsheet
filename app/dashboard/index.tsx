@@ -262,7 +262,7 @@ export default function DashboardScreen() {
           <StatCard
             s={s}
             value={formatNumberPT(stats.totalArquivados, 0)}
-            label={t("dash_archived_total", { defaultValue: "Arquivados (total)" })}
+            label={t("dash_archived_total", { defaultValue: "Pagos (total)" })}
           />
           <StatCard
             s={s}

@@ -31,23 +31,20 @@ export default function PlanScreen() {
             {t("plan_current", { defaultValue: "Plano atual" }).toUpperCase()}
           </Text>
           <Text style={s.cardTitle}>
-            {t("plan_free_name", { defaultValue: "Experimental gratuito" })}
+            {t("plan_free_name", { defaultValue: "Grátis durante o lançamento" })}
           </Text>
           <Text style={s.priceText}>
-            {t("plan_free_price", { defaultValue: "0 € / mês" })}
+            {t("plan_free_price", { defaultValue: "0 €" })}
           </Text>
           <Text style={s.cardSub}>
-            {t("plan_free_desc", {
-              defaultValue:
-                "Utilização completa da aplicação, sem limites de projetos, enquanto estiver em fase experimental.",
-            })}
+            {t("plan_free_desc", { defaultValue: "Começa grátis, sem limites." })}
           </Text>
 
           <View style={s.bulletList}>
-            <Bullet text={t("plan_free_item1", { defaultValue: "1 projeto ativo" })} />
-            <Bullet text={t("plan_free_item2", { defaultValue: "Perfis de técnico ilimitados" })} />
-            <Bullet text={t("plan_free_item3", { defaultValue: "3 exports de PDF gratuitos" })} />
-            <Bullet text={t("plan_free_item4", { defaultValue: "Backups locais" })} />
+            <Bullet text={t("plan_free_item1", { defaultValue: "Projetos ilimitados" })} />
+            <Bullet text={t("plan_free_item2", { defaultValue: "Exports de PDF ilimitados" })} />
+            <Bullet text={t("plan_free_item3", { defaultValue: "Backups locais e sincronização" })} />
+            <Bullet text={t("plan_free_item4", { defaultValue: "1 perfil de técnico" })} />
           </View>
 
           <Text style={s.highlight}>
@@ -78,6 +75,8 @@ export default function PlanScreen() {
             <Bullet muted text={t("plan_pro_item2", { defaultValue: "Modelos personalizados de relatório" })} />
             <Bullet muted text={t("plan_pro_item3", { defaultValue: "Mais opções de exportação e automação" })} />
             <Bullet muted text={t("plan_pro_item4", { defaultValue: "Arquivar projetos" })} />
+            <Bullet muted text={t("plan_pro_item5", { defaultValue: "Todos os regimes fiscais" })} />
+            <Bullet muted text={t("plan_pro_item6", { defaultValue: "Vários perfis" })} />
           </View>
 
           <Text style={s.mutedInfo}>
@@ -91,7 +90,7 @@ export default function PlanScreen() {
         <Text style={s.footerNote}>
           {t("plan_footer_note", {
             defaultValue:
-              "A aplicação está atualmente em fase experimental. Aproveita para testar o fluxo de trabalho e enviar feedback.",
+              "Grátis, sem subscrições nem pagamentos dentro da aplicação.",
           })}
         </Text>
       </ScrollView>
