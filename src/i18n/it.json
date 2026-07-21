@@ -450,5 +450,8 @@
   "home_days_one": "giorno",
   "home_days_other": "giorni",
   "plan_pro_item5": "Tutti i regimi fiscali",
-  "plan_pro_item6": "Più profili"
+  "plan_pro_item6": "Più profili",
+  "region_ot_generic_badge": "Straordinari generici",
+  "region_ot_unverified_title": "Straordinari non verificati",
+  "region_ot_unverified_warning": "Le soglie e i moltiplicatori degli straordinari di questa regione sono generici e devono essere adattati al contratto collettivo o locale prima dell'uso."
 }

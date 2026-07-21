@@ -450,5 +450,8 @@
   "home_days_one": "día",
   "home_days_other": "días",
   "plan_pro_item5": "Todos los regímenes fiscales",
-  "plan_pro_item6": "Varios perfiles"
+  "plan_pro_item6": "Varios perfiles",
+  "region_ot_generic_badge": "Horas extra genéricas",
+  "region_ot_unverified_title": "Horas extra sin verificar",
+  "region_ot_unverified_warning": "Los umbrales y multiplicadores de horas extra de esta región son genéricos y deben ajustarse al convenio colectivo o contrato local antes de usarlos."
 }

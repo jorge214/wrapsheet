@@ -13,6 +13,12 @@ export type RegionPreset = {
     incomeTax: string;   // label shown in PDF (e.g. "IRS", "IRPF", "IR", "Income Tax", "ESt")
     vat: string;         // label shown in PDF (e.g. "IVA", "TVA", "VAT", "MwSt")
   };
+  // As regras de HORAS EXTRA (H_dia, limiares, multiplicadores) desta região
+  // foram trabalhadas para o setor? true só em PT/ES/FR/UK/DE. Nas restantes a
+  // `tabela` é genérica (10h/dia, descanso 11h) e PLAUSÍVEL mas não verificada —
+  // tem de ser ajustada ao acordo coletivo/contrato local antes de usar. As
+  // TAXAS fiscais são sempre indicativas (disclaimer), independentemente disto.
+  otVerified: boolean;
   fiscal: {
     IRS_percent: number;
     IVA_percent: number;
@@ -31,6 +37,7 @@ export type RegionPreset = {
 export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   pt: {
     code: "pt",
+    otVerified: true,
     nameKey: "region_pt",
     flag: "🇵🇹",
     currency: "EUR",
@@ -50,6 +57,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
 
   es: {
     code: "es",
+    otVerified: true,
     nameKey: "region_es",
     flag: "🇪🇸",
     currency: "EUR",
@@ -69,6 +77,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
 
   fr: {
     code: "fr",
+    otVerified: true,
     nameKey: "region_fr",
     flag: "🇫🇷",
     currency: "EUR",
@@ -90,6 +99,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
 
   uk: {
     code: "uk",
+    otVerified: true,
     nameKey: "region_uk",
     flag: "🇬🇧",
     currency: "GBP",
@@ -109,6 +119,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
 
   de: {
     code: "de",
+    otVerified: true,
     nameKey: "region_de",
     flag: "🇩🇪",
     currency: "EUR",
@@ -132,6 +143,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   // utilizador ajusta no Perfil; as taxas fiscais são indicativas (disclaimer).
   nl: {
     code: "nl",
+    otVerified: false,
     nameKey: "region_nl",
     flag: "🇳🇱",
     currency: "EUR",
@@ -142,6 +154,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   },
   be: {
     code: "be",
+    otVerified: false,
     nameKey: "region_be",
     flag: "🇧🇪",
     currency: "EUR",
@@ -152,6 +165,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   },
   at: {
     code: "at",
+    otVerified: false,
     nameKey: "region_at",
     flag: "🇦🇹",
     currency: "EUR",
@@ -162,6 +176,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   },
   ch: {
     code: "ch",
+    otVerified: false,
     nameKey: "region_ch",
     flag: "🇨🇭",
     currency: "CHF",
@@ -172,6 +187,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   },
   se: {
     code: "se",
+    otVerified: false,
     nameKey: "region_se",
     flag: "🇸🇪",
     currency: "SEK",
@@ -182,6 +198,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   },
   no: {
     code: "no",
+    otVerified: false,
     nameKey: "region_no",
     flag: "🇳🇴",
     currency: "NOK",
@@ -192,6 +209,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   },
   fi: {
     code: "fi",
+    otVerified: false,
     nameKey: "region_fi",
     flag: "🇫🇮",
     currency: "EUR",
@@ -202,6 +220,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   },
   cz: {
     code: "cz",
+    otVerified: false,
     nameKey: "region_cz",
     flag: "🇨🇿",
     currency: "CZK",
@@ -212,6 +231,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   },
   pl: {
     code: "pl",
+    otVerified: false,
     nameKey: "region_pl",
     flag: "🇵🇱",
     currency: "PLN",
@@ -222,6 +242,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   },
   hu: {
     code: "hu",
+    otVerified: false,
     nameKey: "region_hu",
     flag: "🇭🇺",
     currency: "HUF",
@@ -232,6 +253,7 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
   },
   dk: {
     code: "dk",
+    otVerified: false,
     nameKey: "region_dk",
     flag: "🇩🇰",
     currency: "DKK",

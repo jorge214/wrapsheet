@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { REGION_LIST, RegionCode, getPreset } from "../../src/constants/countryPresets";
 import { getSettings, setCustomFiscal, setRegion } from "../../src/storage/appSettings";
@@ -43,6 +43,18 @@ export default function RegionScreen() {
     setCustomIVA(undefined);
     setIrsTxt(null);
     setIvaTxt(null);
+    // Regiões sem regras de HE trabalhadas: avisar que os limiares/multiplicadores
+    // são genéricos e têm de ser ajustados ao acordo/contrato local. (Alert só
+    // aparece no nativo; na web fica o banner persistente por baixo do disclaimer.)
+    if (!getPreset(code).otVerified) {
+      Alert.alert(
+        t("region_ot_unverified_title", { defaultValue: "Horas extra por confirmar" }),
+        t("region_ot_unverified_warning", {
+          defaultValue:
+            "Os limiares e multiplicadores de horas extra desta região são genéricos e têm de ser ajustados ao acordo coletivo ou contrato local antes de usar.",
+        })
+      );
+    }
   }
 
   function parseNum(v: string): number | undefined {
@@ -132,6 +144,18 @@ export default function RegionScreen() {
           {t("tax_disclaimer")}
         </Text>
 
+        {/* Banner persistente: a região ATIVA não tem regras de HE verificadas */}
+        {!preset.otVerified && (
+          <View style={[ss.warnBox, { borderColor: COLORS.border, backgroundColor: COLORS.card }]}>
+            <Text style={[ss.warnText, { color: COLORS.text }]}>
+              ⚠ {t("region_ot_unverified_warning", {
+                defaultValue:
+                  "Os limiares e multiplicadores de horas extra desta região são genéricos e têm de ser ajustados ao acordo coletivo ou contrato local antes de usar.",
+              })}
+            </Text>
+          </View>
+        )}
+
         {REGION_LIST.map((r) => (
           <Pressable
             key={r.code}
@@ -151,6 +175,11 @@ export default function RegionScreen() {
                 <Text style={[ss.rowSub, { color: COLORS.sub }]}>
                   {r.taxLabels.incomeTax} {r.fiscal.IRS_percent}% · {r.taxLabels.vat} {r.fiscal.IVA_percent}%
                 </Text>
+                {!r.otVerified && (
+                  <Text style={[ss.rowBadge, { color: COLORS.sub }]} numberOfLines={1}>
+                    ⚠ {t("region_ot_generic_badge", { defaultValue: "Horas extra genéricas" })}
+                  </Text>
+                )}
               </View>
             </View>
             {active === r.code ? (
@@ -224,4 +253,13 @@ const ss = StyleSheet.create({
   flag: { fontSize: 28 },
   rowLabel: { fontSize: 16, fontWeight: "700" },
   rowSub: { fontSize: 12, marginTop: 2 },
+  rowBadge: { fontSize: 11, fontWeight: "700", marginTop: 3, opacity: 0.9 },
+  warnBox: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+  },
+  warnText: { fontSize: 12.5, lineHeight: 18, fontWeight: "600" },
 });

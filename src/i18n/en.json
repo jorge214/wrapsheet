@@ -450,5 +450,8 @@
   "home_days_one": "day",
   "home_days_other": "days",
   "plan_pro_item5": "All tax regions",
-  "plan_pro_item6": "Multiple profiles"
+  "plan_pro_item6": "Multiple profiles",
+  "region_ot_generic_badge": "Generic overtime",
+  "region_ot_unverified_title": "Overtime not verified",
+  "region_ot_unverified_warning": "The overtime thresholds and multipliers for this region are generic and must be adjusted to your local collective agreement or contract before use."
 }
