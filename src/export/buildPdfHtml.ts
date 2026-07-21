@@ -886,7 +886,8 @@ export function buildPdfHtml(
   const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
   // Horizontal: 14mm — ao encaixar a folha A3 em papel A4 a margem encolhe
   // ~0.7x, portanto isto dá ~10mm reais (10mm davam ~7mm, quase sem margem).
-  const pageMargin = extra?.orientation === "portrait" ? "8mm" : "14mm";
+  // Vertical: 5mm — a folha usa o papel quase todo e imprime à escala 1.0.
+  const pageMargin = extra?.orientation === "portrait" ? "5mm" : "14mm";
 
   const dayRows = dias
     .map((d, i) => {
@@ -1088,13 +1089,15 @@ export function buildPdfHtml(
              certo nº de dias a folha passa para uma 2.ª página e o excesso era
              CORTADO. Encolhe-se via font-size (abaixo), que pagina a sério. */
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0; }
-          /* Vertical: a folha é mais larga que o A4 e o motor encolhe-a toda
-             para caber (shrink-to-fit). O que manda no tamanho impresso é o
-             rácio letra/largura da tabela: 9.5px com padding 4x2 imprime ~26%
-             maior que os antigos 8px com padding 6 (e o resto da folha até
-             fica um nadinha maior). Medido: 812px de largura -> escala 0.90. */
+          /* Vertical: se a folha for mais larga que o papel, o motor encolhe-a
+             TODA para caber (shrink-to-fit) — o que manda é o rácio
+             letra/largura. Os TÍTULOS das colunas eram o gargalo da largura:
+             th a 8px + valores (td) a 10px + margem 5mm => a tabela cabe
+             exatamente nos 756px úteis do A4 e a folha imprime à ESCALA 1.0
+             (números ~10px efetivos vs 6.8px originais; campos e cabeçalho
+             sem qualquer encolhimento). Medido com sonda de largura no Blink. */
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th, .days td { font-size: 9.5px; padding: 4px 2px; } .secTitle { font-size: 10px; }"
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 2px; } .secTitle { font-size: 10px; }"
             : ""}
         }
       </style>

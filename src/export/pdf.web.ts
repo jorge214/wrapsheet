@@ -47,7 +47,28 @@ export async function exportPDF(
     // The print dialog on iOS shows the correct content preview + "Save to Files" / AirPrint.
     const printScript =
       '<scr' + 'ipt>window.addEventListener("load",function(){setTimeout(function(){window.print();},400);});<\/scr' + 'ipt>';
-    const htmlWithPrint = html.replace("</body>", printScript + "</body>");
+    // Condições curtas: também no iOS saltam INTEIRAS para a página seguinte
+    // quando não cabem no resto da página (como no desktop). Mas só quando é
+    // garantido que o bloco cabe numa página: no WebKit, break-inside:avoid
+    // num bloco maior que a página CORTA o fim (o bug antigo do expo-print).
+    // A salvaguarda é pelo tamanho do texto (limite conservador — ~3500
+    // caracteres cabem folgados numa página em ambas as orientações, ajustado
+    // ao fontScale). Condições longas continuam a fluir e partir entre linhas
+    // com as molduras fechadas (box-decoration-break no CSS partilhado).
+    const condChars =
+      (condicoes ?? "").length +
+      (extra?.condBoxes ?? []).reduce(
+        (n, b) => n + (b?.titulo ?? "").length + (b?.texto ?? "").length,
+        0
+      );
+    const fsScale = extra?.fontScale && extra.fontScale > 0 ? extra.fontScale : 1;
+    const condFitCss =
+      condChars > 0 && condChars < 3500 / (fsScale * fsScale)
+        ? "<style>@media print{ .condWrap { break-inside: avoid; page-break-inside: avoid; } }</style>"
+        : "";
+    const htmlWithPrint = html
+      .replace("</head>", condFitCss + "</head>")
+      .replace("</body>", printScript + "</body>");
     const blob = new Blob([htmlWithPrint], { type: "text/html; charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const win = window.open(url, "_blank");
