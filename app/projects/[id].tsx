@@ -230,10 +230,13 @@ export default function ProjectEditor() {
   const [sheetZoom, setSheetZoom] = useState(() =>
     isPhone ? Math.max(0.25, Math.min(1, (winW - 2 * PAGE_X) / SHEET_W)) : 1
   );
-  // Nudge para forçar um re-render da folha logo após abrir (a Text da data
-  // media-se mal no 1.º render e cortava; "adicionar um dia" corrigia — isto
-  // faz esse re-render sozinho). Não é lido; só serve para re-renderizar.
-  const [, setSheetNudge] = useState(0);
+  // Nudge usado como KEY da folha: ao mudar, a folha REMONTA (re-layout
+  // completo, tal como "adicionar um dia"). Corrige a data cortada / tamanhos
+  // errados que aparecem no 1.º render em vertical (a medição da Text falha
+  // antes do layout assentar; um simples re-render não chega, é preciso remontar).
+  const [sheetNudge, setSheetNudge] = useState(0);
+  // Guard para só remontar uma vez por abertura/rotação (evita loop no onLayout).
+  const sheetSettledRef = useRef(false);
   const fsIframeRef = useRef<any>(null);
   const { setPreviewHtml, clearPreview, zoom, setZoom, actualZoom } = useLivePreview();
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
@@ -302,11 +305,10 @@ export default function ProjectEditor() {
     if (fsPreview) {
       const fit = Math.max(0.2, Math.min(1, (winW - 24) / SHEET_W));
       setSheetZoom(fit);
-      // Re-render após o layout/fontes assentarem: corrige a data cortada e os
-      // campos que saíam mal medidos no primeiro render.
-      const t1 = setTimeout(() => setSheetNudge((n) => n + 1), 60);
-      const t2 = setTimeout(() => setSheetNudge((n) => n + 1), 300);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      // Rearma o remount único: quando o layout assentar (onLayout da folha),
+      // remonta-se a EditableSheet uma vez para corrigir a data cortada / os
+      // tamanhos mal medidos do 1.º render em vertical.
+      sheetSettledRef.current = false;
     }
   }, [fsPreview, winW]);
 
@@ -1404,6 +1406,7 @@ export default function ProjectEditor() {
 
   const renderSheet = () => (
     <EditableSheet
+      key={sheetNudge}
       perfil={project!.perfil as any}
       projeto={project!.projeto as any}
       tabela={project!.tabela as any}
@@ -1693,7 +1696,17 @@ export default function ProjectEditor() {
             automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
           >
             <ScrollView horizontal>
-              <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
+              <ZoomWrap
+                zoom={sheetZoom}
+                onSettle={() => {
+                  if (!sheetSettledRef.current) {
+                    sheetSettledRef.current = true;
+                    setSheetNudge((n) => n + 1);
+                  }
+                }}
+              >
+                {renderSheet()}
+              </ZoomWrap>
             </ScrollView>
           </ScrollView>
         </SafeAreaView>
@@ -1893,12 +1906,26 @@ export default function ProjectEditor() {
 }
 
 /* ---------- UI helpers ---------- */
-function ZoomWrap({ zoom, children }: { zoom: number; children: React.ReactNode }) {
+function ZoomWrap({
+  zoom,
+  children,
+  onSettle,
+}: {
+  zoom: number;
+  children: React.ReactNode;
+  onSettle?: () => void;
+}) {
   if (Platform.OS === "web") {
     // @ts-ignore — raw div + CSS zoom is web-only and reflows the layout correctly
     return <div style={{ zoom: String(zoom) }}>{children}</div>;
   }
-  return <View style={{ transform: [{ scale: zoom }] }}>{children}</View>;
+  // onLayout dispara quando a folha assenta (natural, antes do transform) — é o
+  // sinal fiável para remontar uma vez e corrigir a medição do 1.º render.
+  return (
+    <View style={{ transform: [{ scale: zoom }] }} onLayout={onSettle}>
+      {children}
+    </View>
+  );
 }
 
 function StatLine({
