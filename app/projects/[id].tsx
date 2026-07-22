@@ -230,6 +230,10 @@ export default function ProjectEditor() {
   const [sheetZoom, setSheetZoom] = useState(() =>
     isPhone ? Math.max(0.25, Math.min(1, (winW - 2 * PAGE_X) / SHEET_W)) : 1
   );
+  // Nudge para forçar um re-render da folha logo após abrir (a Text da data
+  // media-se mal no 1.º render e cortava; "adicionar um dia" corrigia — isto
+  // faz esse re-render sozinho). Não é lido; só serve para re-renderizar.
+  const [, setSheetNudge] = useState(0);
   const fsIframeRef = useRef<any>(null);
   const { setPreviewHtml, clearPreview, zoom, setZoom, actualZoom } = useLivePreview();
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
@@ -298,6 +302,11 @@ export default function ProjectEditor() {
     if (fsPreview) {
       const fit = Math.max(0.2, Math.min(1, (winW - 24) / SHEET_W));
       setSheetZoom(fit);
+      // Re-render após o layout/fontes assentarem: corrige a data cortada e os
+      // campos que saíam mal medidos no primeiro render.
+      const t1 = setTimeout(() => setSheetNudge((n) => n + 1), 60);
+      const t2 = setTimeout(() => setSheetNudge((n) => n + 1), 300);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
   }, [fsPreview, winW]);
 
