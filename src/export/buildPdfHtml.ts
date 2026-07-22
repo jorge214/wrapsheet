@@ -909,11 +909,14 @@ export function buildPdfHtml(
   // limite ~6 dias, como observado). No horizontal (A3) as condições fluem
   // para o espaço a seguir aos totais (como no PC), sem quebra forçada.
   const rowsCount = dias.length;
-  const maxDaysOnePage = 26.5 - condCharCount / 156;
+  // Vertical: cabe tudo numa página até maxDaysOnePage dias; acima disso as
+  // condições saltam inteiras. Horizontal (A3): as condições (~1 página, tamanho
+  // normal) nunca cabem a seguir à tabela, por isso saltam sempre inteiras (em
+  // vez de partir a meio a seguir aos totais). maxDays=0 -> salta sempre.
+  const maxDaysOnePage =
+    extra?.orientation === "portrait" ? 26.5 - condCharCount / 156 : 0;
   const condBreakCss =
-    condCharCount > 1200 &&
-    extra?.orientation === "portrait" &&
-    rowsCount > maxDaysOnePage
+    condCharCount > 1200 && rowsCount > maxDaysOnePage
       ? ".condWrap { break-before: page; page-break-before: always; }"
       : "";
 
@@ -1142,7 +1145,7 @@ export function buildPdfHtml(
              sem qualquer encolhimento). Medido com sonda de largura no Blink. */
           ${extra?.orientation === "portrait"
             ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 2px; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); }"
-            : ""}
+            : "table.days { table-layout: fixed; } .days th, .days td { word-break: break-word; }"}
         }
       </style>
     </head>
