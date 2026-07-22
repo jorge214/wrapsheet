@@ -1558,7 +1558,12 @@ export function buildEditableSheetHtml(
            "€" cair para baixo (acontecia no iPhone a partir de 4 dígitos) */
         .ei.money { white-space: nowrap; }
         /* Horas são <input> reais — sem moldura, iguais às outras células */
+        /* iOS/WKWebView infla o texto dos <input> (o text-size-adjust do html/body
+           não lhes chega): horário e data saíam MAIORES que os spans e a data
+           transbordava/cortava no 1.º render, até "adicionar um dia" reflowar.
+           Fixar aqui a 100% torna-os iguais aos spans logo à primeira. */
         input.ei { border: 0; margin: 0; padding: 0; font: inherit; color: #111;
+          -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
           text-align: center; width: 100%; box-sizing: border-box; background: transparent;
           -webkit-appearance: none; appearance: none; border-radius: 0; }
         input.ei::placeholder { color: #b3b3b3; }
