@@ -918,9 +918,13 @@ export function buildPdfHtml(
   //     corta uma caixa a meio.
   // Igual em tudo: vertical/horizontal e WebKit (iPhone/iPad)/Blink (web). As
   // condições estão compactas (< 1 página), por isso o WebKit já não corta.
+  // O break-inside: avoid vai no GRUPO (espaçador + condições) para o espaçador
+  // VIAJAR com o bloco: assim a margem no topo aparece tanto na pág. 1 (a seguir
+  // aos totais) como quando o bloco salta para a folha seguinte (o WebKit ignora
+  // a margem @page nas páginas seguintes; a ALTURA do espaçador não é truncada).
   const condBreakCss =
     condCharCount > 1200
-      ? ".condWrap { break-inside: avoid; page-break-inside: avoid; }"
+      ? ".condGroup { break-inside: avoid; page-break-inside: avoid; } .condTopSpacer { display: block; height: 6mm; } .condWrap { margin-top: 0; }"
       : "";
 
   const dayRows = dias
@@ -1293,8 +1297,7 @@ export function buildPdfHtml(
         <tr class="net"><th>${escapeHtml(s.vf)}</th><td>${fmt(totais.ValorFinal)}</td></tr>
       </table>
 
-      <div class="condTopSpacer"></div>
-      ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra)}
+      <div class="condGroup"><div class="condTopSpacer"></div>${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra)}</div>
 
       ${notas && notas.trim() ? `<div class="notesWrap"><div class="notesTitle">${escapeHtml(s.notes)}</div><div class="notesArea">${escapeHtml(notas)}</div></div>` : ""}
 
