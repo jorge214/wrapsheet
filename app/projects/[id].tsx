@@ -230,14 +230,6 @@ export default function ProjectEditor() {
   const [sheetZoom, setSheetZoom] = useState(() =>
     isPhone ? Math.max(0.25, Math.min(1, (winW - 2 * PAGE_X) / SHEET_W)) : 1
   );
-  // Nudge usado como KEY da folha: ao mudar, a folha REMONTA (re-layout
-  // completo, tal como "adicionar um dia"). Corrige a data cortada / tamanhos
-  // errados que aparecem no 1.º render em vertical (a medição da Text falha
-  // antes do layout assentar; um simples re-render não chega, é preciso remontar).
-  const [sheetNudge, setSheetNudge] = useState(0);
-  // A folha fica invisível até ao remount pós-escala assentar (evita mostrar o
-  // 1.º render com a data cortada / tamanhos errados).
-  const [sheetReady, setSheetReady] = useState(false);
   const fsIframeRef = useRef<any>(null);
   const { setPreviewHtml, clearPreview, zoom, setZoom, actualZoom } = useLivePreview();
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
@@ -306,15 +298,6 @@ export default function ProjectEditor() {
     if (fsPreview) {
       const fit = Math.max(0.2, Math.min(1, (winW - 24) / SHEET_W));
       setSheetZoom(fit);
-      // Texto dentro de View com transform:scale mede-se mal no 1.º render em
-      // vertical (data cortada / tamanhos diferentes); só um re-layout completo
-      // corrige (é o que "adicionar um dia" faz). Mantemos a folha invisível,
-      // remontamo-la uma vez DEPOIS de a escala assentar (key={sheetNudge}) e só
-      // então a revelamos — sem flicker nem frame com bug.
-      setSheetReady(false);
-      const tRemount = setTimeout(() => setSheetNudge((n) => n + 1), 280);
-      const tReveal = setTimeout(() => setSheetReady(true), 380);
-      return () => { clearTimeout(tRemount); clearTimeout(tReveal); };
     }
   }, [fsPreview, winW]);
 
@@ -1412,7 +1395,6 @@ export default function ProjectEditor() {
 
   const renderSheet = () => (
     <EditableSheet
-      key={sheetNudge}
       perfil={project!.perfil as any}
       projeto={project!.projeto as any}
       tabela={project!.tabela as any}
@@ -1702,9 +1684,7 @@ export default function ProjectEditor() {
             automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
           >
             <ScrollView horizontal>
-              <View style={{ opacity: sheetReady ? 1 : 0 }}>
-                <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
-              </View>
+              <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
             </ScrollView>
           </ScrollView>
         </SafeAreaView>
