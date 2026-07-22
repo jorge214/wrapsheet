@@ -897,23 +897,23 @@ export function buildPdfHtml(
           <td class="left">${escapeHtml(d.descricao || "")}</td>
           <td>${escapeHtml(formatDatePT(d.data))}</td>
           <td class="right">${fmt((d as any).salarioDia ?? salarioDia)}</td>
-          <td>${escapeHtml(d.inicio || "")}</td>
+          <td class="cIni">${escapeHtml(d.inicio || "")}</td>
           <td>${escapeHtml(d.refeicaoTrabalho || "")}</td>
           <td class="cFim">${escapeHtml(d.fim || "")}</td>
           <td>${escapeHtml(minutesToHM(c?.HT_min ?? 0))}</td>
           <td class="blue">${escapeHtml(minutesToHM(c?.HD_min ?? 0))}</td>
-          <td class="right">${fmt(c?.ajRef ?? valRef)}</td>
-          <td class="right">${fmt(c?.ajViat ?? valViat)}</td>
-          <td class="right">${fmt(c?.ajTel ?? valTel)}</td>
-          <td class="right">${fmt(c?.ajMat ?? valMat)}</td>
-          <td class="right cPer">${fmt(c?.ajPer ?? valPer)}</td>
+          <td class="right cPd">${fmt(c?.ajRef ?? valRef)}</td>
+          <td class="right cPd">${fmt(c?.ajViat ?? valViat)}</td>
+          <td class="right cPd">${fmt(c?.ajTel ?? valTel)}</td>
+          <td class="right cPd">${fmt(c?.ajMat ?? valMat)}</td>
+          <td class="right cPd">${fmt(c?.ajPer ?? valPer)}</td>
           <td class="right">${fmtNum((c?.HEA_min ?? 0) / 60, 1)}</td>
-          <td class="right">${fmt(c?.HEA_valor ?? 0)}</td>
+          <td class="right cOtv">${fmt(c?.HEA_valor ?? 0)}</td>
           <td class="right">${fmtNum((c?.HEB_min ?? 0) / 60, 1)}</td>
-          <td class="right">${fmt(c?.HEB_valor ?? 0)}</td>
+          <td class="right cOtv">${fmt(c?.HEB_valor ?? 0)}</td>
           <td class="right">${fmtNum((c?.HR_min ?? 0) / 60, 1)}</td>
-          <td class="right cRecV">${fmt(c?.HR_valor ?? 0)}</td>
-          <td class="right strong tday">${fmt(c?.totalDia ?? 0)}</td>
+          <td class="right cOtv">${fmt(c?.HR_valor ?? 0)}</td>
+          <td class="right strong tday cTot">${fmt(c?.totalDia ?? 0)}</td>
         </tr>
       `;
     })
@@ -1041,13 +1041,15 @@ export function buildPdfHtml(
            horas extra/recuperação uniformes e largas o suficiente para o
            cabeçalho ("HORAS RECUPERAÇÃO", "ERHOLUNGSZEIT"…) caber a 8px sem
            sair da caixa. O deficit vai para as colunas de texto, que refluem. */
-        .days td.cFim { min-width: 46px; }
-        .days td.cPer { min-width: 56px; }
-        /* Coluna VALOR da recuperação larga o suficiente para o cabeçalho
-           "HORAS RECUPERAÇÃO"/"ERHOLUNGSZEIT"… caber em qualquer língua sem
-           partir a palavra (o body é fit-content, por isso a folha alarga e as
-           tabelas mantêm-se alinhadas). */
-        .days td.cRecV { min-width: 62px; }
+        /* Larguras uniformes por grupo de colunas (só mordem no vertical, onde
+           a tabela aperta): horário (início/fim) igual; "Por dia" (refeição,
+           viatura, telefone, material, per diems) igual; VALOR das horas
+           extra/recuperação igual (largo o suficiente p/ o cabeçalho "HORAS
+           RECUPERAÇÃO"/"ERHOLUNGSZEIT" caber); TOTAL do dia um pouco maior. */
+        .days td.cIni, .days td.cFim { min-width: 44px; }
+        .days td.cPd { min-width: 48px; }
+        .days td.cOtv { min-width: 48px; }
+        .days td.cTot { min-width: 58px; }
         /* Bloco final: Valor Bruto / IRS / IVA / Valor Líquido, alinhado à direita */
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
