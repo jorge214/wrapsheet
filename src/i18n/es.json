@@ -191,7 +191,7 @@
   "saving": "Guardando…",
   "select_month": "Seleccionar mes",
   "settings_backup_import": "Backup e importación",
-  "settings_contact": "Contacto",
+  "settings_contact": "Soporte",
   "settings_current_plan": "Plan actual",
   "settings_dark_mode": "Modo oscuro",
   "settings_export_backup": "Exportar Backup",
@@ -457,5 +457,7 @@
   "profile_limit_send": "Enviar",
   "profile_limit_sent_title": "Solicitud enviada",
   "profile_limit_sent_msg": "¡Gracias! Nos pondremos en contacto pronto para activarlo.",
-  "profile_limit_error": "No se pudo enviar. Inténtalo de nuevo o escribe a getwrapsheet@gmail.com."
+  "profile_limit_error": "No se pudo enviar. Inténtalo de nuevo o escribe a getwrapsheet@gmail.com.",
+  "about_copy_email": "Copiar correo",
+  "about_email_copied": "Correo copiado ✓"
 }

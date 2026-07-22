@@ -1,25 +1,54 @@
 import { router } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 const SUPPORT_EMAIL = "getwrapsheet@gmail.com";
-
-function openSupportEmail() {
-  if (Platform.OS === "web" && typeof window !== "undefined") {
-    // Na web o Linking.openURL abria o mailto num separador novo que ficava
-    // em branco — navegar diretamente dispara o cliente de email sem isso.
-    window.location.href = `mailto:${SUPPORT_EMAIL}`;
-    return;
-  }
-  Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
-}
+const IS_WEB = Platform.OS === "web";
 
 export default function AboutScreen() {
   const { COLORS } = useTheme();
   const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  async function copyEmail() {
+    try {
+      if (
+        IS_WEB &&
+        typeof navigator !== "undefined" &&
+        navigator.clipboard?.writeText
+      ) {
+        await navigator.clipboard.writeText(SUPPORT_EMAIL);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Sem clipboard (browser antigo/contexto inseguro): o email está visível
+      // e selecionável logo abaixo, por isso não é preciso mais nada.
+    }
+  }
+
+  async function handleSupport() {
+    // PWA de desktop: navegar para "mailto:" abria um separador em branco e
+    // "saía" da app (nem toda a gente tem cliente de email no PC). Copiar o
+    // endereço é fiável em qualquer browser. No nativo (iPhone/iPad) o mailto
+    // abre o compositor de email — que é o que se quer.
+    if (IS_WEB) {
+      await copyEmail();
+      return;
+    }
+    const url = `mailto:${SUPPORT_EMAIL}`;
+    const ok = await Linking.canOpenURL(url).catch(() => false);
+    if (ok) Linking.openURL(url).catch(() => {});
+  }
+
+  const actionLabel = copied
+    ? t("about_email_copied", { defaultValue: "Email copiado ✓" })
+    : IS_WEB
+    ? t("about_copy_email", { defaultValue: "Copiar email" })
+    : t("about_contact_support", { defaultValue: "Contactar suporte" });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -30,7 +59,7 @@ export default function AboutScreen() {
           </Text>
         </Pressable>
         <Text style={[ss.headerTitle, { color: COLORS.text }]}>
-          {t("settings_contact", { defaultValue: "Contactar" })}
+          {t("settings_contact", { defaultValue: "Suporte" })}
         </Text>
         <View style={{ width: 70 }} />
       </View>
@@ -41,11 +70,11 @@ export default function AboutScreen() {
           {t("contact_support_body", { defaultValue: "Encontraste um problema, tens uma dúvida ou uma sugestão? Envia-nos uma mensagem — respondemos o mais depressa possível." })}
         </Text>
         <Pressable
-          onPress={openSupportEmail}
+          onPress={handleSupport}
           style={[ss.btn, { backgroundColor: COLORS.text }]}
         >
           <Text style={[ss.btnText, { color: COLORS.bg }]}>
-            {t("about_contact_support", { defaultValue: "Contactar suporte" })}
+            {actionLabel}
           </Text>
         </Pressable>
         {/* Email visível e copiável — no PC nem toda a gente tem cliente de email */}

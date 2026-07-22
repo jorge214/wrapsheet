@@ -124,7 +124,7 @@ export default function SettingsScreen() {
             style={[ss.row, { borderColor: COLORS.border }]}
           >
             <Text style={[ss.rowLabel, { color: COLORS.text }]}>
-              {t("settings_contact", { defaultValue: "Contactar" })}
+              {t("settings_contact", { defaultValue: "Suporte" })}
             </Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.sub} />
           </Pressable>

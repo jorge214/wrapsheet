@@ -192,7 +192,7 @@
   "saving": "Opslaan…",
   "select_month": "Maand kiezen",
   "settings_backup_import": "Back-up & import",
-  "settings_contact": "Contact",
+  "settings_contact": "Support",
   "settings_current_plan": "Huidig abonnement",
   "settings_dark_mode": "Donkere modus",
   "settings_export_backup": "Back-up exporteren",
@@ -457,5 +457,7 @@
   "profile_limit_send": "Versturen",
   "profile_limit_sent_title": "Verzoek verstuurd",
   "profile_limit_sent_msg": "Bedankt! We nemen snel contact op om het in te schakelen.",
-  "profile_limit_error": "Versturen mislukt. Probeer opnieuw of mail naar getwrapsheet@gmail.com."
+  "profile_limit_error": "Versturen mislukt. Probeer opnieuw of mail naar getwrapsheet@gmail.com.",
+  "about_copy_email": "E-mail kopiëren",
+  "about_email_copied": "E-mail gekopieerd ✓"
 }
