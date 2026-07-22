@@ -913,11 +913,16 @@ export function buildPdfHtml(
   // condições saltam inteiras. Horizontal (A3): as condições (~1 página, tamanho
   // normal) nunca cabem a seguir à tabela, por isso saltam sempre inteiras (em
   // vez de partir a meio a seguir aos totais). maxDays=0 -> salta sempre.
-  const maxDaysOnePage =
-    extra?.orientation === "portrait" ? 26.5 - condCharCount / 156 : 0;
+  const isPortrait = extra?.orientation === "portrait";
+  const maxDaysOnePage = isPortrait ? 26.5 - condCharCount / 156 : 0;
+  // A quebra vai num espaçador ANTES do bloco (não no próprio bloco): assim, no
+  // topo da folha nova, o espaçador ocupa altura real (a margem-topo de um bloco
+  // é truncada no início de página, mas a ALTURA de um elemento não). Dá a
+  // "margemzita" no vertical (o @page são só 7mm e ficava colado). No horizontal
+  // o @page já é 14mm, por isso o espaçador fica a 0 (só transporta a quebra).
   const condBreakCss =
     condCharCount > 1200 && rowsCount > maxDaysOnePage
-      ? ".condWrap { break-before: page; page-break-before: always; }"
+      ? `.condTopSpacer { display: block; break-before: page; page-break-before: always; height: ${isPortrait ? "6mm" : "0"}; } .condWrap { margin-top: 0; }`
       : "";
 
   const dayRows = dias
@@ -1087,6 +1092,9 @@ export function buildPdfHtml(
         table.endTotals td { font-weight: 900; text-align: right; font-size: 11px; min-width: 120px; }
         table.endTotals tr.net th { font-weight: 900; }
         table.endTotals tr.net td { background: #fff3bf; }
+        /* Espaçador que só aparece quando as condições saltam de página (dá a
+           margem em cima na folha nova). Fora desse caso não ocupa nada. */
+        .condTopSpacer { display: none; }
         /* Condições de trabalho em caixas (como na folha de referência) */
         .condWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
         .condMain {
@@ -1145,7 +1153,7 @@ export function buildPdfHtml(
              sem qualquer encolhimento). Medido com sonda de largura no Blink. */
           ${extra?.orientation === "portrait"
             ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 2px; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); }"
-            : "table.days { table-layout: fixed; } .days th, .days td { word-break: break-word; }"}
+            : "table.days { table-layout: fixed; } .days th, .days td { word-break: break-word; padding: 3px 4px; } .days th { font-size: 10px; } .days col.col-desc { width: 7.5%; } .days col.col-data { width: 7%; } .days col.col-sal { width: 5.5%; } .days col.col-ini { width: 4%; } .days col.col-ref { width: 4.6%; } .days col.col-fim { width: 4%; } .days col.col-ht { width: 5.3%; } .days col.col-hd { width: 5.3%; } .days col.col-pd { width: 4.4%; } .days col.col-ott { width: 3.6%; } .days col.col-otv { width: 5.4%; } .days col.col-tot { width: 6%; } .condMain { font-size: 11px; padding: 4px 8px; } .condT { font-size: 9px; padding: 4px 5px; } .condB { font-size: 10px; line-height: 1.3; padding: 4px 7px; } .conditionsBody { font-size: 10px; line-height: 1.3; padding: 6px 8px; } .condRow { grid-template-columns: 220px minmax(0, 1fr); }"}
         }
       </style>
     </head>
@@ -1229,6 +1237,16 @@ export function buildPdfHtml(
       </table>
 
       <table class="days">
+        <colgroup>
+          <col class="col-desc" /><col class="col-data" /><col class="col-sal" />
+          <col class="col-ini" /><col class="col-ref" /><col class="col-fim" />
+          <col class="col-ht" /><col class="col-hd" />
+          <col class="col-pd" /><col class="col-pd" /><col class="col-pd" /><col class="col-pd" /><col class="col-pd" />
+          <col class="col-ott" /><col class="col-otv" />
+          <col class="col-ott" /><col class="col-otv" />
+          <col class="col-ott" /><col class="col-otv" />
+          <col class="col-tot" />
+        </colgroup>
         <tr>
           <th colspan="2">${escapeHtml(s.day)}</th>
           <th>${escapeHtml(s.salary)}</th>
@@ -1276,6 +1294,7 @@ export function buildPdfHtml(
         <tr class="net"><th>${escapeHtml(s.vf)}</th><td>${fmt(totais.ValorFinal)}</td></tr>
       </table>
 
+      <div class="condTopSpacer"></div>
       ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra)}
 
       ${notas && notas.trim() ? `<div class="notesWrap"><div class="notesTitle">${escapeHtml(s.notes)}</div><div class="notesArea">${escapeHtml(notas)}</div></div>` : ""}
