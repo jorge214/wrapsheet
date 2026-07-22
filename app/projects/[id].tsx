@@ -298,6 +298,13 @@ export default function ProjectEditor() {
     if (fsPreview) {
       const fit = Math.max(0.2, Math.min(1, (winW - 24) / SHEET_W));
       setSheetZoom(fit);
+      // iOS/Fabric: os <TextInput> não herdam o transform:scale no 1.º paint
+      // (saem gigantes até "adicionar um dia"). Um micro-ajuste da própria escala
+      // logo após montar força a camada (Core Animation) a re-compor com os
+      // TextInputs à escala certa. Volta ao valor exato — imperceptível.
+      const t1 = setTimeout(() => setSheetZoom(fit * 0.999), 60);
+      const t2 = setTimeout(() => setSheetZoom(fit), 140);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
   }, [fsPreview, winW]);
 
