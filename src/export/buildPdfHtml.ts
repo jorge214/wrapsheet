@@ -886,8 +886,8 @@ export function buildPdfHtml(
   const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
   // Horizontal: 14mm — ao encaixar a folha A3 em papel A4 a margem encolhe
   // ~0.7x, portanto isto dá ~10mm reais (10mm davam ~7mm, quase sem margem).
-  // Vertical: 5mm — a folha usa o papel quase todo e imprime à escala 1.0.
-  const pageMargin = extra?.orientation === "portrait" ? "5mm" : "14mm";
+  // Vertical: 3mm — a folha usa o papel quase todo (mais larga).
+  const pageMargin = extra?.orientation === "portrait" ? "3mm" : "14mm";
 
   const dayRows = dias
     .map((d, i) => {
@@ -938,15 +938,6 @@ export function buildPdfHtml(
           color: #111;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
-          /* A folha dimensiona-se à tabela mais larga (a dos dias): as duas
-             tabelas (width:100%) e o cabeçalho ficam todos com a MESMA largura,
-             alinhados, no ecrã e no PDF, em qualquer motor. fit-content mantém o
-             body em bloco, por isso continua a paginar (ao contrário de
-             inline-block). min-width:100% garante que nunca fica mais estreito
-             que a página. */
-          width: -webkit-fit-content;
-          width: fit-content;
-          min-width: 100%;
         }
         .titleBox {
           border: 2px solid #2b2b2b;
