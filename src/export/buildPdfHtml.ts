@@ -892,11 +892,10 @@ export function buildPdfHtml(
   // ~0.7x, portanto isto dá ~10mm reais (10mm davam ~7mm, quase sem margem).
   // Vertical: cima 7mm (não colar ao topo), lados 5mm (a tabela dos dias não
   // fica colada à direita), fundo 3mm. Horizontal: 14mm.
-  // Vertical: margens laterais 6mm. Nota: margens GRANDES demais (8mm) faziam a
-  // tabela transbordar → o WebKit encolhia-a ancorada à esquerda → sobrava
-  // margem à direita e apertava tudo à esquerda. 6mm dá folga sem forçar esse
-  // encolhimento assimétrico. Top 7 / bottom 3 mantêm-se.
-  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "14mm";
+  // Vertical: margens laterais 8mm (era 5→6, ainda encostava à direita no WebKit).
+  // A folha encolhe-se para caber (shrink-to-fit), por isso a margem maior dá
+  // folga real. Top 7 / bottom 3 mantêm-se.
+  const pageMargin = extra?.orientation === "portrait" ? "7mm 8mm 3mm 8mm" : "14mm";
 
   // Condições substanciais começam numa PÁGINA NOVA (a folha de baixo),
   // inteiras, em vez de partirem a meio a seguir à tabela. Vai no HTML
@@ -934,8 +933,8 @@ export function buildPdfHtml(
       return `
         <tr>
           <td class="left">${escapeHtml(d.descricao || "")}</td>
-          <td class="cData">${escapeHtml(formatDatePT(d.data))}</td>
-          <td class="right cSal">${fmt((d as any).salarioDia ?? salarioDia)}</td>
+          <td>${escapeHtml(formatDatePT(d.data))}</td>
+          <td class="right">${fmt((d as any).salarioDia ?? salarioDia)}</td>
           <td class="cIni">${escapeHtml(d.inicio || "")}</td>
           <td>${escapeHtml(d.refeicaoTrabalho || "")}</td>
           <td class="cFim">${escapeHtml(d.fim || "")}</td>
@@ -1085,8 +1084,6 @@ export function buildPdfHtml(
            viatura, telefone, material, per diems) igual; VALOR das horas
            extra/recuperação igual (largo o suficiente p/ o cabeçalho "HORAS
            RECUPERAÇÃO"/"ERHOLUNGSZEIT" caber); TOTAL do dia um pouco maior. */
-        .days td.cData { min-width: 60px; }
-        .days td.cSal { min-width: 54px; }
         .days td.cIni, .days td.cFim { min-width: 44px; }
         .days td.cPd { min-width: 48px; }
         .days td.cOtv { min-width: 48px; }
