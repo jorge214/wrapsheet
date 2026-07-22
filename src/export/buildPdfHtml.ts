@@ -892,9 +892,10 @@ export function buildPdfHtml(
   // ~0.7x, portanto isto dá ~10mm reais (10mm davam ~7mm, quase sem margem).
   // Vertical: cima 7mm (não colar ao topo), lados 5mm (a tabela dos dias não
   // fica colada à direita), fundo 3mm. Horizontal: 14mm.
-  // Vertical: margens laterais 6mm (era 5) — a tabela dos dias encostava mesmo
-  // à direita no WebKit. Top 7 / bottom 3 mantêm-se.
-  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "14mm";
+  // Vertical: margens laterais 8mm (era 5→6, ainda encostava à direita no WebKit).
+  // A folha encolhe-se para caber (shrink-to-fit), por isso a margem maior dá
+  // folga real. Top 7 / bottom 3 mantêm-se.
+  const pageMargin = extra?.orientation === "portrait" ? "7mm 8mm 3mm 8mm" : "14mm";
 
   // Condições substanciais começam numa PÁGINA NOVA (a folha de baixo),
   // inteiras, em vez de partirem a meio a seguir à tabela. Vai no HTML
@@ -907,53 +908,20 @@ export function buildPdfHtml(
       (n, b) => n + (b?.titulo ?? "").length + (b?.texto ?? "").length,
       0
     );
-  // Só no VERTICAL: as condições só saltam para página nova se NÃO couberem com
-  // a tabela na mesma página; se couberem (folhas curtas), ficam na página 1
-  // (não se desperdiça uma folha). Máximo de dias que cabe com as condições:
-  // calibrado por medição — sem condições cabem ~26.5 linhas; as condições
-  // ocupam ~condCharCount/156 linhas (as atuais ~3131 chars -> ~20 linhas ->
-  // limite ~6 dias, como observado). No horizontal (A3) as condições fluem
-  // para o espaço a seguir aos totais (como no PC), sem quebra forçada.
-  const rowsCount = dias.length;
-  const isPortrait = extra?.orientation === "portrait";
-  const isNative = !!extra?.nativePrint; // expo-print/WebKit (iPhone/iPad)
-
-  // Quantos dias cabem na pág. 1 antes das condições terem de saltar. O WebKit
-  // (nativo) encaixa mais do que o Blink (web) — por isso a app pode fechar mais
-  // dias numa folha só do que o PC. (Valores calibrados p/ afinar no TestFlight.)
-  const maxDaysOnePage = isPortrait
-    ? (isNative ? 30 : 26.5) - condCharCount / 156 // vertical: cabem com a tabela
-    : 0; // horizontal: as condições (tamanho normal) nunca cabem com a tabela
-  const wantBreak = condCharCount > 1200 && rowsCount > maxDaysOnePage;
-
-  // Horizontal com tabela longa: os totais também deixam de caber na pág. 1 e
-  // ficariam órfãos numa folha sozinhos → quebra ANTES dos totais, p/ totais +
-  // condições irem JUNTOS para a folha seguinte. Limite = dias que cabem com os
-  // totais ainda na pág. 1 (WebKit cabe mais). Só no nativo (na web mantém-se o
-  // fluxo natural, que o Blink pagina bem).
-  const landscapeTotalsFit = isNative ? 8 : 7;
-  const breakBeforeTotals = wantBreak && !isPortrait && rowsCount > landscapeTotalsFit;
-
-  // Margem no topo da folha nova: o WebKit ignora a margem @page nas páginas
-  // seguintes, por isso um espaçador de ALTURA REAL (não margin, que é truncada)
-  // é o que garante o espaço. Landscape um pouco maior (folha maior).
-  const spacerH = isPortrait ? "6mm" : "9mm";
-
-  let condBreakCss = "";
-  if (wantBreak) {
-    if (!isNative && !isPortrait) {
-      // Web/Blink horizontal: fluxo natural — o Blink pagina e move o bloco
-      // (compacto) inteiro sem cortar. (No WebKit isto CORTAVA — daí o ramo nativo.)
-      condBreakCss = ".condWrap { break-inside: avoid; page-break-inside: avoid; }";
-    } else if (breakBeforeTotals) {
-      // Espaçador antes dos totais transporta a quebra + dá a margem no topo;
-      // as condições fluem logo a seguir aos totais (sem quebra própria).
-      condBreakCss = `.totalsTopSpacer { display: block; break-before: page; page-break-before: always; height: ${spacerH}; } table.endTotals { margin-top: 0; } .condWrap { margin-top: 10px; }`;
-    } else {
-      // Espaçador antes das condições: salta a folha e dá a margem no topo.
-      condBreakCss = `.condTopSpacer { display: block; break-before: page; page-break-before: always; height: ${spacerH}; } .condWrap { margin-top: 0; }`;
-    }
-  }
+  // Condições: SEMPRE por TAMANHO REAL — nunca por nº de dias nem nº de caixas
+  // (variam de pessoa para pessoa). O `break-inside: avoid` faz o próprio motor
+  // MEDIR o bloco das condições na folha:
+  //   • cabe na página → fica (enche a folha ao máximo);
+  //   • não cabe → salta INTEIRO para a folha seguinte;
+  //   • se alguém tiver condições > 1 página inteira → parte só ENTRE caixas
+  //     (cada caixa fecha a moldura, via box-decoration-break: clone) — nunca
+  //     corta uma caixa a meio.
+  // Igual em tudo: vertical/horizontal e WebKit (iPhone/iPad)/Blink (web). As
+  // condições estão compactas (< 1 página), por isso o WebKit já não corta.
+  const condBreakCss =
+    condCharCount > 1200
+      ? ".condWrap { break-inside: avoid; page-break-inside: avoid; }"
+      : "";
 
   const dayRows = dias
     .map((d, i) => {
