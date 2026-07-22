@@ -886,9 +886,9 @@ export function buildPdfHtml(
   const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
   // Horizontal: 14mm — ao encaixar a folha A3 em papel A4 a margem encolhe
   // ~0.7x, portanto isto dá ~10mm reais (10mm davam ~7mm, quase sem margem).
-  // Vertical: margem de cima maior (7mm) para não ficar colado ao topo; lados e
-  // fundo a 3mm (folha larga). Horizontal: 14mm.
-  const pageMargin = extra?.orientation === "portrait" ? "7mm 3mm 3mm 3mm" : "14mm";
+  // Vertical: cima 7mm (não colar ao topo), lados 5mm (a tabela dos dias não
+  // fica colada à direita), fundo 3mm. Horizontal: 14mm.
+  const pageMargin = extra?.orientation === "portrait" ? "7mm 5mm 3mm 5mm" : "14mm";
 
   // Condições substanciais começam numa PÁGINA NOVA (a folha de baixo),
   // inteiras, em vez de partirem a meio a seguir à tabela. Vai no HTML
