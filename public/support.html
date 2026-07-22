@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <title>WrapSheet — Support / Apoio</title>
+  <meta name="description" content="WrapSheet support. Questions, bugs or feedback? Email getwrapsheet@gmail.com and we'll get back to you." />
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://wrapsheet-app.com/support" />
+  <link rel="icon" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/pwa-icon.png" />
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="WrapSheet" />
+  <meta property="og:url" content="https://wrapsheet-app.com/support" />
+  <meta property="og:title" content="WrapSheet — Support / Apoio" />
+  <meta property="og:description" content="Questions, bugs or feedback? Email us and we'll get back to you." />
+  <meta property="og:image" content="https://wrapsheet-app.com/pwa-icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="WrapSheet — Support / Apoio" />
+  <meta name="twitter:description" content="Questions, bugs or feedback? Email us and we'll get back to you." />
+  <meta name="twitter:image" content="https://wrapsheet-app.com/pwa-icon.png" />
+  <style>
+    :root {
+      --ink: #0a0a0a;
+      --bg: #ffffff;
+      --muted: #666666;
+      --line: #e4e4e4;
+      --card: #fafafa;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ink: #fafafa;
+        --bg: #0a0a0a;
+        --muted: #9a9a9a;
+        --line: #262626;
+        --card: #161616;
+      }
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      font-size: 17px;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 40px 22px 56px;
+    }
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .icon { width: 52px; height: 52px; color: var(--ink); flex: none; }
+    .icon svg { display: block; width: 100%; height: 100%; }
+    .brand b { font-size: 19px; font-weight: 800; letter-spacing: -0.2px; }
+    .langtoggle { display: flex; gap: 4px; }
+    .langtoggle button {
+      appearance: none;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .langtoggle button[aria-current="true"] {
+      color: var(--bg);
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+    h1 { font-size: 30px; font-weight: 900; letter-spacing: -0.5px; margin: 0 0 10px; }
+    .intro { color: var(--muted); margin: 0 0 26px; font-size: 17px; }
+    .mailbtn {
+      display: inline-block;
+      border: 2px solid var(--ink);
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 17px;
+      padding: 14px 22px;
+      border-radius: 14px;
+      word-break: break-all;
+      transition: background .15s ease, color .15s ease;
+    }
+    .mailbtn:hover, .mailbtn:focus { background: var(--ink); color: var(--bg); }
+    .mailhint { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+    h2 { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 40px 0 14px; }
+    .qa { border-top: 1px solid var(--line); padding: 16px 0; }
+    .qa:last-of-type { border-bottom: 1px solid var(--line); }
+    .q { font-weight: 800; font-size: 17px; margin: 0 0 4px; }
+    .a { margin: 0; color: var(--ink); }
+    .a code { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 14px; }
+    footer { margin-top: 44px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+    footer a { color: var(--muted); text-decoration: underline; }
+    footer a:hover { color: var(--ink); }
+    footer .sep { margin: 0 8px; }
+    footer .copy { display: block; margin-top: 10px; }
+    .lang-pt { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top">
+      <div class="brand">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- slate board -->
+            <rect x="14" y="45" width="68" height="39" rx="6" fill="currentColor"/>
+            <rect x="24" y="59" width="48" height="4" rx="2" fill="var(--bg)"/>
+            <rect x="24" y="70" width="48" height="4" rx="2" fill="var(--bg)"/>
+            <!-- clapper stick -->
+            <g transform="rotate(-9 48 34)">
+              <rect x="11" y="25" width="74" height="17" rx="3" fill="currentColor"/>
+              <polygon points="24,25 32,25 22,42 14,42" fill="var(--bg)"/>
+              <polygon points="40,25 48,25 38,42 30,42" fill="var(--bg)"/>
+              <polygon points="56,25 64,25 54,42 46,42" fill="var(--bg)"/>
+              <polygon points="72,25 80,25 70,42 62,42" fill="var(--bg)"/>
+            </g>
+          </svg>
+        </span>
+        <b>WrapSheet</b>
+      </div>
+      <div class="langtoggle">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="pt">PT</button>
+      </div>
+    </div>
+
+    <!-- ENGLISH -->
+    <section class="lang-en">
+      <h1>Support</h1>
+      <p class="intro">Questions, bugs or feedback? Email us and we&rsquo;ll get back to you.</p>
+      <a class="mailbtn" href="mailto:getwrapsheet@gmail.com?subject=WrapSheet%20Support">getwrapsheet@gmail.com</a>
+      <p class="mailhint">We usually reply within a couple of days.</p>
+
+      <h2>Frequently asked</h2>
+      <div class="qa">
+        <p class="q">How do I export the timesheet as a PDF?</p>
+        <p class="a">Open a project, tap <b>Export</b>, and choose portrait or landscape. The PDF is ready to send to production or attach to an invoice.</p>
+      </div>
+      <div class="qa">
+        <p class="q">The tax rates are wrong for my case &mdash; can I change them?</p>
+        <p class="a">Yes. Tax rates are fully editable. Set your defaults in <b>Settings &rsaquo; Fiscal Region</b>, and you can also override the rates on an individual project.</p>
+      </div>
+      <div class="qa">
+        <p class="q">How do I delete my account?</p>
+        <p class="a">In the app, go to <b>Settings &rsaquo; Account &rsaquo; Delete account</b>. This permanently removes your account and data.</p>
+      </div>
+      <div class="qa">
+        <p class="q">Which devices does it work on?</p>
+        <p class="a">iPhone, plus a web version for your computer or tablet at <b>wrapsheet-app.com</b>. Your data syncs securely across your own devices.</p>
+      </div>
+
+      <footer>
+        <a href="/privacy">Privacy Policy</a><span class="sep">&middot;</span><a href="/terms">Terms</a>
+        <span class="copy">&copy; 2026 WrapSheet</span>
+      </footer>
+    </section>
+
+    <!-- PORTUGU&Ecirc;S -->
+    <section class="lang-pt">
+      <h1>Apoio</h1>
+      <p class="intro">D&uacute;vidas, erros ou sugest&otilde;es? Escreve-nos e respondemos.</p>
+      <a class="mailbtn" href="mailto:getwrapsheet@gmail.com?subject=WrapSheet%20Apoio">getwrapsheet@gmail.com</a>
+      <p class="mailhint">Costumamos responder em poucos dias.</p>
+
+      <h2>Perguntas frequentes</h2>
+      <div class="qa">
+        <p class="q">Como exporto a folha em PDF?</p>
+        <p class="a">Abre um projeto, toca em <b>Exportar</b> e escolhe vertical ou horizontal. O PDF fica pronto para enviar &agrave; produ&ccedil;&atilde;o ou anexar a uma fatura.</p>
+      </div>
+      <div class="qa">
+        <p class="q">As taxas de imposto est&atilde;o erradas para o meu caso &mdash; posso mud&aacute;-las?</p>
+        <p class="a">Sim. As taxas s&atilde;o totalmente edit&aacute;veis. Define as tuas predefini&ccedil;&otilde;es em <b>Defini&ccedil;&otilde;es &rsaquo; Regi&atilde;o Fiscal</b>, e podes ainda sobrep&ocirc;-las num projeto individual.</p>
+      </div>
+      <div class="qa">
+        <p class="q">Como elimino a minha conta?</p>
+        <p class="a">Na app, vai a <b>Defini&ccedil;&otilde;es &rsaquo; Conta &rsaquo; Eliminar conta</b>. Remove a tua conta e os teus dados de forma permanente.</p>
+      </div>
+      <div class="qa">
+        <p class="q">Em que dispositivos funciona?</p>
+        <p class="a">iPhone, e uma vers&atilde;o web para computador ou tablet em <b>wrapsheet-app.com</b>. Os teus dados sincronizam em seguran&ccedil;a entre os teus aparelhos.</p>
+      </div>
+
+      <footer>
+        <a href="/privacy">Pol&iacute;tica de Privacidade</a><span class="sep">&middot;</span><a href="/terms">Termos</a>
+        <span class="copy">&copy; 2026 WrapSheet</span>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var en = document.querySelector('.lang-en');
+      var pt = document.querySelector('.lang-pt');
+      var btns = document.querySelectorAll('.langtoggle button');
+      function set(l) {
+        var isPt = l === 'pt';
+        en.style.display = isPt ? 'none' : 'block';
+        pt.style.display = isPt ? 'block' : 'none';
+        document.documentElement.lang = isPt ? 'pt' : 'en';
+        for (var i = 0; i < btns.length; i++) {
+          btns[i].setAttribute('aria-current', btns[i].getAttribute('data-lang') === l ? 'true' : 'false');
+        }
+      }
+      var initial = (navigator.language || 'en').toLowerCase().indexOf('pt') === 0 ? 'pt' : 'en';
+      set(initial);
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener('click', function () { set(this.getAttribute('data-lang')); });
+      }
+    })();
+  </script>
+</body>
+</html>
