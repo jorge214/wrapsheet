@@ -915,15 +915,22 @@ export function buildPdfHtml(
   // vez de partir a meio a seguir aos totais). maxDays=0 -> salta sempre.
   const isPortrait = extra?.orientation === "portrait";
   const maxDaysOnePage = isPortrait ? 26.5 - condCharCount / 156 : 0;
-  // A quebra vai num espaçador ANTES do bloco (não no próprio bloco): assim, no
-  // topo da folha nova, o espaçador ocupa altura real (a margem-topo de um bloco
-  // é truncada no início de página, mas a ALTURA de um elemento não). Dá a
-  // "margemzita" no vertical (o @page são só 7mm e ficava colado). No horizontal
-  // o @page já é 14mm, por isso o espaçador fica a 0 (só transporta a quebra).
-  const condBreakCss =
-    condCharCount > 1200 && rowsCount > maxDaysOnePage
-      ? `.condTopSpacer { display: block; break-before: page; page-break-before: always; height: ${isPortrait ? "6mm" : "0"}; } .condWrap { margin-top: 0; }`
-      : "";
+  const wantBreak = condCharCount > 1200 && rowsCount > maxDaysOnePage;
+  // Horizontal com tabela longa (>=8 dias): a tabela enche a pág. 1 e os totais
+  // (Bruto/IRS/IVA/Líquido) já não cabem lá — ficariam órfãos sozinhos numa
+  // folha, com as condições a saltar para uma 3.ª. Como as condições agora são
+  // compactas (~meia página), quebra-se ANTES dos totais para totais + condições
+  // irem JUNTOS para a página seguinte (2 páginas, sem órfão). Caso contrário
+  // (folhas curtas, ou vertical) quebra-se antes das condições — e o espaçador dá
+  // também a margem no topo da folha nova (a margem-topo de um bloco é truncada
+  // no início de página, mas a ALTURA de um elemento não; no horizontal o @page
+  // já é 14mm, por isso o espaçador fica a 0 e só transporta a quebra).
+  const breakBeforeTotals = wantBreak && !isPortrait && rowsCount >= 8;
+  const condBreakCss = !wantBreak
+    ? ""
+    : breakBeforeTotals
+    ? "table.endTotals { break-before: page; page-break-before: always; }"
+    : `.condTopSpacer { display: block; break-before: page; page-break-before: always; height: ${isPortrait ? "6mm" : "0"}; } .condWrap { margin-top: 0; }`;
 
   const dayRows = dias
     .map((d, i) => {
