@@ -459,5 +459,6 @@
   "profile_limit_sent_msg": "Danke! Wir melden uns in Kürze, um es freizuschalten.",
   "profile_limit_error": "Senden nicht möglich. Versuch es erneut oder schreib an getwrapsheet@gmail.com.",
   "about_copy_email": "E-Mail kopieren",
-  "about_email_copied": "E-Mail kopiert ✓"
+  "about_email_copied": "E-Mail kopiert ✓",
+  "about_support_page": "Support-Seite"
 }

@@ -6,7 +6,19 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 const SUPPORT_EMAIL = "getwrapsheet@gmail.com";
+const SUPPORT_URL = "https://wrapsheet-app.com/support";
 const IS_WEB = Platform.OS === "web";
+
+// Página de suporte (útil sobretudo no PC): é uma página web normal (https),
+// por isso abrir num separador funciona em qualquer lado — ao contrário do
+// mailto, que partia o PWA de desktop.
+function openSupportPage() {
+  if (IS_WEB && typeof window !== "undefined") {
+    window.open(SUPPORT_URL, "_blank", "noopener");
+    return;
+  }
+  Linking.openURL(SUPPORT_URL).catch(() => {});
+}
 
 export default function AboutScreen() {
   const { COLORS } = useTheme();
@@ -81,6 +93,18 @@ export default function AboutScreen() {
         <Text selectable style={{ color: COLORS.sub, marginTop: 10, textAlign: "center", fontWeight: "700" }}>
           {SUPPORT_EMAIL}
         </Text>
+
+        {/* Página de suporte (FAQ + contacto) — sobretudo para o PC */}
+        <View style={[ss.supportLinkWrap, { borderColor: COLORS.border }]}>
+          <Text style={{ color: COLORS.sub, fontSize: 12, marginBottom: 4 }}>
+            {t("about_support_page", { defaultValue: "Página de suporte" })}
+          </Text>
+          <Pressable onPress={openSupportPage} hitSlop={8}>
+            <Text style={[ss.supportLink, { color: COLORS.text }]}>
+              wrapsheet-app.com/support
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -103,4 +127,15 @@ const ss = StyleSheet.create({
   title: { fontSize: 18, fontWeight: "800" },
   btn: { marginTop: 12, borderRadius: 10, paddingVertical: 10, alignItems: "center" },
   btnText: { fontWeight: "700" },
+  supportLinkWrap: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    alignItems: "center",
+  },
+  supportLink: {
+    fontSize: 15,
+    fontWeight: "800",
+    textDecorationLine: "underline",
+  },
 });

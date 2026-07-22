@@ -459,5 +459,6 @@
   "profile_limit_sent_msg": "Dziękujemy! Wkrótce się odezwiemy, aby to odblokować.",
   "profile_limit_error": "Nie udało się wysłać. Spróbuj ponownie lub napisz na getwrapsheet@gmail.com.",
   "about_copy_email": "Kopiuj e-mail",
-  "about_email_copied": "Skopiowano e-mail ✓"
+  "about_email_copied": "Skopiowano e-mail ✓",
+  "about_support_page": "Strona pomocy"
 }

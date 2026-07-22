@@ -459,5 +459,6 @@
   "profile_limit_sent_msg": "Bedankt! We nemen snel contact op om het in te schakelen.",
   "profile_limit_error": "Versturen mislukt. Probeer opnieuw of mail naar getwrapsheet@gmail.com.",
   "about_copy_email": "E-mail kopiëren",
-  "about_email_copied": "E-mail gekopieerd ✓"
+  "about_email_copied": "E-mail gekopieerd ✓",
+  "about_support_page": "Supportpagina"
 }

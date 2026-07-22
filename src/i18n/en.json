@@ -459,5 +459,6 @@
   "profile_limit_sent_msg": "Thanks! We'll get back to you shortly to enable it.",
   "profile_limit_error": "Could not send. Try again or email getwrapsheet@gmail.com.",
   "about_copy_email": "Copy email",
-  "about_email_copied": "Email copied ✓"
+  "about_email_copied": "Email copied ✓",
+  "about_support_page": "Support page"
 }
