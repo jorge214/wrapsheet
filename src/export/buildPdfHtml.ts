@@ -916,21 +916,22 @@ export function buildPdfHtml(
   const isPortrait = extra?.orientation === "portrait";
   const maxDaysOnePage = isPortrait ? 26.5 - condCharCount / 156 : 0;
   const wantBreak = condCharCount > 1200 && rowsCount > maxDaysOnePage;
-  // Horizontal com tabela longa (>=8 dias): a tabela enche a pág. 1 e os totais
-  // (Bruto/IRS/IVA/Líquido) já não cabem lá — ficariam órfãos sozinhos numa
-  // folha, com as condições a saltar para uma 3.ª. Como as condições agora são
-  // compactas (~meia página), quebra-se ANTES dos totais para totais + condições
-  // irem JUNTOS para a página seguinte (2 páginas, sem órfão). Caso contrário
-  // (folhas curtas, ou vertical) quebra-se antes das condições — e o espaçador dá
-  // também a margem no topo da folha nova (a margem-topo de um bloco é truncada
-  // no início de página, mas a ALTURA de um elemento não; no horizontal o @page
-  // já é 14mm, por isso o espaçador fica a 0 e só transporta a quebra).
-  const breakBeforeTotals = wantBreak && !isPortrait && rowsCount >= 8;
+  // Vertical: quebra FORÇADA antes das condições (o bloco é ~1 página, tem de ir
+  // sempre para folha nova); o espaçador dá também a margem no topo dessa folha
+  // (a margem-topo de um bloco é truncada no início de página, mas a ALTURA de um
+  // elemento não — o @page vertical é só 7mm e ficava colado).
+  //
+  // Horizontal: SEM número mágico. Os totais fluem naturalmente (ficam na pág. 1
+  // enquanto couberem — o dia em que transbordam difere entre motores: Blink ~12,
+  // WebKit ~10). As condições, agora compactas (~meia página, bem menos que uma
+  // folha), levam break-inside: avoid -> movem-se INTEIRAS para onde os totais
+  // ficarem (a seguir a eles na mesma folha), nunca partem nem saltam sozinhas
+  // para uma 3.ª. Adapta-se a cada motor sem calibração.
   const condBreakCss = !wantBreak
     ? ""
-    : breakBeforeTotals
-    ? "table.endTotals { break-before: page; page-break-before: always; }"
-    : `.condTopSpacer { display: block; break-before: page; page-break-before: always; height: ${isPortrait ? "6mm" : "0"}; } .condWrap { margin-top: 0; }`;
+    : isPortrait
+    ? `.condTopSpacer { display: block; break-before: page; page-break-before: always; height: 6mm; } .condWrap { margin-top: 0; }`
+    : ".condWrap { break-inside: avoid; page-break-inside: avoid; }";
 
   const dayRows = dias
     .map((d, i) => {
