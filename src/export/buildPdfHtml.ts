@@ -905,7 +905,7 @@ export function buildPdfHtml(
   // pouco para a esquerda e dá espaço p/ alargar DATA/SALÁRIO SEM empurrar a
   // tabela para a direita (não transborda -> não encolhe -> condições intactas).
   // Sem margem negativa (isso cortava no WebKit).
-  const pageMargin = extra?.orientation === "portrait" ? "7mm 9mm 3mm 4mm" : "14mm";
+  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "14mm";
 
   // Condições substanciais começam numa PÁGINA NOVA (a folha de baixo),
   // inteiras, em vez de partirem a meio a seguir à tabela. Vai no HTML
