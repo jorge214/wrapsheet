@@ -944,6 +944,7 @@ export function buildPdfHtml(
              body em bloco, por isso continua a paginar (ao contrário de
              inline-block). min-width:100% garante que nunca fica mais estreito
              que a página. */
+          width: -webkit-fit-content;
           width: fit-content;
           min-width: 100%;
         }
