@@ -43,7 +43,10 @@ export async function exportPDF(
   extra?: PdfExtra
 ): Promise<void> {
   try {
-    const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extra);
+    // Este caminho é sempre o expo-print (WebKit) no iOS/iPad — marca-o para o
+    // builder calibrar a paginação ao motor certo (≠ do Blink na web).
+    const extraNative: PdfExtra = { ...extra, nativePrint: true };
+    const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extraNative);
 
     // Horizontal = A3 landscape (1191×842 pt, como sempre foi — a tabela dos
     // dias precisa desta largura); vertical = A4 portrait (595×842), a folha

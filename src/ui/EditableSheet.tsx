@@ -38,7 +38,7 @@ const C = {
 
 /* ---------------- Day-table column widths ---------------- */
 const W = {
-  desc: 130, data: 104, sal: 78,
+  desc: 130, data: 122, sal: 78,
   ini: 60, ref: 60, fim: 60, tra: 64,
   ht: 78, hd: 78,
   aRef: 64, aPer: 64, aTel: 64, aViat: 64, aMat: 64,

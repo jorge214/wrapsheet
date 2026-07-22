@@ -768,6 +768,10 @@ export type PdfExtra = {
   // Opções de exportação/impressão
   fontScale?: number; // 1 = normal; >1 = letras/números maiores (legibilidade)
   orientation?: "landscape" | "portrait"; // orientação da página impressa
+  // Motor de render: true = expo-print no iOS/iPad (WebKit); ausente = web (Blink).
+  // O WebKit e o Blink paginam de forma diferente (nº de dias que cabe, margens no
+  // topo das folhas seguintes, break-inside), por isso a calibração muda conforme.
+  nativePrint?: boolean;
 };
 
 // Aplica o multiplicador de tamanho a todos os font-size px do CSS gerado
@@ -888,7 +892,9 @@ export function buildPdfHtml(
   // ~0.7x, portanto isto dá ~10mm reais (10mm davam ~7mm, quase sem margem).
   // Vertical: cima 7mm (não colar ao topo), lados 5mm (a tabela dos dias não
   // fica colada à direita), fundo 3mm. Horizontal: 14mm.
-  const pageMargin = extra?.orientation === "portrait" ? "7mm 5mm 3mm 5mm" : "14mm";
+  // Vertical: margens laterais 6mm (era 5) — a tabela dos dias encostava mesmo
+  // à direita no WebKit. Top 7 / bottom 3 mantêm-se.
+  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "14mm";
 
   // Condições substanciais começam numa PÁGINA NOVA (a folha de baixo),
   // inteiras, em vez de partirem a meio a seguir à tabela. Vai no HTML
@@ -909,29 +915,45 @@ export function buildPdfHtml(
   // limite ~6 dias, como observado). No horizontal (A3) as condições fluem
   // para o espaço a seguir aos totais (como no PC), sem quebra forçada.
   const rowsCount = dias.length;
-  // Vertical: cabe tudo numa página até maxDaysOnePage dias; acima disso as
-  // condições saltam inteiras. Horizontal (A3): as condições (~1 página, tamanho
-  // normal) nunca cabem a seguir à tabela, por isso saltam sempre inteiras (em
-  // vez de partir a meio a seguir aos totais). maxDays=0 -> salta sempre.
   const isPortrait = extra?.orientation === "portrait";
-  const maxDaysOnePage = isPortrait ? 26.5 - condCharCount / 156 : 0;
+  const isNative = !!extra?.nativePrint; // expo-print/WebKit (iPhone/iPad)
+
+  // Quantos dias cabem na pág. 1 antes das condições terem de saltar. O WebKit
+  // (nativo) encaixa mais do que o Blink (web) — por isso a app pode fechar mais
+  // dias numa folha só do que o PC. (Valores calibrados p/ afinar no TestFlight.)
+  const maxDaysOnePage = isPortrait
+    ? (isNative ? 30 : 26.5) - condCharCount / 156 // vertical: cabem com a tabela
+    : 0; // horizontal: as condições (tamanho normal) nunca cabem com a tabela
   const wantBreak = condCharCount > 1200 && rowsCount > maxDaysOnePage;
-  // Vertical: quebra FORÇADA antes das condições (o bloco é ~1 página, tem de ir
-  // sempre para folha nova); o espaçador dá também a margem no topo dessa folha
-  // (a margem-topo de um bloco é truncada no início de página, mas a ALTURA de um
-  // elemento não — o @page vertical é só 7mm e ficava colado).
-  //
-  // Horizontal: SEM número mágico. Os totais fluem naturalmente (ficam na pág. 1
-  // enquanto couberem — o dia em que transbordam difere entre motores: Blink ~12,
-  // WebKit ~10). As condições, agora compactas (~meia página, bem menos que uma
-  // folha), levam break-inside: avoid -> movem-se INTEIRAS para onde os totais
-  // ficarem (a seguir a eles na mesma folha), nunca partem nem saltam sozinhas
-  // para uma 3.ª. Adapta-se a cada motor sem calibração.
-  const condBreakCss = !wantBreak
-    ? ""
-    : isPortrait
-    ? `.condTopSpacer { display: block; break-before: page; page-break-before: always; height: 6mm; } .condWrap { margin-top: 0; }`
-    : ".condWrap { break-inside: avoid; page-break-inside: avoid; }";
+
+  // Horizontal com tabela longa: os totais também deixam de caber na pág. 1 e
+  // ficariam órfãos numa folha sozinhos → quebra ANTES dos totais, p/ totais +
+  // condições irem JUNTOS para a folha seguinte. Limite = dias que cabem com os
+  // totais ainda na pág. 1 (WebKit cabe mais). Só no nativo (na web mantém-se o
+  // fluxo natural, que o Blink pagina bem).
+  const landscapeTotalsFit = isNative ? 8 : 7;
+  const breakBeforeTotals = wantBreak && !isPortrait && rowsCount > landscapeTotalsFit;
+
+  // Margem no topo da folha nova: o WebKit ignora a margem @page nas páginas
+  // seguintes, por isso um espaçador de ALTURA REAL (não margin, que é truncada)
+  // é o que garante o espaço. Landscape um pouco maior (folha maior).
+  const spacerH = isPortrait ? "6mm" : "9mm";
+
+  let condBreakCss = "";
+  if (wantBreak) {
+    if (!isNative && !isPortrait) {
+      // Web/Blink horizontal: fluxo natural — o Blink pagina e move o bloco
+      // (compacto) inteiro sem cortar. (No WebKit isto CORTAVA — daí o ramo nativo.)
+      condBreakCss = ".condWrap { break-inside: avoid; page-break-inside: avoid; }";
+    } else if (breakBeforeTotals) {
+      // Espaçador antes dos totais transporta a quebra + dá a margem no topo;
+      // as condições fluem logo a seguir aos totais (sem quebra própria).
+      condBreakCss = `.totalsTopSpacer { display: block; break-before: page; page-break-before: always; height: ${spacerH}; } table.endTotals { margin-top: 0; } .condWrap { margin-top: 10px; }`;
+    } else {
+      // Espaçador antes das condições: salta a folha e dá a margem no topo.
+      condBreakCss = `.condTopSpacer { display: block; break-before: page; page-break-before: always; height: ${spacerH}; } .condWrap { margin-top: 0; }`;
+    }
+  }
 
   const dayRows = dias
     .map((d, i) => {
@@ -1102,7 +1124,7 @@ export function buildPdfHtml(
         table.endTotals tr.net td { background: #fff3bf; }
         /* Espaçador que só aparece quando as condições saltam de página (dá a
            margem em cima na folha nova). Fora desse caso não ocupa nada. */
-        .condTopSpacer { display: none; }
+        .condTopSpacer, .totalsTopSpacer { display: none; }
         /* Condições de trabalho em caixas (como na folha de referência) */
         .condWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
         .condMain {
@@ -1295,6 +1317,7 @@ export function buildPdfHtml(
         ${dayRows}
       </table>
 
+      <div class="totalsTopSpacer"></div>
       <table class="endTotals">
         <tr><th>${escapeHtml(s.vb)}</th><td>${fmt(totais.ValorBruto)}</td></tr>
         <tr><th>${escapeHtml(s.irs)}</th><td>${fmt(totais.IRS_valor)}</td></tr>
