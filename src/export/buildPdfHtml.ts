@@ -889,6 +889,22 @@ export function buildPdfHtml(
   // Vertical: 3mm — a folha usa o papel quase todo (mais larga).
   const pageMargin = extra?.orientation === "portrait" ? "3mm" : "14mm";
 
+  // Condições substanciais começam numa PÁGINA NOVA (a folha de baixo),
+  // inteiras, em vez de partirem a meio a seguir à tabela. Vai no HTML
+  // partilhado, por isso aplica-se ao nativo (expo-print, App Store) E à web.
+  // page-break-before: always é a quebra forçada mais básica (a melhor
+  // suportada pelo WebKit do expo-print). Só quando há condições a sério.
+  const condCharCount =
+    (condicoes ?? "").length +
+    (extra?.condBoxes ?? []).reduce(
+      (n, b) => n + (b?.titulo ?? "").length + (b?.texto ?? "").length,
+      0
+    );
+  const condBreakCss =
+    condCharCount > 1200
+      ? ".condWrap { break-before: page; page-break-before: always; }"
+      : "";
+
   const dayRows = dias
     .map((d, i) => {
       const c = calculos[i];
@@ -1087,6 +1103,7 @@ export function buildPdfHtml(
            no WebKit do iOS, break-inside:avoid num bloco maior que a página
            CORTA o fim (o bug antigo do expo-print). */
         .condWrap, .notesWrap { -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+        ${condBreakCss}
         .condMain, .notesTitle { break-after: avoid; page-break-after: avoid; }
         /* Os totais finais (Bruto/IRS/IVA/Líquido) saltam inteiros de página —
            partiam a meio (Bruto numa página, o resto na seguinte). Bloco
