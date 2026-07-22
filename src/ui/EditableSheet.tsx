@@ -38,7 +38,7 @@ const C = {
 
 /* ---------------- Day-table column widths ---------------- */
 const W = {
-  desc: 130, data: 132, sal: 78,
+  desc: 130, data: 150, sal: 78,
   ini: 60, ref: 60, fim: 60, tra: 64,
   ht: 78, hd: 78,
   aRef: 64, aPer: 64, aTel: 64, aViat: 64, aMat: 64,
@@ -722,7 +722,7 @@ const sh = StyleSheet.create({
   curOverlayTxt: { fontSize: 9, fontWeight: "700", color: C.text },
   cellInput: { paddingHorizontal: 4, paddingVertical: 6, fontSize: 11, color: C.text },
   cellInputBad: { backgroundColor: "#FFF0F0", color: C.danger, fontWeight: "700" },
-  cellDate: { paddingHorizontal: 4, justifyContent: "center", flex: 1 },
+  cellDate: { paddingHorizontal: 2, justifyContent: "center", flex: 1 },
   cellDateTxt: { fontSize: 10, color: C.text, textAlign: "center" },
 
   actRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3 },
