@@ -451,18 +451,20 @@ export default function EditableSheet(props: Props) {
   const transpLabel = "TRANSP.";
   const curSym = currencySymbol(currency);
 
-  // A New Architecture (Fabric) mede o texto mal na 1.ª passagem de layout desta
-  // tabela dentro do Modal/escala: no 1.º render (sobretudo em vertical, escala
-  // pequena) a data sai cortada e os valores com tamanhos diferentes. QUALQUER
-  // 2.ª passagem de layout corrige — é por isso que "adicionar um dia" resolve
-  // (acrescenta um filho -> a coluna re-faz o layout e re-mede tudo). Fazemos
-  // isso automaticamente: 2 frames após montar, acrescentamos um filho de altura
-  // 0 à coluna das linhas. Sem remontar, sem flicker, invisível.
-  const [settled, setSettled] = useState(false);
+  // No iOS/Fabric, o transform:scale do zoom escala os <Text> logo, mas os
+  // <TextInput> só re-compõem à escala numa passagem de layout SEGUINTE — por
+  // isso no 1.º render (sobretudo em vertical) os horários/valores editáveis
+  // saem gigantes e a data cortada, até se "adicionar um dia" (acrescenta uma
+  // LINHA com TextInputs -> a lista re-renderiza e tudo re-compõe à escala).
+  // Reproduzimos isso à letra no arranque: renderizamos menos uma linha no 1.º
+  // frame e acrescentamos a que falta 2 frames depois — um "adicionar dia"
+  // automático e invisível.
+  const [rowsReady, setRowsReady] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setSettled(true), 32);
+    const t = setTimeout(() => setRowsReady(true), 32);
     return () => clearTimeout(t);
   }, []);
+  const shownDias = rowsReady ? dias : dias.slice(0, Math.max(0, dias.length - 1));
 
   // Rate cell: editable money value com símbolo da moeda (sobreposto, não espreme)
   const RateEdit = ({ value, onChange }: { value: number; onChange: (n: number) => void }) => (
@@ -605,7 +607,7 @@ export default function EditableSheet(props: Props) {
           <HCell w={W.tot} h={H_HEAD2} label={s.day} bg={C.subGold} color={C.text} small />
         </View>
         {/* body rows */}
-        {dias.map((d, i) => {
+        {shownDias.map((d, i) => {
           const c = calculos[i];
           return (
             <View key={i} style={{ flexDirection: "row" }}>
@@ -647,9 +649,6 @@ export default function EditableSheet(props: Props) {
             </View>
           );
         })}
-        {/* Filho extra (altura 0) que aparece 2 frames após montar: força a 2.ª
-            passagem de layout que corrige a medição do texto no 1.º render. */}
-        {settled && <View style={{ height: 0 }} />}
         {/* add / duplicate / delete footer */}
         <View style={{ flexDirection: "row" }}>
           <Pressable onPress={onAddDia} style={({ pressed }) => [sh.footBtn, pressed && { opacity: 0.85 }]}>
