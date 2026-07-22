@@ -235,8 +235,9 @@ export default function ProjectEditor() {
   // errados que aparecem no 1.º render em vertical (a medição da Text falha
   // antes do layout assentar; um simples re-render não chega, é preciso remontar).
   const [sheetNudge, setSheetNudge] = useState(0);
-  // Guard para só remontar uma vez por abertura/rotação (evita loop no onLayout).
-  const sheetSettledRef = useRef(false);
+  // A folha fica invisível até ao remount pós-escala assentar (evita mostrar o
+  // 1.º render com a data cortada / tamanhos errados).
+  const [sheetReady, setSheetReady] = useState(false);
   const fsIframeRef = useRef<any>(null);
   const { setPreviewHtml, clearPreview, zoom, setZoom, actualZoom } = useLivePreview();
   const [livePreviewEnabled, setLivePreviewEnabled] = useState(false);
@@ -305,10 +306,15 @@ export default function ProjectEditor() {
     if (fsPreview) {
       const fit = Math.max(0.2, Math.min(1, (winW - 24) / SHEET_W));
       setSheetZoom(fit);
-      // Rearma o remount único: quando o layout assentar (onLayout da folha),
-      // remonta-se a EditableSheet uma vez para corrigir a data cortada / os
-      // tamanhos mal medidos do 1.º render em vertical.
-      sheetSettledRef.current = false;
+      // Texto dentro de View com transform:scale mede-se mal no 1.º render em
+      // vertical (data cortada / tamanhos diferentes); só um re-layout completo
+      // corrige (é o que "adicionar um dia" faz). Mantemos a folha invisível,
+      // remontamo-la uma vez DEPOIS de a escala assentar (key={sheetNudge}) e só
+      // então a revelamos — sem flicker nem frame com bug.
+      setSheetReady(false);
+      const tRemount = setTimeout(() => setSheetNudge((n) => n + 1), 280);
+      const tReveal = setTimeout(() => setSheetReady(true), 380);
+      return () => { clearTimeout(tRemount); clearTimeout(tReveal); };
     }
   }, [fsPreview, winW]);
 
@@ -1696,17 +1702,9 @@ export default function ProjectEditor() {
             automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
           >
             <ScrollView horizontal>
-              <ZoomWrap
-                zoom={sheetZoom}
-                onSettle={() => {
-                  if (!sheetSettledRef.current) {
-                    sheetSettledRef.current = true;
-                    setSheetNudge((n) => n + 1);
-                  }
-                }}
-              >
-                {renderSheet()}
-              </ZoomWrap>
+              <View style={{ opacity: sheetReady ? 1 : 0 }}>
+                <ZoomWrap zoom={sheetZoom}>{renderSheet()}</ZoomWrap>
+              </View>
             </ScrollView>
           </ScrollView>
         </SafeAreaView>
@@ -1906,26 +1904,12 @@ export default function ProjectEditor() {
 }
 
 /* ---------- UI helpers ---------- */
-function ZoomWrap({
-  zoom,
-  children,
-  onSettle,
-}: {
-  zoom: number;
-  children: React.ReactNode;
-  onSettle?: () => void;
-}) {
+function ZoomWrap({ zoom, children }: { zoom: number; children: React.ReactNode }) {
   if (Platform.OS === "web") {
     // @ts-ignore — raw div + CSS zoom is web-only and reflows the layout correctly
     return <div style={{ zoom: String(zoom) }}>{children}</div>;
   }
-  // onLayout dispara quando a folha assenta (natural, antes do transform) — é o
-  // sinal fiável para remontar uma vez e corrigir a medição do 1.º render.
-  return (
-    <View style={{ transform: [{ scale: zoom }] }} onLayout={onSettle}>
-      {children}
-    </View>
-  );
+  return <View style={{ transform: [{ scale: zoom }] }}>{children}</View>;
 }
 
 function StatLine({
