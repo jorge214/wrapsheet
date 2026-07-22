@@ -888,6 +888,12 @@ export function buildPdfHtml(
   // portrait com a tabela encolhida por font-size (sem zoom, que parte a
   // paginação no WebKit).
   const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
+  // Largura do viewport = largura REAL da folha em px (A4=794, A3=1587), NÃO
+  // "device-width". Com device-width, o WebKit do expo-print desenhava a folha à
+  // largura do aparelho (iPhone ~390, iPad ~1024) → o MESMO HTML saía com
+  // tamanhos/paginação diferentes no iPhone e no iPad. Fixando à folha, o PDF
+  // fica igual em qualquer device (e igual ao PC).
+  const pageWidthPx = extra?.orientation === "portrait" ? 794 : 1587;
   // Horizontal: 14mm — ao encaixar a folha A3 em papel A4 a margem encolhe
   // ~0.7x, portanto isto dá ~10mm reais (10mm davam ~7mm, quase sem margem).
   // Vertical: cima 7mm (não colar ao topo), lados 5mm (a tabela dos dias não
@@ -965,7 +971,7 @@ export function buildPdfHtml(
   <html>
     <head>
       <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name="viewport" content="width=${pageWidthPx}, initial-scale=1" />
       <style>
         * {
           box-sizing: border-box;
