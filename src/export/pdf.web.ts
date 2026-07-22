@@ -35,13 +35,14 @@ export async function exportPDF(
     notas, locale, region, currency, taxDisclaimer, condicoes, extra
   );
 
-  // A folha tem de sair IGUAL no PC e no telemóvel. No vertical, as condições
-  // saltam INTEIRAS para uma página nova (break-before) em vez de partirem a
-  // meio a seguir à tabela — o MESMO CSS nos dois. Usa-se break-before (não
-  // break-inside:avoid) porque no WebKit do iOS um bloco maior que a página com
-  // avoid é CORTADO; break-before é sempre seguro (se passar de uma página,
-  // parte limpo com as molduras fechadas — box-decoration-break no CSS
-  // partilhado). Só se aplica quando há condições substanciais.
+  // A folha sai IGUAL no PC e no telemóvel — o MESMO CSS nos dois no vertical:
+  // as condições saltam INTEIRAS para a folha de baixo quando não cabem por
+  // completo a seguir à tabela (break-inside: avoid), e ficam onde estão se
+  // couberem. Só se aplica quando as condições são substanciais MAS cabem numa
+  // página (limite de caracteres): no WebKit do iOS, um bloco maior que a
+  // página com avoid é CORTADO no fim — acima do limite não se força o avoid e
+  // o bloco flui e parte limpo (molduras fechadas via box-decoration-break),
+  // nunca se perdendo conteúdo.
   const condChars =
     (condicoes ?? "").length +
     (extra?.condBoxes ?? []).reduce(
@@ -50,8 +51,8 @@ export async function exportPDF(
     );
   const isPortrait = extra?.orientation === "portrait";
   const condVerticalCss =
-    condChars > 1200 && isPortrait
-      ? "<style>@media print{ .condWrap { break-before: page; page-break-before: always; } }</style>"
+    condChars > 1200 && condChars < 4500 && isPortrait
+      ? "<style>@media print{ .condWrap { break-inside: avoid; page-break-inside: avoid; } }</style>"
       : "";
 
   // iOS Safari: iframe.contentWindow.print() prints the parent app page, not the iframe.

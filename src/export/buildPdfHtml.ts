@@ -938,6 +938,14 @@ export function buildPdfHtml(
           color: #111;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
+          /* A folha dimensiona-se à tabela mais larga (a dos dias): as duas
+             tabelas (width:100%) e o cabeçalho ficam todos com a MESMA largura,
+             alinhados, no ecrã e no PDF, em qualquer motor. fit-content mantém o
+             body em bloco, por isso continua a paginar (ao contrário de
+             inline-block). min-width:100% garante que nunca fica mais estreito
+             que a página. */
+          width: fit-content;
+          min-width: 100%;
         }
         .titleBox {
           border: 2px solid #2b2b2b;
@@ -1041,12 +1049,13 @@ export function buildPdfHtml(
            horas extra/recuperação uniformes e largas o suficiente para o
            cabeçalho ("HORAS RECUPERAÇÃO", "ERHOLUNGSZEIT"…) caber a 8px sem
            sair da caixa. O deficit vai para as colunas de texto, que refluem. */
-        .days td.cFim { min-width: 38px; }
-        .days td.cPer { min-width: 46px; }
-        .days td.cRecV { min-width: 44px; }
-        /* Salvaguarda multilíngue: se uma palavra for ainda mais comprida,
-           parte-a dentro da caixa em vez de a deixar transbordar. */
-        .days th.h-blue[colspan="2"] { overflow-wrap: anywhere; }
+        .days td.cFim { min-width: 46px; }
+        .days td.cPer { min-width: 56px; }
+        /* Coluna VALOR da recuperação larga o suficiente para o cabeçalho
+           "HORAS RECUPERAÇÃO"/"ERHOLUNGSZEIT"… caber em qualquer língua sem
+           partir a palavra (o body é fit-content, por isso a folha alarga e as
+           tabelas mantêm-se alinhadas). */
+        .days td.cRecV { min-width: 62px; }
         /* Bloco final: Valor Bruto / IRS / IVA / Valor Líquido, alinhado à direita */
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
