@@ -886,8 +886,9 @@ export function buildPdfHtml(
   const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
   // Horizontal: 14mm — ao encaixar a folha A3 em papel A4 a margem encolhe
   // ~0.7x, portanto isto dá ~10mm reais (10mm davam ~7mm, quase sem margem).
-  // Vertical: 3mm — a folha usa o papel quase todo (mais larga).
-  const pageMargin = extra?.orientation === "portrait" ? "3mm" : "14mm";
+  // Vertical: margem de cima maior (7mm) para não ficar colado ao topo; lados e
+  // fundo a 3mm (folha larga). Horizontal: 14mm.
+  const pageMargin = extra?.orientation === "portrait" ? "7mm 3mm 3mm 3mm" : "14mm";
 
   // Condições substanciais começam numa PÁGINA NOVA (a folha de baixo),
   // inteiras, em vez de partirem a meio a seguir à tabela. Vai no HTML
@@ -900,8 +901,19 @@ export function buildPdfHtml(
       (n, b) => n + (b?.titulo ?? "").length + (b?.texto ?? "").length,
       0
     );
+  // Só no VERTICAL: as condições só saltam para página nova se NÃO couberem com
+  // a tabela na mesma página; se couberem (folhas curtas), ficam na página 1
+  // (não se desperdiça uma folha). Máximo de dias que cabe com as condições:
+  // calibrado por medição — sem condições cabem ~26.5 linhas; as condições
+  // ocupam ~condCharCount/156 linhas (as atuais ~3131 chars -> ~20 linhas ->
+  // limite ~6 dias, como observado). No horizontal (A3) as condições fluem
+  // para o espaço a seguir aos totais (como no PC), sem quebra forçada.
+  const rowsCount = dias.length;
+  const maxDaysOnePage = 26.5 - condCharCount / 156;
   const condBreakCss =
-    condCharCount > 1200
+    condCharCount > 1200 &&
+    extra?.orientation === "portrait" &&
+    rowsCount > maxDaysOnePage
       ? ".condWrap { break-before: page; page-break-before: always; }"
       : "";
 
@@ -1129,7 +1141,7 @@ export function buildPdfHtml(
              (números ~10px efetivos vs 6.8px originais; campos e cabeçalho
              sem qualquer encolhimento). Medido com sonda de largura no Blink. */
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 2px; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; }"
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 2px; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); }"
             : ""}
         }
       </style>
