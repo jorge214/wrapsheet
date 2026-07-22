@@ -2031,19 +2031,18 @@ export function buildEditableSheetHtml(
           vpClamp(4);
         }, true);
         function layout(){ align(); nativeFit(); fit(); }
-        // No iOS/WKWebView as linhas do 1.º render saem com os <input> (horário e
-        // data) maiores que os spans e a data cortada; só se corrige quando se
-        // "adiciona um dia" — que apenas REMOVE e RE-INJETA as linhas num DOM já
-        // assente. Reproduzimos isso uma vez no arranque: re-injetamos as próprias
-        // linhas ~350ms depois (após o render assentar), só no nativo e só se ainda
-        // não se editou nada (para não perder edições).
-        var __reflowed = false, __edited = false;
-        document.addEventListener('input', function(){ __edited = true; }, true);
+        // No iOS/WKWebView as linhas saem com os <input> (horário e data) maiores
+        // que os spans e a data cortada — no 1.º render E de novo a cada rotação.
+        // Só se corrige quando se "adiciona um dia", que apenas REMOVE e RE-INJETA
+        // as linhas num DOM já assente. Reproduzimos isso: re-injetamos as próprias
+        // linhas (só no nativo). Preserva edições — passa o .value vivo dos <input>
+        // para o atributo antes de capturar o HTML, senão reverteria valores.
         function reflowRows(){
-          if(__reflowed || __edited || !window.ReactNativeWebView) return;
+          if(!window.ReactNativeWebView) return;
           var t = document.querySelector('table.days'); if(!t) return;
           var rows = t.querySelectorAll('tr'); if(rows.length < 3) return;
-          __reflowed = true;
+          var ins = t.querySelectorAll('input.ei');
+          for(var j=0;j<ins.length;j++){ ins[j].setAttribute('value', ins[j].value); }
           var tb = (t.tBodies && t.tBodies[0]) ? t.tBodies[0] : t;
           var html = '';
           for(var k=2;k<rows.length;k++){ html += rows[k].outerHTML; }
@@ -2053,7 +2052,7 @@ export function buildEditableSheetHtml(
         }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
-        window.addEventListener('orientationchange', function(){ setTimeout(layout, 250); });
+        window.addEventListener('orientationchange', function(){ setTimeout(layout, 250); setTimeout(reflowRows, 350); });
         document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); });
         setTimeout(reflowRows, 350);
         layout(); setTimeout(layout, 60); post({ type:'ws:ready' });

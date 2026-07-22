@@ -204,11 +204,6 @@ export default function ProjectEditor() {
     AsyncStorage.setItem("ui:rotateHintOff", "1").catch(() => {});
   };
   const [fsPreview, setFsPreview] = useState(false);
-  // Warmup do editor: ao abrir mostra-se menos uma linha e revela-se a última 2
-  // frames depois, reproduzindo o "adicionar um dia" (única ação que corrige o
-  // glitch de tamanhos/data do 1.º render no iOS/Fabric). Só afeta o render — não
-  // muta nem grava o projeto.
-  const [warmHideLast, setWarmHideLast] = useState(false);
   const [editForm, setEditForm] = useState(false);
   // Opções de exportação/impressão (orientação + tamanho da letra).
   // ATENÇÃO: hooks têm de ficar ANTES do early return de loading (regras dos
@@ -303,11 +298,6 @@ export default function ProjectEditor() {
     if (fsPreview) {
       const fit = Math.max(0.2, Math.min(1, (winW - 24) / SHEET_W));
       setSheetZoom(fit);
-      // Revela a última linha 2 frames após montar -> a contagem de linhas muda e
-      // o parent (ScrollView+ZoomWrap) re-renderiza, tal como "adicionar um dia",
-      // corrigindo os tamanhos/data do 1.º render. Ver warmHideLast.
-      const t = setTimeout(() => setWarmHideLast(false), 48);
-      return () => clearTimeout(t);
     }
   }, [fsPreview, winW]);
 
@@ -589,7 +579,6 @@ export default function ProjectEditor() {
     } catch {}
   }
   function openFullscreenSheet() {
-    setWarmHideLast(true); // esconde a última linha no 1.º render (ver warmup)
     setFsPreview(true);
     enterLandscape();
   }
@@ -1409,7 +1398,7 @@ export default function ProjectEditor() {
       perfil={project!.perfil as any}
       projeto={project!.projeto as any}
       tabela={project!.tabela as any}
-      dias={warmHideLast ? project!.dias.slice(0, -1) : project!.dias}
+      dias={project!.dias}
       calculos={calculos as any}
       totais={totais as any}
       notas={project!.notas || ""}
