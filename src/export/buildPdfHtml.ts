@@ -2068,6 +2068,16 @@ export function buildEditableSheetHtml(
           setTimeout(reflowRows, 350);
         });
         document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); setTimeout(reflowRows, 350); setTimeout(reflowIfGlitched, 900); });
+        // Zoom (iPad): o pinch pode re-disparar o glitch. Quando o zoom assenta,
+        // re-injetam-se as linhas — SÓ se o glitch estiver mesmo lá (via
+        // reflowIfGlitched, para não piscar a cada gesto) e nunca a editar um
+        // campo (guard no reflowRows). NÃO mexe no viewport -> não luta com o pinch.
+        if(window.visualViewport && __isIpad){
+          var __zt;
+          window.visualViewport.addEventListener('resize', function(){
+            clearTimeout(__zt); __zt = setTimeout(reflowIfGlitched, 300);
+          });
+        }
         layout(); setTimeout(layout, 60); post({ type:'ws:ready' });
       })();
       </script>
