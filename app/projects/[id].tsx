@@ -1780,6 +1780,11 @@ export default function ProjectEditor() {
             <WebView
               ref={editWebViewRef}
               originWhitelist={["*"]}
+              // iPad usa "desktop-class browsing" por defeito, que liga o
+              // text-autosizing do WebKit e ignora o -webkit-text-size-adjust
+              // (daí o glitch das fontes/colunas só no iPad). "mobile" força o
+              // iPad a comportar-se como o iPhone. (WebKit bug 212122)
+              contentMode="mobile"
               source={{ html: editHtmlContent }}
               onMessage={(e: any) => {
                 try { handleEditMessage({ data: JSON.parse(e.nativeEvent.data) } as any); } catch {}
@@ -1845,6 +1850,7 @@ export default function ProjectEditor() {
           ) : WebView ? (
             <WebView
               originWhitelist={["*"]}
+              contentMode="mobile"
               source={{ html: previewHtml }}
               javaScriptEnabled
               style={{ flex: 1, backgroundColor: "#fff" }}
@@ -1982,6 +1988,7 @@ function NativeThumb({ html }: { html: string }) {
         >
           <WebView
             source={{ html }}
+            contentMode="mobile"
             scrollEnabled={false}
             javaScriptEnabled
             onMessage={(e: any) => {
