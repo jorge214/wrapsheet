@@ -452,7 +452,7 @@
   "region_ot_unverified_title": "Überstunden nicht geprüft",
   "region_ot_unverified_warning": "Die Überstunden-Schwellen und -Multiplikatoren dieser Region sind generisch und müssen vor der Nutzung an den lokalen Tarifvertrag oder Vertrag angepasst werden.",
   "profile_limit_title": "Erstellst du Abrechnungen für mehr als eine Person?",
-  "profile_limit_text": "Die App ist für einen Techniker gedacht. Wenn du ein Team betreust oder Abrechnungen für mehrere Personen machst, sag uns, wie du arbeitest, und wir schalten es sofort kostenlos frei.",
+  "profile_limit_text": "Die App ist für einen Techniker gedacht. Wenn du ein Team betreust oder Abrechnungen für mehrere Personen machst, sag uns, wie du arbeitest, und wir finden den passenden Plan für dein Team.",
   "profile_limit_message_ph": "Wie arbeitest du heute?",
   "profile_limit_send": "Senden",
   "profile_limit_sent_title": "Anfrage gesendet",
