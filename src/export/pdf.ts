@@ -62,11 +62,11 @@ export async function exportPDF(
     // com escala >= 1). Mesmo rácio A4 (1123/794 = 297/210), imprime igual em
     // fit-to-page. iPhone/web ficam nos 595×842 e no CSS calibrado, intactos.
     const portrait = extra?.orientation === "portrait";
-    // iPad: imprime o A4 vertical num frame 794×1123pt (viewport=794 -> escala 1.0)
-    // para ter altura suficiente (condições na pág.1). A largura da tabela dos dias
-    // é resolvida no CSS com min-width:0 (só iPad), não aqui. iPhone/web: 595×842.
-    const pageW = portrait ? (isIpad ? 794 : 595) : 1191;
-    const pageH = portrait ? (isIpad ? 1123 : 842) : 842;
+    // iPad IGUAL ao iPhone: mesmo frame A4 595×842 -> células no mesmo tamanho.
+    // A largura extra da tabela dos dias no iPad resolve-se no CSS com min-width:0
+    // (o frame 794 tornava as células minúsculas — não era preciso).
+    const pageW = portrait ? 595 : 1191;
+    const pageH = 842;
     const result = await Print.printToFileAsync({
       html,
       width: pageW,
