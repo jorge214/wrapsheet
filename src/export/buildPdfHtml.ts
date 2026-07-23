@@ -1562,7 +1562,9 @@ export function buildEditableSheetHtml(
            não lhes chega): horário e data saíam MAIORES que os spans e a data
            transbordava/cortava no 1.º render, até "adicionar um dia" reflowar.
            Fixar aqui a 100% torna-os iguais aos spans logo à primeira. */
-        input.ei { border: 0; margin: 0; padding: 0; font: inherit; color: #111;
+        /* font-size EXPLÍCITO (não 'inherit'): no WKWebView a herança da fonte
+           resolvia-se mal durante zoom/rotação e os inputs saíam maiores. */
+        input.ei { border: 0; margin: 0; padding: 0; font-family: inherit; font-size: 13px; color: #111;
           -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
           text-align: center; width: 100%; box-sizing: border-box; background: transparent;
           -webkit-appearance: none; appearance: none; border-radius: 0; }
@@ -2060,6 +2062,15 @@ export function buildEditableSheetHtml(
           if(m){ m.removeAttribute('data-w'); }
           setTimeout(function(){ layout(); reflowRows(); }, 280);
         });
+        // Pinch-zoom pode re-disparar o glitch dos <input>. Reflow quando o zoom
+        // assenta — só re-injeta as linhas, NÃO mexe no viewport, por isso não
+        // luta contra o teu zoom (ao contrário do layout/nativeFit).
+        if(window.visualViewport){
+          var __zt;
+          window.visualViewport.addEventListener('resize', function(){
+            clearTimeout(__zt); __zt = setTimeout(reflowRows, 250);
+          });
+        }
         document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); });
         setTimeout(reflowRows, 350);
         layout(); setTimeout(layout, 60); post({ type:'ws:ready' });
