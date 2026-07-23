@@ -2095,7 +2095,19 @@ export function buildEditableSheetHtml(
           setTimeout(reflowIfGlitched, 4500);
         }
         window.addEventListener('orientationchange', function(){
-          if(__isIpad){ var m = document.querySelector('meta[name="viewport"]'); if(m){ m.removeAttribute('data-w'); } }
+          if(__isIpad){
+            var m = document.querySelector('meta[name="viewport"]');
+            if(m){
+              // Repor o zoom ao rodar: rodar-COM-zoom-aplicado glitchava (data
+              // cortada, fontes desiguais) e o reflow não resolvia enquanto o
+              // zoom estava ativo. Forçar maximum-scale=1 encaixa a escala em 1
+              // (equivale a "tirar o zoom e rodar"); o nativeFit volta a pôr
+              // maximum-scale=4 logo a seguir, para o pinch continuar livre.
+              var w = m.getAttribute('data-w');
+              if(w){ m.setAttribute('content', 'width=' + w + ', maximum-scale=1'); }
+              m.removeAttribute('data-w');
+            }
+          }
           setTimeout(layout, 250);
           reflowSoonAndCheck();
         });
