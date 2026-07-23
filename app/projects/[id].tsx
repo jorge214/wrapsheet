@@ -704,8 +704,8 @@ export default function ProjectEditor() {
           : dayjs().format("YYYY-MM-DD");
       const novo: Dia = {
         descricao: t("day_description_default", { defaultValue: "Filmagem" }),
-        data: nextDate, continuo: false, inicio: "08:00", refeicaoTrabalho: "00:30",
-        jantarTrabalho: "00:00", fim: "20:00", meioDia: false,
+        data: nextDate, continuo: false, inicio: "08:00", refeicaoTrabalho: "00:00",
+        jantarTrabalho: "00:00", fim: "18:00", meioDia: false,
         tempoTransporteMin: 0, diaSemTrabalho: false,
         // Ajudas a 0 (só entram quando negociadas); horas extra SEM override —
         // calculam automaticamente pelas condições do perfil (o utilizador
@@ -905,9 +905,9 @@ export default function ProjectEditor() {
       data: nextDate,
       continuo: false,
       inicio: "08:00",
-      refeicaoTrabalho: "00:30",
+      refeicaoTrabalho: "00:00",
       jantarTrabalho: "00:00",
-      fim: "20:00",
+      fim: "18:00",
       meioDia: false,
       tempoTransporteMin: 0,
       diaSemTrabalho: false,
@@ -1075,9 +1075,9 @@ export default function ProjectEditor() {
                 data: today,
                 continuo: false,
                 inicio: "08:00",
-                refeicaoTrabalho: "00:30",
+                refeicaoTrabalho: "00:00",
                 jantarTrabalho: "00:00",
-                fim: "20:00",
+                fim: "18:00",
                 meioDia: false,
                 tempoTransporteMin: 0,
                 diaSemTrabalho: false,
