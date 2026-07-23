@@ -2054,20 +2054,35 @@ export function buildEditableSheetHtml(
         function reflowIfGlitched(){
           if(!__isIpad) return;
           var t = document.querySelector('table.days'); if(!t) return;
-          var d = t.querySelector('input.ei.date');
-          if(d && d.scrollWidth > d.clientWidth + 1){ reflowRows(); }
+          // Glitch = texto inflado -> os <input> (data/horário) transbordam da
+          // célula. Basta um para re-injetar (o reflow corrige tudo, HORAS
+          // TRABALHO/DESCANSO incluídas).
+          var probes = t.querySelectorAll('input.ei.date, input.ei.time');
+          for(var i=0;i<probes.length;i++){
+            if(probes[i].scrollWidth > probes[i].clientWidth + 1){ reflowRows(); return; }
+          }
         }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
         // No iPad, ao rodar limpa-se o data-w do viewport (para o nativeFit
         // re-aplicar largura+escala) e re-injetam-se as linhas (corrige o glitch
         // que volta ao rodar). SÓ no iPad; o iPhone não passa por aqui.
+        // 1 reflow logo + verificações ao longo de ~3s (só re-injeta se ainda
+        // glitchado) — apanha o glitch que assenta tarde: cold start e rodar com
+        // zoom aplicado, casos em que um único reflow cedo não chegava.
+        function reflowSoonAndCheck(){
+          if(!__isIpad) return;
+          setTimeout(reflowRows, 350);
+          setTimeout(reflowIfGlitched, 900);
+          setTimeout(reflowIfGlitched, 1800);
+          setTimeout(reflowIfGlitched, 3000);
+        }
         window.addEventListener('orientationchange', function(){
           if(__isIpad){ var m = document.querySelector('meta[name="viewport"]'); if(m){ m.removeAttribute('data-w'); } }
           setTimeout(layout, 250);
-          setTimeout(reflowRows, 350);
+          reflowSoonAndCheck();
         });
-        document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); setTimeout(reflowRows, 350); setTimeout(reflowIfGlitched, 900); });
+        document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); reflowSoonAndCheck(); });
         // Zoom (iPad): o pinch pode re-disparar o glitch. Quando o zoom assenta,
         // re-injetam-se as linhas — SÓ se o glitch estiver mesmo lá (via
         // reflowIfGlitched, para não piscar a cada gesto) e nunca a editar um
