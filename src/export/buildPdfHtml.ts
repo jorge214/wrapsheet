@@ -2044,14 +2044,13 @@ export function buildEditableSheetHtml(
         // perfeito) NÃO executa isto. Preserva edições: passa o .value dos inputs
         // ao atributo antes de capturar o HTML.
         var __isIpad = window.ReactNativeWebView && Math.min(screen.width, screen.height) >= 600;
-        // Altura de uma linha de dados = sinal universal do glitch: qualquer
-        // célula inflada (input OU cálculo, ex. HORAS TRABALHO/DESCANSO) torna a
-        // linha mais ALTA. Guardamos a altura "boa" após cada reflow.
-        var __goodRowH = 0;
-        function rowH(){
-          var t = document.querySelector('table.days'); if(!t) return 0;
-          var rows = t.querySelectorAll('tr');
-          return rows.length >= 3 ? rows[2].offsetHeight : 0;
+        // LARGURA da tabela = sinal universal do glitch: qualquer manifestação
+        // (coluna larga tipo HORAS TRABALHO/DESCANSO, OU <input> com fonte
+        // inflada) torna a tabela mais LARGA. Guardamos a menor largura vista.
+        var __goodW = 0;
+        function tblW(){
+          var t = document.querySelector('table.days');
+          return t ? t.offsetWidth : 0;
         }
         function reflowRows(){
           if(!__isIpad) return;
@@ -2068,16 +2067,16 @@ export function buildEditableSheetHtml(
           for(var k=rows.length-1;k>=2;k--){ rows[k].parentNode.removeChild(rows[k]); }
           tb.insertAdjacentHTML('beforeend', html);
           align();
-          // baseline = a MENOR altura vista (o glitch só torna a linha mais
-          // alta), para um reflow num estado ainda glitchado não a estragar.
-          var h = rowH();
-          if(h){ __goodRowH = __goodRowH ? Math.min(__goodRowH, h) : h; }
+          // baseline = a MENOR largura vista (o glitch só alarga), para um reflow
+          // num estado ainda glitchado não estragar a referência.
+          var w = tblW();
+          if(w){ __goodW = __goodW ? Math.min(__goodW, w) : w; }
         }
-        // Reflow tardio só se o glitch AINDA lá estiver (linha ~10% mais alta que
+        // Reflow tardio só se o glitch AINDA lá estiver (tabela ~4% mais larga que
         // o baseline) — evita flash desnecessário quando já está bom.
         function reflowIfGlitched(){
-          if(!__isIpad || !__goodRowH) return;
-          if(rowH() > __goodRowH * 1.1){ reflowRows(); }
+          if(!__isIpad || !__goodW) return;
+          if(tblW() > __goodW * 1.04){ reflowRows(); }
         }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
@@ -2093,6 +2092,7 @@ export function buildEditableSheetHtml(
           setTimeout(reflowIfGlitched, 900);
           setTimeout(reflowIfGlitched, 1800);
           setTimeout(reflowIfGlitched, 3000);
+          setTimeout(reflowIfGlitched, 4500);
         }
         window.addEventListener('orientationchange', function(){
           if(__isIpad){ var m = document.querySelector('meta[name="viewport"]'); if(m){ m.removeAttribute('data-w'); } }
@@ -2105,9 +2105,11 @@ export function buildEditableSheetHtml(
         // reflowIfGlitched, para não piscar a cada gesto) e nunca a editar um
         // campo (guard no reflowRows). NÃO mexe no viewport -> não luta com o pinch.
         if(window.visualViewport && __isIpad){
-          var __zt;
+          var __zt, __zt2;
           window.visualViewport.addEventListener('resize', function(){
-            clearTimeout(__zt); __zt = setTimeout(reflowIfGlitched, 300);
+            clearTimeout(__zt); clearTimeout(__zt2);
+            __zt = setTimeout(reflowIfGlitched, 300);
+            __zt2 = setTimeout(reflowIfGlitched, 900);
           });
         }
         layout(); setTimeout(layout, 60); post({ type:'ws:ready' });
