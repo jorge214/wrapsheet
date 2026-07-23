@@ -2033,6 +2033,15 @@ export function buildEditableSheetHtml(
         // perfeito) NÃO executa isto. Preserva edições: passa o .value dos inputs
         // ao atributo antes de capturar o HTML.
         var __isIpad = window.ReactNativeWebView && Math.min(screen.width, screen.height) >= 600;
+        // Altura de uma linha de dados = sinal universal do glitch: qualquer
+        // célula inflada (input OU cálculo, ex. HORAS TRABALHO/DESCANSO) torna a
+        // linha mais ALTA. Guardamos a altura "boa" após cada reflow.
+        var __goodRowH = 0;
+        function rowH(){
+          var t = document.querySelector('table.days'); if(!t) return 0;
+          var rows = t.querySelectorAll('tr');
+          return rows.length >= 3 ? rows[2].offsetHeight : 0;
+        }
         function reflowRows(){
           if(!__isIpad) return;
           // NÃO reflowa enquanto editas um campo (senão perdias foco/teclado).
@@ -2048,19 +2057,16 @@ export function buildEditableSheetHtml(
           for(var k=rows.length-1;k>=2;k--){ rows[k].parentNode.removeChild(rows[k]); }
           tb.insertAdjacentHTML('beforeend', html);
           align();
+          // baseline = a MENOR altura vista (o glitch só torna a linha mais
+          // alta), para um reflow num estado ainda glitchado não a estragar.
+          var h = rowH();
+          if(h){ __goodRowH = __goodRowH ? Math.min(__goodRowH, h) : h; }
         }
-        // Reflow tardio só se o glitch AINDA lá estiver (data a transbordar do
-        // campo) — evita flash desnecessário quando o 1.º reflow já resolveu.
+        // Reflow tardio só se o glitch AINDA lá estiver (linha ~10% mais alta que
+        // o baseline) — evita flash desnecessário quando já está bom.
         function reflowIfGlitched(){
-          if(!__isIpad) return;
-          var t = document.querySelector('table.days'); if(!t) return;
-          // Glitch = texto inflado -> os <input> (data/horário) transbordam da
-          // célula. Basta um para re-injetar (o reflow corrige tudo, HORAS
-          // TRABALHO/DESCANSO incluídas).
-          var probes = t.querySelectorAll('input.ei.date, input.ei.time');
-          for(var i=0;i<probes.length;i++){
-            if(probes[i].scrollWidth > probes[i].clientWidth + 1){ reflowRows(); return; }
-          }
+          if(!__isIpad || !__goodRowH) return;
+          if(rowH() > __goodRowH * 1.1){ reflowRows(); }
         }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
