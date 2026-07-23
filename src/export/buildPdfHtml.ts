@@ -2052,7 +2052,14 @@ export function buildEditableSheetHtml(
         }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
-        window.addEventListener('orientationchange', function(){ setTimeout(layout, 250); setTimeout(reflowRows, 350); });
+        // Ao rodar limpa-se o data-w do viewport para o nativeFit RE-APLICAR a
+        // largura+escala (senão, se tinhas feito zoom, o estado ficava preso e o
+        // reflow não chegava — o bug persistia depois de zoom+rodar).
+        window.addEventListener('orientationchange', function(){
+          var m = document.querySelector('meta[name="viewport"]');
+          if(m){ m.removeAttribute('data-w'); }
+          setTimeout(function(){ layout(); reflowRows(); }, 280);
+        });
         document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); });
         setTimeout(reflowRows, 350);
         layout(); setTimeout(layout, 60); post({ type:'ws:ready' });
