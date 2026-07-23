@@ -430,6 +430,8 @@
   "install_desktop_title": "Install WrapSheet on your computer",
   "install_desktop_body": "Use WrapSheet as its own app, with a window and icon — no browser around it.",
   "install_hint_menu": "In your browser menu choose “Install app” — in Safari on Mac: File → Add to Dock.",
+  "install_hint_safari": "In Safari (Mac): File menu → Add to Dock. (Requires macOS Sonoma or newer.)",
+  "install_hint_firefox": "Firefox can't install web apps. Use Chrome or Safari to install — or just keep using it here in the browser, it works the same.",
   "install_mobile_title": "Take WrapSheet with you",
   "install_mobile_body": "Get the app for iPhone and iPad and work from anywhere.",
   "install_now": "Install",

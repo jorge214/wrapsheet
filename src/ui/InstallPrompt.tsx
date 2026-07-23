@@ -26,6 +26,16 @@ function detectKind(): Kind {
   return "desktop";
 }
 
+// Cada browser instala PWAs de forma diferente (ou não instala) — a instrução
+// tem de ser específica, senão manda o utilizador procurar um botão que não existe.
+function detectBrowser(): "chrome" | "safari" | "firefox" | "other" {
+  const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+  if (/Firefox\//.test(ua)) return "firefox";
+  if (/Edg\//.test(ua) || /Chrome\//.test(ua) || /Chromium\//.test(ua) || /CriOS\//.test(ua)) return "chrome";
+  if (/Safari\//.test(ua)) return "safari";
+  return "other";
+}
+
 export function InstallPrompt() {
   const { COLORS } = useTheme();
   const { t } = useTranslation();
@@ -118,9 +128,17 @@ export function InstallPrompt() {
 
       {!isMobile && !canNative && (
         <Text style={{ color: COLORS.sub, fontSize: 12, lineHeight: 18, marginTop: 8, fontStyle: "italic" }}>
-          {t("install_hint_menu", {
-            defaultValue: "No menu do browser escolhe “Instalar aplicação” — no Safari do Mac: Ficheiro → Adicionar à Dock.",
-          })}
+          {detectBrowser() === "safari"
+            ? t("install_hint_safari", {
+                defaultValue: "No Safari (Mac): menu Ficheiro → Adicionar à Dock. (Precisa de macOS Sonoma ou mais recente.)",
+              })
+            : detectBrowser() === "firefox"
+            ? t("install_hint_firefox", {
+                defaultValue: "O Firefox não permite instalar apps web. Usa o Chrome ou o Safari para instalar — ou continua aqui no browser, funciona igual.",
+              })
+            : t("install_hint_menu", {
+                defaultValue: "No menu do browser escolhe “Instalar aplicação” — no Safari do Mac: Ficheiro → Adicionar à Dock.",
+              })}
         </Text>
       )}
 
