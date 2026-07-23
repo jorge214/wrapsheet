@@ -989,7 +989,9 @@ export function buildPdfHtml(
         html { -webkit-print-color-adjust: exact; print-color-adjust: exact; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         body {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-          padding: 18px;
+          /* iPad: margem direita maior — a tabela dos dias (min-width:0) encolhe
+             para acompanhar, dando folga real à direita. Esquerda fica nos 18px. */
+          padding: 18px ${extra?.ipadPdf ? "44px" : "18px"} 18px 18px;
           color: #111;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
