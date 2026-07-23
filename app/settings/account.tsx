@@ -57,6 +57,13 @@ export default function AccountScreen() {
 
   async function handleSignOut() {
     setSigningOut(true);
+    // Limpa os dados locais ao terminar sessão — senão a conta seguinte a entrar
+    // neste aparelho/browser herdava os projetos e perfis da anterior (chaves são
+    // globais, não por utilizador) e o sync podia enviá-los para a cloud dela.
+    // Tudo é sincronizado para a cloud a cada gravação, por isso não se perde
+    // nada: na próxima sessão descarrega-se o que é da conta certa.
+    await clearLocalUserData();
+    await forgetLastUser();
     await signOut();
     router.replace("/auth/login");
   }
