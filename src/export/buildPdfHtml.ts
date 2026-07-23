@@ -1506,9 +1506,9 @@ export function buildEditableSheetHtml(
         .days .subhead th.h-olive, .rates .subhead th.h-olive { background: #e6e6c8; color: #111; }
         .days .subhead th.h-purple, .rates .subhead th.h-purple { background: #e4d6f0; color: #111; }
         .days .subhead th.h-total, .rates .subhead th.h-total { background: #f2e2b3; color: #111; }
-        .days th { font-size: 11px; }
-        .days td { font-size: 11px; }
-        .days .mini { font-size: 10px; font-weight: 700; }
+        .days th { font-size: 13px; }
+        .days td { font-size: 13px; }
+        .days .mini { font-size: 12px; font-weight: 700; }
         .left { text-align: left; }
         .right { text-align: right; }
         .strong { font-weight: 900; }
@@ -1572,19 +1572,19 @@ export function buildEditableSheetHtml(
            ao tamanho do cabeçalho curto ("FIM"/"END") e o "20:00"/"00:30" ficava
            encavalitado. Uma largura fixa dá espaço em toda a coluna (cabeçalho
            incluído) no PC e no telemóvel. */
-        .days td.timeCell { width: 56px; min-width: 56px; padding-left: 4px; padding-right: 4px; }
+        .days td.timeCell { width: 68px; min-width: 68px; padding-left: 4px; padding-right: 4px; }
         input.ei.time { letter-spacing: normal; }
         /* DATA é <input> (não transborda como o contenteditable) — coluna com
            largura para "06/07/2026" inteiro, senão ficava cortada. */
-        .days td.dateCell { width: 82px; min-width: 82px; padding-left: 4px; padding-right: 4px; }
+        .days td.dateCell { width: 100px; min-width: 100px; padding-left: 4px; padding-right: 4px; }
         /* Valor das horas extra (A/B/Recuperação) um pouco mais largo — "30,00 €"
            ficava apertado. O espaço vem da folga das colunas mais largas (a
            tabela reparte a 100%). */
-        .days td.otVal { min-width: 64px; }
+        .days td.otVal { min-width: 76px; }
         /* MEAL e PER DIEMS "Por dia" um nadinha mais largos (o espaço vem da
            coluna DESCRIÇÃO, que ficou um pouco mais estreita). */
-        .days td.mealDay { min-width: 54px; }
-        .days td.perDiemDay { min-width: 54px; }
+        .days td.mealDay { min-width: 62px; }
+        .days td.perDiemDay { min-width: 62px; }
         .days td.calc { white-space: nowrap; }
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
