@@ -47,6 +47,16 @@ function isNextCalendarDay(dateA: string, dateB: string): boolean {
   return Math.round((b.getTime() - a.getTime()) / 86_400_000) === 1;
 }
 
+/** Minutos entre a meia-noite de duas datas ISO — para o descanso contar os DIAS
+ *  reais, não só o relógio (acabar às 20:00 e começar às 21:00 do dia seguinte
+ *  são 25h, não 1h). Fallback de 1 dia se alguma data for inválida. */
+function dayGapMinutes(dateA: string, dateB: string): number {
+  const a = new Date(dateA);
+  const b = new Date(dateB);
+  if (isNaN(a.getTime()) || isNaN(b.getTime())) return 24 * 60;
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000) * 24 * 60;
+}
+
 export function calcDay(dia: Dia, prox: Dia | undefined, tabela: Tabela): CalcDia {
   // Fix #5: non-work days produce no salary, no overtime, no rest penalty
   if (dia.diaSemTrabalho) return { ...ZERO_DAY };
@@ -98,10 +108,14 @@ export function calcDay(dia: Dia, prox: Dia | undefined, tabela: Tabela): CalcDi
   let HR_min = 0;
 
   if (prox) {
-    const fimHoje      = fimCorr % (24 * 60);
+    // Descanso entre dias = do FIM deste dia ao INÍCIO do seguinte, contando as
+    // DATAS reais (não só o relógio). fimCorr já inclui a passagem da meia-noite
+    // (turnos que acabam de madrugada); somamos os dias de calendário entre as
+    // duas datas. Assim, acabar às 20:00 e começar às 21:00 do dia seguinte dá
+    // 25h — antes dava 1h (só subtraía as horas do relógio).
     const inicioAmanha = hmToMinutes(prox.inicio);
-    const diff         = inicioAmanha - fimHoje;
-    HD_min = diff >= 0 ? diff : diff + 24 * 60;
+    const gapMin       = dayGapMinutes(dia.data, prox.data);
+    HD_min = Math.max(0, gapMin + inicioAmanha - fimCorr);
     HR_min = Math.max(0, Math.round((descansoMin_h * 60) - HD_min));
   }
 

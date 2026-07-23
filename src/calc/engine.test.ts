@@ -128,6 +128,20 @@ describe("turnaround / recuperação", () => {
     expect(c[0].totalDia).toBe(400);
   });
 
+  it("dia seguinte começa MAIS TARDE que o anterior acabou → descanso conta o dia inteiro (25h), 0 recuperação", () => {
+    // Dia 1 acaba às 20:00; dia 2 (dia seguinte) começa às 21:00.
+    // Descanso real = das 20:00 (dia 1) às 21:00 (dia 2) = 25h = 1500 min.
+    // Antes dava 1h (só subtraía o relógio: 21:00 − 20:00) e cobrava 10h de
+    // recuperação a mais. 25h > 11h → recuperação = 0.
+    const dias = [
+      dia({ data: "2026-07-01", inicio: "08:00", fim: "20:00" }),
+      dia({ data: "2026-07-02", inicio: "21:00", fim: "23:30" }),
+    ];
+    const c = calcAll(dias, tabela());
+    expect(c[0].HD_min).toBe(1500);
+    expect(c[0].HR_min).toBe(0);
+  });
+
   it("dois dias NÃO consecutivos (gap de fim de semana) → 0 recuperação", () => {
     // Mesmos horários, mas dia 1 = 01/07 e dia 2 = 05/07 (não é o dia de calendário seguinte).
     // O motor não passa o 'próximo dia' ao cálculo → 0 recuperação.
