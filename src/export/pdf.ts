@@ -46,20 +46,28 @@ export async function exportPDF(
   try {
     // Este caminho é sempre o expo-print (WebKit) no iOS/iPad — marca-o para o
     // builder calibrar a paginação ao motor certo (≠ do Blink na web).
-    // iPad: expo-print usa desktop-class browsing (margens finas) -> a tabela
-    // dos dias encosta ao papel. Marca-se p/ o builder tirar a folga da tabela.
     const isIpad = Platform.OS === "ios" && (Platform as any).isPad === true;
     const extraNative: PdfExtra = { ...extra, nativePrint: true, ipadPdf: isIpad };
     const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extraNative);
 
     // Horizontal = A3 landscape (1191×842 pt, como sempre foi — a tabela dos
-    // dias precisa desta largura); vertical = A4 portrait (595×842), a folha
-    // encolhe uniformemente via zoom no CSS de impressão.
+    // dias precisa desta largura); vertical = A4 portrait (595×842).
+    //
+    // iPad (só): a tabela dos dias transbordava à direita porque o WebKit LIGA
+    // o text-autosizing (font boosting) quando a página imprime a escala < 1 —
+    // e 595pt / 794px de viewport = escala ~0.749. O boosting inflava as fontes
+    // das células -> o min-content da tabela (layout auto) ultrapassava o 100%
+    // -> transbordo. Solução: imprimir o vertical num frame de 794×1123pt (=
+    // viewport 794px -> escala 1.0), o que DESLIGA o boosting (WebKit só o corta
+    // com escala >= 1). Mesmo rácio A4 (1123/794 = 297/210), imprime igual em
+    // fit-to-page. iPhone/web ficam nos 595×842 e no CSS calibrado, intactos.
     const portrait = extra?.orientation === "portrait";
+    const pageW = portrait ? (isIpad ? 794 : 595) : 1191;
+    const pageH = portrait ? (isIpad ? 1123 : 842) : 842;
     const result = await Print.printToFileAsync({
       html,
-      width: portrait ? 595 : 1191,
-      height: portrait ? 842 : 842,
+      width: pageW,
+      height: pageH,
     });
     let outUri = result.uri;
 
