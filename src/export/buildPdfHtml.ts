@@ -1050,6 +1050,10 @@ export function buildPdfHtml(
         .days th.cmark, .days td.cCont { text-align: center; padding-left: 3px; padding-right: 3px; }
         .days td.cCont { color: #c65a00; font-weight: 800; text-transform: uppercase; }
         .days th.cmark { color: #c65a00; }
+        /* Tudo centrado na tabela dos dias (como a tabela das taxas): descrição
+           deixa de ser à esquerda e os valores/€ deixam de ser à direita. Só na
+           .days — os totais (Valor Bruto/IRS/IVA) e outras tabelas ficam como estão. */
+        .days td.left, .days td.right { text-align: center; }
         .left { text-align: left; }
         .right { text-align: right; }
         .strong { font-weight: 900; }
