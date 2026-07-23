@@ -945,6 +945,7 @@ export function buildPdfHtml(
           <td class="left">${escapeHtml(d.descricao || "")}</td>
           <td class="cData">${escapeHtml(formatDatePT(d.data))}</td>
           <td class="right cSal">${fmt((d as any).salarioDia ?? salarioDia)}</td>
+          <td class="cCont">${escapeHtml((d as any).cont || "")}</td>
           <td class="cIni">${escapeHtml(d.inicio || "")}</td>
           <td>${escapeHtml(d.refeicaoTrabalho || "")}</td>
           <td class="cFim">${escapeHtml(d.fim || "")}</td>
@@ -1045,6 +1046,10 @@ export function buildPdfHtml(
         .days th { font-size: 11px; }
         .days td { font-size: 11px; }
         .days .mini { font-size: 10px; font-weight: 700; }
+        /* Coluna "C" (horario continuo): marca manual, centrada e a laranja. */
+        .days th.cmark, .days td.cCont { text-align: center; padding-left: 1px; padding-right: 1px; }
+        .days td.cCont { color: #c65a00; font-weight: 800; }
+        .days th.cmark { color: #c65a00; }
         .left { text-align: left; }
         .right { text-align: right; }
         .strong { font-weight: 900; }
@@ -1164,8 +1169,8 @@ export function buildPdfHtml(
              (números ~10px efetivos vs 6.8px originais; campos e cabeçalho
              sem qualquer encolhimento). Medido com sonda de largura no Blink. */
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 1.5px; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; }"
-            : "table.days { table-layout: fixed; } .days th, .days td { word-break: break-word; padding: 3px 4px; } .days th { font-size: 9px; padding-left: 2px; padding-right: 2px; letter-spacing: -0.2px; } .days col.col-desc { width: 7.5%; } .days col.col-data { width: 7%; } .days col.col-sal { width: 5.5%; } .days col.col-ini { width: 4%; } .days col.col-ref { width: 4.6%; } .days col.col-fim { width: 4%; } .days col.col-ht { width: 5.3%; } .days col.col-hd { width: 5.3%; } .days col.col-pd { width: 4.4%; } .days col.col-ott { width: 3.6%; } .days col.col-otv { width: 5.4%; } .days col.col-tot { width: 6%; } .condMain { font-size: 11px; padding: 4px 8px; } .condT { font-size: 9px; padding: 4px 5px; } .condB { font-size: 10px; line-height: 1.3; padding: 4px 7px; } .conditionsBody { font-size: 10px; line-height: 1.3; padding: 6px 8px; } .condRow { grid-template-columns: 220px minmax(0, 1fr); }"}
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 1.2px; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; }"
+            : "table.days { table-layout: fixed; } .days th, .days td { word-break: break-word; padding: 3px 4px; } .days th { font-size: 9px; padding-left: 2px; padding-right: 2px; letter-spacing: -0.2px; } .days col.col-desc { width: 5.5%; } .days col.col-data { width: 7%; } .days col.col-sal { width: 5.5%; } .days col.col-cont { width: 2%; } .days col.col-ini { width: 4%; } .days col.col-ref { width: 4.6%; } .days col.col-fim { width: 4%; } .days col.col-ht { width: 5.3%; } .days col.col-hd { width: 5.3%; } .days col.col-pd { width: 4.4%; } .days col.col-ott { width: 3.6%; } .days col.col-otv { width: 5.4%; } .days col.col-tot { width: 6%; } .condMain { font-size: 11px; padding: 4px 8px; } .condT { font-size: 9px; padding: 4px 5px; } .condB { font-size: 10px; line-height: 1.3; padding: 4px 7px; } .conditionsBody { font-size: 10px; line-height: 1.3; padding: 6px 8px; } .condRow { grid-template-columns: 220px minmax(0, 1fr); }"}
         }
       </style>
     </head>
@@ -1250,7 +1255,7 @@ export function buildPdfHtml(
 
       <table class="days">
         <colgroup>
-          <col class="col-desc" /><col class="col-data" /><col class="col-sal" />
+          <col class="col-desc" /><col class="col-data" /><col class="col-sal" /><col class="col-cont" />
           <col class="col-ini" /><col class="col-ref" /><col class="col-fim" />
           <col class="col-ht" /><col class="col-hd" />
           <col class="col-pd" /><col class="col-pd" /><col class="col-pd" /><col class="col-pd" /><col class="col-pd" />
@@ -1262,7 +1267,7 @@ export function buildPdfHtml(
         <tr>
           <th colspan="2">${escapeHtml(s.day)}</th>
           <th>${escapeHtml(s.salary)}</th>
-          <th colspan="3">${escapeHtml(s.schedule)}</th>
+          <th colspan="4">${escapeHtml(s.schedule)}</th>
           <th colspan="2">${escapeHtml(s.totalHours)}</th>
           <th>${escapeHtml(s.meal)}</th>
           <th class="h-olive">${escapeHtml(s.vehicle)}</th>
@@ -1278,6 +1283,7 @@ export function buildPdfHtml(
           <th class="mini">${escapeHtml(s.description)}</th>
           <th class="mini">${escapeHtml(s.date)}</th>
           <th class="mini">${escapeHtml(s.day)}</th>
+          <th class="mini cmark">C</th>
           <th class="mini">${escapeHtml(s.start)}</th>
           <th class="mini">${escapeHtml(s.mealBreak)}</th>
           <th class="mini">${escapeHtml(s.end)}</th>
