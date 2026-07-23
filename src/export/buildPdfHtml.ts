@@ -2033,8 +2033,11 @@ export function buildEditableSheetHtml(
         // perfeito) NÃO executa isto. Preserva edições: passa o .value dos inputs
         // ao atributo antes de capturar o HTML.
         var __isIpad = window.ReactNativeWebView && Math.min(screen.width, screen.height) >= 600;
-        function reflowRowsOnce(){
+        function reflowRows(){
           if(!__isIpad) return;
+          // NÃO reflowa enquanto editas um campo (senão perdias foco/teclado).
+          var ae = document.activeElement;
+          if(ae && ae.classList && ae.classList.contains('ei')) return;
           var t = document.querySelector('table.days'); if(!t) return;
           var rows = t.querySelectorAll('tr'); if(rows.length < 3) return;
           var ins = t.querySelectorAll('input.ei');
@@ -2048,8 +2051,15 @@ export function buildEditableSheetHtml(
         }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
-        window.addEventListener('orientationchange', function(){ setTimeout(layout, 250); });
-        document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); setTimeout(reflowRowsOnce, 350); });
+        // No iPad, ao rodar limpa-se o data-w do viewport (para o nativeFit
+        // re-aplicar largura+escala) e re-injetam-se as linhas (corrige o glitch
+        // que volta ao rodar). SÓ no iPad; o iPhone não passa por aqui.
+        window.addEventListener('orientationchange', function(){
+          if(__isIpad){ var m = document.querySelector('meta[name="viewport"]'); if(m){ m.removeAttribute('data-w'); } }
+          setTimeout(layout, 250);
+          setTimeout(reflowRows, 350);
+        });
+        document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); setTimeout(reflowRows, 350); });
         layout(); setTimeout(layout, 60); post({ type:'ws:ready' });
       })();
       </script>
