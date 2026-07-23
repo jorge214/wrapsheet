@@ -5,7 +5,6 @@
 import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import { Platform } from "react-native";
 
 import { CalcDia, Dia } from "../calc/types";
 import {
@@ -46,10 +45,7 @@ export async function exportPDF(
   try {
     // Este caminho é sempre o expo-print (WebKit) no iOS/iPad — marca-o para o
     // builder calibrar a paginação ao motor certo (≠ do Blink na web).
-    // iPad usa "desktop-class browsing" no WKWebView do expo-print (a tabela dos
-    // dias sai desviada p/ a direita). Marca-se p/ o builder trancar a tabela.
-    const isIpad = Platform.OS === "ios" && (Platform as any).isPad === true;
-    const extraNative: PdfExtra = { ...extra, nativePrint: true, ipadPdf: isIpad };
+    const extraNative: PdfExtra = { ...extra, nativePrint: true };
     const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extraNative);
 
     // Horizontal = A3 landscape (1191×842 pt, como sempre foi — a tabela dos
