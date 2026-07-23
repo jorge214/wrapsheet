@@ -1378,6 +1378,7 @@ export function buildEditableDayRowsHtml(
           <td class="left">${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
           <td class="dateCell">${edDate(i, formatDatePT(d.data))}</td>
           <td>${edNum(i, "salarioDia", "sal", fmt(eff))}</td>
+          <td class="contCell">${edDi(i, "cont", (d as any).cont || "", "cmark")}</td>
           <td class="timeCell">${edTime(i, "inicio", d.inicio || "")}</td>
           <td class="timeCell">${edTime(i, "refeicaoTrabalho", d.refeicaoTrabalho || "")}</td>
           <td class="timeCell">${edTime(i, "fim", d.fim || "")}</td>
@@ -1569,6 +1570,10 @@ export function buildEditableSheetHtml(
            incluído) no PC e no telemóvel. */
         .days td.timeCell { width: 56px; min-width: 56px; padding-left: 4px; padding-right: 4px; }
         input.ei.time { letter-spacing: normal; }
+        /* Coluna "C" (horário contínuo): estreita, marca manual centrada. */
+        .days td.contCell, .days th.cmark { width: 26px; min-width: 26px; padding-left: 2px; padding-right: 2px; text-align: center; }
+        .days td.contCell .ei.cmark { display: block; text-align: center; text-transform: uppercase; color: #c65a00; font-weight: 800; }
+        .days th.cmark { color: #c65a00; }
         /* DATA é <input> (não transborda como o contenteditable) — coluna com
            largura para "06/07/2026" inteiro, senão ficava cortada. */
         .days td.dateCell { width: 82px; min-width: 82px; padding-left: 4px; padding-right: 4px; }
@@ -1697,7 +1702,7 @@ export function buildEditableSheetHtml(
       <table class="days">
         <tr>
           <th colspan="2">${escapeHtml(s.day)}</th><th>${escapeHtml(s.salary)}</th>
-          <th colspan="3">${escapeHtml(s.schedule)}</th><th colspan="2">${escapeHtml(s.totalHours)}</th>
+          <th colspan="4">${escapeHtml(s.schedule)}</th><th colspan="2">${escapeHtml(s.totalHours)}</th>
           <th>${escapeHtml(s.meal)}</th><th class="h-olive">${escapeHtml(s.vehicle)}</th><th>${escapeHtml(s.telephone)}</th>
           <th class="h-purple">${escapeHtml(s.material)}</th><th>${escapeHtml(s.perDiem)}</th>
           <th colspan="2">${escapeHtml(s.overtimeAFull)}</th><th colspan="2">${escapeHtml(s.overtimeBFull)}</th>
@@ -1705,7 +1710,7 @@ export function buildEditableSheetHtml(
         </tr>
         <tr class="subhead">
           <th class="mini">${escapeHtml(s.description)}</th><th class="mini">${escapeHtml(s.date)}</th><th class="mini">${escapeHtml(s.day)}</th>
-          <th class="mini">${escapeHtml(s.start)}</th><th class="mini">${escapeHtml(s.mealBreak)}</th><th class="mini">${escapeHtml(s.end)}</th>
+          <th class="mini cmark">C</th><th class="mini">${escapeHtml(s.start)}</th><th class="mini">${escapeHtml(s.mealBreak)}</th><th class="mini">${escapeHtml(s.end)}</th>
           <th class="mini">${escapeHtml(s.workHours)}</th><th class="mini blue">${escapeHtml(s.restHours)}</th>
           <th class="mini">${escapeHtml(s.perDay)}</th><th class="mini h-olive">${escapeHtml(s.perDay)}</th><th class="mini">${escapeHtml(s.perDay)}</th>
           <th class="mini h-purple">${escapeHtml(s.perDay)}</th><th class="mini">${escapeHtml(s.perDay)}</th>

@@ -11,6 +11,7 @@ export type Dia = {
   descricao: string;
   data: string; // YYYY-MM-DD
   continuo: boolean;
+  cont?: string; // marca manual "C" de horário contínuo (só visual, sem cálculo)
   salarioDia?: number; // override do salário só deste dia (vazio = usa o global)
   inicio: string; // "HH:MM"
   refeicaoTrabalho: string; // "HH:MM"
