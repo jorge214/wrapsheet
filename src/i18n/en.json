@@ -454,7 +454,7 @@
   "region_ot_unverified_title": "Overtime not verified",
   "region_ot_unverified_warning": "The overtime thresholds and multipliers for this region are generic and must be adjusted to your local collective agreement or contract before use.",
   "profile_limit_title": "Making sheets for more than one person?",
-  "profile_limit_text": "The app is designed for one technician. If you manage a team or make sheets for several people, tell us how you work and we'll find the right plan for your team.",
+  "profile_limit_text": "The app is designed for a single profile. If you manage a team, tell us what you need and we'll tailor a plan for you.",
   "profile_limit_message_ph": "How do you work today?",
   "profile_limit_send": "Send",
   "profile_limit_sent_title": "Request sent",
