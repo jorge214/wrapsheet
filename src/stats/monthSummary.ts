@@ -138,7 +138,7 @@ export async function getMonthSummary(mes: number, ano: number): Promise<MonthSu
     totalIVA += totals.IVA_valor;
     totalValorFinal += totals.ValorFinal;
     if (p.pago) totalPago += totals.ValorFinal;
-    else totalReceber += totals.ValorFinal;
+    else totalReceber += totals.ValorBruto;
   }
 
   const totalHoras = totalMinutos / 60;
@@ -208,7 +208,7 @@ export async function getYearSummary(ano: number): Promise<YearSummary> {
     totalValorBruto += totals.ValorBruto;
     totalValorFinal += totals.ValorFinal;
     if (p.pago) totalPago += totals.ValorFinal;
-    else totalReceber += totals.ValorFinal;
+    else totalReceber += totals.ValorBruto;
   }
 
   const r2 = (n: number) => Math.round(n * 100) / 100;
