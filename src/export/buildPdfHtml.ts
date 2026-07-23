@@ -2026,10 +2026,30 @@ export function buildEditableSheetHtml(
           vpClamp(4);
         }, true);
         function layout(){ align(); nativeFit(); fit(); }
+        // SÓ NO IPAD (ecrã >= 600px no menor lado; nenhum iPhone chega lá): as
+        // linhas do 1.º render saem com os <input> (horário/data) maiores que os
+        // spans e a data cortada. Re-injetar as linhas uma vez, num DOM já
+        // assente, corrige — é o que "adicionar um dia" faz. O iPhone (já
+        // perfeito) NÃO executa isto. Preserva edições: passa o .value dos inputs
+        // ao atributo antes de capturar o HTML.
+        var __isIpad = window.ReactNativeWebView && Math.min(screen.width, screen.height) >= 600;
+        function reflowRowsOnce(){
+          if(!__isIpad) return;
+          var t = document.querySelector('table.days'); if(!t) return;
+          var rows = t.querySelectorAll('tr'); if(rows.length < 3) return;
+          var ins = t.querySelectorAll('input.ei');
+          for(var j=0;j<ins.length;j++){ ins[j].setAttribute('value', ins[j].value); }
+          var tb = (t.tBodies && t.tBodies[0]) ? t.tBodies[0] : t;
+          var html = '';
+          for(var k=2;k<rows.length;k++){ html += rows[k].outerHTML; }
+          for(var k=rows.length-1;k>=2;k--){ rows[k].parentNode.removeChild(rows[k]); }
+          tb.insertAdjacentHTML('beforeend', html);
+          align();
+        }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
         window.addEventListener('orientationchange', function(){ setTimeout(layout, 250); });
-        document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); });
+        document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); setTimeout(reflowRowsOnce, 350); });
         layout(); setTimeout(layout, 60); post({ type:'ws:ready' });
       })();
       </script>
