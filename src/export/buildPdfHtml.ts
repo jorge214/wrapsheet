@@ -1047,7 +1047,7 @@ export function buildPdfHtml(
         .days td { font-size: 11px; }
         .days .mini { font-size: 10px; font-weight: 700; }
         /* Coluna "C" (horario continuo): marca manual, centrada e a laranja. */
-        .days th.cmark, .days td.cCont { text-align: center; padding-left: 1px; padding-right: 1px; }
+        .days th.cmark, .days td.cCont { text-align: center; padding-left: 3px; padding-right: 3px; }
         .days td.cCont { color: #c65a00; font-weight: 800; text-transform: uppercase; }
         .days th.cmark { color: #c65a00; }
         .left { text-align: left; }
