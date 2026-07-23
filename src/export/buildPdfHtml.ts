@@ -2049,6 +2049,14 @@ export function buildEditableSheetHtml(
           tb.insertAdjacentHTML('beforeend', html);
           align();
         }
+        // Reflow tardio só se o glitch AINDA lá estiver (data a transbordar do
+        // campo) — evita flash desnecessário quando o 1.º reflow já resolveu.
+        function reflowIfGlitched(){
+          if(!__isIpad) return;
+          var t = document.querySelector('table.days'); if(!t) return;
+          var d = t.querySelector('input.ei.date');
+          if(d && d.scrollWidth > d.clientWidth + 1){ reflowRows(); }
+        }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
         // No iPad, ao rodar limpa-se o data-w do viewport (para o nativeFit
@@ -2059,7 +2067,7 @@ export function buildEditableSheetHtml(
           setTimeout(layout, 250);
           setTimeout(reflowRows, 350);
         });
-        document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); setTimeout(reflowRows, 350); });
+        document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); setTimeout(reflowRows, 350); setTimeout(reflowIfGlitched, 900); });
         layout(); setTimeout(layout, 60); post({ type:'ws:ready' });
       })();
       </script>
