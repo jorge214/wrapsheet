@@ -1179,7 +1179,7 @@ export function buildPdfHtml(
              (números ~10px efetivos vs 6.8px originais; campos e cabeçalho
              sem qualquer encolhimento). Medido com sonda de largura no Blink. */
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 1.45px; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; }" + (extra?.ipadPdf ? " table.days th, table.days td { padding-left: 0.6px; padding-right: 0.6px; } table.days td.cData { min-width: 50px; } table.days td.cSal { min-width: 46px; } table.days { width: calc(100% - 42px); }" : "")
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 1.45px; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; }" + (extra?.ipadPdf ? " table.days, table.days th, table.days td { min-width: 0 !important; }" : "")
             : "table.days { table-layout: fixed; } .days th, .days td { word-break: break-word; padding: 3px 4px; } .days th { font-size: 9px; padding-left: 2px; padding-right: 2px; letter-spacing: -0.2px; } .days col.col-desc { width: 5.5%; } .days col.col-data { width: 7%; } .days col.col-sal { width: 5.5%; } .days col.col-cont { width: 2%; } .days col.col-ini { width: 4%; } .days col.col-ref { width: 4.6%; } .days col.col-fim { width: 4%; } .days col.col-ht { width: 5.3%; } .days col.col-hd { width: 5.3%; } .days col.col-pd { width: 4.4%; } .days col.col-ott { width: 3.6%; } .days col.col-otv { width: 5.4%; } .days col.col-tot { width: 6%; } .condMain { font-size: 11px; padding: 4px 8px; } .condT { font-size: 9px; padding: 4px 5px; } .condB { font-size: 10px; line-height: 1.3; padding: 4px 7px; } .conditionsBody { font-size: 10px; line-height: 1.3; padding: 6px 8px; } .condRow { grid-template-columns: 220px minmax(0, 1fr); }"}
         }
       </style>
@@ -1328,6 +1328,24 @@ export function buildPdfHtml(
       ${notas && notas.trim() ? `<div class="notesWrap"><div class="notesTitle">${escapeHtml(s.notes)}</div><div class="notesArea">${escapeHtml(notas)}</div></div>` : ""}
 
       ${taxDisclaimer ? `<div style="margin-top:8px;font-size:9px;color:#999;">${escapeHtml(taxDisclaimer)}</div>` : ""}
+      ${extra?.ipadPdf ? `<div id="__diag" style="position:fixed;top:2px;left:2px;z-index:99999;background:#ff0;color:#000;font:11px/1.35 monospace;border:2px solid #000;padding:5px;white-space:pre;"></div>
+      <script>
+        (function(){
+          try {
+            var box = document.getElementById('__diag');
+            var dt = document.querySelector('table.days');
+            var dcell = document.querySelector('table.days td');
+            var scell = document.querySelector('table.rates td') || document.querySelector('table td');
+            var dw = dt ? Math.round(dt.getBoundingClientRect().width) : -1;
+            var cw = document.documentElement.clientWidth;
+            var iw = window.innerWidth;
+            var sw = document.documentElement.scrollWidth;
+            var df = dcell ? getComputedStyle(dcell).fontSize : '?';
+            var sf = scell ? getComputedStyle(scell).fontSize : '?';
+            box.textContent = 'innerW=' + iw + '\\nclientW=' + cw + '\\nscrollW=' + sw + '\\ndaysTblW=' + dw + '\\ndaysFont=' + df + '\\nsibFont=' + sf;
+          } catch(e){ if(box){ box.textContent = 'ERR ' + e; } }
+        })();
+      </script>` : ""}
     </body>
   </html>
   `, extra?.fontScale);

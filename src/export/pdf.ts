@@ -62,8 +62,10 @@ export async function exportPDF(
     // com escala >= 1). Mesmo rácio A4 (1123/794 = 297/210), imprime igual em
     // fit-to-page. iPhone/web ficam nos 595×842 e no CSS calibrado, intactos.
     const portrait = extra?.orientation === "portrait";
-    const pageW = portrait ? (isIpad ? 794 : 595) : 1191;
-    const pageH = portrait ? (isIpad ? 1123 : 842) : 842;
+    // DIAGNÓSTICO (temporário): frame do iPad de volta a 595 para o clientWidth
+    // distinguir "viewport honrado (794)" de "layout à largura da frame (595)".
+    const pageW = portrait ? (isIpad ? 595 : 595) : 1191;
+    const pageH = portrait ? (isIpad ? 842 : 842) : 842;
     const result = await Print.printToFileAsync({
       html,
       width: pageW,
