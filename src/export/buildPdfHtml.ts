@@ -1471,9 +1471,6 @@ export function buildEditableSheetHtml(
         /* Sem "text autosizing" do iPad: o WebKit inflava o texto normal mas
            não os campos editáveis — os valores ficavam mais pequenos que o % */
         html, body { margin: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-        /* Desliga o auto-esticar de texto do iOS em TODOS os elementos (no iPad o
-           html/body sozinho não chegava às células/inputs -> horário/data inchavam). */
-        * { -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
         .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
@@ -1509,9 +1506,9 @@ export function buildEditableSheetHtml(
         .days .subhead th.h-olive, .rates .subhead th.h-olive { background: #e6e6c8; color: #111; }
         .days .subhead th.h-purple, .rates .subhead th.h-purple { background: #e4d6f0; color: #111; }
         .days .subhead th.h-total, .rates .subhead th.h-total { background: #f2e2b3; color: #111; }
-        .days th { font-size: 13px; }
-        .days td { font-size: 13px; }
-        .days .mini { font-size: 12px; font-weight: 700; }
+        .days th { font-size: 11px; }
+        .days td { font-size: 11px; }
+        .days .mini { font-size: 10px; font-weight: 700; }
         .left { text-align: left; }
         .right { text-align: right; }
         .strong { font-weight: 900; }
@@ -1561,14 +1558,7 @@ export function buildEditableSheetHtml(
            "€" cair para baixo (acontecia no iPhone a partir de 4 dígitos) */
         .ei.money { white-space: nowrap; }
         /* Horas são <input> reais — sem moldura, iguais às outras células */
-        /* iOS/WKWebView infla o texto dos <input> (o text-size-adjust do html/body
-           não lhes chega): horário e data saíam MAIORES que os spans e a data
-           transbordava/cortava no 1.º render, até "adicionar um dia" reflowar.
-           Fixar aqui a 100% torna-os iguais aos spans logo à primeira. */
-        /* font-size EXPLÍCITO (não 'inherit'): no WKWebView a herança da fonte
-           resolvia-se mal durante zoom/rotação e os inputs saíam maiores. */
-        input.ei { border: 0; margin: 0; padding: 0; font-family: inherit; font-size: 13px; color: #111;
-          -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+        input.ei { border: 0; margin: 0; padding: 0; font: inherit; color: #111;
           text-align: center; width: 100%; box-sizing: border-box; background: transparent;
           -webkit-appearance: none; appearance: none; border-radius: 0; }
         input.ei::placeholder { color: #b3b3b3; }
@@ -1577,19 +1567,19 @@ export function buildEditableSheetHtml(
            ao tamanho do cabeçalho curto ("FIM"/"END") e o "20:00"/"00:30" ficava
            encavalitado. Uma largura fixa dá espaço em toda a coluna (cabeçalho
            incluído) no PC e no telemóvel. */
-        .days td.timeCell { width: 68px; min-width: 68px; padding-left: 4px; padding-right: 4px; }
+        .days td.timeCell { width: 56px; min-width: 56px; padding-left: 4px; padding-right: 4px; }
         input.ei.time { letter-spacing: normal; }
         /* DATA é <input> (não transborda como o contenteditable) — coluna com
            largura para "06/07/2026" inteiro, senão ficava cortada. */
-        .days td.dateCell { width: 100px; min-width: 100px; padding-left: 4px; padding-right: 4px; }
+        .days td.dateCell { width: 82px; min-width: 82px; padding-left: 4px; padding-right: 4px; }
         /* Valor das horas extra (A/B/Recuperação) um pouco mais largo — "30,00 €"
            ficava apertado. O espaço vem da folga das colunas mais largas (a
            tabela reparte a 100%). */
-        .days td.otVal { min-width: 76px; }
+        .days td.otVal { min-width: 64px; }
         /* MEAL e PER DIEMS "Por dia" um nadinha mais largos (o espaço vem da
            coluna DESCRIÇÃO, que ficou um pouco mais estreita). */
-        .days td.mealDay { min-width: 62px; }
-        .days td.perDiemDay { min-width: 62px; }
+        .days td.mealDay { min-width: 54px; }
+        .days td.perDiemDay { min-width: 54px; }
         .days td.calc { white-space: nowrap; }
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
@@ -2036,46 +2026,10 @@ export function buildEditableSheetHtml(
           vpClamp(4);
         }, true);
         function layout(){ align(); nativeFit(); fit(); }
-        // No iOS/WKWebView as linhas saem com os <input> (horário e data) maiores
-        // que os spans e a data cortada — no 1.º render E de novo a cada rotação.
-        // Só se corrige quando se "adiciona um dia", que apenas REMOVE e RE-INJETA
-        // as linhas num DOM já assente. Reproduzimos isso: re-injetamos as próprias
-        // linhas (só no nativo). Preserva edições — passa o .value vivo dos <input>
-        // para o atributo antes de capturar o HTML, senão reverteria valores.
-        function reflowRows(){
-          if(!window.ReactNativeWebView) return;
-          var t = document.querySelector('table.days'); if(!t) return;
-          var rows = t.querySelectorAll('tr'); if(rows.length < 3) return;
-          var ins = t.querySelectorAll('input.ei');
-          for(var j=0;j<ins.length;j++){ ins[j].setAttribute('value', ins[j].value); }
-          var tb = (t.tBodies && t.tBodies[0]) ? t.tBodies[0] : t;
-          var html = '';
-          for(var k=2;k<rows.length;k++){ html += rows[k].outerHTML; }
-          for(var k=rows.length-1;k>=2;k--){ rows[k].parentNode.removeChild(rows[k]); }
-          tb.insertAdjacentHTML('beforeend', html);
-          align();
-        }
         // Só reajusta ao carregar e ao rodar o ecrã — NÃO a cada 'resize'
         // (o pinch-zoom dispara resize e andava a lutar contra o teu zoom).
-        // Ao rodar limpa-se o data-w do viewport para o nativeFit RE-APLICAR a
-        // largura+escala (senão, se tinhas feito zoom, o estado ficava preso e o
-        // reflow não chegava — o bug persistia depois de zoom+rodar).
-        window.addEventListener('orientationchange', function(){
-          var m = document.querySelector('meta[name="viewport"]');
-          if(m){ m.removeAttribute('data-w'); }
-          setTimeout(function(){ layout(); reflowRows(); }, 280);
-        });
-        // Pinch-zoom pode re-disparar o glitch dos <input>. Reflow quando o zoom
-        // assenta — só re-injeta as linhas, NÃO mexe no viewport, por isso não
-        // luta contra o teu zoom (ao contrário do layout/nativeFit).
-        if(window.visualViewport){
-          var __zt;
-          window.visualViewport.addEventListener('resize', function(){
-            clearTimeout(__zt); __zt = setTimeout(reflowRows, 250);
-          });
-        }
+        window.addEventListener('orientationchange', function(){ setTimeout(layout, 250); });
         document.addEventListener('DOMContentLoaded', function(){ layout(); setTimeout(layout, 60); setTimeout(layout, 300); });
-        setTimeout(reflowRows, 350);
         layout(); setTimeout(layout, 60); post({ type:'ws:ready' });
       })();
       </script>
