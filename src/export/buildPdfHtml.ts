@@ -1328,24 +1328,6 @@ export function buildPdfHtml(
       ${notas && notas.trim() ? `<div class="notesWrap"><div class="notesTitle">${escapeHtml(s.notes)}</div><div class="notesArea">${escapeHtml(notas)}</div></div>` : ""}
 
       ${taxDisclaimer ? `<div style="margin-top:8px;font-size:9px;color:#999;">${escapeHtml(taxDisclaimer)}</div>` : ""}
-      ${extra?.ipadPdf ? `<div id="__diag" style="position:fixed;top:2px;left:2px;z-index:99999;background:#ff0;color:#000;font:11px/1.35 monospace;border:2px solid #000;padding:5px;white-space:pre;"></div>
-      <script>
-        (function(){
-          try {
-            var box = document.getElementById('__diag');
-            var dt = document.querySelector('table.days');
-            var dcell = document.querySelector('table.days td');
-            var scell = document.querySelector('table.rates td') || document.querySelector('table td');
-            var dw = dt ? Math.round(dt.getBoundingClientRect().width) : -1;
-            var cw = document.documentElement.clientWidth;
-            var iw = window.innerWidth;
-            var sw = document.documentElement.scrollWidth;
-            var df = dcell ? getComputedStyle(dcell).fontSize : '?';
-            var sf = scell ? getComputedStyle(scell).fontSize : '?';
-            box.textContent = 'innerW=' + iw + '\\nclientW=' + cw + '\\nscrollW=' + sw + '\\ndaysTblW=' + dw + '\\ndaysFont=' + df + '\\nsibFont=' + sf;
-          } catch(e){ if(box){ box.textContent = 'ERR ' + e; } }
-        })();
-      </script>` : ""}
     </body>
   </html>
   `, extra?.fontScale);
