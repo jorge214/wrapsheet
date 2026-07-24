@@ -17,8 +17,8 @@ export default function PrivacyPageEN() {
 
         <Text style={s.sectionTitle}>1. Who processes your data</Text>
         <Text style={s.body}>
-          The data controller is Francisco Costa. For any privacy question,
-          contact us at:{"\n"}
+          The data controller is WrapSheet, operated by Francisco Costa. For any
+          privacy question, contact us at:{"\n"}
           getwrapsheet@gmail.com
         </Text>
 

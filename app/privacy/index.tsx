@@ -18,8 +18,9 @@ export default function PrivacyPagePT() {
 
         <Text style={s.sectionTitle}>1. Quem trata os teus dados</Text>
         <Text style={s.body}>
-          O responsável pelo tratamento dos dados é Francisco Costa. Para
-          qualquer questão sobre privacidade, contacta-nos pelo email:{"\n"}
+          O responsável pelo tratamento dos dados é a WrapSheet, operada por
+          Francisco Costa. Para qualquer questão sobre privacidade, contacta-nos
+          pelo email:{"\n"}
           getwrapsheet@gmail.com
         </Text>
 
