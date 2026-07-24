@@ -19,8 +19,7 @@ export default function PrivacyPageEN() {
         <Text style={s.body}>
           The data controller is Francisco Costa. For any privacy question,
           contact us at:{"\n"}
-          getwrapsheet@gmail.com{"\n"}
-          [PREENCHER: postal address — optional, only if you want to list one]
+          getwrapsheet@gmail.com
         </Text>
 
         <Text style={s.sectionTitle}>2. What data we collect</Text>

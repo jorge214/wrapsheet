@@ -20,8 +20,7 @@ export default function PrivacyPagePT() {
         <Text style={s.body}>
           O responsável pelo tratamento dos dados é Francisco Costa. Para
           qualquer questão sobre privacidade, contacta-nos pelo email:{"\n"}
-          getwrapsheet@gmail.com{"\n"}
-          [PREENCHER: morada postal — opcional, só se quiseres indicá-la]
+          getwrapsheet@gmail.com
         </Text>
 
         <Text style={s.sectionTitle}>2. Que dados recolhemos</Text>
