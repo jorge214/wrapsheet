@@ -78,7 +78,9 @@ function BLANK(): Profile {
     swift: "",
     condicoes: "",
     condTitulo: "",
-    condBoxes: defaultCondBoxes(),
+    // Vazio por defeito: as condições só aparecem na folha se as preencheres no
+    // perfil (＋ Adicionar caixa, ou ↺ Repor modelo para carregar o padrão).
+    condBoxes: [],
     fixas: {},
   };
 }

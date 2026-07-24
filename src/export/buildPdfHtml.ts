@@ -1323,7 +1323,10 @@ export function buildPdfHtml(
         <tr class="net"><th>${escapeHtml(s.vf)}</th><td>${fmt(totais.ValorFinal)}</td></tr>
       </table>
 
-      <div class="condGroup"><div class="condTopSpacer"></div>${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra)}</div>
+      ${(() => {
+        const ch = conditionsHtml(s, safeStr(perfil.nome), condicoes, extra);
+        return ch ? `<div class="condGroup"><div class="condTopSpacer"></div>${ch}</div>` : "";
+      })()}
 
       ${notas && notas.trim() ? `<div class="notesWrap"><div class="notesTitle">${escapeHtml(s.notes)}</div><div class="notesArea">${escapeHtml(notas)}</div></div>` : ""}
 
