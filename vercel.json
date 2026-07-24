@@ -6,6 +6,7 @@
   "trailingSlash": false,
   "rewrites": [
     { "source": "/projects/:id", "destination": "/projects/[id].html" },
-    { "source": "/profiles/:id", "destination": "/profiles/[id].html" }
+    { "source": "/profiles/:id", "destination": "/profiles/[id].html" },
+    { "source": "/privacy/en", "destination": "/privacy.html" }
   ]
 }
