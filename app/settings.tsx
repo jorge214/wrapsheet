@@ -3,7 +3,7 @@ import { router, useFocusEffect } from "expo-router";
 import { useIsWide } from "../src/ui/useBreakpoint";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { getPreset } from "../src/constants/countryPresets";
@@ -130,11 +130,7 @@ export default function SettingsScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => {
-              const url = "https://wrapsheet-app.com/privacy";
-              if (Platform.OS === "web") window.open(url, "_blank", "noopener");
-              else Linking.openURL(url).catch(() => {});
-            }}
+            onPress={() => router.push("/settings/legal")}
             style={[ss.row, { borderColor: COLORS.border }]}
           >
             <Text style={[ss.rowLabel, { color: COLORS.text }]}>

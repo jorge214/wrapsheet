@@ -1,10 +1,24 @@
 // app/settings/legal.tsx
 import { router } from "expo-router";
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../src/theme/ThemeProvider";
+
+const PRIVACY_URL = "https://wrapsheet-app.com/privacy";
+const TERMS_URL = "https://wrapsheet-app.com/terms";
+const IS_WEB = Platform.OS === "web";
+
+// Documentos legais são páginas web normais (https), por isso abrir num separador
+// funciona em qualquer lado (PC e nativo).
+function openUrl(url: string) {
+  if (IS_WEB && typeof window !== "undefined") {
+    window.open(url, "_blank", "noopener");
+    return;
+  }
+  Linking.openURL(url).catch(() => {});
+}
 
 export default function LegalScreen() {
   const { COLORS } = useTheme();
@@ -18,50 +32,33 @@ export default function LegalScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text style={s.backLink}>‹ {t("back")}</Text>
         </Pressable>
-        {/* Título curto no cabeçalho: o completo nunca cabia a 22pt no iPhone
-            e o encolhe-para-caber deixava-o mais pequeno que os outros ecrãs */}
         <Text style={s.headerTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
           {t("legal_title_short", { defaultValue: "Termos e Privacidade" })}
         </Text>
         <View style={{ width: 70 }} />
       </View>
 
-      <ScrollView contentContainerStyle={s.content}>
-        {/* Terms of Use */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>{t("legal_terms_title")}</Text>
-          <Text style={s.cardSub}>{t("legal_terms_sub")}</Text>
+      <View style={s.card}>
+        <Text style={s.intro}>
+          {t("legal_intro", {
+            defaultValue: "Consulta os documentos legais da WrapSheet. Abrem no browser.",
+          })}
+        </Text>
 
-          <Text style={s.sectionTitle}>{t("legal_terms_1_title")}</Text>
-          <Text style={s.paragraph}>{t("legal_terms_1_body")}</Text>
+        <Pressable onPress={() => openUrl(PRIVACY_URL)} style={s.linkRow}>
+          <Text style={s.linkTitle}>
+            {t("legal_privacy_title", { defaultValue: "Política de Privacidade" })}
+          </Text>
+          <Text style={s.linkUrl}>wrapsheet-app.com/privacy</Text>
+        </Pressable>
 
-          <Text style={s.sectionTitle}>{t("legal_terms_2_title")}</Text>
-          <Text style={s.paragraph}>{t("legal_terms_2_body")}</Text>
-
-          <Text style={s.sectionTitle}>{t("legal_terms_3_title")}</Text>
-          <Text style={s.paragraph}>{t("legal_terms_3_body")}</Text>
-        </View>
-
-        {/* Privacy Policy */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>{t("legal_privacy_title")}</Text>
-          <Text style={s.cardSub}>{t("legal_privacy_sub")}</Text>
-
-          <Text style={s.sectionTitle}>{t("legal_privacy_1_title")}</Text>
-          <Text style={s.paragraph}>{t("legal_privacy_1_body")}</Text>
-
-          <Text style={s.sectionTitle}>{t("legal_privacy_2_title")}</Text>
-          <Text style={s.paragraph}>{t("legal_privacy_2_body")}</Text>
-
-          <Text style={s.sectionTitle}>{t("legal_privacy_3_title")}</Text>
-          <Text style={s.paragraph}>{t("legal_privacy_3_body")}</Text>
-
-          <Text style={s.sectionTitle}>{t("legal_privacy_4_title")}</Text>
-          <Text style={s.paragraph}>{t("legal_privacy_4_body")}</Text>
-        </View>
-
-        <Text style={s.footerNote}>{t("legal_last_updated")}</Text>
-      </ScrollView>
+        <Pressable onPress={() => openUrl(TERMS_URL)} style={s.linkRow}>
+          <Text style={s.linkTitle}>
+            {t("legal_terms_title", { defaultValue: "Termos de Utilização" })}
+          </Text>
+          <Text style={s.linkUrl}>wrapsheet-app.com/terms</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -86,8 +83,6 @@ const createStyles = (COLORS: any) =>
       opacity: 0.9,
     },
     headerTitle: {
-      // Mesmo tamanho dos outros títulos (ex.: Região = 22); o
-      // adjustsFontSizeToFit no componente encolhe SÓ se não couber.
       flex: 1,
       fontSize: 22,
       fontWeight: "800",
@@ -95,48 +90,35 @@ const createStyles = (COLORS: any) =>
       textAlign: "center",
       paddingHorizontal: 6,
     },
-    content: {
-      padding: 16,
-      paddingBottom: 32,
-      gap: 16,
-    },
     card: {
       backgroundColor: COLORS.card,
       borderRadius: 14,
       borderWidth: 1,
       borderColor: COLORS.border,
       padding: 14,
-      shadowColor: COLORS.shadow,
-      shadowOpacity: 0.12,
-      shadowRadius: 4,
+      marginHorizontal: 16,
+      marginTop: 16,
     },
-    cardTitle: {
-      fontSize: 18,
-      fontWeight: "700",
-      color: COLORS.text,
-      marginBottom: 4,
-    },
-    cardSub: {
-      fontSize: 13,
-      color: COLORS.sub,
-      marginBottom: 10,
-    },
-    sectionTitle: {
-      marginTop: 8,
-      marginBottom: 4,
+    intro: {
       fontSize: 14,
-      fontWeight: "600",
+      color: COLORS.sub,
+      marginBottom: 6,
+    },
+    linkRow: {
+      paddingVertical: 14,
+      borderTopWidth: 1,
+      borderColor: COLORS.border,
+      marginTop: 8,
+    },
+    linkTitle: {
+      fontSize: 16,
+      fontWeight: "800",
       color: COLORS.text,
     },
-    paragraph: {
+    linkUrl: {
       fontSize: 13,
       color: COLORS.sub,
-      lineHeight: 18,
-    },
-    footerNote: {
-      fontSize: 11,
-      color: COLORS.sub,
-      textAlign: "center",
-      marginTop: 8,
+      marginTop: 2,
+      textDecorationLine: "underline",
     },
   });
