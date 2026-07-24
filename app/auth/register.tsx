@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -47,6 +48,12 @@ export default function RegisterScreen() {
       setLoading(false);
     }
     // com sessão, o useEffect acima redireciona
+  }
+
+  function openLegal(path: string) {
+    const url = "https://wrapsheet-app.com" + path;
+    if (Platform.OS === "web") window.open(url, "_blank", "noopener");
+    else Linking.openURL(url).catch(() => {});
   }
 
   if (confirmSent) {
@@ -128,6 +135,17 @@ export default function RegisterScreen() {
           >
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>{t("auth_register_title")}</Text>}
           </Pressable>
+
+          <Text style={s.accept}>
+            {t("auth_accept_pre", { defaultValue: "Ao criar conta aceitas os " })}
+            <Text style={s.acceptLink} onPress={() => openLegal("/terms")}>
+              {t("auth_accept_terms", { defaultValue: "Termos" })}
+            </Text>
+            {t("auth_accept_mid", { defaultValue: " e a " })}
+            <Text style={s.acceptLink} onPress={() => openLegal("/privacy")}>
+              {t("auth_accept_privacy", { defaultValue: "Política de Privacidade" })}
+            </Text>
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -148,4 +166,6 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
     input: { backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0", borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, color: COLORS.text },
     btn: { backgroundColor: COLORS.accent, borderRadius: 14, paddingVertical: 16, alignItems: "center" },
     btnText: { color: "#fff", fontWeight: "900", fontSize: 16 },
+    accept: { marginTop: 14, fontSize: 12, color: COLORS.sub, textAlign: "center", lineHeight: 18 },
+    acceptLink: { color: COLORS.accent, fontWeight: "800", textDecorationLine: "underline" },
   });

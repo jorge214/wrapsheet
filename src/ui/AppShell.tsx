@@ -75,7 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     isAuthScreen ||
     pathname === "/" ||
     pathname === "/onboarding" ||
-    pathname === "/privacy" ||
+    pathname.startsWith("/privacy") ||
     pathname === "/terms";
 
   // Close the live PDF preview whenever we leave the project editor,
@@ -118,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     onbComplete === false &&
     !isAuthScreen &&
     pathname !== "/onboarding" &&
-    pathname !== "/privacy" &&
+    !pathname.startsWith("/privacy") &&
     pathname !== "/terms"
   ) {
     return <Redirect href="/onboarding" />;
