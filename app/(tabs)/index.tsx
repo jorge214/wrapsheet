@@ -9,7 +9,8 @@ import { useAuth } from "../../src/auth/AuthContext";
 import { formatMoneyApp } from "../../src/format/money";
 import i18n from "../../src/i18n/i18n";
 import { getCurrentMonthSummary, MonthSummary } from "../../src/stats/monthSummary";
-import { getProject, listProjects } from "../../src/storage/projects";
+import { belongsToProfile, getProject, listProjects } from "../../src/storage/projects";
+import { getActiveProfileId } from "../../src/storage/profile";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import { WrapSheetLogo } from "../../src/ui/WrapSheetLogo";
@@ -30,13 +31,18 @@ export default function HomeHub() {
       let alive = true;
       (async () => {
         try {
+          const activeProfileId = await getActiveProfileId();
           const [sum, active] = await Promise.all([
-            getCurrentMonthSummary(),
+            getCurrentMonthSummary(activeProfileId || undefined),
             listProjects(),
           ]);
           if (!alive) return;
           setSummary(sum);
-          const top = [...active].sort((a, b) =>
+          // Só os projetos do perfil ativo (legados sem profileId contam como do ativo)
+          const mine = activeProfileId
+            ? active.filter((p) => belongsToProfile(p, activeProfileId))
+            : active;
+          const top = [...mine].sort((a, b) =>
             (b.updatedAt || "").localeCompare(a.updatedAt || "")
           )[0];
           if (top) {

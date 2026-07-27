@@ -7,6 +7,7 @@ import {
   setLastUserId,
 } from "../storage/clearLocal";
 import { fullSync } from "./syncService";
+import { backfillProfileIds } from "../storage/projects";
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -30,6 +31,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     if (!switched && now - lastSyncRef.current < 30_000) return;
     lastSyncRef.current = now;
     await fullSync(user.id);
+    // Multi-perfil: carimba os projetos legados (sem profileId) com o perfil
+    // ativo — depois do download, para carimbar já com os dados mais recentes.
+    await backfillProfileIds();
   }
 
   // Sync on login

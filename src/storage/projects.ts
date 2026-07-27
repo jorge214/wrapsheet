@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import i18n from "../i18n/i18n";
 import { getPreset } from "../constants/countryPresets";
 import { effectiveFiscalOf, getSettings } from "./appSettings";
-import { CondBox, getActiveProfile } from "./profile";
+import { CondBox, getActiveProfile, getProfileById } from "./profile";
 
 /* ------------ Tipos internos ------------ */
 
@@ -95,6 +95,10 @@ export type ProjetoInfo = {
 
 export type ProjectState = {
   id: string;
+  /** Perfil a que este projeto pertence (multi-perfil). Vive no blob `data`,
+   *  por isso sincroniza sem alterar o esquema da BD. Projetos legados ficam
+   *  sem isto (undefined) e são tratados como do perfil ativo (ver filtros). */
+  profileId?: string;
   perfil: Perfil;
   projeto: ProjetoInfo;
   tabela: Tabela;
@@ -115,6 +119,8 @@ export type ProjectListItem = {
   mes: string;
   pago?: boolean;
   updatedAt: string;
+  /** Perfil dono (multi-perfil). Undefined em itens legados. */
+  profileId?: string;
 };
 
 /* ------------ Keys no AsyncStorage ------------ */
@@ -367,6 +373,7 @@ export async function saveProject(
     mes: `${String(toSave.projeto.mes).padStart(2, "0")}/${toSave.projeto.ano}`,
     pago: !!toSave.pago,
     updatedAt,
+    profileId: toSave.profileId,
   };
 
   if (isArchived) {
@@ -437,6 +444,7 @@ export async function createProject(): Promise<string> {
 
   const novo: ProjectState = {
     id,
+    profileId: active?.id || undefined,
     perfil,
     projeto,
     tabela,
@@ -464,6 +472,7 @@ export async function createProject(): Promise<string> {
     cliente: "",
     mes: `${String(novo.projeto.mes).padStart(2, "0")}/${novo.projeto.ano}`,
     updatedAt: novo.updatedAt,
+    profileId: novo.profileId,
   });
   await writeIndex(KEY_INDEX, index);
 
@@ -515,6 +524,7 @@ export async function duplicateProject(id: string): Promise<string> {
     cliente: clone.projeto.produtora || "",
     mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
     updatedAt: now,
+    profileId: clone.profileId,
   });
   await writeIndex(KEY_INDEX, index);
 
@@ -553,10 +563,90 @@ export async function duplicateProjectToMonth(
     cliente: clone.projeto.produtora || "",
     mes: `${String(mes).padStart(2, "0")}/${ano}`,
     updatedAt: now,
+    profileId: clone.profileId,
   });
   await writeIndex(KEY_INDEX, index);
 
   return newId;
+}
+
+/* ------ NOVO (multi-perfil): duplicar para OUTRO perfil ------ */
+// A funcionalidade "paga": clonar a folha e atribuí-la a outro perfil. Cinco
+// folhas do mesmo filme só diferem nas tarifas do perfil de cada um, por isso
+// aplica também as tarifas fixas (fixas) do perfil de destino à tabela do clone.
+export async function duplicateProjectToProfile(
+  id: string,
+  targetProfileId: string
+): Promise<string> {
+  const original = await getProject(id);
+  if (!original) throw new Error("Projeto não encontrado");
+  const target = await getProfileById(targetProfileId);
+
+  const newId = String(Date.now());
+  const now = new Date().toISOString();
+
+  // Tarifas do perfil de destino (se tiver) — o resto da folha (dias, projeto)
+  // fica igual; muda o dono e o cabeçalho pessoal.
+  const fixas: any = (target as any)?.fixas || {};
+  const tabela: Tabela = {
+    ...original.tabela,
+    salarioDia: fixas.salarioDia ?? original.tabela.salarioDia,
+    rateHEA: fixas.rateHEA ?? original.tabela.rateHEA,
+    rateHEB: fixas.rateHEB ?? original.tabela.rateHEB,
+    rateHR: fixas.rateHR ?? original.tabela.rateHR,
+    ajudas: {
+      ...original.tabela.ajudas!,
+      refeicao: fixas.refeicao ?? original.tabela.ajudas!.refeicao,
+      telefone: fixas.telefone ?? original.tabela.ajudas!.telefone,
+      viatura: fixas.viatura ?? original.tabela.ajudas!.viatura,
+      material: fixas.material ?? original.tabela.ajudas!.material,
+      perDiem: fixas.perDiem ?? original.tabela.ajudas!.perDiem,
+    },
+  };
+
+  const clone: ProjectState = {
+    ...original,
+    id: newId,
+    profileId: targetProfileId,
+    perfil: target ? blankPerfil(target as any) : original.perfil,
+    tabela,
+    condicoes: (target as any)?.condicoes ?? original.condicoes,
+    condTitulo: (target as any)?.condTitulo ?? original.condTitulo,
+    condBoxes: Array.isArray((target as any)?.condBoxes)
+      ? (target as any).condBoxes
+      : original.condBoxes,
+    projeto: {
+      ...original.projeto,
+      filme: original.projeto.filme
+        ? `${original.projeto.filme}${i18n.t("copy_suffix")}`
+        : "",
+    },
+    updatedAt: now,
+  };
+
+  await AsyncStorage.setItem(KEY_PROJECT_PREFIX + newId, JSON.stringify(clone));
+
+  const index = await readIndex(KEY_INDEX);
+  index.push({
+    id: newId,
+    nome: clone.projeto.titulo || clone.projeto.filme || "",
+    cliente: clone.projeto.produtora || "",
+    mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
+    updatedAt: now,
+    profileId: targetProfileId,
+  });
+  await writeIndex(KEY_INDEX, index);
+
+  return newId;
+}
+
+/** Um projeto pertence ao perfil `profileId`? Itens legados (sem profileId)
+ *  contam como do perfil ativo — assim nada desaparece a quem já tem projetos. */
+export function belongsToProfile(
+  p: { profileId?: string },
+  profileId: string
+): boolean {
+  return !p.profileId || p.profileId === profileId;
 }
 
 // arquivar projeto
@@ -574,6 +664,7 @@ export async function archiveProject(id: string): Promise<void> {
     mes: `${String(project.projeto.mes).padStart(2, "0")}/${project.projeto.ano}`,
     pago: !!project.pago,
     updatedAt: new Date().toISOString(),
+    profileId: project.profileId,
   });
   await writeIndex(KEY_ARCHIVED_INDEX, archivedIndex);
 
@@ -613,6 +704,7 @@ export async function unarchiveProject(id: string): Promise<void> {
     mes: `${String(restored.projeto.mes).padStart(2, "0")}/${restored.projeto.ano}`,
     pago: false,
     updatedAt: restored.updatedAt,
+    profileId: restored.profileId,
   };
   const existing = index.findIndex((i) => i.id === id);
   if (existing >= 0) index[existing] = summary;
@@ -703,6 +795,23 @@ export async function renameProject(id: string, newName: string): Promise<void> 
   };
 
   await saveProject(updated); // atualiza índice + updatedAt
+}
+
+/* ------ Carimbo contínuo do profileId (multi-perfil) ------ */
+// Projetos criados por clientes ANTIGOS (web em produção + 1.0.19) gravam sempre
+// profileId a NULL. O cliente novo tem de carimbar SEMPRE que sincroniza (não só
+// uma vez na migração), senão esses projetos ficariam "sem perfil" para sempre.
+// Regra: sem profileId -> carimba com o perfil ATIVO. Só toca em projetos por
+// carimbar (idempotente depois disso). Corre no SyncProvider a cada sync.
+export async function backfillProfileIds(): Promise<void> {
+  const active = await getActiveProfile();
+  if (!active?.id) return; // sem perfil ativo -> nada a carimbar
+  const all = await listAllProjectsFull();
+  for (const p of all) {
+    if (!p.profileId) {
+      await saveProject({ ...p, profileId: active.id });
+    }
+  }
 }
 
 /* ------ listar TODOS os projetos (ativos + arquivados) ------ */

@@ -1,7 +1,7 @@
 // src/stats/monthSummary.ts
 import { calcAll, calcTotals } from "../calc/engine";
 import { effectiveFiscalOf, getSettings } from "../storage/appSettings";
-import { Dia, listAllProjectsFull } from "../storage/projects";
+import { belongsToProfile, Dia, listAllProjectsFull } from "../storage/projects";
 
 /**
  * Converte "HH:MM" em minutos (ex: "08:30" -> 510).
@@ -90,8 +90,11 @@ export type MonthSummary = {
 /**
  * Devolve o resumo de um mês específico (mes = 1..12, ano = 2025, etc).
  */
-export async function getMonthSummary(mes: number, ano: number): Promise<MonthSummary> {
-  const all = await listAllProjectsFull();
+export async function getMonthSummary(mes: number, ano: number, profileId?: string): Promise<MonthSummary> {
+  const allRaw = await listAllProjectsFull();
+  // Multi-perfil: se vier um profileId, conta só os projetos desse perfil
+  // (legados sem profileId contam como do perfil ativo — ver belongsToProfile).
+  const all = profileId ? allRaw.filter((p) => belongsToProfile(p, profileId)) : allRaw;
 
   // Cada projeto é taxado com o fiscal DA SUA FOLHA (podem coexistir 5
   // regimes no mesmo mês — trabalhos em países diferentes). As taxas da
@@ -178,9 +181,11 @@ export type YearSummary = {
   totalPago: number;
 };
 
-export async function getYearSummary(ano: number): Promise<YearSummary> {
+export async function getYearSummary(ano: number, profileId?: string): Promise<YearSummary> {
   const all = await listAllProjectsFull();
-  const inYear = all.filter((p: any) => p?.projeto?.ano === ano);
+  const inYear = all.filter(
+    (p: any) => p?.projeto?.ano === ano && (!profileId || belongsToProfile(p, profileId))
+  );
 
   // Mesmo critério do resumo mensal: cada projeto com o fiscal da sua folha
   const eff = effectiveFiscalOf(await getSettings());
@@ -227,9 +232,9 @@ export async function getYearSummary(ano: number): Promise<YearSummary> {
 /**
  * Helper: resumo do mês atual.
  */
-export async function getCurrentMonthSummary(): Promise<MonthSummary> {
+export async function getCurrentMonthSummary(profileId?: string): Promise<MonthSummary> {
   const now = new Date();
   const mes = now.getMonth() + 1;
   const ano = now.getFullYear();
-  return getMonthSummary(mes, ano);
+  return getMonthSummary(mes, ano, profileId);
 }

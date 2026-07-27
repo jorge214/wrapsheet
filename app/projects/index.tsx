@@ -21,12 +21,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ProjectListItem as Project } from "../../src/storage/projects";
 import {
+  belongsToProfile,
   clearProjectData,
   createProject,
   getProject,
   deleteProject,
   deleteArchivedProject,
   duplicateProjectToMonth,
+  duplicateProjectToProfile,
   listProjects,
   listArchivedProjects,
   listAllProjectsFull,
@@ -34,6 +36,11 @@ import {
   markProjectToReceive,
   renameProject,
 } from "../../src/storage/projects";
+import {
+  getActiveProfileId,
+  listProfiles,
+  Profile as UserProfile,
+} from "../../src/storage/profile";
 import { effectiveFiscalOf, getSettings } from "../../src/storage/appSettings";
 import { projectFinalValue } from "../../src/stats/monthSummary";
 import { formatMoneyApp } from "../../src/format/money";
@@ -98,6 +105,13 @@ export default function ProjectsScreen() {
   const [showAll, setShowAll] = useState<boolean>(false);
   const [pickerVisible, setPickerVisible] = useState(false);
 
+  // Multi-perfil: perfil ativo (para filtrar) + lista de perfis (para o
+  // "duplicar para outro perfil"). O ativo é escolhido no ecrã de Perfis.
+  const [activeProfileId, setActiveProfileId] = useState("");
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  // modal "duplicar para perfil"
+  const [dupToProfileId, setDupToProfileId] = useState<string | null>(null);
+
   // modal opções (web)
   const [optsProject, setOptsProject] = useState<Row | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -114,16 +128,24 @@ export default function ProjectsScreen() {
   const loadProjects = useCallback(async () => {
     setLoading(true);
     try {
-      const [list, arch, full, settings] = await Promise.all([
+      const [list, arch, full, settings, activeId, profs] = await Promise.all([
         listProjects(),
         listArchivedProjects(),
         listAllProjectsFull(),
         getSettings(),
+        getActiveProfileId(),
+        listProfiles(),
       ]);
+      // Multi-perfil: mostra só os projetos do perfil ativo (legados sem
+      // profileId contam como do ativo). Sem perfil ativo → mostra tudo.
+      const forActive = (arr: Project[]) =>
+        activeId ? arr.filter((p) => belongsToProfile(p, activeId)) : arr;
       const byDate = (a: Project, b: Project) =>
         (b.updatedAt || "").localeCompare(a.updatedAt || "");
-      setProjects([...list].sort(byDate));
-      setArchived([...arch].sort(byDate));
+      setActiveProfileId(activeId);
+      setProfiles(profs);
+      setProjects([...forActive(list)].sort(byDate));
+      setArchived([...forActive(arch)].sort(byDate));
       // Valor final (a receber) por projeto — mesma regra fiscal do Dashboard,
       // para o número por linha bater certo com o resumo.
       const eff = effectiveFiscalOf(settings);
@@ -369,6 +391,25 @@ export default function ProjectsScreen() {
       );
     } finally {
       closeDuplicateDialog();
+    }
+  }
+
+  // Duplicar para OUTRO perfil (multi-perfil). O clone fica no perfil de destino
+  // (não aparece nesta lista, que é do perfil ativo) e herda as tarifas dele.
+  async function handleDupToProfile(targetProfileId: string) {
+    const srcId = dupToProfileId;
+    if (!srcId) return;
+    setDupToProfileId(null);
+    try {
+      await duplicateProjectToProfile(srcId, targetProfileId);
+      await loadProjects();
+      showToast(t("toast_duplicated_to_profile", { defaultValue: "✓ Duplicado para o outro perfil" }));
+    } catch (e) {
+      console.error("Erro ao duplicar para perfil", e);
+      Alert.alert(
+        t("error", { defaultValue: "Erro" }),
+        t("duplicate_error", { defaultValue: "Não foi possível duplicar o projeto. Tenta novamente." })
+      );
     }
   }
 
@@ -738,6 +779,12 @@ export default function ProjectsScreen() {
                       },
                   { label: t("rename"), onPress: () => { setOptsProject(null); openRenameDialog(optsProject!); } },
                   { label: t("duplicate"), onPress: () => { setOptsProject(null); openDuplicateDialog(optsProject!); } },
+                  ...(profiles.length >= 2
+                    ? [{
+                        label: t("duplicate_to_profile", { defaultValue: "Duplicar para outro perfil" }),
+                        onPress: () => { const proj = optsProject!; setOptsProject(null); setDupToProfileId(proj.id); },
+                      }]
+                    : []),
                 ].map((opt) => (
                   <Pressable key={opt.label} style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]} onPress={opt.onPress}>
                     <Text style={s.optText}>{opt.label}</Text>
@@ -780,6 +827,34 @@ export default function ProjectsScreen() {
                 </Pressable>
               </>
             )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Duplicar para outro perfil: escolher o perfil de destino */}
+      <Modal transparent animationType="fade" visible={!!dupToProfileId}>
+        <Pressable style={s.modalBackdrop} onPress={() => setDupToProfileId(null)}>
+          <Pressable style={s.modalCard} onPress={() => {}}>
+            <Text style={s.modalTitle}>
+              {t("duplicate_to_profile", { defaultValue: "Duplicar para outro perfil" })}
+            </Text>
+            {profiles
+              .filter((p) => p.id !== activeProfileId)
+              .map((p) => (
+                <Pressable
+                  key={p.id}
+                  style={({ pressed }) => [s.optRow, pressed && { opacity: 0.85 }]}
+                  onPress={() => handleDupToProfile(p.id)}
+                >
+                  <Text style={s.optText}>{p.nome || t("no_name", { defaultValue: "Sem nome" })}</Text>
+                </Pressable>
+              ))}
+            <Pressable
+              style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => setDupToProfileId(null)}
+            >
+              <Text style={s.closeBtnText}>{t("close", { defaultValue: "Fechar" })}</Text>
+            </Pressable>
           </Pressable>
         </Pressable>
       </Modal>

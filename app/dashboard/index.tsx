@@ -1,6 +1,6 @@
 // app/dashboard/index.tsx
 import dayjs from "dayjs";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -24,11 +24,13 @@ import { effectiveFiscalOf, getSettings } from "../../src/storage/appSettings";
 import i18n from "../../src/i18n/i18n";
 import { getMonthSummary, getYearSummary, MonthSummary, projectFinalValue, YearSummary } from "../../src/stats/monthSummary";
 import {
+  belongsToProfile,
   listAllProjectsFull,
   listArchivedProjects,
   listProjects,
   ProjectListItem,
 } from "../../src/storage/projects";
+import { getActiveProfileId } from "../../src/storage/profile";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { MonthYearPicker } from "../../src/ui/MonthYearPicker";
 
@@ -89,14 +91,21 @@ export default function DashboardScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [activeList, archivedList, summary, ySummary, full, settings] = await Promise.all([
+      // Multi-perfil: os totais e listas são do PERFIL ATIVO (legados sem
+      // profileId contam como do ativo). Sem perfil ativo → tudo da conta.
+      const activeId = await getActiveProfileId();
+      const [activeRaw, archivedRaw, summary, ySummary, full, settings] = await Promise.all([
         listProjects(),
         listArchivedProjects(),
-        getMonthSummary(mes, ano),
-        getYearSummary(ano),
+        getMonthSummary(mes, ano, activeId || undefined),
+        getYearSummary(ano, activeId || undefined),
         listAllProjectsFull(),
         getSettings(),
       ]);
+      const forActive = (arr: ProjectListItem[]) =>
+        activeId ? arr.filter((p) => belongsToProfile(p, activeId)) : arr;
+      const activeList = forActive(activeRaw);
+      const archivedList = forActive(archivedRaw);
       // Valor final por projeto (mesma regra fiscal do resumo/lista)
       const eff = effectiveFiscalOf(settings);
       const vmap: Record<string, number> = {};
@@ -119,9 +128,13 @@ export default function DashboardScreen() {
     }
   }, [mes, ano]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Recarrega sempre que o ecrã fica em foco (ex.: voltar depois de apagar ou
+  // editar projetos) — senão os totais do mês/ano ficavam em cache antiga.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   // Limites de ano do seletor: do ano mais antigo com dados até 2050
   // (projetos podem ser planeados com muita antecedência)

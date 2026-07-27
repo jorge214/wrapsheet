@@ -1,8 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { Platform } from "react-native";
 
-const SUPABASE_URL = "https://joymgpqtbkobjmznqyzi.supabase.co";
+// Chaves via variáveis de ambiente (EXPO_PUBLIC_*), com FALLBACK aos valores de
+// produção atuais — assim a web/produção continuam iguais (usam o fallback) e o
+// ambiente de DEV aponta para o projeto Supabase separado só definindo as env:
+//   EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY
+// (a anon key é pública por natureza; o fallback aqui não é um segredo exposto).
+const SUPABASE_URL =
+  process.env.EXPO_PUBLIC_SUPABASE_URL || "https://joymgpqtbkobjmznqyzi.supabase.co";
 const SUPABASE_ANON_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpveW1ncHF0YmtvYmptem5xeXppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMjc3NTYsImV4cCI6MjA5NTgwMzc1Nn0.wkClDRRUXINktGHApzuXaE_iHKRAxFfHQDeYgKvKev8";
 
 // SSR-safe storage:
