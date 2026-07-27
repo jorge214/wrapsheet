@@ -315,6 +315,11 @@ function upgradeProject(raw: any, id: string): ProjectState {
 
   return {
     id,
+    // Multi-perfil: preservar o dono. (Estava a ser DESCARTADO aqui — cada
+    // leitura apagava o carimbo e o backfill re-atribuía tudo ao perfil ativo,
+    // fazendo os projetos "seguirem" o utilizador de perfil em perfil.)
+    profileId:
+      typeof raw.profileId === "string" && raw.profileId ? raw.profileId : undefined,
     perfil,
     projeto,
     tabela,
