@@ -69,7 +69,11 @@ export default function ProfilesListScreen() {
     // desbloqueada à mão (app_metadata.profiles_unlocked, só service-role) —, em
     // vez de criar abre o ecrã de contacto. Quem já tem vários perfis mantém-nos:
     // o limite só trava a CRIAÇÃO de novos, nunca a edição/uso dos existentes.
-    const unlocked = (user?.app_metadata as any)?.profiles_unlocked === true;
+    // TEMP (multi-perfil, remover antes do merge): permitir criar vários perfis
+    // SÓ no Expo Go (nativo em dev). Nunca na web, nunca em build de produção.
+    const DEV_MULTIPROFILE_BYPASS = __DEV__ && Platform.OS !== "web";
+    const unlocked =
+      DEV_MULTIPROFILE_BYPASS || (user?.app_metadata as any)?.profiles_unlocked === true;
     if (!unlocked) {
       const existing = await listProfiles();
       if (existing.length >= 1) {
