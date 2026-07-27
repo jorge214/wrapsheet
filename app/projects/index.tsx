@@ -21,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ProjectListItem as Project } from "../../src/storage/projects";
 import {
+  backfillProfileIds,
   belongsToProfile,
   clearProjectData,
   createProject,
@@ -111,6 +112,8 @@ export default function ProjectsScreen() {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   // modal "duplicar para perfil"
   const [dupToProfileId, setDupToProfileId] = useState<string | null>(null);
+  // Guarda anti-duplo-toque nas duplicações (evita duplicar 2x).
+  const dupBusyRef = useRef(false);
 
   // modal opções (web)
   const [optsProject, setOptsProject] = useState<Row | null>(null);
@@ -128,6 +131,9 @@ export default function ProjectsScreen() {
   const loadProjects = useCallback(async () => {
     setLoading(true);
     try {
+      // Carimba já os projetos legados (sem profileId) com o perfil ativo, ANTES
+      // de ler a lista — senão apareciam em todos os perfis (fallback do filtro).
+      await backfillProfileIds();
       const [list, arch, full, settings, activeId, profs] = await Promise.all([
         listProjects(),
         listArchivedProjects(),
@@ -344,6 +350,7 @@ export default function ProjectsScreen() {
   }
   async function handleConfirmDuplicate() {
     if (!dupId) return;
+    if (dupBusyRef.current) return;
 
     if (projects.length >= FREE_PROJECT_LIMIT) {
       closeDuplicateDialog();
@@ -377,6 +384,7 @@ export default function ProjectsScreen() {
       return;
     }
 
+    dupBusyRef.current = true;
     try {
       await duplicateProjectToMonth(dupId, mesNum, anoNum);
       await loadProjects();
@@ -390,6 +398,7 @@ export default function ProjectsScreen() {
         })
       );
     } finally {
+      dupBusyRef.current = false;
       closeDuplicateDialog();
     }
   }
@@ -399,6 +408,8 @@ export default function ProjectsScreen() {
   async function handleDupToProfile(targetProfileId: string) {
     const srcId = dupToProfileId;
     if (!srcId) return;
+    if (dupBusyRef.current) return;
+    dupBusyRef.current = true;
     setDupToProfileId(null);
     try {
       await duplicateProjectToProfile(srcId, targetProfileId);
@@ -410,6 +421,8 @@ export default function ProjectsScreen() {
         t("error", { defaultValue: "Erro" }),
         t("duplicate_error", { defaultValue: "Não foi possível duplicar o projeto. Tenta novamente." })
       );
+    } finally {
+      dupBusyRef.current = false;
     }
   }
 
