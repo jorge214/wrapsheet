@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import {
   Alert,
   Image,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -274,6 +275,9 @@ export default function ProfileEditScreen() {
 
   async function handleSave(): Promise<boolean> {
     if (!p || saving) return false;
+    // Fecha o teclado: senão o toast "Guardado ✓" ficava tapado por ele e
+    // parecia que o botão não tinha feito nada.
+    Keyboard.dismiss();
 
     const nome = (p.nome || "").trim();
     if (!nome) {
