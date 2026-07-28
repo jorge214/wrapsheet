@@ -23,6 +23,11 @@ import {
   listProfiles,
   setActiveProfileId,
 } from "../../src/storage/profile";
+import {
+  backfillProfileIds,
+  listArchivedProjects,
+  listProjects,
+} from "../../src/storage/projects";
 import { useAuth } from "../../src/auth/AuthContext";
 import { deleteProfileFromCloud } from "../../src/sync/syncService";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -36,6 +41,8 @@ export default function ProfilesListScreen() {
   const { user } = useAuth();
   const [items, setItems] = useState<Profile[]>([]);
   const [activeId, setActiveId] = useState("");
+  // Relance por perfil: nº de folhas do mês corrente e quantas por fechar
+  const [glance, setGlance] = useState<Record<string, { total: number; open: number }>>({});
 
   // modal opções
   const [optsId, setOptsId] = useState<string | null>(null);
@@ -45,13 +52,29 @@ export default function ProfilesListScreen() {
   );
 
   async function refresh() {
-    const [list, active] = await Promise.all([
+    // Carimba legados primeiro para as contagens por perfil serem exatas
+    await backfillProfileIds().catch(() => {});
+    const [list, active, projs, arch] = await Promise.all([
       listProfiles(),
       getActiveProfileId(),
+      listProjects(),
+      listArchivedProjects(),
     ]);
     list.sort((a, b) => Number(b.id) - Number(a.id));
     setItems(list);
     setActiveId(active);
+
+    // Folhas do mês corrente por perfil: total + por fechar (não pagas)
+    const now = new Date();
+    const monthKey = `${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+    const map: Record<string, { total: number; open: number }> = {};
+    for (const it of [...projs, ...arch]) {
+      if (it.mes !== monthKey || !it.profileId) continue;
+      const g = map[it.profileId] ?? (map[it.profileId] = { total: 0, open: 0 });
+      g.total++;
+      if (!it.pago) g.open++;
+    }
+    setGlance(map);
   }
 
   useEffect(() => {
@@ -87,6 +110,22 @@ export default function ProfilesListScreen() {
   }
 
   async function handleDelete(id: string) {
+    // Multi-perfil: perfil com folhas não se apaga (ficariam órfãs/invisíveis)
+    const [projs, arch] = await Promise.all([listProjects(), listArchivedProjects()]);
+    const nOwned = [...projs, ...arch].filter((i) => i.profileId === id).length;
+    if (nOwned > 0) {
+      const title = t("profile_has_sheets_title", { defaultValue: "Perfil com folhas" });
+      const msg = t("profile_has_sheets_msg", {
+        n: nOwned,
+        defaultValue:
+          "Este perfil tem {{n}} folha(s). Apaga-as ou duplica-as para outro perfil antes de apagares o perfil.",
+      });
+      if (Platform.OS === "web") (window as any).alert(`${title}\n${msg}`);
+      else Alert.alert(title, msg);
+      setOptsId(null);
+      return;
+    }
+
     if (Platform.OS === "web") {
       const ok = (window as any).confirm(
         `${t("profile_delete_title", { defaultValue: "Apagar perfil" })}\n${t("profile_delete_msg", { defaultValue: "Tens a certeza que queres apagar?" })}`
@@ -128,6 +167,21 @@ export default function ProfilesListScreen() {
   function handleEdit(id: string) {
     setOptsId(null);
     router.push(`/profiles/${id}`);
+  }
+
+  // "3 folhas este mês · 1 por fechar" / "… · tudo fechado ✓" / "Sem folhas este mês"
+  function glanceText(g?: { total: number; open: number }): string {
+    if (!g || g.total === 0)
+      return t("profile_glance_none", { defaultValue: "Sem folhas este mês" });
+    const total =
+      g.total === 1
+        ? t("profile_glance_one", { defaultValue: "1 folha este mês" })
+        : t("profile_glance_many", { n: g.total, defaultValue: "{{n}} folhas este mês" });
+    const state =
+      g.open > 0
+        ? t("profile_glance_open", { n: g.open, defaultValue: "{{n}} por fechar" })
+        : t("profile_glance_done", { defaultValue: "tudo fechado ✓" });
+    return `${total} · ${state}`;
   }
 
   return (
@@ -185,6 +239,7 @@ export default function ProfilesListScreen() {
                   </View>
 
                   <Text style={s.sub}>{item.email || "—"}</Text>
+                  <Text style={s.glance}>{glanceText(glance[item.id])}</Text>
                 </View>
 
                 {/* Troca rápida: ativar com 1 toque, sem abrir o menu */}
@@ -368,6 +423,13 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       color: COLORS.sub,
       fontSize: 13,
       marginTop: 4,
+    },
+    glance: {
+      color: COLORS.sub,
+      fontSize: 12,
+      marginTop: 6,
+      fontWeight: "700",
+      opacity: 0.9,
     },
 
     badgePill: {

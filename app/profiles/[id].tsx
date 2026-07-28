@@ -30,6 +30,11 @@ import {
   setActiveProfileId,
   upsertProfile,
 } from "../../src/storage/profile";
+import {
+  backfillProfileIds,
+  listArchivedProjects,
+  listProjects,
+} from "../../src/storage/projects";
 import { getSettings } from "../../src/storage/appSettings";
 import { getPreset } from "../../src/constants/countryPresets";
 import { getStrings } from "../../src/export/buildPdfHtml";
@@ -312,6 +317,23 @@ export default function ProfileEditScreen() {
 
   async function handleDelete() {
     if (!p) return;
+
+    // Multi-perfil: apagar um perfil que ainda tem folhas deixá-las-ia órfãs
+    // (invisíveis em todas as vistas). Bloqueia com aviso explícito.
+    await backfillProfileIds().catch(() => {});
+    const [projs, arch] = await Promise.all([listProjects(), listArchivedProjects()]);
+    const nOwned = [...projs, ...arch].filter((i) => i.profileId === p.id).length;
+    if (nOwned > 0) {
+      const title = t("profile_has_sheets_title", { defaultValue: "Perfil com folhas" });
+      const msg = t("profile_has_sheets_msg", {
+        n: nOwned,
+        defaultValue:
+          "Este perfil tem {{n}} folha(s). Apaga-as ou duplica-as para outro perfil antes de apagares o perfil.",
+      });
+      if (Platform.OS === "web") (window as any).alert(`${title}\n${msg}`);
+      else Alert.alert(title, msg);
+      return;
+    }
 
     if (Platform.OS === "web") {
       const ok = (window as any).confirm(
