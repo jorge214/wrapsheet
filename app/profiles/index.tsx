@@ -187,6 +187,22 @@ export default function ProfilesListScreen() {
                   <Text style={s.sub}>{item.email || "—"}</Text>
                 </View>
 
+                {/* Troca rápida: ativar com 1 toque, sem abrir o menu */}
+                {!isActive && (
+                  <Pressable
+                    onPress={() => handleSetActive(item.id)}
+                    hitSlop={8}
+                    style={({ pressed }) => [
+                      s.activateBtn,
+                      pressed && { opacity: 0.85 },
+                    ]}
+                  >
+                    <Text style={s.activateBtnText}>
+                      {t("activate", { defaultValue: "Ativar" })}
+                    </Text>
+                  </Pressable>
+                )}
+
                 <Pressable
                   onPress={() => setOptsId(item.id)}
                   hitSlop={10}
@@ -368,6 +384,20 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       fontSize: 12,
     },
 
+    activateBtn: {
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.bg,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      marginRight: 8,
+    },
+    activateBtnText: {
+      color: COLORS.text,
+      fontWeight: "900",
+      fontSize: 13,
+    },
     moreBtn: {
       width: 42,
       height: 42,
