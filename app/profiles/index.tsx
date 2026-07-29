@@ -29,6 +29,7 @@ import {
   listProjects,
 } from "../../src/storage/projects";
 import { useAuth } from "../../src/auth/AuthContext";
+import { getMaxProfiles } from "../../src/lib/entitlements";
 import { deleteProfileFromCloud } from "../../src/sync/syncService";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
@@ -88,17 +89,17 @@ export default function ProfilesListScreen() {
   );
 
   async function handleNew() {
-    // Limite de 1 perfil. Se já existe pelo menos um perfil — e a conta não foi
-    // desbloqueada à mão (app_metadata.profiles_unlocked, só service-role) —, em
-    // vez de criar abre o ecrã de contacto. Quem já tem vários perfis mantém-nos:
-    // o limite só trava a CRIAÇÃO de novos, nunca a edição/uso dos existentes.
-    const unlocked = (user?.app_metadata as any)?.profiles_unlocked === true;
-    if (!unlocked) {
-      const existing = await listProfiles();
-      if (existing.length >= 1) {
-        router.push("/profiles/unlock");
-        return;
-      }
+    // Limite de perfis lido da BD (entitlements.max_profiles; fallback ao
+    // app_metadata antigo; gratuito = 1) — ver src/lib/entitlements.ts.
+    // Atingido o limite, abre o ecrã de desbloqueio. O limite só trava a
+    // CRIAÇÃO de novos perfis, nunca a edição/uso dos existentes.
+    const [max, existing] = await Promise.all([
+      getMaxProfiles(user as any),
+      listProfiles(),
+    ]);
+    if (existing.length >= max) {
+      router.push("/profiles/unlock");
+      return;
     }
     const p = await createProfile();
     await setActiveProfileId(p.id);
