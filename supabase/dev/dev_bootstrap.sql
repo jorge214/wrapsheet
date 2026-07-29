@@ -56,7 +56,8 @@ where p.profile_id is null
 --   'stripe'     -> web/PC (futuro)
 create table if not exists public.entitlements (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  max_profiles int not null default 1 check (max_profiles >= 1),
+  -- Teto do produto: 9,99€ = ATÉ 10 perfis; não existe plano acima disso.
+  max_profiles int not null default 1 check (max_profiles between 1 and 10),
   active boolean not null default true,
   source text not null default 'manual',
   expires_at timestamptz,            -- null = sem expiração

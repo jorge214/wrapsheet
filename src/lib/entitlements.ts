@@ -14,6 +14,9 @@ import { supabase } from "./supabase";
 
 export const FREE_MAX_PROFILES = 1;
 export const UNLOCKED_MAX_PROFILES = 10;
+// Teto ABSOLUTO do produto: nunca é possível ter mais de 10 perfis, venha o
+// valor de onde vier (BD, metadata). Espelhado no check constraint da tabela.
+export const HARD_MAX_PROFILES = 10;
 
 type UserLike = { id: string; app_metadata?: Record<string, any> } | null | undefined;
 
@@ -31,7 +34,9 @@ export async function getMaxProfiles(user: UserLike): Promise<number> {
       const notExpired =
         !data.expires_at || Date.parse(String(data.expires_at)) > Date.now();
       const max = Number(data.max_profiles);
-      if (notExpired && Number.isFinite(max) && max >= 1) return max;
+      if (notExpired && Number.isFinite(max) && max >= 1) {
+        return Math.min(max, HARD_MAX_PROFILES);
+      }
     }
   } catch {
     // offline / tabela inexistente -> fallbacks abaixo

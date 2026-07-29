@@ -292,6 +292,8 @@
   "profile_glance_done": "todo cerrado ✓",
   "profile_has_sheets_title": "Perfil con hojas",
   "profile_has_sheets_msg": "Este perfil tiene {{n}} hoja(s). Elimínalas o duplícalas a otro perfil antes de eliminar el perfil.",
+  "profile_hard_cap_title": "Límite máximo",
+  "profile_hard_cap_msg": "Una cuenta puede tener como máximo 10 perfiles.",
   "duplicate_to_profile": "Duplicar a otro perfil",
   "toast_duplicated_to_profile": "✓ Duplicado al otro perfil",
   "auth_forgot_title": "Recuperar contraseña",

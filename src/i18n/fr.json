@@ -292,6 +292,8 @@
   "profile_glance_done": "tout est clôturé ✓",
   "profile_has_sheets_title": "Profil avec des feuilles",
   "profile_has_sheets_msg": "Ce profil contient {{n}} feuille(s). Supprimez-les ou dupliquez-les vers un autre profil avant de supprimer le profil.",
+  "profile_hard_cap_title": "Limite maximale",
+  "profile_hard_cap_msg": "Un compte peut avoir au maximum 10 profils.",
   "duplicate_to_profile": "Dupliquer vers un autre profil",
   "toast_duplicated_to_profile": "✓ Dupliqué vers l'autre profil",
   "auth_forgot_title": "Réinitialiser le mot de passe",

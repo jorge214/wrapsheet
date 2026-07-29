@@ -302,6 +302,8 @@
   "profile_glance_done": "alles afgesloten ✓",
   "profile_has_sheets_title": "Profiel heeft sheets",
   "profile_has_sheets_msg": "Dit profiel heeft {{n}} sheet(s). Verwijder ze of dupliceer ze naar een ander profiel voordat je het profiel verwijdert.",
+  "profile_hard_cap_title": "Maximumlimiet",
+  "profile_hard_cap_msg": "Een account kan maximaal 10 profielen hebben.",
   "duplicate_to_profile": "Dupliceren naar ander profiel",
   "toast_duplicated_to_profile": "✓ Gedupliceerd naar het andere profiel",
   "auth_forgot_title": "Wachtwoord opnieuw instellen",

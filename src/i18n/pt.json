@@ -292,6 +292,8 @@
   "profile_glance_done": "tudo fechado ✓",
   "profile_has_sheets_title": "Perfil com folhas",
   "profile_has_sheets_msg": "Este perfil tem {{n}} folha(s). Apaga-as ou duplica-as para outro perfil antes de apagares o perfil.",
+  "profile_hard_cap_title": "Limite máximo",
+  "profile_hard_cap_msg": "Uma conta pode ter no máximo 10 perfis.",
   "duplicate_to_profile": "Duplicar para outro perfil",
   "toast_duplicated_to_profile": "✓ Duplicado para o outro perfil",
   "auth_forgot_title": "Recuperar password",

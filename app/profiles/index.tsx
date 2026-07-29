@@ -29,7 +29,7 @@ import {
   listProjects,
 } from "../../src/storage/projects";
 import { useAuth } from "../../src/auth/AuthContext";
-import { getMaxProfiles } from "../../src/lib/entitlements";
+import { getMaxProfiles, HARD_MAX_PROFILES } from "../../src/lib/entitlements";
 import { deleteProfileFromCloud } from "../../src/sync/syncService";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
@@ -98,6 +98,16 @@ export default function ProfilesListScreen() {
       listProfiles(),
     ]);
     if (existing.length >= max) {
+      if (max >= HARD_MAX_PROFILES) {
+        // Já tem o plano completo: não há upsell — é o teto do produto.
+        const title = t("profile_hard_cap_title", { defaultValue: "Limite máximo" });
+        const msg = t("profile_hard_cap_msg", {
+          defaultValue: "Uma conta pode ter no máximo 10 perfis.",
+        });
+        if (Platform.OS === "web") (window as any).alert(`${title}\n${msg}`);
+        else Alert.alert(title, msg);
+        return;
+      }
       router.push("/profiles/unlock");
       return;
     }
