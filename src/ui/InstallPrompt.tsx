@@ -12,7 +12,10 @@ import { useTheme } from "../theme/ThemeProvider";
 import { WrapSheetLogo } from "./WrapSheetLogo";
 
 const DISMISS_KEY = "ws:installPrompt:dismissed:v1";
-const APP_STORE_URL = "https://apps.apple.com/app/id6774636607";
+// Com /pt/: o URL sem país cai na loja dos EUA, onde a app (ainda) não está
+// disponível -> dava 404. A página /pt/ abre para toda a gente e o "Obter" no
+// iPhone/iPad resolve na loja do próprio utilizador.
+const APP_STORE_URL = "https://apps.apple.com/pt/app/id6774636607";
 // App publicada na App Store (2026-07): iPhone/iPad passam a ver o convite.
 // (Android continua sem loja — suprimido à parte, ver useEffect.)
 const SHOW_MOBILE_STORE = true;
