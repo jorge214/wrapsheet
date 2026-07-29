@@ -83,7 +83,8 @@ export type MonthSummary = {
   totalValorFinal: number;
 
   // Split por estado de pagamento (valor final)
-  totalReceber: number; // projetos por pagar
+  totalReceber: number; // projetos por pagar (BRUTO — dashboard)
+  totalReceberLiquido: number; // projetos por pagar (LÍQUIDO — cartão da home)
   totalPago: number;    // projetos já pagos
 };
 
@@ -112,6 +113,7 @@ export async function getMonthSummary(mes: number, ano: number, profileId?: stri
   let totalIVA = 0;
   let totalValorFinal = 0;
   let totalReceber = 0;
+  let totalReceberLiquido = 0;
   let totalPago = 0;
 
   for (const p of inMonth) {
@@ -140,8 +142,13 @@ export async function getMonthSummary(mes: number, ano: number, profileId?: stri
     totalIRS += totals.IRS_valor;
     totalIVA += totals.IVA_valor;
     totalValorFinal += totals.ValorFinal;
-    if (p.pago) totalPago += totals.ValorFinal;
-    else totalReceber += totals.ValorBruto;
+    if (p.pago) {
+      totalPago += totals.ValorFinal;
+    } else {
+      // "A Receber" em bruto (dashboard) e em líquido (cartão da home)
+      totalReceber += totals.ValorBruto;
+      totalReceberLiquido += totals.ValorFinal;
+    }
   }
 
   const totalHoras = totalMinutos / 60;
@@ -164,6 +171,7 @@ export async function getMonthSummary(mes: number, ano: number, profileId?: stri
     totalIVA: r2(totalIVA),
     totalValorFinal: r2(totalValorFinal),
     totalReceber: r2(totalReceber),
+    totalReceberLiquido: r2(totalReceberLiquido),
     totalPago: r2(totalPago),
   };
 }

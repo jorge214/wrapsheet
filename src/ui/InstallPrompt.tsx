@@ -9,11 +9,16 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
+import { WrapSheetLogo } from "./WrapSheetLogo";
 
 const DISMISS_KEY = "ws:installPrompt:dismissed:v1";
-const APP_STORE_URL = "https://apps.apple.com/app/id6774636607";
-// Ligar quando a versão final estiver na App Store (e Play Store no Android)
-const SHOW_MOBILE_STORE = false;
+// Com /pt/: o URL sem país cai na loja dos EUA, onde a app (ainda) não está
+// disponível -> dava 404. A página /pt/ abre para toda a gente e o "Obter" no
+// iPhone/iPad resolve na loja do próprio utilizador.
+const APP_STORE_URL = "https://apps.apple.com/pt/app/id6774636607";
+// App publicada na App Store (2026-07): iPhone/iPad passam a ver o convite.
+// (Android continua sem loja — suprimido à parte, ver useEffect.)
+const SHOW_MOBILE_STORE = true;
 
 type Kind = "ios" | "android" | "desktop";
 
@@ -57,7 +62,15 @@ export function InstallPrompt() {
     }
     kindRef.current = detectKind();
     const isMobile = kindRef.current !== "desktop";
+    // Android: ainda sem Play Store — não mostrar convite nenhum
+    if (kindRef.current === "android") return;
     if (isMobile && !SHOW_MOBILE_STORE) return;
+    if (kindRef.current === "ios") {
+      // iPhone/iPad: a versão web não é otimizada — takeover imediato para a
+      // App Store (com escape "Continuar na web", memorizado no localStorage).
+      setShow(true);
+      return;
+    }
 
     const onPrompt = (e: any) => {
       e.preventDefault();
@@ -94,6 +107,97 @@ export function InstallPrompt() {
   };
 
   const kind = kindRef.current;
+
+  // iPhone/iPad: ecrã inteiro — a web não é otimizada para estes aparelhos e a
+  // app nativa está na App Store. "Continuar na web" fica memorizado.
+  if (kind === "ios") {
+    return (
+      <View
+        style={{
+          // @ts-ignore — position fixed é web-only
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 99999,
+          backgroundColor: COLORS.bg,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 28,
+        }}
+      >
+        <View style={{ maxWidth: 420, width: "100%", alignItems: "center" }}>
+          <WrapSheetLogo variant="lockup" size="lg" />
+          <Text
+            style={{
+              color: COLORS.text,
+              fontWeight: "900",
+              fontSize: 24,
+              textAlign: "center",
+              marginTop: 28,
+            }}
+          >
+            {t("install_ios_title", { defaultValue: "O WrapSheet está na App Store" })}
+          </Text>
+          <Text
+            style={{
+              color: COLORS.sub,
+              fontSize: 15,
+              lineHeight: 22,
+              textAlign: "center",
+              marginTop: 12,
+            }}
+          >
+            {t("install_ios_body", {
+              defaultValue:
+                "No iPhone e no iPad, a app é muito melhor do que a versão web. Descarrega-a gratuitamente.",
+            })}
+          </Text>
+
+          <Pressable
+            onPress={() => {
+              window.location.href = APP_STORE_URL;
+            }}
+            style={({ pressed }) => [
+              {
+                backgroundColor: COLORS.text,
+                borderRadius: 999,
+                paddingVertical: 15,
+                paddingHorizontal: 28,
+                marginTop: 28,
+                alignSelf: "stretch",
+                alignItems: "center",
+              },
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Text style={{ color: COLORS.bg, fontWeight: "900", fontSize: 16 }}>
+              {t("install_ios_cta", { defaultValue: "Descarregar na App Store" })}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={dismiss}
+            hitSlop={8}
+            style={({ pressed }) => [{ marginTop: 18, padding: 8 }, pressed && { opacity: 0.7 }]}
+          >
+            <Text
+              style={{
+                color: COLORS.sub,
+                fontWeight: "700",
+                fontSize: 13,
+                textDecorationLine: "underline",
+              }}
+            >
+              {t("install_continue_web", { defaultValue: "Continuar na web" })}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   const isMobile = kind !== "desktop";
   const title = isMobile
     ? t("install_mobile_title", { defaultValue: "Leva o WrapSheet contigo" })

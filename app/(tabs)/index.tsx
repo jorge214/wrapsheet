@@ -127,7 +127,7 @@ export default function HomeHub() {
             <Text style={s.summaryFigure}> </Text>
           ) : hasData ? (
             <>
-              <Text style={s.summaryFigure}>{formatMoneyApp(summary.totalReceber)}</Text>
+              <Text style={s.summaryFigure}>{formatMoneyApp(summary.totalReceberLiquido)}</Text>
               <Text style={s.summarySub}>
                 {t("to_receive", { defaultValue: "A Receber" })} · {activeLabel}
               </Text>
