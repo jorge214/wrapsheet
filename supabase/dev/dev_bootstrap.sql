@@ -73,6 +73,12 @@ drop policy if exists "read own entitlement" on public.entitlements;
 create policy "read own entitlement" on public.entitlements
   for select using (auth.uid() = user_id);
 
+-- Reforço do teto (idempotente): garante o check 1..10 mesmo que a tabela
+-- tenha sido criada por uma versão anterior deste script.
+alter table public.entitlements drop constraint if exists entitlements_max_profiles_check;
+alter table public.entitlements add constraint entitlements_max_profiles_check
+  check (max_profiles between 1 and 10);
+
 -- ── 4) Helper (opcional): conceder direito a um utilizador de teste ─────────
 -- Depois de registares a conta de teste na app apontada ao dev, corre:
 --   insert into public.entitlements (user_id, max_profiles, source)
