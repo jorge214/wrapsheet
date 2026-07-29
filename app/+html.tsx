@@ -20,6 +20,8 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <title>{TITLE}</title>
         <meta name="description" content={DESCRIPTION} />
         <meta name="theme-color" content="#000000" />
+        {/* Banner nativo do Safari (iPhone/iPad): "Abrir na App Store" */}
+        <meta name="apple-itunes-app" content="app-id=6774636607" />
         <link rel="canonical" href={SITE_URL} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={SITE_URL} />
