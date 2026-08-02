@@ -83,7 +83,10 @@ export default function RegisterScreen() {
     <SafeAreaView style={s.root}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-          <Pressable onPress={() => router.back()} style={s.back}>
+          <Pressable
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/auth/login"))}
+            style={s.back}
+          >
             <Text style={s.backText}>‹ {t("auth_login_title")}</Text>
           </Pressable>
 
