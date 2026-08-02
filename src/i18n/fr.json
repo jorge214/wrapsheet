@@ -498,6 +498,8 @@
   "paywall_load_error": "Impossible de charger les formules. Vérifiez la connexion et réessayez.",
   "retry": "Réessayer",
   "project_month": "Mois du projet",
+  "move_to_month": "Déplacer vers un autre mois",
+  "toast_moved_month": "✓ Projet déplacé",
   "profile_limit_message_ph": "Comment travaillez-vous aujourd'hui ?",
   "profile_limit_send": "Envoyer",
   "profile_limit_sent_title": "Demande envoyée",

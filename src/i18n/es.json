@@ -498,6 +498,8 @@
   "paywall_load_error": "No se pudieron cargar los planes. Comprueba la conexión e inténtalo de nuevo.",
   "retry": "Reintentar",
   "project_month": "Mes del proyecto",
+  "move_to_month": "Mover a otro mes",
+  "toast_moved_month": "✓ Proyecto movido de mes",
   "profile_limit_message_ph": "¿Cómo trabajas hoy?",
   "profile_limit_send": "Enviar",
   "profile_limit_sent_title": "Solicitud enviada",

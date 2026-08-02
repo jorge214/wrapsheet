@@ -498,6 +498,8 @@
   "paywall_load_error": "Die Tarife konnten nicht geladen werden. Prüfe die Verbindung und versuch es erneut.",
   "retry": "Erneut versuchen",
   "project_month": "Projektmonat",
+  "move_to_month": "In anderen Monat verschieben",
+  "toast_moved_month": "✓ Projekt verschoben",
   "profile_limit_message_ph": "Wie arbeitest du heute?",
   "profile_limit_send": "Senden",
   "profile_limit_sent_title": "Anfrage gesendet",

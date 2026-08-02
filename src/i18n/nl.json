@@ -498,6 +498,8 @@
   "paywall_load_error": "Kon de abonnementen niet laden. Controleer je verbinding en probeer opnieuw.",
   "retry": "Opnieuw proberen",
   "project_month": "Projectmaand",
+  "move_to_month": "Naar andere maand verplaatsen",
+  "toast_moved_month": "✓ Project verplaatst",
   "profile_limit_message_ph": "Hoe werk je nu?",
   "profile_limit_send": "Versturen",
   "profile_limit_sent_title": "Verzoek verstuurd",
