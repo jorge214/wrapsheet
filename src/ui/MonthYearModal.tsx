@@ -120,11 +120,13 @@ const styles = (COLORS: any) =>
       borderColor: COLORS.border,
       alignItems: "center",
     },
-    monthSel: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+    // Preto (COLORS.text), não o azul de sistema: é a cor dos botões
+    // principais da app (ex.: "Editar folha" na página do projeto).
+    monthSel: { backgroundColor: COLORS.text, borderColor: COLORS.text },
     monthText: { fontSize: 14, fontWeight: "700", color: COLORS.text },
-    monthTextSel: { color: "#fff" },
-    saveBtn: { backgroundColor: COLORS.accent, borderRadius: 12, paddingVertical: 13, alignItems: "center", marginTop: 16 },
-    saveText: { color: "#fff", fontWeight: "900", fontSize: 15 },
+    monthTextSel: { color: COLORS.card },
+    saveBtn: { backgroundColor: COLORS.text, borderRadius: 12, paddingVertical: 13, alignItems: "center", marginTop: 16 },
+    saveText: { color: COLORS.card, fontWeight: "900", fontSize: 15 },
     cancelBtn: { alignItems: "center", paddingVertical: 10, marginTop: 2 },
     cancelText: { color: COLORS.sub, fontWeight: "800", fontSize: 13.5 },
   });
