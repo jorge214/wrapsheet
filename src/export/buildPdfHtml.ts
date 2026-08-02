@@ -913,17 +913,9 @@ export function buildPdfHtml(
   // Sem margem negativa (isso cortava no WebKit).
   const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "14mm";
 
-  // Condições substanciais começam numa PÁGINA NOVA (a folha de baixo),
-  // inteiras, em vez de partirem a meio a seguir à tabela. Vai no HTML
-  // partilhado, por isso aplica-se ao nativo (expo-print, App Store) E à web.
-  // page-break-before: always é a quebra forçada mais básica (a melhor
-  // suportada pelo WebKit do expo-print). Só quando há condições a sério.
-  const condCharCount =
-    (condicoes ?? "").length +
-    (extra?.condBoxes ?? []).reduce(
-      (n, b) => n + (b?.titulo ?? "").length + (b?.texto ?? "").length,
-      0
-    );
+  // As condições nunca partem a meio: ou cabem a seguir à tabela, ou saltam
+  // inteiras para a folha de baixo. Vai no HTML partilhado, por isso aplica-se
+  // ao nativo (expo-print, App Store) E à web.
   // Condições: SEMPRE por TAMANHO REAL — nunca por nº de dias nem nº de caixas
   // (variam de pessoa para pessoa). O `break-inside: avoid` faz o próprio motor
   // MEDIR o bloco das condições na folha:
@@ -938,10 +930,15 @@ export function buildPdfHtml(
   // VIAJAR com o bloco: assim a margem no topo aparece tanto na pág. 1 (a seguir
   // aos totais) como quando o bloco salta para a folha seguinte (o WebKit ignora
   // a margem @page nas páginas seguintes; a ALTURA do espaçador não é truncada).
+  // SEM limiar de tamanho: o `break-inside: avoid` é auto-medido pelo motor, por
+  // isso vale para condições de qualquer dimensão. Estava preso a
+  // `condCharCount > 1200` — resto de quando a regra era uma quebra FORÇADA
+  // (page-break-before), onde fazia sentido não desperdiçar uma folha por duas
+  // linhas. Com o avoid, esse limiar só fazia com que condições CURTAS ficassem
+  // sem regra nenhuma e fossem cortadas a meio (visível sobretudo em horizontal,
+  // onde sobra menos altura por baixo da tabela dos dias).
   const condBreakCss =
-    condCharCount > 1200
-      ? ".condGroup { break-inside: avoid; page-break-inside: avoid; } .condTopSpacer { display: block; height: 6mm; } .condWrap { margin-top: 0; }"
-      : "";
+    ".condGroup { break-inside: avoid; page-break-inside: avoid; } .condTopSpacer { display: block; height: 6mm; } .condWrap { margin-top: 0; }";
 
   const dayRows = dias
     .map((d, i) => {
@@ -1148,10 +1145,11 @@ export function buildPdfHtml(
         .condRow { break-inside: avoid; page-break-inside: avoid; }
         /* Se a caixa das condições/notas partir entre páginas, cada fragmento
            fecha a própria moldura (borda em cima e em baixo) — sem os traços
-           laterais abertos até ao fundo da página. O salto do bloco inteiro
-           para a página seguinte é injetado só no print de desktop (pdf.web.ts):
-           no WebKit do iOS, break-inside:avoid num bloco maior que a página
-           CORTA o fim (o bug antigo do expo-print). */
+           laterais abertos até ao fundo da página. Rede de segurança para o
+           caso de alguém ter condições maiores do que uma página inteira: aí o
+           break-inside:avoid do .condGroup não as pode manter juntas (no WebKit
+           do iOS um bloco maior que a página chega a cortar o fim), e a quebra
+           acontece ENTRE caixas, com moldura fechada de cada lado. */
         .condWrap, .notesWrap { -webkit-box-decoration-break: clone; box-decoration-break: clone; }
         ${condBreakCss}
         .condMain, .notesTitle { break-after: avoid; page-break-after: avoid; }
