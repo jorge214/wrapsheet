@@ -162,6 +162,7 @@ export default function ProjectEditor() {
 
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
   // Título editável inline: tocar no nome transforma-o num campo de texto
@@ -390,6 +391,18 @@ export default function ProjectEditor() {
   function setP<K extends keyof ProjectState>(key: K, value: ProjectState[K]) {
     if (!projectRef.current) return;
     const next = { ...projectRef.current, [key]: value };
+    persist(next);
+  }
+
+  // Move o projeto para outro mês/ano (o mês a que "pertence" no painel/lista,
+  // independente das datas dos dias). Atualiza projeto.mes/ano e regrava — o
+  // índice (ex.: "05/2026") é regenerado no saveProject.
+  function changeProjectMonth(mes: number, ano: number) {
+    if (!projectRef.current) return;
+    const next = {
+      ...projectRef.current,
+      projeto: { ...projectRef.current.projeto, mes, ano },
+    };
     persist(next);
   }
 
@@ -1227,7 +1240,21 @@ export default function ProjectEditor() {
             </Text>
           </Pressable>
         )}
-        <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
+        <Pressable
+          onPress={() => setMonthPickerOpen(true)}
+          hitSlop={6}
+          style={({ pressed }) => [{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" }, pressed && { opacity: 0.6 }]}
+        >
+          <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
+          <Ionicons name="chevron-down" size={14} color={COLORS.sub} />
+        </Pressable>
+        <MonthYearModal
+          visible={monthPickerOpen}
+          mes={project!.projeto.mes || 1}
+          ano={project!.projeto.ano}
+          onClose={() => setMonthPickerOpen(false)}
+          onPick={(m, y) => { changeProjectMonth(m, y); setMonthPickerOpen(false); }}
+        />
 
         {/* Só "Editar folha" — o export vive dentro do editor (botão Export PDF) */}
         <Pressable onPress={openEditHtml} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
@@ -2215,6 +2242,87 @@ function DateField({
     </View>
   );
 }
+
+// Seletor de mês/ano do projeto — define a que mês o projeto "pertence"
+// (painel/lista), independentemente das datas dos dias. Permite mover uma folha
+// de maio feita em agosto para maio.
+function MonthYearModal({
+  visible,
+  mes,
+  ano,
+  onClose,
+  onPick,
+}: {
+  visible: boolean;
+  mes: number;
+  ano: number;
+  onClose: () => void;
+  onPick: (mes: number, ano: number) => void;
+}) {
+  const { t } = useTranslation();
+  const lang = i18n.language;
+  const [selMes, setSelMes] = useState(mes);
+  const [selAno, setSelAno] = useState(ano);
+  useEffect(() => {
+    if (visible) { setSelMes(mes); setSelAno(ano); }
+  }, [visible]);
+
+  const monthName = (m: number) => {
+    const s = new Intl.DateTimeFormat(lang, { month: "short" }).format(new Date(2000, m - 1, 1));
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={mpStyles.backdrop} onPress={onClose}>
+        <Pressable style={mpStyles.card} onPress={() => {}}>
+          <Text style={mpStyles.title}>{t("project_month", { defaultValue: "Mês do projeto" })}</Text>
+
+          <View style={mpStyles.yearRow}>
+            <Pressable onPress={() => setSelAno((y) => y - 1)} hitSlop={10} style={mpStyles.yearBtn}>
+              <Ionicons name="chevron-back" size={22} color={COLORS.text} />
+            </Pressable>
+            <Text style={mpStyles.yearText}>{selAno}</Text>
+            <Pressable onPress={() => setSelAno((y) => y + 1)} hitSlop={10} style={mpStyles.yearBtn}>
+              <Ionicons name="chevron-forward" size={22} color={COLORS.text} />
+            </Pressable>
+          </View>
+
+          <View style={mpStyles.grid}>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+              const sel = m === selMes;
+              return (
+                <Pressable key={m} onPress={() => setSelMes(m)} style={[mpStyles.month, sel && mpStyles.monthSel]}>
+                  <Text style={[mpStyles.monthText, sel && mpStyles.monthTextSel]}>{monthName(m)}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Pressable style={mpStyles.saveBtn} onPress={() => onPick(selMes, selAno)}>
+            <Text style={mpStyles.saveText}>{t("save", { defaultValue: "Guardar" })}</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const mpStyles = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", padding: 24 },
+  card: { backgroundColor: COLORS.card, borderRadius: 16, padding: 18, width: "100%", maxWidth: 360 },
+  title: { fontSize: 17, fontWeight: "900", color: COLORS.text, textAlign: "center", marginBottom: 12 },
+  yearRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 24, marginBottom: 14 },
+  yearBtn: { padding: 6 },
+  yearText: { fontSize: 20, fontWeight: "900", color: COLORS.text, minWidth: 72, textAlign: "center" },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
+  month: { width: "30%", paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, alignItems: "center" },
+  monthSel: { backgroundColor: "#007AFF", borderColor: "#007AFF" },
+  monthText: { fontSize: 14, fontWeight: "700", color: COLORS.text },
+  monthTextSel: { color: "#fff" },
+  saveBtn: { backgroundColor: "#007AFF", borderRadius: 12, paddingVertical: 13, alignItems: "center", marginTop: 16 },
+  saveText: { color: "#fff", fontWeight: "900", fontSize: 15 },
+});
 
 function CalendarModal({
   visible,

@@ -499,6 +499,7 @@
   "paywall_save_pct": "Poupa {{pct}}%",
   "paywall_load_error": "Não foi possível carregar os planos. Verifica a ligação e tenta de novo.",
   "retry": "Tentar de novo",
+  "project_month": "Mês do projeto",
   "profile_limit_message_ph": "Como trabalhas hoje?",
   "profile_limit_send": "Enviar",
   "profile_limit_sent_title": "Pedido enviado",

@@ -499,6 +499,7 @@
   "paywall_save_pct": "Save {{pct}}%",
   "paywall_load_error": "Couldn't load the plans. Check your connection and try again.",
   "retry": "Try again",
+  "project_month": "Project month",
   "profile_limit_message_ph": "How do you work today?",
   "profile_limit_send": "Send",
   "profile_limit_sent_title": "Request sent",

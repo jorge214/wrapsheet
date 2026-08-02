@@ -497,6 +497,7 @@
   "paywall_save_pct": "Économisez {{pct}}%",
   "paywall_load_error": "Impossible de charger les formules. Vérifiez la connexion et réessayez.",
   "retry": "Réessayer",
+  "project_month": "Mois du projet",
   "profile_limit_message_ph": "Comment travaillez-vous aujourd'hui ?",
   "profile_limit_send": "Envoyer",
   "profile_limit_sent_title": "Demande envoyée",

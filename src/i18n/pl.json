@@ -497,6 +497,7 @@
   "paywall_save_pct": "Oszczędź {{pct}}%",
   "paywall_load_error": "Nie udało się wczytać planów. Sprawdź połączenie i spróbuj ponownie.",
   "retry": "Spróbuj ponownie",
+  "project_month": "Miesiąc projektu",
   "profile_limit_message_ph": "Jak dziś pracujesz?",
   "profile_limit_send": "Wyślij",
   "profile_limit_sent_title": "Prośba wysłana",

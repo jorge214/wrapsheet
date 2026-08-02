@@ -497,6 +497,7 @@
   "paywall_save_pct": "Bespaar {{pct}}%",
   "paywall_load_error": "Kon de abonnementen niet laden. Controleer je verbinding en probeer opnieuw.",
   "retry": "Opnieuw proberen",
+  "project_month": "Projectmaand",
   "profile_limit_message_ph": "Hoe werk je nu?",
   "profile_limit_send": "Versturen",
   "profile_limit_sent_title": "Verzoek verstuurd",
