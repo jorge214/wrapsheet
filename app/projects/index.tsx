@@ -35,8 +35,10 @@ import {
   listAllProjectsFull,
   markProjectPaidAndArchive,
   markProjectToReceive,
+  moveProjectToMonth,
   renameProject,
 } from "../../src/storage/projects";
+import { MonthYearModal } from "../../src/ui/MonthYearModal";
 import {
   getActiveProfileId,
   listProfiles,
@@ -117,6 +119,8 @@ export default function ProjectsScreen() {
 
   // modal opções (web)
   const [optsProject, setOptsProject] = useState<Row | null>(null);
+  // Projeto a mover para outro mês (menu ⋯ → "Mover para outro mês")
+  const [moveProject, setMoveProject] = useState<Row | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   // modal renomear
@@ -272,10 +276,34 @@ export default function ProjectsScreen() {
       return;
     }
     try {
-      const id = await createProject();
+      // O projeto nasce no mês que está a ser visto na lista — assim, fazer em
+      // agosto a folha de maio é só navegar para maio e criar. A ver "todos",
+      // não há mês em foco: fica o corrente (comportamento de sempre).
+      const id = await createProject(showAll ? undefined : { mes, ano });
       router.push(`/projects/${id}`);
     } catch (e) {
       console.error("Erro ao criar projeto", e);
+    }
+  }
+
+  // ------- MOVER PARA OUTRO MÊS -------
+  // Muda o mês a que o projeto pertence (não duplica). A lista salta para o mês
+  // de destino, senão o projeto "desaparecia" à frente de quem o moveu.
+  async function handleMoveMonth(m: number, y: number) {
+    const proj = moveProject;
+    setMoveProject(null);
+    if (!proj) return;
+    try {
+      const moved = await moveProjectToMonth(proj.id, m, y);
+      if (user) syncProjectToCloud(user.id, moved as any);
+      if (!showAll) {
+        setMes(m);
+        setAno(y);
+      }
+      await loadProjects();
+      showToast(t("toast_moved_month", { defaultValue: "✓ Projeto movido de mês" }));
+    } catch (e) {
+      console.error("Erro ao mover projeto de mês", e);
     }
   }
 
@@ -771,6 +799,17 @@ export default function ProjectsScreen() {
         </Text>
       </TouchableOpacity>
 
+      {/* Mover projeto para outro mês (menu ⋯). O mês do projeto vem do índice
+          no formato "MM/AAAA"; se faltar, abre no mês em foco na lista. */}
+      <MonthYearModal
+        visible={!!moveProject}
+        mes={Number((moveProject?.mes || "").split("/")[0]) || mes}
+        ano={Number((moveProject?.mes || "").split("/")[1]) || ano}
+        title={t("move_to_month", { defaultValue: "Mover para outro mês" })}
+        onClose={() => setMoveProject(null)}
+        onPick={handleMoveMonth}
+      />
+
       {/* Modal opções do projeto (Android + Web) */}
       <Modal transparent animationType="fade" visible={!!optsProject}>
         <Pressable style={s.modalBackdrop} onPress={() => { setOptsProject(null); setDeleteConfirm(false); }}>
@@ -791,6 +830,10 @@ export default function ProjectsScreen() {
                         onPress: () => { const proj = optsProject!; setOptsProject(null); markPaidArchive(proj); },
                       },
                   { label: t("rename"), onPress: () => { setOptsProject(null); openRenameDialog(optsProject!); } },
+                  {
+                    label: t("move_to_month", { defaultValue: "Mover para outro mês" }),
+                    onPress: () => { const proj = optsProject!; setOptsProject(null); setMoveProject(proj); },
+                  },
                   { label: t("duplicate"), onPress: () => { setOptsProject(null); openDuplicateDialog(optsProject!); } },
                   ...(profiles.length >= 2
                     ? [{

@@ -402,7 +402,12 @@ export async function saveProject(
 }
 
 // criar projeto novo
-export async function createProject(): Promise<string> {
+/**
+ * Cria um projeto. `opts.mes`/`opts.ano` definem a que mês ele pertence — a
+ * lista de projetos passa o mês que está a ser visto, para uma folha de maio
+ * feita em agosto nascer logo em maio. Sem opts, usa o mês corrente.
+ */
+export async function createProject(opts?: { mes?: number; ano?: number }): Promise<string> {
   const id = String(Date.now());
   const today = dayjs().format("YYYY-MM-DD");
 
@@ -417,8 +422,8 @@ export async function createProject(): Promise<string> {
     produtora: "",
     nifProdutora: "",
     semana: "",
-    mes: dayjs().month() + 1,
-    ano: dayjs().year(),
+    mes: opts?.mes ?? dayjs().month() + 1,
+    ano: opts?.ano ?? dayjs().year(),
   };
 
   const settings = await getSettings();
@@ -573,6 +578,25 @@ export async function duplicateProjectToMonth(
   await writeIndex(KEY_INDEX, index);
 
   return newId;
+}
+
+/**
+ * Move um projeto para outro mês/ano (não duplica — é o MESMO projeto a mudar
+ * de sítio). Serve para folhas feitas fora do mês a que dizem respeito, ex.:
+ * fazer em agosto a folha de maio. Funciona também em projetos arquivados: o
+ * getProject lê os dois sítios e o saveProject regrava no índice certo,
+ * atualizando lá o campo "mes" que a lista e o painel usam para filtrar.
+ */
+export async function moveProjectToMonth(
+  id: string,
+  mes: number,
+  ano: number
+): Promise<ProjectState> {
+  const p = await getProject(id);
+  if (!p) throw new Error("Projeto não encontrado");
+  const next: ProjectState = { ...p, projeto: { ...p.projeto, mes, ano } };
+  await saveProject(next);
+  return next;
 }
 
 /* ------ NOVO (multi-perfil): duplicar para OUTRO perfil ------ */

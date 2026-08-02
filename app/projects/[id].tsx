@@ -52,6 +52,7 @@ import {
   saveProject,
 } from "../../src/storage/projects";
 import EditableSheet, { SHEET_W } from "../../src/ui/EditableSheet";
+import { MonthYearModal } from "../../src/ui/MonthYearModal";
 
 /* ---------- Paleta (manual, neutra) ---------- */
 const COLORS = {
@@ -162,6 +163,7 @@ export default function ProjectEditor() {
 
   // menu opções (⋯)
   const [menuOpen, setMenuOpen] = useState(false);
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
   // Título editável inline: tocar no nome transforma-o num campo de texto
@@ -390,6 +392,18 @@ export default function ProjectEditor() {
   function setP<K extends keyof ProjectState>(key: K, value: ProjectState[K]) {
     if (!projectRef.current) return;
     const next = { ...projectRef.current, [key]: value };
+    persist(next);
+  }
+
+  // Move o projeto para outro mês/ano (o mês a que "pertence" no painel/lista,
+  // independente das datas dos dias). Atualiza projeto.mes/ano e regrava — o
+  // índice (ex.: "05/2026") é regenerado no saveProject.
+  function changeProjectMonth(mes: number, ano: number) {
+    if (!projectRef.current) return;
+    const next = {
+      ...projectRef.current,
+      projeto: { ...projectRef.current.projeto, mes, ano },
+    };
     persist(next);
   }
 
@@ -1227,7 +1241,14 @@ export default function ProjectEditor() {
             </Text>
           </Pressable>
         )}
-        <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
+        <Pressable
+          onPress={() => setMonthPickerOpen(true)}
+          hitSlop={6}
+          style={({ pressed }) => [{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" }, pressed && { opacity: 0.6 }]}
+        >
+          <Text style={ss.mStatsSub}>{monthCap} {project!.projeto.ano}</Text>
+          <Ionicons name="chevron-down" size={14} color={COLORS.sub} />
+        </Pressable>
 
         {/* Só "Editar folha" — o export vive dentro do editor (botão Export PDF) */}
         <Pressable onPress={openEditHtml} style={({ pressed }) => [ss.mOpenBtn, pressed && { opacity: 0.9 }]}>
@@ -1547,6 +1568,18 @@ export default function ProjectEditor() {
         </View>
       </ScrollView>
 
+      {/* Mover o projeto para outro mês. Fora do bloco de stats do telemóvel:
+          no desktop essa zona não é desenhada (a página mostra a folha), e o
+          menu ⋯ — que existe em todos os tamanhos — precisa deste modal. */}
+      <MonthYearModal
+        visible={monthPickerOpen}
+        mes={project.projeto.mes || 1}
+        ano={project.projeto.ano}
+        title={t("move_to_month", { defaultValue: "Mover para outro mês" })}
+        onClose={() => setMonthPickerOpen(false)}
+        onPick={(m, y) => { changeProjectMonth(m, y); setMonthPickerOpen(false); }}
+      />
+
       {/* Menu ⋯ */}
       <Modal
         transparent
@@ -1583,6 +1616,14 @@ export default function ProjectEditor() {
               onPress={() => {
                 setMenuOpen(false);
                 setTimeout(() => openRenameTitle(), 450);
+              }}
+            />
+
+            <MenuItem
+              label={t("move_to_month", { defaultValue: "Mover para outro mês" })}
+              onPress={() => {
+                setMenuOpen(false);
+                setTimeout(() => setMonthPickerOpen(true), 450);
               }}
             />
 
