@@ -136,7 +136,7 @@ export default function ProfilePaywallScreen() {
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <View style={s.section}>
           <View style={s.icon}>
-            <Ionicons name="people" size={30} color={COLORS.accent} />
+            <Ionicons name="people" size={30} color={COLORS.text} />
           </View>
           <Text style={s.title}>{t("paywall_title", { defaultValue: "Folhas para toda a equipa" })}</Text>
           <Text style={s.body}>
@@ -148,7 +148,7 @@ export default function ProfilePaywallScreen() {
           <View style={{ marginTop: 14, gap: 10 }}>
             {bullets.map((b, i) => (
               <View key={i} style={s.bulletRow}>
-                <Ionicons name="checkmark-circle" size={19} color={COLORS.accent} />
+                <Ionicons name="checkmark-circle" size={19} color={COLORS.text} />
                 <Text style={s.bulletText}>{b}</Text>
               </View>
             ))}
@@ -158,7 +158,7 @@ export default function ProfilePaywallScreen() {
         {canBuy ? (
           <View style={s.section}>
             {loadingPkgs ? (
-              <ActivityIndicator color={COLORS.accent} style={{ paddingVertical: 20 }} />
+              <ActivityIndicator color={COLORS.text} style={{ paddingVertical: 20 }} />
             ) : packages.length === 0 ? (
               <>
                 <Text style={s.body}>
@@ -291,7 +291,7 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
       padding: 16,
     },
     icon: {
-      width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: COLORS.accent,
+      width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: COLORS.text,
       alignItems: "center", justifyContent: "center", marginBottom: 12,
     },
     title: { fontSize: 20, fontWeight: "900", color: COLORS.text, lineHeight: 26 },
@@ -308,26 +308,26 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
       borderRadius: 12,
       padding: 14,
     },
-    planSel: { borderColor: COLORS.accent, backgroundColor: mode === "dark" ? "#0e2033" : "#f0f7ff" },
+    planSel: { borderColor: COLORS.text, backgroundColor: mode === "dark" ? "#1c1f24" : "#F2F3F5" },
     radio: {
-      width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: COLORS.accent,
+      width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: COLORS.text,
       alignItems: "center", justifyContent: "center",
     },
-    radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.accent },
+    radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.text },
     planLabel: { fontSize: 16, fontWeight: "800", color: COLORS.text },
     planSub: { fontSize: 12.5, color: COLORS.sub, marginTop: 3 },
     planPrice: { fontSize: 17, fontWeight: "900", color: COLORS.text },
     planPeriod: { fontSize: 12.5, fontWeight: "700", color: COLORS.sub },
-    badge: { backgroundColor: COLORS.accent, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
-    badgeText: { color: "#fff", fontSize: 10.5, fontWeight: "900" },
+    badge: { backgroundColor: COLORS.text, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+    badgeText: { color: COLORS.card, fontSize: 10.5, fontWeight: "900" },
     badgeSave: { backgroundColor: mode === "dark" ? "#123d1f" : "#e3f7e8", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
     badgeSaveText: { color: mode === "dark" ? "#5fd67f" : "#1a7f37", fontSize: 10.5, fontWeight: "900" },
 
     msg: { fontSize: 13.5, color: COLORS.text, textAlign: "center", marginTop: 14, fontWeight: "700" },
-    btn: { backgroundColor: COLORS.accent, borderRadius: 12, paddingVertical: 15, alignItems: "center", marginTop: 16 },
-    btnText: { color: "#fff", fontWeight: "900", fontSize: 16 },
-    btnOutline: { borderWidth: 1.5, borderColor: COLORS.accent, borderRadius: 12, paddingVertical: 13, alignItems: "center", marginTop: 14 },
-    btnOutlineText: { color: COLORS.accent, fontWeight: "800", fontSize: 15 },
-    restore: { color: COLORS.accent, fontWeight: "800", fontSize: 13.5, textDecorationLine: "underline" },
+    btn: { backgroundColor: COLORS.text, borderRadius: 12, paddingVertical: 15, alignItems: "center", marginTop: 16 },
+    btnText: { color: COLORS.card, fontWeight: "900", fontSize: 16 },
+    btnOutline: { borderWidth: 1.5, borderColor: COLORS.text, borderRadius: 12, paddingVertical: 13, alignItems: "center", marginTop: 14 },
+    btnOutlineText: { color: COLORS.text, fontWeight: "800", fontSize: 15 },
+    restore: { color: COLORS.text, fontWeight: "800", fontSize: 13.5, textDecorationLine: "underline" },
     legal: { fontSize: 11.5, color: COLORS.sub, lineHeight: 16, marginTop: 14, textAlign: "center" },
   });
