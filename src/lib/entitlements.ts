@@ -24,6 +24,43 @@ export const HARD_MAX_PROFILES = 10;
 
 type UserLike = { id: string; app_metadata?: Record<string, any> } | null | undefined;
 
+/**
+ * Espera que o webhook do RevenueCat escreva a linha em `entitlements`.
+ *
+ * Sem isto há uma janela real de falha: a seguir à compra o cliente já conta 10
+ * perfis (a ponte do RevenueCat no próprio dispositivo), mas o TRIGGER na base
+ * de dados só deixa criar quando a linha existir. Criar um perfil nesse
+ * intervalo dava um perfil que funciona no telemóvel mas nunca sobe para a
+ * cloud — e o utilizador não via nada.
+ *
+ * Devolve true assim que o direito estiver na BD; false se esgotar o tempo (aí
+ * o utilizador segue na mesma — a ponte local deixa-o usar a app, e o próximo
+ * sync trata do resto quando o webhook chegar).
+ */
+export async function waitForServerEntitlement(
+  userId: string,
+  timeoutMs = 20000
+): Promise<boolean> {
+  if (!userId) return false;
+  const deadline = Date.now() + timeoutMs;
+  let delay = 1000;
+  while (Date.now() < deadline) {
+    try {
+      const { data } = await supabase
+        .from("entitlements")
+        .select("max_profiles, active")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (data?.active && Number(data.max_profiles) > 1) return true;
+    } catch {
+      // rede a falhar — volta a tentar até esgotar o tempo
+    }
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay * 1.5, 4000); // recuo progressivo
+  }
+  return false;
+}
+
 export async function getMaxProfiles(user: UserLike): Promise<number> {
   if (!user?.id) return FREE_MAX_PROFILES;
 

@@ -30,7 +30,7 @@ import {
 } from "../../src/storage/projects";
 import { useAuth } from "../../src/auth/AuthContext";
 import { getMaxProfiles, HARD_MAX_PROFILES } from "../../src/lib/entitlements";
-import { deleteProfileFromCloud } from "../../src/sync/syncService";
+import { consumeProfileRejected, deleteProfileFromCloud } from "../../src/sync/syncService";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 export default function ProfilesListScreen() {
@@ -76,6 +76,18 @@ export default function ProfilesListScreen() {
       if (!it.pago) g.open++;
     }
     setGlance(map);
+
+    // O servidor recusou algum perfil (acima do plano)? Sem isto, o perfil
+    // ficava a funcionar só neste aparelho e o utilizador não percebia porquê.
+    if (consumeProfileRejected()) {
+      const title = t("profile_not_synced_title", { defaultValue: "Perfil não sincronizado" });
+      const msg = t("profile_not_synced_msg", {
+        defaultValue:
+          "Um perfil ficou só neste dispositivo porque o teu plano não o permite. Subscreve para o guardar na tua conta e o veres nos outros dispositivos.",
+      });
+      if (Platform.OS === "web") (window as any).alert(`${title}\n${msg}`);
+      else Alert.alert(title, msg);
+    }
   }
 
   useEffect(() => {

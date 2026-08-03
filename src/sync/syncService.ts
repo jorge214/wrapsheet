@@ -53,6 +53,23 @@ async function syncErr(label: string, error: any): Promise<void> {
   }
 }
 
+// ── Aviso de perfil recusado pelo servidor ───────────────────────────────────
+// O trigger `enforce_profile_limit` recusa perfis acima do plano. Antes isso
+// morria num console.error: o perfil ficava a funcionar no aparelho mas nunca
+// subia, e o utilizador não via nada. Guardamos o aviso para o ecrã de Perfis
+// o mostrar uma vez.
+let profileRejected = false;
+function isProfileLimitError(error: any): boolean {
+  const msg = String(error?.message ?? "");
+  return error?.code === "P0001" || msg.includes("profile_limit_reached");
+}
+/** Houve um perfil recusado pelo servidor desde a última vez que se perguntou? */
+export function consumeProfileRejected(): boolean {
+  const v = profileRejected;
+  profileRejected = false;
+  return v;
+}
+
 // Carimbo → ms (formatos ISO locais e timestamptz do Postgres não são
 // comparáveis como texto: "…Z" vs "…+00:00")
 function ts(v: any): number {
@@ -113,7 +130,23 @@ async function uploadProfiles(userId: string): Promise<void> {
   if (!rows.length) return;
 
   const { error } = await supabase.from("profiles").upsert(rows, {});
-  if (error) await syncErr("uploadProfiles", error);
+  if (!error) return;
+
+  // O upsert é UM statement: se o trigger recusar uma linha (perfil acima do
+  // plano), o lote inteiro falha e edições legítimas dos OUTROS perfis ficavam
+  // por sincronizar, em silêncio. Por isso, ao falhar, repete-se linha a linha:
+  // as boas passam, e só a recusada fica de fora (com aviso para a UI).
+  if (rows.length === 1) {
+    if (isProfileLimitError(error)) profileRejected = true;
+    await syncErr("uploadProfiles", error);
+    return;
+  }
+  for (const row of rows) {
+    const { error: e } = await supabase.from("profiles").upsert([row], {});
+    if (!e) continue;
+    if (isProfileLimitError(e)) profileRejected = true;
+    await syncErr(`uploadProfiles(${row.id})`, e);
+  }
 }
 
 /* ---------- Download Supabase → local (só o que é mais novo) ---------- */

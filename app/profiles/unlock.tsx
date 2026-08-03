@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../src/auth/AuthContext";
+import { waitForServerEntitlement } from "../../src/lib/entitlements";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import {
   buyPackageById,
@@ -25,6 +26,16 @@ import {
 } from "../../src/lib/purchases";
 
 const APP_STORE_URL = "https://apps.apple.com/pt/app/id6774636607";
+const SITE = "https://wrapsheet-app.com";
+
+// A Apple exige (Guideline 3.1.2) que o ecrã de compra tenha links funcionais
+// para os Termos de Utilização e a Política de Privacidade. É das causas mais
+// comuns de rejeição de subscrições.
+function openLegal(path: string) {
+  const url = SITE + path;
+  if (Platform.OS === "web") (window as any).open(url, "_blank", "noopener");
+  else Linking.openURL(url).catch(() => {});
+}
 
 // Paywall dos perfis de equipa: até 10 perfis. No iOS (build EAS) compra via
 // IAP/RevenueCat (mensal ou anual, à escolha); noutras plataformas encaminha
@@ -101,6 +112,12 @@ export default function ProfilePaywallScreen() {
     const r = await buyPackageById(selectedId);
     setBusy(null);
     if (r.ok) {
+      // A compra passou, mas o direito só é utilizável quando o webhook do
+      // RevenueCat escrever na BD — é o que o trigger do servidor verifica.
+      // Esperar aqui evita criar perfis nesse intervalo, que ficariam presos
+      // no dispositivo sem nunca sincronizar.
+      setMsg(t("paywall_activating", { defaultValue: "A ativar o plano…" }));
+      if (user?.id) await waitForServerEntitlement(user.id);
       setMsg(t("paywall_active", { defaultValue: "✓ Plano ativo! Já podes criar mais perfis." }));
       setTimeout(() => router.back(), 1400);
     } else if (r.cancelled) {
@@ -114,6 +131,8 @@ export default function ProfilePaywallScreen() {
     setBusy("restore");
     setMsg(null);
     const r = await restorePurchases();
+    // Tal como na compra: o direito só serve depois de chegar à BD.
+    if (r.ok && user?.id) await waitForServerEntitlement(user.id);
     setBusy(null);
     setMsg(
       r.ok
@@ -263,6 +282,19 @@ export default function ProfilePaywallScreen() {
             </Pressable>
           </View>
         )}
+
+        {/* Termos + Privacidade — exigidos pela Apple no ecrã de compra */}
+        <View style={s.legalLinks}>
+          <Pressable onPress={() => openLegal("/terms")} hitSlop={8}>
+            <Text style={s.legalLink}>{t("auth_accept_terms", { defaultValue: "Termos" })}</Text>
+          </Pressable>
+          <Text style={s.legalSep}>·</Text>
+          <Pressable onPress={() => openLegal("/privacy")} hitSlop={8}>
+            <Text style={s.legalLink}>
+              {t("auth_accept_privacy", { defaultValue: "Política de Privacidade" })}
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -330,4 +362,7 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
     btnOutlineText: { color: COLORS.text, fontWeight: "800", fontSize: 15 },
     restore: { color: COLORS.text, fontWeight: "800", fontSize: 13.5, textDecorationLine: "underline" },
     legal: { fontSize: 11.5, color: COLORS.sub, lineHeight: 16, marginTop: 14, textAlign: "center" },
+    legalLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, paddingVertical: 4 },
+    legalLink: { fontSize: 12.5, color: COLORS.sub, fontWeight: "700", textDecorationLine: "underline" },
+    legalSep: { fontSize: 12.5, color: COLORS.sub },
   });
