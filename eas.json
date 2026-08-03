@@ -23,7 +23,8 @@
         "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_ePCLqXSSazqIIEGFGXhDIDspFty",
         "EXPO_PUBLIC_SUPABASE_URL": "https://gfagdphminpevuoikhoh.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_eKqHAb7QcwJ7NFsfbqogtA__iKdhV22"
-      }
+      },
+      "autoIncrement": true
     },
     "testdev": {
       "env": {
@@ -35,7 +36,8 @@
       "ios": {
         "resourceClass": "m-medium"
       },
-      "channel": "testdev"
+      "channel": "testdev",
+      "autoIncrement": true
     },
     "production": {
       "env": {
@@ -45,7 +47,8 @@
       "ios": {
         "resourceClass": "m-medium"
       },
-      "channel": "production"
+      "channel": "production",
+      "autoIncrement": true
     }
   },
   "submit": {
