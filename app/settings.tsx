@@ -3,11 +3,12 @@ import { router, useFocusEffect } from "expo-router";
 import { useIsWide } from "../src/ui/useBreakpoint";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../src/theme/ThemeProvider";
 import { getPreset } from "../src/constants/countryPresets";
 import { getSettings } from "../src/storage/appSettings";
+import { canInstall, detectBrowser, isStandalone, promptInstall } from "../src/ui/pwaInstall";
 
 export default function SettingsScreen() {
   const { COLORS } = useTheme();
@@ -23,6 +24,31 @@ export default function SettingsScreen() {
   );
 
   const preset = getPreset(regionCode);
+
+  // Instalar a PWA. Só o Chrome/Edge dão o diálogo de um clique; nos outros
+  // browsers o caminho é manual e diferente em cada um, por isso explica-se.
+  async function handleInstall() {
+    if (canInstall()) {
+      const ok = await promptInstall();
+      if (ok) return;
+    }
+    const b = detectBrowser();
+    const how =
+      b === "safari"
+        ? t("install_how_safari", { defaultValue: "No Safari: menu Ficheiro → Adicionar à Dock." })
+        : b === "firefox"
+        ? t("install_how_firefox", {
+            defaultValue:
+              "O Firefox não instala aplicações web no computador. Abre a página no Chrome ou no Edge para instalar.",
+          })
+        : t("install_how_chrome", {
+            defaultValue:
+              "Na barra de endereço, carrega no ícone de instalar (à direita), ou abre o menu ⋮ → Transmitir, guardar e partilhar → Instalar página como aplicação.",
+          });
+    const title = t("settings_install_app", { defaultValue: "Instalar no computador" });
+    if (Platform.OS === "web") (window as any).alert(`${title}\n\n${how}`);
+    else Alert.alert(title, how);
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -116,6 +142,22 @@ export default function SettingsScreen() {
             <Ionicons name="chevron-forward" size={20} color={COLORS.sub} />
           </Pressable>
         </Section>
+
+        {/* Instalar no computador (só na web, e só se ainda não estiver
+            instalada). Quem dispensa o convite ficava sem forma de instalar —
+            esta é a segunda porta. Em Chrome/Edge abre o diálogo nativo; nos
+            outros browsers explica onde é o botão, que muda de browser para
+            browser. */}
+        {Platform.OS === "web" && !isStandalone() && (
+          <Section title={t("settings_section_app", { defaultValue: "Aplicação" })} COLORS={COLORS}>
+            <Pressable onPress={handleInstall} style={[ss.row, { borderColor: COLORS.border }]}>
+              <Text style={[ss.rowLabel, { color: COLORS.text }]}>
+                {t("settings_install_app", { defaultValue: "Instalar no computador" })}
+              </Text>
+              <Ionicons name="download-outline" size={20} color={COLORS.sub} />
+            </Pressable>
+          </Section>
+        )}
 
         {/* Ajuda e Legal */}
         <Section title={t("settings_section_help", { defaultValue: "Ajuda e Informações" })} COLORS={COLORS}>

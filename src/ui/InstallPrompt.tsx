@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
 import { WrapSheetLogo } from "./WrapSheetLogo";
+import { canInstall as canInstallPwa, promptInstall, subscribeInstall } from "./pwaInstall";
 
 const DISMISS_KEY = "ws:installPrompt:dismissed:v1";
 // Com /pt/: o URL sem país cai na loja dos EUA, onde a app (ainda) não está
@@ -72,17 +73,21 @@ export function InstallPrompt() {
       return;
     }
 
-    const onPrompt = (e: any) => {
-      e.preventDefault();
-      deferredRef.current = e;
-      setCanNative(true);
-      setShow(true);
+    // A captura do evento é global (pwaInstall.ts) — aqui só reagimos ao estado.
+    // Antes o listener vivia neste componente e só era registado se o convite
+    // não tivesse sido dispensado, pelo que o evento se perdia para sempre.
+    const sync = () => {
+      if (canInstallPwa()) {
+        setCanNative(true);
+        setShow(true);
+      }
     };
-    window.addEventListener("beforeinstallprompt", onPrompt);
+    sync();
+    const unsub = subscribeInstall(sync);
     // Browsers sem o evento (Safari/Firefox): mostra na mesma, com instruções
     const timer = setTimeout(() => setShow(true), 3500);
     return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
+      unsub();
       clearTimeout(timer);
     };
   }, []);
@@ -97,12 +102,7 @@ export function InstallPrompt() {
   };
 
   const installNative = async () => {
-    const ev = deferredRef.current;
-    if (!ev) return;
-    ev.prompt();
-    try {
-      await ev.userChoice;
-    } catch {}
+    await promptInstall();
     dismiss();
   };
 
