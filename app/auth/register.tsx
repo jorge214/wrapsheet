@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useTheme } from "../../src/theme/ThemeProvider";
+import { LanguagePicker } from "../../src/ui/LanguagePicker";
 import { WrapSheetLogo } from "../../src/ui/WrapSheetLogo";
 
 export default function RegisterScreen() {
@@ -83,12 +84,18 @@ export default function RegisterScreen() {
     <SafeAreaView style={s.root}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-          <Pressable
-            onPress={() => (router.canGoBack() ? router.back() : router.replace("/auth/login"))}
-            style={s.back}
-          >
-            <Text style={s.backText}>‹ {t("auth_login_title")}</Text>
-          </Pressable>
+          {/* Voltar + seletor de língua na mesma linha: quem chega ao registo
+              antes de entrar na conta tem de poder mudar de língua aqui também
+              (o ecrã de login tem-no; este ficava sem). */}
+          <View style={s.topRow}>
+            <Pressable
+              onPress={() => (router.canGoBack() ? router.back() : router.replace("/auth/login"))}
+              hitSlop={8}
+            >
+              <Text style={s.backText}>‹ {t("auth_login_title")}</Text>
+            </Pressable>
+            <LanguagePicker />
+          </View>
 
           <View style={s.logoWrap}>
             <WrapSheetLogo variant="lockup" size="lg" />
@@ -159,7 +166,7 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: COLORS.bg },
     scroll: { padding: 24, paddingTop: 24 },
-    back: { marginBottom: 24 },
+    topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
     backText: { color: COLORS.text, fontSize: 15, fontWeight: "800" },
     logoWrap: { alignItems: "center", marginBottom: 24 },
     title: { fontSize: 28, fontWeight: "900", color: COLORS.text, marginBottom: 20 },
