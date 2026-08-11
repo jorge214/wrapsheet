@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useTheme } from "../../src/theme/ThemeProvider";
+import { LanguagePicker } from "../../src/ui/LanguagePicker";
 
 export default function ForgotScreen() {
   const { COLORS, mode } = useTheme();
@@ -31,9 +32,16 @@ export default function ForgotScreen() {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.content}>
-        <Pressable onPress={() => router.back()} style={s.back}>
-          <Text style={s.backText}>‹ {t("auth_login_title")}</Text>
-        </Pressable>
+        {/* Voltar + seletor de língua, como no login */}
+        <View style={s.topRow}>
+          <Pressable
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/auth/login"))}
+            hitSlop={8}
+          >
+            <Text style={s.backText}>‹ {t("auth_login_title")}</Text>
+          </Pressable>
+          <LanguagePicker />
+        </View>
 
         <Text style={s.title}>{t("auth_forgot_title")}</Text>
 
@@ -74,7 +82,7 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: COLORS.bg },
     content: { flex: 1, padding: 24, paddingTop: 24 },
-    back: { marginBottom: 32 },
+    topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 32 },
     backText: { color: COLORS.text, fontSize: 15, fontWeight: "800" },
     title: { fontSize: 28, fontWeight: "900", color: COLORS.text, marginBottom: 20 },
     errorText: { color: COLORS.danger, fontSize: 14, marginBottom: 12, fontWeight: "600" },
