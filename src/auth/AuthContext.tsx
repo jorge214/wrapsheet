@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import i18n from "../i18n/i18n";
 import { supabase } from "../lib/supabase";
+import { configurePurchases } from "../lib/purchases";
 
 // Domínio de produção da web app — para onde apontam os links dos emails
 // (recuperação de palavra-passe e confirmação de registo).
@@ -123,6 +124,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Liga as compras (RevenueCat) ao utilizador logado. No-op fora do iOS/build
+  // EAS (Expo Go, web, sem chave) — nunca rebenta. O appUserID = user_id do
+  // Supabase, para o webhook casar a compra com a conta certa.
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (uid) configurePurchases(uid).catch(() => {});
+  }, [session?.user?.id]);
 
   async function signIn(email: string, password: string): Promise<string | null> {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

@@ -9,24 +9,46 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_ePCLqXSSazqIIEGFGXhDIDspFty",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gfagdphminpevuoikhoh.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_eKqHAb7QcwJ7NFsfbqogtA__iKdhV22"
       }
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
-      }
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_ePCLqXSSazqIIEGFGXhDIDspFty",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gfagdphminpevuoikhoh.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_eKqHAb7QcwJ7NFsfbqogtA__iKdhV22"
+      },
+      "autoIncrement": true
     },
-    "production": {
+    "testdev": {
       "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_ePCLqXSSazqIIEGFGXhDIDspFty",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gfagdphminpevuoikhoh.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_eKqHAb7QcwJ7NFsfbqogtA__iKdhV22"
       },
       "ios": {
         "resourceClass": "m-medium"
       },
-      "channel": "production"
+      "channel": "testdev",
+      "autoIncrement": true
+    },
+    "production": {
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_ePCLqXSSazqIIEGFGXhDIDspFty"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "channel": "production",
+      "autoIncrement": true
     }
   },
   "submit": {

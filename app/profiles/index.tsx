@@ -29,7 +29,8 @@ import {
   listProjects,
 } from "../../src/storage/projects";
 import { useAuth } from "../../src/auth/AuthContext";
-import { deleteProfileFromCloud } from "../../src/sync/syncService";
+import { getMaxProfiles, HARD_MAX_PROFILES } from "../../src/lib/entitlements";
+import { consumeProfileRejected, deleteProfileFromCloud } from "../../src/sync/syncService";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 export default function ProfilesListScreen() {
@@ -75,6 +76,18 @@ export default function ProfilesListScreen() {
       if (!it.pago) g.open++;
     }
     setGlance(map);
+
+    // O servidor recusou algum perfil (acima do plano)? Sem isto, o perfil
+    // ficava a funcionar só neste aparelho e o utilizador não percebia porquê.
+    if (consumeProfileRejected()) {
+      const title = t("profile_not_synced_title", { defaultValue: "Perfil não sincronizado" });
+      const msg = t("profile_not_synced_msg", {
+        defaultValue:
+          "Um perfil ficou só neste dispositivo porque o teu plano não o permite. Subscreve para o guardar na tua conta e o veres nos outros dispositivos.",
+      });
+      if (Platform.OS === "web") (window as any).alert(`${title}\n${msg}`);
+      else Alert.alert(title, msg);
+    }
   }
 
   useEffect(() => {
@@ -88,17 +101,27 @@ export default function ProfilesListScreen() {
   );
 
   async function handleNew() {
-    // Limite de 1 perfil. Se já existe pelo menos um perfil — e a conta não foi
-    // desbloqueada à mão (app_metadata.profiles_unlocked, só service-role) —, em
-    // vez de criar abre o ecrã de contacto. Quem já tem vários perfis mantém-nos:
-    // o limite só trava a CRIAÇÃO de novos, nunca a edição/uso dos existentes.
-    const unlocked = (user?.app_metadata as any)?.profiles_unlocked === true;
-    if (!unlocked) {
-      const existing = await listProfiles();
-      if (existing.length >= 1) {
-        router.push("/profiles/unlock");
+    // Limite de perfis lido da BD (entitlements.max_profiles; fallback ao
+    // app_metadata antigo; gratuito = 1) — ver src/lib/entitlements.ts.
+    // Atingido o limite, abre o ecrã de desbloqueio. O limite só trava a
+    // CRIAÇÃO de novos perfis, nunca a edição/uso dos existentes.
+    const [max, existing] = await Promise.all([
+      getMaxProfiles(user as any),
+      listProfiles(),
+    ]);
+    if (existing.length >= max) {
+      if (max >= HARD_MAX_PROFILES) {
+        // Já tem o plano completo: não há upsell — é o teto do produto.
+        const title = t("profile_hard_cap_title", { defaultValue: "Limite máximo" });
+        const msg = t("profile_hard_cap_msg", {
+          defaultValue: "Uma conta pode ter no máximo 10 perfis.",
+        });
+        if (Platform.OS === "web") (window as any).alert(`${title}\n${msg}`);
+        else Alert.alert(title, msg);
         return;
       }
+      router.push("/profiles/unlock");
+      return;
     }
     const p = await createProfile();
     await setActiveProfileId(p.id);
