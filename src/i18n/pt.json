@@ -500,6 +500,7 @@
   "paywall_restored": "✓ Compra restaurada.",
   "paywall_nothing_restore": "Não encontrámos nenhuma compra para restaurar.",
   "paywall_legal": "Subscrição que renova automaticamente. Cancela quando quiseres nas Definições da App Store.",
+  "paywall_legal_web": "Subscrição que renova automaticamente. Cancela quando quiseres — o pagamento é processado em segurança pela Stripe.",
   "paywall_ios_only": "A subscrição de equipa está disponível na app para iPhone e iPad.",
   "paywall_activating": "A ativar o plano…",
   "profile_not_synced_title": "Perfil não sincronizado",

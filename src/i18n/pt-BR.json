@@ -498,6 +498,7 @@
   "paywall_restored": "✓ Compra restaurada.",
   "paywall_nothing_restore": "Não encontramos nenhuma compra para restaurar.",
   "paywall_legal": "Assinatura que renova automaticamente. Cancele quando quiser nos Ajustes da App Store.",
+  "paywall_legal_web": "Assinatura que renova automaticamente. Cancele quando quiser — o pagamento é processado com segurança pela Stripe.",
   "paywall_ios_only": "A assinatura de equipe está disponível no app para iPhone e iPad.",
   "paywall_activating": "Ativando o plano…",
   "profile_not_synced_title": "Perfil não sincronizado",

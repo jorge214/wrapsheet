@@ -498,6 +498,7 @@
   "paywall_restored": "✓ Acquisto ripristinato.",
   "paywall_nothing_restore": "Nessun acquisto da ripristinare.",
   "paywall_legal": "Abbonamento con rinnovo automatico. Annulla quando vuoi nelle impostazioni dell'App Store.",
+  "paywall_legal_web": "Abbonamento con rinnovo automatico. Annulla quando vuoi — il pagamento è gestito in sicurezza da Stripe.",
   "paywall_ios_only": "L'abbonamento squadra è disponibile nell'app per iPhone e iPad.",
   "paywall_activating": "Attivazione del piano…",
   "profile_not_synced_title": "Profilo non sincronizzato",

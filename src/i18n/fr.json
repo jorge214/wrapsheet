@@ -498,6 +498,7 @@
   "paywall_restored": "✓ Achat restauré.",
   "paywall_nothing_restore": "Aucun achat à restaurer n'a été trouvé.",
   "paywall_legal": "Abonnement à renouvellement automatique. Annulez à tout moment dans les réglages de l'App Store.",
+  "paywall_legal_web": "Abonnement à renouvellement automatique. Annulez à tout moment — le paiement est traité en toute sécurité par Stripe.",
   "paywall_ios_only": "L'abonnement équipe est disponible dans l'app pour iPhone et iPad.",
   "paywall_activating": "Activation du plan…",
   "profile_not_synced_title": "Profil non synchronisé",

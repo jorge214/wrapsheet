@@ -29,7 +29,7 @@ import {
   listProjects,
 } from "../../src/storage/projects";
 import { useAuth } from "../../src/auth/AuthContext";
-import { getMaxProfiles, HARD_MAX_PROFILES } from "../../src/lib/entitlements";
+import { getMaxProfiles, HARD_MAX_PROFILES, waitForServerEntitlement } from "../../src/lib/entitlements";
 import { consumeProfileRejected, deleteProfileFromCloud } from "../../src/sync/syncService";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
@@ -93,6 +93,22 @@ export default function ProfilesListScreen() {
   useEffect(() => {
     refresh();
   }, []);
+
+  // Regresso do pagamento na web (?checkout=success): o Stripe já cobrou, mas o
+  // direito só existe quando o webhook escrever em `entitlements` — e é isso que
+  // o servidor verifica ao criar perfis. Esperamos por ele antes de recarregar,
+  // senão o utilizador acabava de pagar e continuava a ver o limite antigo.
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("checkout") !== "success" || !user?.id) return;
+    (async () => {
+      await waitForServerEntitlement(user.id);
+      await refresh();
+      // Limpa o parâmetro para não repetir a espera em cada recarregamento
+      window.history.replaceState({}, "", window.location.pathname);
+    })();
+  }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {

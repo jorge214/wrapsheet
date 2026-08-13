@@ -498,6 +498,7 @@
   "paywall_restored": "✓ Zakup przywrócony.",
   "paywall_nothing_restore": "Nie znaleziono zakupu do przywrócenia.",
   "paywall_legal": "Subskrypcja odnawiana automatycznie. Anuluj w dowolnej chwili w ustawieniach App Store.",
+  "paywall_legal_web": "Subskrypcja odnawiana automatycznie. Anuluj w dowolnej chwili — płatność jest bezpiecznie obsługiwana przez Stripe.",
   "paywall_ios_only": "Subskrypcja zespołowa jest dostępna w aplikacji na iPhone'a i iPada.",
   "paywall_activating": "Aktywowanie planu…",
   "profile_not_synced_title": "Profil niezsynchronizowany",

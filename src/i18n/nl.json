@@ -498,6 +498,7 @@
   "paywall_restored": "✓ Aankoop hersteld.",
   "paywall_nothing_restore": "We konden geen aankoop vinden om te herstellen.",
   "paywall_legal": "Automatisch verlengend abonnement. Opzegbaar wanneer je wilt in je App Store-instellingen.",
+  "paywall_legal_web": "Automatisch verlengend abonnement. Altijd opzegbaar — de betaling wordt veilig verwerkt door Stripe.",
   "paywall_ios_only": "Het teamabonnement is beschikbaar in de app voor iPhone en iPad.",
   "paywall_activating": "Abonnement activeren…",
   "profile_not_synced_title": "Profiel niet gesynchroniseerd",

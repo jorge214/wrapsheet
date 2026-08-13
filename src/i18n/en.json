@@ -500,6 +500,7 @@
   "paywall_restored": "✓ Purchase restored.",
   "paywall_nothing_restore": "We couldn't find a purchase to restore.",
   "paywall_legal": "Auto-renewing subscription. Cancel anytime in your App Store settings.",
+  "paywall_legal_web": "Auto-renewing subscription. Cancel anytime — payment is securely processed by Stripe.",
   "paywall_ios_only": "The team subscription is available in the iPhone and iPad app.",
   "paywall_activating": "Activating your plan…",
   "profile_not_synced_title": "Profile not synced",
