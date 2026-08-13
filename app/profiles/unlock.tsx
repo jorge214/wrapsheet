@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../src/auth/AuthContext";
 import { waitForServerEntitlement } from "../../src/lib/entitlements";
+import { isWebCheckoutAvailable, startWebCheckout, type WebPlan } from "../../src/lib/webCheckout";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import {
   buyPackageById,
@@ -46,7 +47,13 @@ export default function ProfilePaywallScreen() {
   const { user } = useAuth();
   const s = styles(COLORS, mode);
 
+  // Duas formas de comprar, mutuamente exclusivas:
+  //   • iOS  -> IAP da Apple (obrigatório dentro da app; ver purchases.ts)
+  //   • web  -> Stripe (a Apple não permite vender fora da app no iOS)
+  // Ambas acabam na mesma tabela `entitlements`, por isso o resto da app não
+  // precisa de saber por onde foi pago.
   const canBuy = isPurchasesAvailable();
+  const webBuy = !canBuy && isWebCheckoutAvailable();
   const [packages, setPackages] = useState<PlanPkg[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadingPkgs, setLoadingPkgs] = useState(false);
@@ -54,6 +61,17 @@ export default function ProfilePaywallScreen() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const loadPackages = useCallback(async () => {
+    // Na web os preços são os do Stripe, definidos por nós em euros — não há
+    // loja a consultar, por isso descrevem-se aqui.
+    if (webBuy) {
+      const pk: PlanPkg[] = [
+        { id: "monthly", type: "MONTHLY", priceString: "9,99 €", price: 9.99, currencyCode: "EUR", periodMonths: 1 },
+        { id: "yearly", type: "ANNUAL", priceString: "99,99 €", price: 99.99, currencyCode: "EUR", periodMonths: 12 },
+      ];
+      setPackages(pk);
+      setSelectedId("yearly");
+      return;
+    }
     if (!canBuy || !user?.id) return;
     setLoadingPkgs(true);
     await configurePurchases(user.id);
@@ -64,7 +82,7 @@ export default function ProfilePaywallScreen() {
     const best = pk.reduce<PlanPkg | null>((m, p) => (p.periodMonths > (m?.periodMonths ?? 0) ? p : m), null);
     setSelectedId(best?.id ?? pk[0]?.id ?? null);
     setLoadingPkgs(false);
-  }, [canBuy, user?.id]);
+  }, [canBuy, webBuy, user?.id]);
 
   useEffect(() => {
     loadPackages();
@@ -107,6 +125,19 @@ export default function ProfilePaywallScreen() {
 
   async function onBuy() {
     if (!selectedId) return;
+
+    // Web: sai da app para o pagamento do Stripe e volta pelo success_url.
+    if (webBuy) {
+      setBusy("buy");
+      setMsg(null);
+      const err = await startWebCheckout(selectedId as WebPlan);
+      if (err) {
+        setBusy(null);
+        setMsg(t("paywall_error", { defaultValue: "Não foi possível concluir a compra. Tenta novamente." }));
+      }
+      return; // se correu bem, a página está a ser redirecionada
+    }
+
     setBusy("buy");
     setMsg(null);
     const r = await buyPackageById(selectedId);
@@ -174,7 +205,7 @@ export default function ProfilePaywallScreen() {
           </View>
         </View>
 
-        {canBuy ? (
+        {(canBuy || webBuy) ? (
           <View style={s.section}>
             {loadingPkgs ? (
               <ActivityIndicator color={COLORS.text} style={{ paddingVertical: 20 }} />
@@ -247,18 +278,28 @@ export default function ProfilePaywallScreen() {
                     <Text style={s.btnText}>{t("paywall_cta", { defaultValue: "Subscrever" })}</Text>
                   )}
                 </Pressable>
-                <Pressable onPress={onRestore} disabled={!!busy} style={{ marginTop: 12, alignSelf: "center", padding: 6 }}>
-                  <Text style={s.restore}>
-                    {busy === "restore"
-                      ? t("paywall_restoring", { defaultValue: "A restaurar…" })
-                      : t("paywall_restore", { defaultValue: "Restaurar compra" })}
-                  </Text>
-                </Pressable>
+                {/* Restaurar é próprio do IAP da Apple: recupera uma compra
+                    feita noutro dispositivo com o mesmo Apple ID. No Stripe não
+                    existe nem faz falta — o direito está preso à conta. */}
+                {canBuy && (
+                  <Pressable onPress={onRestore} disabled={!!busy} style={{ marginTop: 12, alignSelf: "center", padding: 6 }}>
+                    <Text style={s.restore}>
+                      {busy === "restore"
+                        ? t("paywall_restoring", { defaultValue: "A restaurar…" })
+                        : t("paywall_restore", { defaultValue: "Restaurar compra" })}
+                    </Text>
+                  </Pressable>
+                )}
                 <Text style={s.legal}>
-                  {t("paywall_legal", {
-                    defaultValue:
-                      "Subscrição que renova automaticamente. Cancela quando quiseres nas Definições da App Store.",
-                  })}
+                  {canBuy
+                    ? t("paywall_legal", {
+                        defaultValue:
+                          "Subscrição que renova automaticamente. Cancela quando quiseres nas Definições da App Store.",
+                      })
+                    : t("paywall_legal_web", {
+                        defaultValue:
+                          "Subscrição que renova automaticamente. Cancela quando quiseres — o pagamento é processado em segurança pela Stripe.",
+                      })}
                 </Text>
               </>
             )}

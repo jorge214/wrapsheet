@@ -498,6 +498,7 @@
   "paywall_restored": "✓ Compra restaurada.",
   "paywall_nothing_restore": "No encontramos ninguna compra para restaurar.",
   "paywall_legal": "Suscripción que se renueva automáticamente. Cancela cuando quieras en los Ajustes de la App Store.",
+  "paywall_legal_web": "Suscripción que se renueva automáticamente. Cancela cuando quieras: el pago lo procesa Stripe de forma segura.",
   "paywall_ios_only": "La suscripción de equipo está disponible en la app para iPhone y iPad.",
   "paywall_activating": "Activando el plan…",
   "profile_not_synced_title": "Perfil no sincronizado",

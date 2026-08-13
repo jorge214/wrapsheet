@@ -498,6 +498,7 @@
   "paywall_restored": "✓ Kauf wiederhergestellt.",
   "paywall_nothing_restore": "Es wurde kein Kauf zum Wiederherstellen gefunden.",
   "paywall_legal": "Automatisch verlängerndes Abo. Jederzeit in den App-Store-Einstellungen kündbar.",
+  "paywall_legal_web": "Automatisch verlängerndes Abo. Jederzeit kündbar — die Zahlung wird sicher über Stripe abgewickelt.",
   "paywall_ios_only": "Das Team-Abo ist in der App für iPhone und iPad verfügbar.",
   "paywall_activating": "Plan wird aktiviert…",
   "profile_not_synced_title": "Profil nicht synchronisiert",
