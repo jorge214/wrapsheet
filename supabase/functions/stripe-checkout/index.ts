@@ -19,9 +19,14 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// O cliente do Supabase (supabase.functions.invoke) não envia só o token: junta
+// `apikey`, `x-client-info` e a versão da API. Se algum deles não constar aqui,
+// o browser bloqueia o pedido no preflight e a compra falha antes de sair do
+// computador — sem chegar sequer a esta função.
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
