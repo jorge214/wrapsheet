@@ -304,6 +304,19 @@ export default function ProfilePaywallScreen() {
               </>
             )}
           </View>
+        ) : Platform.OS === "android" ? (
+          // Android: ainda sem faturação do Google Play. Mensagem honesta e SEM
+          // link para pagar fora — mandar o utilizador pagar noutro sítio a
+          // partir de dentro da app é terreno minado nas regras da Play Store.
+          // Mandá-lo para a App Store, como fazíamos aqui, era pior ainda.
+          <View style={s.section}>
+            <Text style={s.body}>
+              {t("paywall_android_soon", {
+                defaultValue:
+                  "A subscrição de equipa ainda não está disponível no Android. Continuas com um perfil, e avisamos-te assim que abrir.",
+              })}
+            </Text>
+          </View>
         ) : (
           <View style={s.section}>
             <Text style={s.body}>

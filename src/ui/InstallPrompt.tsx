@@ -62,16 +62,17 @@ export function InstallPrompt() {
       return;
     }
     kindRef.current = detectKind();
-    const isMobile = kindRef.current !== "desktop";
-    // Android: ainda sem Play Store — não mostrar convite nenhum
-    if (kindRef.current === "android") return;
-    if (isMobile && !SHOW_MOBILE_STORE) return;
     if (kindRef.current === "ios") {
       // iPhone/iPad: a versão web não é otimizada — takeover imediato para a
       // App Store (com escape "Continuar na web", memorizado no localStorage).
+      if (!SHOW_MOBILE_STORE) return;
       setShow(true);
       return;
     }
+    // Android segue o mesmo caminho do computador: a PWA. Ainda não há Play
+    // Store, mas o Chrome do Android instala a app web num clique — antes
+    // saíamos daqui em silêncio e estes utilizadores ficavam sem NADA: sem
+    // loja, sem convite e sem sequer saberem que dava para instalar.
 
     // A captura do evento é global (pwaInstall.ts) — aqui só reagimos ao estado.
     // Antes o listener vivia neste componente e só era registado se o convite
@@ -198,12 +199,13 @@ export function InstallPrompt() {
     );
   }
 
+  // Aqui só chega o Android e o computador: o iPhone/iPad sai antes, no takeover.
   const isMobile = kind !== "desktop";
   const title = isMobile
-    ? t("install_mobile_title", { defaultValue: "Leva o WrapSheet contigo" })
+    ? t("install_android_title", { defaultValue: "Instala o WrapSheet no telemóvel" })
     : t("install_desktop_title", { defaultValue: "Instala o WrapSheet no computador" });
   const body = isMobile
-    ? t("install_mobile_body", { defaultValue: "Descarrega a app para iPhone e iPad e trabalha em qualquer lado." })
+    ? t("install_android_body", { defaultValue: "Ainda não estamos na Play Store, mas podes instalar a app a partir daqui e usá-la como qualquer outra." })
     : t("install_desktop_body", { defaultValue: "Usa o WrapSheet como uma aplicação própria, com janela e ícone — sem abrir o browser." });
 
   return (
@@ -230,9 +232,17 @@ export function InstallPrompt() {
       <Text style={{ color: COLORS.text, fontWeight: "900", fontSize: 15 }}>{title}</Text>
       <Text style={{ color: COLORS.sub, fontSize: 13, lineHeight: 19, marginTop: 6 }}>{body}</Text>
 
-      {!isMobile && !canNative && (
+      {/* Sem botão nativo: explicar porquê. No Android o caso mais comum é o
+          browser interno do Instagram/Facebook, onde o evento de instalação
+          nunca chega a ser disparado — é preciso abrir no Chrome. */}
+      {!canNative && (
         <Text style={{ color: COLORS.sub, fontSize: 12, lineHeight: 18, marginTop: 8, fontStyle: "italic" }}>
-          {detectBrowser() === "safari"
+          {isMobile
+            ? t("install_hint_android", {
+                defaultValue:
+                  "Se abriste este link dentro do Instagram ou do Facebook, o botão de instalar não aparece. Abre a página no Chrome e tenta de novo.",
+              })
+            : detectBrowser() === "safari"
             ? t("install_hint_safari", {
                 defaultValue: "No Safari (Mac): menu Ficheiro → Adicionar à Dock. (Precisa de macOS Sonoma ou mais recente.)",
               })
@@ -253,20 +263,8 @@ export function InstallPrompt() {
           </Text>
         </Pressable>
 
-        {isMobile && kind === "ios" && (
-          <Pressable
-            onPress={() => { window.open(APP_STORE_URL, "_blank"); dismiss(); }}
-            style={({ pressed }) => [
-              { backgroundColor: COLORS.text, borderRadius: 999, paddingVertical: 9, paddingHorizontal: 16 },
-              pressed && { opacity: 0.85 },
-            ]}
-          >
-            <Text style={{ color: COLORS.bg, fontWeight: "900", fontSize: 13 }}>
-              {t("install_appstore", { defaultValue: "Ver na App Store" })}
-            </Text>
-          </Pressable>
-        )}
-
+        {/* Não há aqui botão para a App Store: o iPhone/iPad nunca chega a este
+            aviso — sai antes no ecrã inteiro, que já tem o botão da loja. */}
         {canNative && (
           <Pressable
             onPress={installNative}
