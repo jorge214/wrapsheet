@@ -37,6 +37,7 @@ export type Profile = {
   fiscal?: {
     IRS_percent?: number;
     IVA_percent?: number;
+    SS_percent?: number;
   };
   // Condições fixas (a linha de taxas): aplicam-se automaticamente a projetos novos
   fixas?: {
@@ -54,6 +55,20 @@ export type Profile = {
     heaFromHour?: number; // HE-A a partir desta hora de trabalho (default 12)
     hebFromHour?: number; // HE-B a partir desta hora de trabalho (default 19)
     hrRestBelow?: number; // Recuperação se descanso entre dias < N horas (default 10)
+  };
+  // Tarifas da folha de CINEMA (semanal): a semana define o dia, a hora é
+  // dia/10, e as extras saem de multiplicadores (não de €/h fixos).
+  // Aplicam-se a projetos novos de cinema; tudo editável na folha.
+  fixasCinema?: {
+    salarioSemana?: number; // € por semana de 5 dias
+    multHEA?: number;       // hora extra A = hora × isto (default 1,5)
+    multHEB?: number;       // hora extra B (default 2)
+    multHR?: number;        // hora de recuperação (default 2,5)
+    refeicao?: number;      // € por dia
+    telefone?: number;
+    viatura?: number;
+    material?: number;
+    ssPercent?: number;     // Segurança Social % (retida como o IRS)
   };
   /** Carimbo da última edição — o sync usa-o para decidir quem ganha */
   updatedAt?: string;

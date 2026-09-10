@@ -8,6 +8,7 @@ import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
 
 import { CalcDia, Dia } from "../calc/types";
+import { buildCinemaPdfHtml } from "./buildCinemaHtml";
 import {
   buildPdfHtml,
   PdfExtra,
@@ -48,7 +49,9 @@ export async function exportPDF(
     // builder calibrar a paginação ao motor certo (≠ do Blink na web).
     const isIpad = Platform.OS === "ios" && (Platform as any).isPad === true;
     const extraNative: PdfExtra = { ...extra, nativePrint: true, ipadPdf: isIpad };
-    const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extraNative);
+    // Folha de cinema (semanal) tem construtor próprio; a de publicidade é a de sempre.
+    const build = extraNative.cinema ? buildCinemaPdfHtml : buildPdfHtml;
+    const html = build(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extraNative);
 
     // Horizontal = A3 landscape (1191×842 pt, como sempre foi — a tabela dos
     // dias precisa desta largura); vertical = A4 portrait (595×842).

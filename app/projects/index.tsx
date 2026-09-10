@@ -39,6 +39,7 @@ import {
   renameProject,
 } from "../../src/storage/projects";
 import { MonthYearModal } from "../../src/ui/MonthYearModal";
+import { FormatPickerModal } from "../../src/ui/FormatPickerModal";
 import {
   getActiveProfileId,
   listProfiles,
@@ -121,6 +122,8 @@ export default function ProjectsScreen() {
   const [optsProject, setOptsProject] = useState<Row | null>(null);
   // Projeto a mover para outro mês (menu ⋯ → "Mover para outro mês")
   const [moveProject, setMoveProject] = useState<Row | null>(null);
+  // Novo projeto: primeiro o formato da folha (publicidade / cinema)
+  const [formatPick, setFormatPick] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   // modal renomear
@@ -270,16 +273,22 @@ export default function ProjectsScreen() {
     showToast(t("toast_deleted", { defaultValue: "Projeto apagado" }), "danger");
   }
 
-  async function handleNewProject() {
+  function handleNewProject() {
     if (projects.length >= FREE_PROJECT_LIMIT) {
       router.push("/settings/plan");
       return;
     }
+    // Primeiro o formato da folha: publicidade (ao dia) ou cinema (à semana)
+    setFormatPick(true);
+  }
+
+  async function createWithFormat(formato: "publicidade" | "cinema") {
+    setFormatPick(false);
     try {
       // O projeto nasce no mês que está a ser visto na lista — assim, fazer em
       // agosto a folha de maio é só navegar para maio e criar. A ver "todos",
       // não há mês em foco: fica o corrente (comportamento de sempre).
-      const id = await createProject(showAll ? undefined : { mes, ano });
+      const id = await createProject({ ...(showAll ? {} : { mes, ano }), formato });
       router.push(`/projects/${id}`);
     } catch (e) {
       console.error("Erro ao criar projeto", e);
@@ -701,7 +710,7 @@ export default function ProjectsScreen() {
                   )}
 
                   <Text style={s.subtitle} numberOfLines={1}>
-                    {(p.cliente || "—") + " · " + (p.mes || "--/----")}
+                    {(p.formato === "cinema" ? t("format_cinema_short", { defaultValue: "Cinema" }) + " · " : "") + (p.cliente || "—") + " · " + (p.mes || "--/----")}
                   </Text>
                 </View>
 
@@ -798,6 +807,8 @@ export default function ProjectsScreen() {
           {t("new_project", { defaultValue: "Novo Projeto" })}
         </Text>
       </TouchableOpacity>
+
+      <FormatPickerModal visible={formatPick} onClose={() => setFormatPick(false)} onPick={createWithFormat} />
 
       {/* Mover projeto para outro mês (menu ⋯). O mês do projeto vem do índice
           no formato "MM/AAAA"; se faltar, abre no mês em foco na lista. */}

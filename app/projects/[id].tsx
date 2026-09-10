@@ -24,10 +24,13 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-import { CURRENCY, calcAll, calcTotals, minutesToHM } from "../../src/calc/engine";
+import { CURRENCY, minutesToHM, ratesFor } from "../../src/calc/engine";
 import { Dia } from "../../src/calc/types";
+import { isFeriadoPT } from "../../src/calc/feriadosPT";
+import { calcProject, isCinema } from "../../src/calc/project";
 import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml, buildEditableSheetHtml, buildEditableDayRowsHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
+import { buildCinemaEditableDayRowsHtml, buildCinemaEditableSheetHtml, getCinemaStrings } from "../../src/export/buildCinemaHtml";
 import { formatNumber } from "../../src/format/money";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -46,6 +49,7 @@ import {
   deleteArchivedProject,
   deleteProject,
   duplicateProject,
+  duplicateProjectNextWeek,
   getProject,
   markProjectPaidAndArchive,
   markProjectToReceive,
@@ -261,6 +265,8 @@ export default function ProjectEditor() {
     const fiscal = {
       IRS_percent: Number(fiscalRaw.IRS_percent ?? fiscalRaw.irs ?? fiscalRaw.IRS ?? 0) || 0,
       IVA_percent: Number(fiscalRaw.IVA_percent ?? fiscalRaw.iva ?? fiscalRaw.IVA ?? 0) || 0,
+      // Segurança Social: só nas folhas de cinema (ausente = sem linha)
+      ...(fiscalRaw.SS_percent != null ? { SS_percent: Number(fiscalRaw.SS_percent) || 0 } : {}),
       nota: fiscalRaw.nota ?? "",
     };
     // Condições são só as que o projeto tem (herdadas do perfil). Sem defaults
@@ -407,22 +413,18 @@ export default function ProjectEditor() {
     persist(next);
   }
 
-  const calculos = useMemo(
-    () => (project ? calcAll(project.dias, project.tabela) : []),
-    [project]
-  );
-
-  const totais = useMemo(() => {
-    if (!project)
-      return { ValorBruto: 0, IRS_valor: 0, IVA_valor: 0, ValorFinal: 0 };
-    return calcTotals(calculos, project.fiscal as any);
-  }, [calculos, project?.fiscal]);
+  // Cálculo único — o motor (publicidade ou cinema) é escolhido pelo próprio
+  // projeto; a página nunca decide o formato por si.
+  const projCalc = useMemo(() => (project ? calcProject(project as any) : null), [project]);
+  const calculos = projCalc?.calc ?? [];
+  const totais = projCalc?.totais ?? { ValorBruto: 0, IRS_valor: 0, IVA_valor: 0, SS_valor: 0, ValorFinal: 0 };
 
   const totalDias = useMemo(
     () =>
       project
         ? project.dias.reduce(
-            (s, d) => s + (d.diaSemTrabalho ? 0 : d.meioDia ? 0.5 : 1),
+            // Cinema: uma FOLGA sem horas é descanso, não conta como dia
+            (s, d) => s + (d.diaSemTrabalho || (d.folga && !d.inicio && !d.fim) ? 0 : d.meioDia ? 0.5 : 1),
             0
           )
         : 0,
@@ -597,19 +599,22 @@ export default function ProjectEditor() {
 
   // ── Editor HTML (formato do PDF, editável): web = <iframe>, nativo = WebView ──
   function postEditCalc(p: ProjectState) {
-    const calc = calcAll(p.dias, p.tabela);
-    const tot = calcTotals(calc, p.fiscal as any);
+    const pc = calcProject(p as any);
+    const calc = pc.calc;
+    const tot = pc.totais;
     const cur = getPreset(regionCode).currency;
     const fmt = (n: number) => fmtMoney(Number(n) || 0, cur);
-    const salG = Number(p.tabela.salarioDia || 0);
+    const R = ratesFor(p.tabela as any);
+    const salG = R.salarioDia;
     // Total de dias: o valor editado à mão tem prioridade sobre a contagem
     const totalDias = (p.projeto as any).totalDias ??
-      p.dias.reduce((a, x) => a + (x.diaSemTrabalho ? 0 : x.meioDia ? 0.5 : 1), 0);
+      p.dias.reduce((a, x) => a + (x.diaSemTrabalho || (x.folga && !x.inicio && !x.fim) ? 0 : x.meioDia ? 0.5 : 1), 0);
     const dec = (min: number) => (Math.max(0, min) / 60).toFixed(1).replace(".", ",");
     const days = p.dias.map((x: any, i) => {
       const c: any = calc[i] || {};
       return {
-        sal: fmt(x.salarioDia ?? salG),
+        // Cinema: folga sem horas mostra 0; folga trabalhada/feriado mostra o dia a dobrar
+        sal: fmt(x.salarioDia ?? (pc.formato === "cinema" ? (c.descanso ? 0 : (c.salarioDia ?? salG)) : salG)),
         ht: minutesToHM(c.HT_min || 0), hd: minutesToHM(c.HD_min || 0),
         // Ajudas efetivas do dia (override do dia ?? global) vêm do motor
         d_ref: fmt(c.ajRef || 0), d_per: fmt(c.ajPer || 0), d_tel: fmt(c.ajTel || 0), d_viat: fmt(c.ajViat || 0), d_mat: fmt(c.ajMat || 0),
@@ -622,19 +627,30 @@ export default function ProjectEditor() {
     // Linha das taxas globais: número com 2 casas (o símbolo € é um span à
     // parte nessas células) — "7" volta como "7,00" ao sair da célula
     const dec2 = (n: any) => formatNumber(Number(n) || 0, 2);
-    const hDia = p.tabela.H_dia || 11;
-    const base = salG / hDia;
-    const g = {
+    const g: Record<string, string> = {
       g_sal: dec2(salG),
-      g_hea: dec2(p.tabela.rateHEA ?? base * Number(p.tabela.multHEA ?? 1.5)),
-      g_heb: dec2(p.tabela.rateHEB ?? base * Number(p.tabela.multHEB ?? 2.0)),
-      g_hr: dec2(p.tabela.rateHR ?? base * Number(p.tabela.multHR ?? 3.0)),
+      g_hea: dec2(R.rateHEA),
+      g_heb: dec2(R.rateHEB),
+      g_hr: dec2(R.rateHR),
       g_ref: dec2(p.tabela.ajudas?.refeicao),
       g_viat: dec2(p.tabela.ajudas?.viatura),
       g_tel: dec2(p.tabela.ajudas?.telefone),
       g_mat: dec2(p.tabela.ajudas?.material),
       g_per: dec2(p.tabela.ajudas?.perDiem),
     };
+    if (pc.formato === "cinema" && pc.semana) {
+      // Folha de cinema: salário à semana, tarifas de folga (a dobrar), SS e o
+      // bloco do descanso entre semanas — tudo por data-c, como o resto.
+      const mf = R.multFolga;
+      const w = pc.semana;
+      Object.assign(g, {
+        g_sem: dec2(p.tabela.salarioSemana),
+        g_fsal: fmt(salG * mf), g_fhea: fmt(R.rateHEA * mf), g_fheb: fmt(R.rateHEB * mf), g_fhr: fmt(R.rateHR * mf),
+        bss: fmt(tot.SS_valor ?? 0),
+        w_hd: minutesToHM(w.descanso_min), w_saldo: minutesToHM(w.saldo_min), w_seg: minutesToHM(w.segmento_min),
+        w_hr_h: dec(w.HR_h * 60), w_hr_v: fmt(w.HR_valor),
+      });
+    }
     const payload = { type: "ws:calc", totalDias: String(totalDias).replace(".", ","), vb: fmt(tot.ValorBruto), irs: fmt(tot.IRS_valor), iva: fmt(tot.IVA_valor), vf: fmt(tot.ValorFinal), g, days };
     if (Platform.OS === "web") {
       editIframeRef.current?.contentWindow?.postMessage(payload, "*");
@@ -644,14 +660,21 @@ export default function ProjectEditor() {
     }
   }
 
+  // Bloco `extra.cinema` para os construtores de folha (só em cinema)
+  function cinemaExtra(p: ProjectState, pc: ReturnType<typeof calcProject>) {
+    return pc.formato === "cinema" && pc.semana
+      ? { cinema: { semana: pc.semana, info: p.cinema, diasSemana: Number(p.tabela.diasSemana) || 5 } }
+      : {};
+  }
+
   function buildEditSheet(p: ProjectState) {
     const rPreset = getPreset(regionCode);
-    const calc = calcAll(p.dias, p.tabela as any);
-    const tot = calcTotals(calc, p.fiscal as any);
-    return buildEditableSheetHtml(
-      p.perfil as any, p.projeto as any, p.dias, calc as any, tot as any, p.tabela as any,
+    const pc = calcProject(p as any);
+    const build = pc.formato === "cinema" ? buildCinemaEditableSheetHtml : buildEditableSheetHtml;
+    return build(
+      p.perfil as any, p.projeto as any, p.dias, pc.calc as any, pc.totais as any, p.tabela as any,
       p.notas, i18n.language, regionCode, rPreset.currency, t("tax_disclaimer"), p.condicoes,
-      { fiscal: p.fiscal as any, condTitulo: p.condTitulo, condBoxes: p.condBoxes }
+      { fiscal: p.fiscal as any, condTitulo: p.condTitulo, condBoxes: p.condBoxes, ...cinemaExtra(p, pc) }
     );
   }
 
@@ -689,8 +712,11 @@ export default function ProjectEditor() {
     // Atualiza SÓ as linhas da tabela de dias (sem recarregar a folha — mantém
     // scroll, zoom e foco). A folha troca as <tr> via window.__wsSetRows.
     const pushRows = (next: ProjectState) => {
-      const calc = calcAll(next.dias, next.tabela as any);
-      const rowsHtml = buildEditableDayRowsHtml(next.dias, calc as any, next.tabela as any, getPreset(regionCode).currency);
+      const pcN = calcProject(next as any);
+      const cur = getPreset(regionCode).currency;
+      const rowsHtml = pcN.formato === "cinema"
+        ? buildCinemaEditableDayRowsHtml(next.dias, pcN.calc as any, next.tabela as any, cur, i18n.language, regionCode)
+        : buildEditableDayRowsHtml(next.dias, pcN.calc as any, next.tabela as any, cur);
       if (Platform.OS === "web") {
         const msg = { type: "ws:setRows", html: rowsHtml };
         editIframeRef.current?.contentWindow?.postMessage(msg, "*");
@@ -713,14 +739,38 @@ export default function ProjectEditor() {
       const novo: Dia = {
         descricao: t("day_description_default", { defaultValue: "Filmagem" }),
         data: nextDate, continuo: false, inicio: "08:00", refeicaoTrabalho: "00:00",
-        jantarTrabalho: "00:00", fim: "18:00", meioDia: false,
+        jantarTrabalho: "00:00", fim: isCinema(p) ? "19:00" : "18:00", meioDia: false,
         tempoTransporteMin: 0, diaSemTrabalho: false,
         // Ajudas a 0 (só entram quando negociadas); horas extra SEM override —
         // calculam automaticamente pelas condições do perfil (o utilizador
         // pode depois forçar 0 ou outro valor na própria folha).
         ajRefeicao: 0, ajViatura: 0, ajTelefone: 0, ajMaterial: 0, ajPerDiem: 0,
       } as Dia;
+      // Cinema (região PT): feriado obrigatório nasce marcado a dobrar
+      if (isCinema(p) && regionCode === "pt" && isFeriadoPT(nextDate)) (novo as any).feriado = true;
       const next = { ...p, dias: [...p.dias, novo] };
+      persist(next);
+      pushRows(next);
+      return;
+    }
+    if (d.type === "ws:toggleFolga" || d.type === "ws:toggleFeriado") {
+      // Interruptores por linha da folha de cinema. Folga: mantém as horas que
+      // lá estiverem (com horas = folga trabalhada, a dobrar; sem horas =
+      // descanso); só troca a descrição se ainda for a predefinida.
+      const i = Number(d.i);
+      const src = p.dias[i];
+      if (!src) return;
+      const key = d.type === "ws:toggleFolga" ? "folga" : "feriado";
+      const on = !(src as any)[key];
+      const patch: any = { [key]: on || undefined };
+      if (key === "folga") {
+        const defDesc = t("day_description_default", { defaultValue: "Filmagem" });
+        const folgaDesc = t("cinema_day_off", { defaultValue: "FOLGA" });
+        const cur = String(src.descricao || "").trim();
+        if (on && (!cur || cur === defDesc)) patch.descricao = folgaDesc;
+        if (!on && cur === folgaDesc) patch.descricao = defDesc;
+      }
+      const next = { ...p, dias: p.dias.map((x, ix) => (ix === i ? { ...x, ...patch } : x)) };
       persist(next);
       pushRows(next);
       return;
@@ -767,6 +817,25 @@ export default function ProjectEditor() {
       "salarioDia", "ajRefeicao", "ajViatura", "ajTelefone", "ajMaterial", "ajPerDiem",
       "heaHoras", "hebHoras", "hrHoras", "heaValor", "hebValor", "hrValor", "totalDia",
     ]);
+    // Campos da folha de cinema (linha B, overrides da semana, tipo). Os
+    // <input> de hora/data da linha B postam como k:"dia" SEM índice (o script
+    // é partilhado com a folha de publicidade), por isso o case "dia" também
+    // cai aqui quando não há índice.
+    const applyCinema = (f: string, value: any): ProjectState | null => {
+      const c: any = { ...(p.cinema ?? {}) };
+      if (f === "proxData" || f === "data") {
+        const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(value).trim());
+        if (!m) return null;
+        c.proximaSemana = { ...(c.proximaSemana ?? {}), data: `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` };
+      } else if (f === "proxInicio") {
+        c.proximaSemana = { ...(c.proximaSemana ?? {}), inicio: String(value ?? "") };
+      } else if (f === "hrSemanaHoras" || f === "hrSemanaValor") {
+        c[f] = numOpt(value);
+      } else if (f === "tipoProducao") {
+        c.tipoProducao = oneLine(value);
+      } else return null;
+      return { ...p, cinema: c };
+    };
     let next: ProjectState = p;
     switch (d.k) {
       case "perfil": next = { ...p, perfil: { ...p.perfil, [d.f]: oneLine(d.value) } }; break;
@@ -776,9 +845,22 @@ export default function ProjectEditor() {
         break;
       }
       case "fiscal": next = { ...p, fiscal: { ...p.fiscal, [d.f]: num(d.value) } }; break;
+      case "cinema": {
+        const r = applyCinema(d.f, d.value);
+        if (!r) return;
+        next = r;
+        break;
+      }
       case "tabela": next = { ...p, tabela: { ...p.tabela, [d.f]: num(d.value) } }; break;
       case "ajudas": next = { ...p, tabela: { ...p.tabela, ajudas: { ...(p.tabela.ajudas as any), [d.f]: num(d.value) } } }; break;
       case "dia": {
+        if (d.i == null || Number.isNaN(Number(d.i))) {
+          // Sem índice = linha B da folha de cinema (ver applyCinema)
+          const r = applyCinema(d.f, d.value);
+          if (!r) return;
+          next = r;
+          break;
+        }
         let val: any = d.value;
         if (d.f === "data") {
           const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(d.value).trim());
@@ -789,7 +871,16 @@ export default function ProjectEditor() {
         } else if (DIA_NUM.has(d.f)) {
           val = numOpt(d.value); // undefined = volta ao automático
         }
-        next = { ...p, dias: p.dias.map((x, ix) => (ix === d.i ? { ...x, [d.f]: val } : x)) };
+        next = {
+          ...p,
+          dias: p.dias.map((x, ix) => {
+            if (ix !== d.i) return x;
+            const y: any = { ...x, [d.f]: val };
+            // Cinema (região PT): mudar a data re-avalia o feriado
+            if (d.f === "data" && isCinema(p) && regionCode === "pt" && !y.folga) y.feriado = isFeriadoPT(val) ? true : undefined;
+            return y;
+          }),
+        };
         break;
       }
       case "notas": next = { ...p, notas: d.value }; break;
@@ -819,14 +910,24 @@ export default function ProjectEditor() {
 
     // Exports de PDF são ilimitados no plano gratuito (o PDF é o recibo com
     // que o técnico é pago — nunca se bloqueia).
-    const calculosLocal = calcAll(p.dias, p.tabela);
-    const totaisLocal = calcTotals(calculosLocal, p.fiscal as any);
+    const pcLocal = calcProject(p as any);
+    const calculosLocal = pcLocal.calc;
+    const totaisLocal = pcLocal.totais;
 
     // valida horas
     const erros: string[] = [];
     p.dias.forEach((d, idx) => {
       const labelDia = `Dia ${idx + 1} (${d.data || "sem data"})`;
       if (d.diaSemTrabalho) return;
+      if (isCinema(p)) {
+        // Folga sem horas é descanso: nada a validar. Um dia normal sem horas
+        // paga 0 — avisar antes de exportar, em vez de sair uma folha errada.
+        if (d.folga && !d.inicio && !d.fim) return;
+        if (!d.inicio && !d.fim) {
+          erros.push(`${labelDia}: ${t("cinema_day_no_hours", { defaultValue: "sem horário preenchido" })}`);
+          return;
+        }
+      }
 
       const inicioMin = parseTimeToMinutes(d.inicio);
       const fimMin = parseTimeToMinutes(d.fim);
@@ -878,6 +979,7 @@ export default function ProjectEditor() {
           condBoxes: p.condBoxes,
           orientation: opts?.orientation ?? "landscape",
           fontScale: opts?.fontScale ?? 1,
+          ...cinemaExtra(p, pcLocal),
         }
       );
     } catch (e) {
@@ -1016,6 +1118,16 @@ export default function ProjectEditor() {
         },
         t("mark_paid", { defaultValue: "Marcar como pago" })
       );
+    }
+  }
+
+  // Cinema: a folha da semana seguinte, com o mesmo cabeçalho e as datas +7
+  async function handleDuplicateNextWeek() {
+    try {
+      const newId = await duplicateProjectNextWeek(projectRef.current!.id);
+      router.push(`/projects/${newId}`);
+    } catch (e) {
+      console.error("Erro ao duplicar para a semana seguinte", e);
     }
   }
 
@@ -1263,6 +1375,9 @@ export default function ProjectEditor() {
           <StatLine label={gs.vb} value={money(totais.ValorBruto)} />
           <StatLine label={gs.irs} value={money(totais.IRS_valor)} />
           <StatLine label={gs.iva} value={money(totais.IVA_valor)} />
+          {isCinema(project) && (
+            <StatLine label={getCinemaStrings(i18n.language, regionCode).ss} value={money((totais as any).SS_valor ?? 0)} />
+          )}
           <StatLine label={gs.vf} value={money(totais.ValorFinal)} strong last />
         </View>
 
@@ -1281,11 +1396,12 @@ export default function ProjectEditor() {
     const aj = p.tabela.ajudas ?? {};
     const setTabela = (patch: any) => setP("tabela", { ...p.tabela, ...patch });
     const setAj = (patch: any) => setP("tabela", { ...p.tabela, ajudas: { ...aj, ...patch } });
-    const salaryGlobal = Number(p.tabela.salarioDia || 0);
-    const hDia = p.tabela.H_dia || 11;
-    const vHEA = p.tabela.rateHEA ?? (salaryGlobal ? (salaryGlobal / hDia) * Number(p.tabela.multHEA ?? 1.5) : 0);
-    const vHEB = p.tabela.rateHEB ?? (salaryGlobal ? (salaryGlobal / hDia) * Number(p.tabela.multHEB ?? 2.0) : 0);
-    const vHR = p.tabela.rateHR ?? (salaryGlobal ? (salaryGlobal / hDia) * Number(p.tabela.multHR ?? 3.0) : 0);
+    // Taxas efetivas (publicidade: salário/dia ÷ H_dia; cinema: semana ÷ 5 ÷ 10)
+    const RR = ratesFor(p.tabela as any);
+    const salaryGlobal = RR.salarioDia;
+    const vHEA = RR.rateHEA;
+    const vHEB = RR.rateHEB;
+    const vHR = RR.rateHR;
 
     return (
       <View>
@@ -1316,7 +1432,11 @@ export default function ProjectEditor() {
 
         <Section title={t("fixed_conditions", { defaultValue: "Condições fixas (taxas)" })} collapsible defaultCollapsed>
           <Grid2>
-            <Num label={`${L(gs.salary)} (${curSym})`} value={salaryGlobal} onChange={(n) => setTabela({ salarioDia: n })} />
+            {isCinema(p) ? (
+              <Num label={`${L(gs.salary)} · ${getCinemaStrings(i18n.language, regionCode).weekWord} (${curSym})`} value={Number(p.tabela.salarioSemana ?? 0)} onChange={(n) => setTabela({ salarioSemana: n })} />
+            ) : (
+              <Num label={`${L(gs.salary)} (${curSym})`} value={salaryGlobal} onChange={(n) => setTabela({ salarioDia: n })} />
+            )}
             <Num label={`${L(gs.overtimeA)} (${curSym}/h)`} value={vHEA} onChange={(n) => setTabela({ rateHEA: n })} />
             <Num label={`${L(gs.overtimeB)} (${curSym}/h)`} value={vHEB} onChange={(n) => setTabela({ rateHEB: n })} />
             <Num label={`${L(gs.recoveryHours)} (${curSym}/h)`} value={vHR} onChange={(n) => setTabela({ rateHR: n })} />
@@ -1634,6 +1754,16 @@ export default function ProjectEditor() {
                 setTimeout(() => handleDuplicate(), 450);
               }}
             />
+
+            {isCinema(project) && (
+              <MenuItem
+                label={t("duplicate_next_week", { defaultValue: "Duplicar para a semana seguinte" })}
+                onPress={() => {
+                  setMenuOpen(false);
+                  setTimeout(() => handleDuplicateNextWeek(), 450);
+                }}
+              />
+            )}
 
             <MenuItem
               label={t("clear_project")}

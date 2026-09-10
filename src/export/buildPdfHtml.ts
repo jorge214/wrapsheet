@@ -2,9 +2,20 @@
 // Pure HTML-building logic — no platform dependencies.
 // Imported by pdf.ts (native) and pdf.web.ts (web).
 
+import type { CalcSemana } from "../calc/cinema";
 import { minutesToHM } from "../calc/engine";
+import type { CinemaInfo } from "../calc/project";
 import { CalcDia, Dia } from "../calc/types";
 import { getPreset } from "../constants/countryPresets";
+
+// Folha de CINEMA: o que o construtor semanal (buildCinemaHtml.ts) precisa a
+// mais. Vai dentro de `extra.cinema`; quando existe, pdf.ts/pdf.web.ts chamam
+// o construtor de cinema em vez deste.
+export type CinemaSheetExtra = {
+  semana: CalcSemana;
+  info?: CinemaInfo;
+  diasSemana?: number;
+};
 
 export type PdfPerfil = {
   nome: string;
@@ -33,7 +44,13 @@ export type PdfProjeto = {
 };
 
 export type PdfTabela = {
-  salarioDia: number;
+  salarioDia?: number;
+  // Cinema (ver calc/types.ts)
+  salarioSemana?: number;
+  diasSemana?: number;
+  horasBase?: number;
+  descansoSemanal_h?: number;
+  multFolga?: number;
   H_dia: number;
   descanso_min: number;
   multHEA?: number;
@@ -57,6 +74,8 @@ export type PdfTotais = {
   ValorBruto: number;
   IRS_valor: number;
   IVA_valor: number;
+  /** Segurança Social (só cinema) */
+  SS_valor?: number;
   ValorFinal: number;
 };
 
@@ -680,7 +699,7 @@ export function getStrings(locale: string, region?: string) {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function escapeHtml(s: string) {
+export function escapeHtml(s: string) {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -688,7 +707,7 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;");
 }
 
-function safeStr(v: any) {
+export function safeStr(v: any) {
   // Campos de UMA linha do cabeçalho: além de \r\n, o iOS insere separadores
   // de linha invisíveis (U+2028/U+2029/NEL) via teclado/autofill — em
   // contenteditable (pre-wrap) rendem linhas fantasma que desalinhavam o
@@ -732,17 +751,17 @@ export function currencySymbol(code: string): string {
   return map[code] || code;
 }
 
-function fmtNum(n: number, digits = 1) {
+export function fmtNum(n: number, digits = 1) {
   return Number(n || 0).toFixed(digits).replace(".", ",");
 }
 
-function getMonthName(m: number, locale: string) {
+export function getMonthName(m: number, locale: string) {
   const date = new Date(2000, (m ?? 1) - 1, 1);
   const name = new Intl.DateTimeFormat(locale, { month: "long" }).format(date);
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-function formatDatePT(iso?: string) {
+export function formatDatePT(iso?: string) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
@@ -762,7 +781,9 @@ function headerRow(label: string, value: string) {
 
 // Extras opcionais da folha (percentagens fiscais + condições em caixas)
 export type PdfExtra = {
-  fiscal?: { IRS_percent?: number; IVA_percent?: number };
+  fiscal?: { IRS_percent?: number; IVA_percent?: number; SS_percent?: number };
+  /** Presente = folha de cinema (semanal) */
+  cinema?: CinemaSheetExtra;
   condTitulo?: string;
   condBoxes?: { titulo: string; texto: string; img?: string }[];
   // Opções de exportação/impressão
@@ -782,7 +803,7 @@ export type PdfExtra = {
 
 // Aplica o multiplicador de tamanho a todos os font-size px do CSS gerado
 // (letras e números da folha e do PDF ficam maiores/menores).
-function applyFontScale(html: string, scale?: number): string {
+export function applyFontScale(html: string, scale?: number): string {
   const sc = Number(scale);
   if (!sc || sc === 1 || !isFinite(sc)) return html;
   return html.replace(/font-size:\s*([\d.]+)px/g, (_m, n) => `font-size: ${Math.round(Number(n) * sc * 10) / 10}px`);
@@ -790,7 +811,7 @@ function applyFontScale(html: string, scale?: number): string {
 
 // Secção de condições de trabalho: caixas (título | texto + imagem) como na
 // folha de referência; cai para o texto corrido antigo se não houver caixas.
-function conditionsHtml(
+export function conditionsHtml(
   s: any,
   perfilNome: string,
   condicoes?: string,
@@ -1338,7 +1359,7 @@ export function buildPdfHtml(
 // Renders inside an iframe. Editable cells post messages to the parent app;
 // the parent recomputes and posts back the calculated cells (data-c markers).
 
-function padTime(v?: string) {
+export function padTime(v?: string) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(v ?? "");
   return m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
 }
@@ -1346,27 +1367,27 @@ function padTime(v?: string) {
 // ── Helpers dos campos editáveis (contenteditable) — nível de módulo para a
 // tabela de dias poder ser regenerada sozinha (adicionar/duplicar/remover dia
 // sem recarregar a folha inteira) ──
-const CE = 'contenteditable="true" autocapitalize="off" autocorrect="off" spellcheck="false"';
-const edTi = (k: string, f: string, val: string, extra = "") =>
+export const CE = 'contenteditable="true" autocapitalize="off" autocorrect="off" spellcheck="false"';
+export const edTi = (k: string, f: string, val: string, extra = "") =>
   `<span class="ei" ${CE} data-k="${k}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
-const edDi = (i: number, f: string, val: string, cls = "", extra = "") =>
+export const edDi = (i: number, f: string, val: string, cls = "", extra = "") =>
   `<span class="ei ${cls}" ${CE} data-k="dia" data-i="${i}" data-f="${f}" ${extra}>${escapeHtml(val)}</span>`;
-const edMi = (k: string, f: string, val: number, cKey = "") =>
+export const edMi = (k: string, f: string, val: number, cKey = "") =>
   `<span class="ei money" ${CE} inputmode="decimal" data-k="${k}" data-f="${f}"${cKey ? ` data-c="${cKey}"` : ""}>${escapeHtml(String(val ?? 0))}</span>`;
 // Célula numérica de um DIA, editável E recalculável: o próprio span leva o
 // data-c, para o ws:calc atualizar no sítio (saltando a célula em foco).
-const edNum = (i: number, f: string, cKey: string, val: string) =>
+export const edNum = (i: number, f: string, cKey: string, val: string) =>
   `<span class="ei money" ${CE} inputmode="decimal" data-k="dia" data-i="${i}" data-f="${f}" data-c="${cKey}">${escapeHtml(val)}</span>`;
 // Horas: <input> REAL (não contenteditable). O contenteditable obrigava a
 // reescrever o textContent a cada tecla e o cursor descontrolava-se — dava
 // "08::0" e comia dígitos, em qualquer motor. Um input tem setSelectionRange
 // exato e mudar .value nunca redispara 'input', por isso a máscara é estável.
-const edTime = (i: number, f: string, val: string) =>
+export const edTime = (i: number, f: string, val: string) =>
   `<input class="ei time" type="text" inputmode="numeric" autocomplete="off" data-k="dia" data-i="${i}" data-f="${f}" value="${escapeHtml(val || "")}">`;
 // Data: <input> com máscara DD/MM/YYYY — as "/" são postas pela máscara e
 // nunca se apagam (só se editam os números); apagar uma "/" repõe-na. (Antes
 // era contenteditable e, apagada uma "/", ficava-se sem forma de a repor.)
-const edDate = (i: number, val: string) =>
+export const edDate = (i: number, val: string) =>
   `<input class="ei date" type="text" inputmode="numeric" autocomplete="off" size="10" data-k="dia" data-i="${i}" data-f="data" value="${escapeHtml(val || "")}">`;
 
 // Só as linhas <tr> da tabela de dias (editáveis). Usado pelo builder e pela
@@ -1418,349 +1439,12 @@ export function buildEditableDayRowsHtml(
     .join("");
 }
 
-export function buildEditableSheetHtml(
-  perfil: PdfPerfil,
-  projeto: PdfProjeto,
-  dias: Dia[],
-  calculos: CalcDia[],
-  totais: PdfTotais,
-  tabela: PdfTabela,
-  notas?: string,
-  locale: string = "pt",
-  region?: string,
-  currency: string = "EUR",
-  taxDisclaimer?: string,
-  condicoes?: string,
-  extra?: PdfExtra
-): string {
-  const s = getStrings(locale, region);
-  const fmt = (n: number) => fmtMoney(n, currency);
-  const curSym = currencySymbol(currency);
-
-  const salarioDia = Number(tabela.salarioDia || 0);
-  const multHEA = Number(tabela.multHEA ?? 1.5);
-  const multHEB = Number(tabela.multHEB ?? 2.0);
-  const multHR = Number(tabela.multHR ?? 3.0);
-  const vHEA = tabela.rateHEA ?? (salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHEA : 0);
-  const vHEB = tabela.rateHEB ?? (salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHEB : 0);
-  const vHR = tabela.rateHR ?? (salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHR : 0);
-
-  const aj = tabela.ajudas ?? {};
-  const valRef = Number(aj.refeicao ?? 0);
-  const valPer = Number(aj.perDiem ?? 0);
-  const valTel = Number(aj.telefone ?? 0);
-  const valViat = Number(aj.viatura ?? 0);
-  const valMat = Number(aj.material ?? 0);
-
-  const totalDias = projeto.totalDias ?? dias.reduce((acc, d) => acc + (d.diaSemTrabalho ? 0 : d.meioDia ? 0.5 : 1), 0);
-  const today = new Date();
-  const emitidoA = `${String(today.getDate()).padStart(2, "0")}-${String(today.getMonth() + 1).padStart(2, "0")}-${today.getFullYear()}`;
-  const mesNome = getMonthName(projeto.mes, locale);
-  const mesAnoLabel = `${mesNome} ${projeto.ano}`;
-
-  // Campos editáveis: helpers de módulo (edTi/edMi) + linhas geradas por
-  // buildEditableDayRowsHtml (a mesma função que a app usa para atualizar a
-  // tabela no sítio ao adicionar/duplicar/remover dias).
-  const ti = edTi;
-  const mi = edMi;
-  const kvEdit = (label: string, k: string, f: string, val: string) =>
-    `<div class="row"><div class="k">${escapeHtml(label)}</div><div class="v">${ti(k, f, val)}</div></div>`;
-  // Linha "clean" (só sublinhado) com valor editável — como na folha de referência
-  const kvU = (label: string, k: string, f: string, val: string) =>
-    `<div class="uRow"><div class="uk">${escapeHtml(label)}</div><div class="uv">${ti(k, f, val)}</div></div>`;
-
-  const irsPct = extra?.fiscal?.IRS_percent;
-  const ivaPct = extra?.fiscal?.IVA_percent;
-  const pctEdit = (f: string, v?: number) =>
-    `<span class="ei money pctv" ${CE} inputmode="decimal" data-k="fiscal" data-f="${f}">${escapeHtml(String(v ?? 0))}</span>%`;
-
-  const dayRows = buildEditableDayRowsHtml(dias, calculos, tabela, currency);
-
-  const unitH = `<span class="mini">${curSym} ${escapeHtml(s.perHour)}</span>`;
-  const unitD = `<span class="mini">${curSym} ${escapeHtml(s.perDayUnit)}</span>`;
-
-  return `<!DOCTYPE html>
-  <html>
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <style>
-        * { box-sizing: border-box; }
-        /* Sem "text autosizing" do iPad: o WebKit inflava o texto normal mas
-           não os campos editáveis — os valores ficavam mais pequenos que o % */
-        html, body { margin: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
-        .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
-        .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
-        /* Placeholder em campos vazios — contenteditable não mostra o
-           atributo placeholder sozinho, é preciso desenhá-lo */
-        .ei:empty::before { content: attr(placeholder); color: #b3b3b3; }
-        .titleBox .ei:empty::before { color: rgba(255,255,255,0.85); }
-        .titleBox .ei:focus { background: rgba(255,255,255,.18); box-shadow: none; }
-        .headgrid { margin-top: 10px; display: grid; grid-template-columns: 40% 20%; justify-content: space-between; gap: 0; align-items: start; }
-        .stack { display: flex; flex-direction: column; gap: 10px; }
-        .box { border: 2px solid #2b2b2b; background: #fff; }
-        .boxTitle { padding: 6px 8px; font-weight: 800; font-size: 12px; border-bottom: 2px solid #2b2b2b; background: #f2f2f2; text-transform: uppercase; }
-        .row { display: grid; grid-template-columns: 140px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
-        .row:first-of-type { border-top: 0; }
-        .k, .v { padding: 6px 8px; font-size: 12px; border-right: 1px solid #2b2b2b; min-width: 0; overflow: hidden; }
-        .v { border-right: 0; }
-        .totalsRight .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-        .totalsRight .k { font-weight: 700; color: #1f7a37; }
-        .totalsRight .v { text-align: right; font-weight: 700; }
-        .miniRow .k { border-right: 0; }
-        .miniRow .v { text-align: left; font-weight: 600; }
-        .mini { font-size: 11px; }
-        .muted { opacity: .8; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 2px solid #2b2b2b; padding: 6px; font-size: 12px; text-align: center; vertical-align: middle; }
-        th { background: #7f7f7f; color: #fff; font-weight: 800; }
-        th.h-blue { background: #2e75b6; color: #fff; }
-        th.h-olive { background: #7f7f2e; color: #fff; }
-        th.h-purple { background: #7030a0; color: #fff; }
-        th.h-total { background: #bf9000; color: #fff; }
-        .days .subhead th, .rates .subhead th { background: #d9d9d9; color: #111; }
-        .days .subhead th.h-blue, .rates .subhead th.h-blue { background: #cfe0f2; color: #1b5fbf; }
-        .days .subhead th.h-olive, .rates .subhead th.h-olive { background: #e6e6c8; color: #111; }
-        .days .subhead th.h-purple, .rates .subhead th.h-purple { background: #e4d6f0; color: #111; }
-        .days .subhead th.h-total, .rates .subhead th.h-total { background: #f2e2b3; color: #111; }
-        .days th { font-size: 11px; }
-        .days td { font-size: 11px; }
-        .days .mini { font-size: 10px; font-weight: 700; }
-        .left { text-align: left; }
-        .right { text-align: right; }
-        .strong { font-weight: 900; }
-        .blue { color: #1b5fbf; font-weight: 800; }
-        .calc { background: #f7f7f7; color: #333; }
-        .bottomGrid { margin-top: 10px; display: grid; grid-template-columns: 2.2fr 1fr; gap: 10px; align-items: start; }
-        .notesBody { padding: 6px; }
-        .totalsMini table { margin-top: 0; }
-        .totalsMini td, .totalsMini th { font-size: 11px; }
-        .totalsMini th { background: #f2f2f2; color: #1f7a37; text-align: left; }
-        .totalsMini .val { text-align: right; font-weight: 800; }
-        .conditions { margin-top: 10px; }
-        /* Campos editáveis (contenteditable): texto que se edita no sítio e
-           dimensiona-se como no "Ver" — nada de larguras fixas que cortam. */
-        .ei { background: transparent; color: #111; cursor: text; outline: none; min-width: 10px; display: inline-block; }
-        .ei:focus { background: #eef4ff; box-shadow: inset 0 0 0 1px #1b5fbf; }
-        .ei:empty { min-width: 24px; min-height: 1em; }
-        .row .v .ei { display: block; width: 100%; min-height: 1.1em; }
-        /* Percentagens: o campo é inline para o "%" ficar ao lado (o block
-           de cima empurrava-o para a linha de baixo) */
-        .row .v .ei.pctv { display: inline-block; width: auto; min-width: 24px; text-align: right; }
-        .notes { display: block; width: 100%; min-height: 48px; white-space: pre-wrap; text-align: left; }
-        .pago { cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 12px; color: #888; }
-        tr.paid .pago { color: #137a3a; }
-        .days tr.paid td:first-child, .days tr.paid td:last-child { background: #e4f6ea; }
-        /* Dados pessoais/produtora: sem caixas — só uma linha por baixo (clean) */
-        .secTitle { font-weight: 900; font-size: 12px; margin: 8px 0 2px; text-transform: uppercase; }
-        .uRow { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; align-items: end; }
-        .uk { font-size: 11px; font-weight: 800; padding: 5px 0 3px; }
-        .uv { font-size: 13.5px; font-weight: 700; border-bottom: 1px solid #2b2b2b; padding: 5px 2px 3px; min-height: 1.25em; min-width: 0; overflow: hidden; }
-        /* nowrap: no iOS o contenteditable ganha pre-wrap do próprio WebKit e
-           rendia uma linha fantasma alternada no cabeçalho mesmo com dados
-           limpos — proibir quebras aqui torna o layout imune em qualquer motor */
-        .uv .ei { display: block; width: 100%; min-height: 1.1em; white-space: nowrap; overflow: hidden; }
-        .sideBox .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-        .sideBox .k { font-weight: 800; }
-        /* nowrap: o "%" ficava a cair para a linha de baixo do valor */
-        .sideBox .v { text-align: right; font-weight: 700; white-space: nowrap; }
-        .sideBox .vfRow .v { background: #fff3bf; font-weight: 900; }
-        table.rates { table-layout: fixed; margin-top: 18px; }
-        table.rates td { word-break: break-word; }
-        /* Total Dias (quantidade) ≠ Total Dia (valor): valor a vermelho escuro */
-        td.tdias { background: #fff; font-weight: 900; color: #7a0000; }
-        td.tdias .ei { color: #7a0000; }
-        td.tday { background: #fff3bf; white-space: nowrap; }
-        /* Valores monetários nunca partem linha: a coluna alarga em vez de o
-           "€" cair para baixo (acontecia no iPhone a partir de 4 dígitos) */
-        .ei.money { white-space: nowrap; }
-        /* Horas são <input> reais — sem moldura, iguais às outras células */
-        input.ei { border: 0; margin: 0; padding: 0; font: inherit; color: #111;
-          text-align: center; width: 100%; box-sizing: border-box; background: transparent;
-          -webkit-appearance: none; appearance: none; border-radius: 0; }
-        input.ei::placeholder { color: #b3b3b3; }
-        input.ei:focus { background: #eef4ff; outline: none; box-shadow: inset 0 0 0 1px #1b5fbf; }
-        /* Células de hora com largura própria e folgada: as colunas encolhiam
-           ao tamanho do cabeçalho curto ("FIM"/"END") e o "20:00"/"00:30" ficava
-           encavalitado. Uma largura fixa dá espaço em toda a coluna (cabeçalho
-           incluído) no PC e no telemóvel. */
-        .days td.timeCell { width: 56px; min-width: 56px; padding-left: 4px; padding-right: 4px; }
-        input.ei.time { letter-spacing: normal; }
-        /* Coluna "C" (horário contínuo): estreita, marca manual centrada. */
-        .days td.contCell, .days th.cmark { width: 26px; min-width: 26px; padding-left: 2px; padding-right: 2px; text-align: center; }
-        .days td.contCell .ei.cmark { display: block; text-align: center; text-transform: uppercase; color: #c65a00; font-weight: 800; }
-        .days th.cmark { color: #c65a00; }
-        /* DATA é <input> (não transborda como o contenteditable) — coluna com
-           largura para "06/07/2026" inteiro, senão ficava cortada. */
-        .days td.dateCell { width: 82px; min-width: 82px; padding-left: 4px; padding-right: 4px; }
-        /* Valor das horas extra (A/B/Recuperação) um pouco mais largo — "30,00 €"
-           ficava apertado. O espaço vem da folga das colunas mais largas (a
-           tabela reparte a 100%). */
-        .days td.otVal { min-width: 64px; }
-        /* MEAL e PER DIEMS "Por dia" um nadinha mais largos (o espaço vem da
-           coluna DESCRIÇÃO, que ficou um pouco mais estreita). */
-        .days td.mealDay { min-width: 54px; }
-        .days td.perDiemDay { min-width: 54px; }
-        .days td.calc { white-space: nowrap; }
-        table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
-        table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
-        table.endTotals td { font-weight: 900; text-align: right; font-size: 11px; min-width: 120px; }
-        table.endTotals tr.net th { font-weight: 900; }
-        table.endTotals tr.net td { background: #fff3bf; }
-        .condWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
-        .condMain { background: #ffd400; color: #7a0000; font-weight: 900; text-align: center; padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase; }
-        /* Notas (opcional): cresce sozinha com o texto; só sai no PDF se preenchida */
-        .notesWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
-        .notesTitle { background: #ffd400; color: #7a0000; font-weight: 900; text-align: center; padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase; }
-        .notesArea { padding: 8px 10px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; min-height: 44px; }
-        .condRow { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
-        .condRow:first-of-type { border-top: 0; }
-        .condT { background: #e8e8e8; font-weight: 900; font-size: 10px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; border-right: 1px solid #2b2b2b; }
-        .condB { padding: 6px 8px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
-        /* Imagem da condição: centrada na caixa, proporções mantidas,
-           limitada à largura da caixa (antes ficava encostada e com um teto
-           fixo de 240px que desalinhava no PDF) */
-        .condImg { display: block; margin: 8px auto 2px; max-width: 70%; max-height: 240px; border: 1px solid #999; }
-        .conditionsBody { padding: 8px 10px; font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
-        /* Faixa logo abaixo do último dia: botões à esquerda, totais à direita */
-        .afterDays { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-        .afterDays .endTotals { margin-top: 8px; }
-        .addDayBar { margin-top: 10px; text-align: left; }
-        .addDayBar button {
-          font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px;
-          border: 2px solid #2b2b2b; border-radius: 999px; background: #f2f2f2; color: #111; cursor: pointer;
-          margin-right: 8px;
-        }
-        .addDayBar .delBtn { border-color: #c05050; color: #c05050; background: #fff; }
-        /* Botões por linha: duplicar (⧉) e remover (✕) o dia — não saem no print.
-           SEMPRE por baixo da descrição, e a coluna com largura FIXA (a célula
-           não estica/encolhe com o texto — texto longo quebra dentro dela). */
-        table.days .ei.left { display: block; width: 72px; white-space: normal; }
-        .rowBtns { display: block; white-space: nowrap; margin-top: 2px; }
-        .rbtn { cursor: pointer; user-select: none; -webkit-user-select: none; color: #9a9a9a; font-size: 12px; padding: 0 4px; }
-        .rbtn.rdel { color: #c05050; }
-        @media print { .addDayBar, .rowBtns { display: none; } }
-      </style>
-    </head>
-    <body>
-      <!-- Barra vermelha: título PRÓPRIO da folha (editar aqui NÃO mexe no
-           nome do projeto na app, e renomear o projeto não mexe aqui) -->
-      <div class="titleBox">${ti("projeto", "folhaTitulo", projeto.folhaTitulo || "", `placeholder="${escapeHtml((s as any).titlePh || s.title)}"`)}</div>
-
-      <div class="headgrid">
-        <div class="stack">
-          <div class="secTitle">${escapeHtml(s.personalData)}</div>
-          <div>
-            ${kvU(s.name, "perfil", "nome", safeStr(perfil.nome))}
-            ${kvU(s.role, "perfil", "funcao", safeStr(perfil.funcao))}
-            ${kvU(s.companyLabel, "perfil", "empresa", safeStr(perfil.empresa ?? ""))}
-            ${kvU(s.phone, "perfil", "telefone", safeStr(perfil.telefone))}
-            ${kvU(s.email, "perfil", "email", safeStr(perfil.email))}
-            ${kvU(s.nif, "perfil", "nif", safeStr(perfil.nif ?? ""))}
-            ${kvU(s.iban, "perfil", "iban", safeStr(perfil.iban ?? ""))}
-            ${kvU(s.swift, "perfil", "swift", safeStr(perfil.swift ?? ""))}
-          </div>
-          <div class="secTitle">${escapeHtml(s.productionSection)}</div>
-          <div>
-            ${kvU(s.film, "projeto", "filme", safeStr(projeto.filme))}
-            ${kvU(s.productionLabel, "projeto", "produtora", safeStr(projeto.produtora))}
-            ${kvU(s.productionNif, "projeto", "nifProdutora", safeStr(projeto.nifProdutora ?? ""))}
-          </div>
-        </div>
-        <div class="stack">
-          <div class="box sideBox">
-            <div class="row"><div class="k">${escapeHtml(s.issuedOn)}</div><div class="v">${escapeHtml(emitidoA)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.irs)}</div><div class="v">${pctEdit("IRS_percent", irsPct)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.iva)}</div><div class="v">${pctEdit("IVA_percent", ivaPct)}</div></div>
-            <div class="row vfRow"><div class="k">${escapeHtml(s.vf)}</div><div class="v" data-c="vf">${fmt(totais.ValorFinal)}</div></div>
-          </div>
-          <div class="box sideBox">
-            <div class="row"><div class="k">${escapeHtml(s.week)}</div><div class="v">${ti("projeto", "semana", safeStr(projeto.semana ?? ""))}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.month)}</div><div class="v">${escapeHtml(mesNome)}</div></div>
-            <div class="row"><div class="k">${escapeHtml(s.year)}</div><div class="v">${escapeHtml(String(projeto.ano))}</div></div>
-          </div>
-        </div>
-      </div>
-
-      <table class="rates">
-        <tr>
-          <th rowspan="2">${escapeHtml(s.totalDays)}</th>
-          <th>${escapeHtml(s.salary)}</th><th>${escapeHtml(s.overtimeA)}</th><th>${escapeHtml(s.overtimeB)}</th>
-          <th class="h-blue">${escapeHtml(s.recoveryHours)}</th><th>${escapeHtml(s.meal)}</th>
-          <th class="h-olive">${escapeHtml(s.vehicle)}</th><th>${escapeHtml(s.telephone)}</th>
-          <th class="h-purple">${escapeHtml(s.material)}</th><th>${escapeHtml(s.perDiem)}</th>
-        </tr>
-        <tr class="subhead">
-          <th class="mini">${escapeHtml(s.day)}</th>
-          <th class="mini">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
-          <th class="mini">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
-          <th class="mini h-blue">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
-          <th class="mini">${escapeHtml(s.perDay)}</th>
-          <th class="mini h-olive">${escapeHtml(s.perDay)}</th>
-          <th class="mini">${escapeHtml(s.perDay)}</th>
-          <th class="mini h-purple">${escapeHtml(s.perDay)}</th>
-          <th class="mini">${escapeHtml(s.perDay)}</th>
-        </tr>
-        <tr>
-          <td class="tdias"><span class="ei money" ${CE} inputmode="decimal" data-k="projeto" data-f="totalDias" data-c="totalDias">${fmtNum(totalDias, 1)}</span></td>
-          <td>${mi("tabela", "salarioDia", salarioDia, "g_sal")} <span class="mini">${curSym}</span></td>
-          <td>${mi("tabela", "rateHEA", Math.round(vHEA * 100) / 100, "g_hea")} <span class="mini">${curSym}</span></td>
-          <td>${mi("tabela", "rateHEB", Math.round(vHEB * 100) / 100, "g_heb")} <span class="mini">${curSym}</span></td>
-          <td>${mi("tabela", "rateHR", Math.round(vHR * 100) / 100, "g_hr")} <span class="mini">${curSym}</span></td>
-          <td>${mi("ajudas", "refeicao", valRef, "g_ref")} <span class="mini">${curSym}</span></td>
-          <td>${mi("ajudas", "viatura", valViat, "g_viat")} <span class="mini">${curSym}</span></td>
-          <td>${mi("ajudas", "telefone", valTel, "g_tel")} <span class="mini">${curSym}</span></td>
-          <td>${mi("ajudas", "material", valMat, "g_mat")} <span class="mini">${curSym}</span></td>
-          <td>${mi("ajudas", "perDiem", valPer, "g_per")} <span class="mini">${curSym}</span></td>
-        </tr>
-      </table>
-
-      <table class="days">
-        <tr>
-          <th colspan="2">${escapeHtml(s.day)}</th><th>${escapeHtml(s.salary)}</th>
-          <th colspan="4">${escapeHtml(s.schedule)}</th><th colspan="2">${escapeHtml(s.totalHours)}</th>
-          <th>${escapeHtml(s.meal)}</th><th class="h-olive">${escapeHtml(s.vehicle)}</th><th>${escapeHtml(s.telephone)}</th>
-          <th class="h-purple">${escapeHtml(s.material)}</th><th>${escapeHtml(s.perDiem)}</th>
-          <th colspan="2">${escapeHtml(s.overtimeAFull)}</th><th colspan="2">${escapeHtml(s.overtimeBFull)}</th>
-          <th colspan="2" class="h-blue">${escapeHtml(s.recoveryFull)}</th><th class="h-total">${escapeHtml(s.total)}</th>
-        </tr>
-        <tr class="subhead">
-          <th class="mini">${escapeHtml(s.description)}</th><th class="mini">${escapeHtml(s.date)}</th><th class="mini">${escapeHtml(s.day)}</th>
-          <th class="mini cmark">C</th><th class="mini">${escapeHtml(s.start)}</th><th class="mini">${escapeHtml(s.mealBreak)}</th><th class="mini">${escapeHtml(s.end)}</th>
-          <th class="mini">${escapeHtml(s.workHours)}</th><th class="mini blue">${escapeHtml(s.restHours)}</th>
-          <th class="mini">${escapeHtml(s.perDay)}</th><th class="mini h-olive">${escapeHtml(s.perDay)}</th><th class="mini">${escapeHtml(s.perDay)}</th>
-          <th class="mini h-purple">${escapeHtml(s.perDay)}</th><th class="mini">${escapeHtml(s.perDay)}</th>
-          <th class="mini">${escapeHtml(s.total)}</th><th class="mini">${escapeHtml(s.value)}</th>
-          <th class="mini">${escapeHtml(s.total)}</th><th class="mini">${escapeHtml(s.value)}</th>
-          <th class="mini h-blue">${escapeHtml(s.total)}</th><th class="mini h-blue">${escapeHtml(s.value)}</th>
-          <th class="mini h-total">${escapeHtml(s.day)}</th>
-        </tr>
-        ${dayRows}
-      </table>
-
-      <div class="afterDays">
-        <div class="addDayBar">
-          <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
-          <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
-          <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
-        </div>
-        <table class="endTotals">
-          <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
-          <tr><th>${escapeHtml(s.irs)}</th><td data-c="birs">${fmt(totais.IRS_valor)}</td></tr>
-          <tr><th>${escapeHtml(s.iva)}</th><td data-c="biva">${fmt(totais.IVA_valor)}</td></tr>
-          <tr class="net"><th>${escapeHtml(s.vf)}</th><td data-c="net">${fmt(totais.ValorFinal)}</td></tr>
-        </table>
-      </div>
-
-      ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra, CE)}
-
-      <div class="notesWrap">
-        <div class="notesTitle">${escapeHtml(s.notes)}</div>
-        <div class="ei notes notesArea" ${CE} data-k="notas" data-f="notas" placeholder="…">${escapeHtml(notas || "")}</div>
-      </div>
-
-      <script>
+// ── Script do editor (máscaras de horas/datas, botões de dia, iPad, protocolo
+// ws:*). Partilhado com a folha de CINEMA (buildCinemaHtml.ts): é UM só código,
+// por isso qualquer correção aqui serve às duas folhas. Devolve o bloco
+// <script>…</script> tal como sempre foi inserido no HTML do editor.
+export function editorScript(s: any): string {
+  return `      <script>
       (function(){
         function post(m){ try{
           if(window.ReactNativeWebView){ window.ReactNativeWebView.postMessage(JSON.stringify(m)); }
@@ -2137,7 +1821,352 @@ export function buildEditableSheetHtml(
         }
         layout(); setTimeout(layout, 60); post({ type:'ws:ready' });
       })();
-      </script>
+      </script>`;
+}
+
+export function buildEditableSheetHtml(
+  perfil: PdfPerfil,
+  projeto: PdfProjeto,
+  dias: Dia[],
+  calculos: CalcDia[],
+  totais: PdfTotais,
+  tabela: PdfTabela,
+  notas?: string,
+  locale: string = "pt",
+  region?: string,
+  currency: string = "EUR",
+  taxDisclaimer?: string,
+  condicoes?: string,
+  extra?: PdfExtra
+): string {
+  const s = getStrings(locale, region);
+  const fmt = (n: number) => fmtMoney(n, currency);
+  const curSym = currencySymbol(currency);
+
+  const salarioDia = Number(tabela.salarioDia || 0);
+  const multHEA = Number(tabela.multHEA ?? 1.5);
+  const multHEB = Number(tabela.multHEB ?? 2.0);
+  const multHR = Number(tabela.multHR ?? 3.0);
+  const vHEA = tabela.rateHEA ?? (salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHEA : 0);
+  const vHEB = tabela.rateHEB ?? (salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHEB : 0);
+  const vHR = tabela.rateHR ?? (salarioDia ? (salarioDia / (tabela.H_dia || 8)) * multHR : 0);
+
+  const aj = tabela.ajudas ?? {};
+  const valRef = Number(aj.refeicao ?? 0);
+  const valPer = Number(aj.perDiem ?? 0);
+  const valTel = Number(aj.telefone ?? 0);
+  const valViat = Number(aj.viatura ?? 0);
+  const valMat = Number(aj.material ?? 0);
+
+  const totalDias = projeto.totalDias ?? dias.reduce((acc, d) => acc + (d.diaSemTrabalho ? 0 : d.meioDia ? 0.5 : 1), 0);
+  const today = new Date();
+  const emitidoA = `${String(today.getDate()).padStart(2, "0")}-${String(today.getMonth() + 1).padStart(2, "0")}-${today.getFullYear()}`;
+  const mesNome = getMonthName(projeto.mes, locale);
+  const mesAnoLabel = `${mesNome} ${projeto.ano}`;
+
+  // Campos editáveis: helpers de módulo (edTi/edMi) + linhas geradas por
+  // buildEditableDayRowsHtml (a mesma função que a app usa para atualizar a
+  // tabela no sítio ao adicionar/duplicar/remover dias).
+  const ti = edTi;
+  const mi = edMi;
+  const kvEdit = (label: string, k: string, f: string, val: string) =>
+    `<div class="row"><div class="k">${escapeHtml(label)}</div><div class="v">${ti(k, f, val)}</div></div>`;
+  // Linha "clean" (só sublinhado) com valor editável — como na folha de referência
+  const kvU = (label: string, k: string, f: string, val: string) =>
+    `<div class="uRow"><div class="uk">${escapeHtml(label)}</div><div class="uv">${ti(k, f, val)}</div></div>`;
+
+  const irsPct = extra?.fiscal?.IRS_percent;
+  const ivaPct = extra?.fiscal?.IVA_percent;
+  const pctEdit = (f: string, v?: number) =>
+    `<span class="ei money pctv" ${CE} inputmode="decimal" data-k="fiscal" data-f="${f}">${escapeHtml(String(v ?? 0))}</span>%`;
+
+  const dayRows = buildEditableDayRowsHtml(dias, calculos, tabela, currency);
+
+  const unitH = `<span class="mini">${curSym} ${escapeHtml(s.perHour)}</span>`;
+  const unitD = `<span class="mini">${curSym} ${escapeHtml(s.perDayUnit)}</span>`;
+
+  return `<!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <style>
+        * { box-sizing: border-box; }
+        /* Sem "text autosizing" do iPad: o WebKit inflava o texto normal mas
+           não os campos editáveis — os valores ficavam mais pequenos que o % */
+        html, body { margin: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
+        .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
+        .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
+        /* Placeholder em campos vazios — contenteditable não mostra o
+           atributo placeholder sozinho, é preciso desenhá-lo */
+        .ei:empty::before { content: attr(placeholder); color: #b3b3b3; }
+        .titleBox .ei:empty::before { color: rgba(255,255,255,0.85); }
+        .titleBox .ei:focus { background: rgba(255,255,255,.18); box-shadow: none; }
+        .headgrid { margin-top: 10px; display: grid; grid-template-columns: 40% 20%; justify-content: space-between; gap: 0; align-items: start; }
+        .stack { display: flex; flex-direction: column; gap: 10px; }
+        .box { border: 2px solid #2b2b2b; background: #fff; }
+        .boxTitle { padding: 6px 8px; font-weight: 800; font-size: 12px; border-bottom: 2px solid #2b2b2b; background: #f2f2f2; text-transform: uppercase; }
+        .row { display: grid; grid-template-columns: 140px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
+        .row:first-of-type { border-top: 0; }
+        .k, .v { padding: 6px 8px; font-size: 12px; border-right: 1px solid #2b2b2b; min-width: 0; overflow: hidden; }
+        .v { border-right: 0; }
+        .totalsRight .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+        .totalsRight .k { font-weight: 700; color: #1f7a37; }
+        .totalsRight .v { text-align: right; font-weight: 700; }
+        .miniRow .k { border-right: 0; }
+        .miniRow .v { text-align: left; font-weight: 600; }
+        .mini { font-size: 11px; }
+        .muted { opacity: .8; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 2px solid #2b2b2b; padding: 6px; font-size: 12px; text-align: center; vertical-align: middle; }
+        th { background: #7f7f7f; color: #fff; font-weight: 800; }
+        th.h-blue { background: #2e75b6; color: #fff; }
+        th.h-olive { background: #7f7f2e; color: #fff; }
+        th.h-purple { background: #7030a0; color: #fff; }
+        th.h-total { background: #bf9000; color: #fff; }
+        .days .subhead th, .rates .subhead th { background: #d9d9d9; color: #111; }
+        .days .subhead th.h-blue, .rates .subhead th.h-blue { background: #cfe0f2; color: #1b5fbf; }
+        .days .subhead th.h-olive, .rates .subhead th.h-olive { background: #e6e6c8; color: #111; }
+        .days .subhead th.h-purple, .rates .subhead th.h-purple { background: #e4d6f0; color: #111; }
+        .days .subhead th.h-total, .rates .subhead th.h-total { background: #f2e2b3; color: #111; }
+        .days th { font-size: 11px; }
+        .days td { font-size: 11px; }
+        .days .mini { font-size: 10px; font-weight: 700; }
+        .left { text-align: left; }
+        .right { text-align: right; }
+        .strong { font-weight: 900; }
+        .blue { color: #1b5fbf; font-weight: 800; }
+        .calc { background: #f7f7f7; color: #333; }
+        .bottomGrid { margin-top: 10px; display: grid; grid-template-columns: 2.2fr 1fr; gap: 10px; align-items: start; }
+        .notesBody { padding: 6px; }
+        .totalsMini table { margin-top: 0; }
+        .totalsMini td, .totalsMini th { font-size: 11px; }
+        .totalsMini th { background: #f2f2f2; color: #1f7a37; text-align: left; }
+        .totalsMini .val { text-align: right; font-weight: 800; }
+        .conditions { margin-top: 10px; }
+        /* Campos editáveis (contenteditable): texto que se edita no sítio e
+           dimensiona-se como no "Ver" — nada de larguras fixas que cortam. */
+        .ei { background: transparent; color: #111; cursor: text; outline: none; min-width: 10px; display: inline-block; }
+        .ei:focus { background: #eef4ff; box-shadow: inset 0 0 0 1px #1b5fbf; }
+        .ei:empty { min-width: 24px; min-height: 1em; }
+        .row .v .ei { display: block; width: 100%; min-height: 1.1em; }
+        /* Percentagens: o campo é inline para o "%" ficar ao lado (o block
+           de cima empurrava-o para a linha de baixo) */
+        .row .v .ei.pctv { display: inline-block; width: auto; min-width: 24px; text-align: right; }
+        .notes { display: block; width: 100%; min-height: 48px; white-space: pre-wrap; text-align: left; }
+        .pago { cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 12px; color: #888; }
+        tr.paid .pago { color: #137a3a; }
+        .days tr.paid td:first-child, .days tr.paid td:last-child { background: #e4f6ea; }
+        /* Dados pessoais/produtora: sem caixas — só uma linha por baixo (clean) */
+        .secTitle { font-weight: 900; font-size: 12px; margin: 8px 0 2px; text-transform: uppercase; }
+        .uRow { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; align-items: end; }
+        .uk { font-size: 11px; font-weight: 800; padding: 5px 0 3px; }
+        .uv { font-size: 13.5px; font-weight: 700; border-bottom: 1px solid #2b2b2b; padding: 5px 2px 3px; min-height: 1.25em; min-width: 0; overflow: hidden; }
+        /* nowrap: no iOS o contenteditable ganha pre-wrap do próprio WebKit e
+           rendia uma linha fantasma alternada no cabeçalho mesmo com dados
+           limpos — proibir quebras aqui torna o layout imune em qualquer motor */
+        .uv .ei { display: block; width: 100%; min-height: 1.1em; white-space: nowrap; overflow: hidden; }
+        .sideBox .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+        .sideBox .k { font-weight: 800; }
+        /* nowrap: o "%" ficava a cair para a linha de baixo do valor */
+        .sideBox .v { text-align: right; font-weight: 700; white-space: nowrap; }
+        .sideBox .vfRow .v { background: #fff3bf; font-weight: 900; }
+        table.rates { table-layout: fixed; margin-top: 18px; }
+        table.rates td { word-break: break-word; }
+        /* Total Dias (quantidade) ≠ Total Dia (valor): valor a vermelho escuro */
+        td.tdias { background: #fff; font-weight: 900; color: #7a0000; }
+        td.tdias .ei { color: #7a0000; }
+        td.tday { background: #fff3bf; white-space: nowrap; }
+        /* Valores monetários nunca partem linha: a coluna alarga em vez de o
+           "€" cair para baixo (acontecia no iPhone a partir de 4 dígitos) */
+        .ei.money { white-space: nowrap; }
+        /* Horas são <input> reais — sem moldura, iguais às outras células */
+        input.ei { border: 0; margin: 0; padding: 0; font: inherit; color: #111;
+          text-align: center; width: 100%; box-sizing: border-box; background: transparent;
+          -webkit-appearance: none; appearance: none; border-radius: 0; }
+        input.ei::placeholder { color: #b3b3b3; }
+        input.ei:focus { background: #eef4ff; outline: none; box-shadow: inset 0 0 0 1px #1b5fbf; }
+        /* Células de hora com largura própria e folgada: as colunas encolhiam
+           ao tamanho do cabeçalho curto ("FIM"/"END") e o "20:00"/"00:30" ficava
+           encavalitado. Uma largura fixa dá espaço em toda a coluna (cabeçalho
+           incluído) no PC e no telemóvel. */
+        .days td.timeCell { width: 56px; min-width: 56px; padding-left: 4px; padding-right: 4px; }
+        input.ei.time { letter-spacing: normal; }
+        /* Coluna "C" (horário contínuo): estreita, marca manual centrada. */
+        .days td.contCell, .days th.cmark { width: 26px; min-width: 26px; padding-left: 2px; padding-right: 2px; text-align: center; }
+        .days td.contCell .ei.cmark { display: block; text-align: center; text-transform: uppercase; color: #c65a00; font-weight: 800; }
+        .days th.cmark { color: #c65a00; }
+        /* DATA é <input> (não transborda como o contenteditable) — coluna com
+           largura para "06/07/2026" inteiro, senão ficava cortada. */
+        .days td.dateCell { width: 82px; min-width: 82px; padding-left: 4px; padding-right: 4px; }
+        /* Valor das horas extra (A/B/Recuperação) um pouco mais largo — "30,00 €"
+           ficava apertado. O espaço vem da folga das colunas mais largas (a
+           tabela reparte a 100%). */
+        .days td.otVal { min-width: 64px; }
+        /* MEAL e PER DIEMS "Por dia" um nadinha mais largos (o espaço vem da
+           coluna DESCRIÇÃO, que ficou um pouco mais estreita). */
+        .days td.mealDay { min-width: 54px; }
+        .days td.perDiemDay { min-width: 54px; }
+        .days td.calc { white-space: nowrap; }
+        table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
+        table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
+        table.endTotals td { font-weight: 900; text-align: right; font-size: 11px; min-width: 120px; }
+        table.endTotals tr.net th { font-weight: 900; }
+        table.endTotals tr.net td { background: #fff3bf; }
+        .condWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
+        .condMain { background: #ffd400; color: #7a0000; font-weight: 900; text-align: center; padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase; }
+        /* Notas (opcional): cresce sozinha com o texto; só sai no PDF se preenchida */
+        .notesWrap { margin-top: 10px; border: 2px solid #2b2b2b; }
+        .notesTitle { background: #ffd400; color: #7a0000; font-weight: 900; text-align: center; padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #2b2b2b; text-transform: uppercase; }
+        .notesArea { padding: 8px 10px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; min-height: 44px; }
+        .condRow { display: grid; grid-template-columns: 190px minmax(0, 1fr); border-top: 1px solid #2b2b2b; }
+        .condRow:first-of-type { border-top: 0; }
+        .condT { background: #e8e8e8; font-weight: 900; font-size: 10px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; border-right: 1px solid #2b2b2b; }
+        .condB { padding: 6px 8px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+        /* Imagem da condição: centrada na caixa, proporções mantidas,
+           limitada à largura da caixa (antes ficava encostada e com um teto
+           fixo de 240px que desalinhava no PDF) */
+        .condImg { display: block; margin: 8px auto 2px; max-width: 70%; max-height: 240px; border: 1px solid #999; }
+        .conditionsBody { padding: 8px 10px; font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+        /* Faixa logo abaixo do último dia: botões à esquerda, totais à direita */
+        .afterDays { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .afterDays .endTotals { margin-top: 8px; }
+        .addDayBar { margin-top: 10px; text-align: left; }
+        .addDayBar button {
+          font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px;
+          border: 2px solid #2b2b2b; border-radius: 999px; background: #f2f2f2; color: #111; cursor: pointer;
+          margin-right: 8px;
+        }
+        .addDayBar .delBtn { border-color: #c05050; color: #c05050; background: #fff; }
+        /* Botões por linha: duplicar (⧉) e remover (✕) o dia — não saem no print.
+           SEMPRE por baixo da descrição, e a coluna com largura FIXA (a célula
+           não estica/encolhe com o texto — texto longo quebra dentro dela). */
+        table.days .ei.left { display: block; width: 72px; white-space: normal; }
+        .rowBtns { display: block; white-space: nowrap; margin-top: 2px; }
+        .rbtn { cursor: pointer; user-select: none; -webkit-user-select: none; color: #9a9a9a; font-size: 12px; padding: 0 4px; }
+        .rbtn.rdel { color: #c05050; }
+        @media print { .addDayBar, .rowBtns { display: none; } }
+      </style>
+    </head>
+    <body>
+      <!-- Barra vermelha: título PRÓPRIO da folha (editar aqui NÃO mexe no
+           nome do projeto na app, e renomear o projeto não mexe aqui) -->
+      <div class="titleBox">${ti("projeto", "folhaTitulo", projeto.folhaTitulo || "", `placeholder="${escapeHtml((s as any).titlePh || s.title)}"`)}</div>
+
+      <div class="headgrid">
+        <div class="stack">
+          <div class="secTitle">${escapeHtml(s.personalData)}</div>
+          <div>
+            ${kvU(s.name, "perfil", "nome", safeStr(perfil.nome))}
+            ${kvU(s.role, "perfil", "funcao", safeStr(perfil.funcao))}
+            ${kvU(s.companyLabel, "perfil", "empresa", safeStr(perfil.empresa ?? ""))}
+            ${kvU(s.phone, "perfil", "telefone", safeStr(perfil.telefone))}
+            ${kvU(s.email, "perfil", "email", safeStr(perfil.email))}
+            ${kvU(s.nif, "perfil", "nif", safeStr(perfil.nif ?? ""))}
+            ${kvU(s.iban, "perfil", "iban", safeStr(perfil.iban ?? ""))}
+            ${kvU(s.swift, "perfil", "swift", safeStr(perfil.swift ?? ""))}
+          </div>
+          <div class="secTitle">${escapeHtml(s.productionSection)}</div>
+          <div>
+            ${kvU(s.film, "projeto", "filme", safeStr(projeto.filme))}
+            ${kvU(s.productionLabel, "projeto", "produtora", safeStr(projeto.produtora))}
+            ${kvU(s.productionNif, "projeto", "nifProdutora", safeStr(projeto.nifProdutora ?? ""))}
+          </div>
+        </div>
+        <div class="stack">
+          <div class="box sideBox">
+            <div class="row"><div class="k">${escapeHtml(s.issuedOn)}</div><div class="v">${escapeHtml(emitidoA)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.irs)}</div><div class="v">${pctEdit("IRS_percent", irsPct)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.iva)}</div><div class="v">${pctEdit("IVA_percent", ivaPct)}</div></div>
+            <div class="row vfRow"><div class="k">${escapeHtml(s.vf)}</div><div class="v" data-c="vf">${fmt(totais.ValorFinal)}</div></div>
+          </div>
+          <div class="box sideBox">
+            <div class="row"><div class="k">${escapeHtml(s.week)}</div><div class="v">${ti("projeto", "semana", safeStr(projeto.semana ?? ""))}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.month)}</div><div class="v">${escapeHtml(mesNome)}</div></div>
+            <div class="row"><div class="k">${escapeHtml(s.year)}</div><div class="v">${escapeHtml(String(projeto.ano))}</div></div>
+          </div>
+        </div>
+      </div>
+
+      <table class="rates">
+        <tr>
+          <th rowspan="2">${escapeHtml(s.totalDays)}</th>
+          <th>${escapeHtml(s.salary)}</th><th>${escapeHtml(s.overtimeA)}</th><th>${escapeHtml(s.overtimeB)}</th>
+          <th class="h-blue">${escapeHtml(s.recoveryHours)}</th><th>${escapeHtml(s.meal)}</th>
+          <th class="h-olive">${escapeHtml(s.vehicle)}</th><th>${escapeHtml(s.telephone)}</th>
+          <th class="h-purple">${escapeHtml(s.material)}</th><th>${escapeHtml(s.perDiem)}</th>
+        </tr>
+        <tr class="subhead">
+          <th class="mini">${escapeHtml(s.day)}</th>
+          <th class="mini">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini h-blue">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
+          <th class="mini h-olive">${escapeHtml(s.perDay)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
+          <th class="mini h-purple">${escapeHtml(s.perDay)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th>
+        </tr>
+        <tr>
+          <td class="tdias"><span class="ei money" ${CE} inputmode="decimal" data-k="projeto" data-f="totalDias" data-c="totalDias">${fmtNum(totalDias, 1)}</span></td>
+          <td>${mi("tabela", "salarioDia", salarioDia, "g_sal")} <span class="mini">${curSym}</span></td>
+          <td>${mi("tabela", "rateHEA", Math.round(vHEA * 100) / 100, "g_hea")} <span class="mini">${curSym}</span></td>
+          <td>${mi("tabela", "rateHEB", Math.round(vHEB * 100) / 100, "g_heb")} <span class="mini">${curSym}</span></td>
+          <td>${mi("tabela", "rateHR", Math.round(vHR * 100) / 100, "g_hr")} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "refeicao", valRef, "g_ref")} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "viatura", valViat, "g_viat")} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "telefone", valTel, "g_tel")} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "material", valMat, "g_mat")} <span class="mini">${curSym}</span></td>
+          <td>${mi("ajudas", "perDiem", valPer, "g_per")} <span class="mini">${curSym}</span></td>
+        </tr>
+      </table>
+
+      <table class="days">
+        <tr>
+          <th colspan="2">${escapeHtml(s.day)}</th><th>${escapeHtml(s.salary)}</th>
+          <th colspan="4">${escapeHtml(s.schedule)}</th><th colspan="2">${escapeHtml(s.totalHours)}</th>
+          <th>${escapeHtml(s.meal)}</th><th class="h-olive">${escapeHtml(s.vehicle)}</th><th>${escapeHtml(s.telephone)}</th>
+          <th class="h-purple">${escapeHtml(s.material)}</th><th>${escapeHtml(s.perDiem)}</th>
+          <th colspan="2">${escapeHtml(s.overtimeAFull)}</th><th colspan="2">${escapeHtml(s.overtimeBFull)}</th>
+          <th colspan="2" class="h-blue">${escapeHtml(s.recoveryFull)}</th><th class="h-total">${escapeHtml(s.total)}</th>
+        </tr>
+        <tr class="subhead">
+          <th class="mini">${escapeHtml(s.description)}</th><th class="mini">${escapeHtml(s.date)}</th><th class="mini">${escapeHtml(s.day)}</th>
+          <th class="mini cmark">C</th><th class="mini">${escapeHtml(s.start)}</th><th class="mini">${escapeHtml(s.mealBreak)}</th><th class="mini">${escapeHtml(s.end)}</th>
+          <th class="mini">${escapeHtml(s.workHours)}</th><th class="mini blue">${escapeHtml(s.restHours)}</th>
+          <th class="mini">${escapeHtml(s.perDay)}</th><th class="mini h-olive">${escapeHtml(s.perDay)}</th><th class="mini">${escapeHtml(s.perDay)}</th>
+          <th class="mini h-purple">${escapeHtml(s.perDay)}</th><th class="mini">${escapeHtml(s.perDay)}</th>
+          <th class="mini">${escapeHtml(s.total)}</th><th class="mini">${escapeHtml(s.value)}</th>
+          <th class="mini">${escapeHtml(s.total)}</th><th class="mini">${escapeHtml(s.value)}</th>
+          <th class="mini h-blue">${escapeHtml(s.total)}</th><th class="mini h-blue">${escapeHtml(s.value)}</th>
+          <th class="mini h-total">${escapeHtml(s.day)}</th>
+        </tr>
+        ${dayRows}
+      </table>
+
+      <div class="afterDays">
+        <div class="addDayBar">
+          <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
+          <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
+          <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
+        </div>
+        <table class="endTotals">
+          <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
+          <tr><th>${escapeHtml(s.irs)}</th><td data-c="birs">${fmt(totais.IRS_valor)}</td></tr>
+          <tr><th>${escapeHtml(s.iva)}</th><td data-c="biva">${fmt(totais.IVA_valor)}</td></tr>
+          <tr class="net"><th>${escapeHtml(s.vf)}</th><td data-c="net">${fmt(totais.ValorFinal)}</td></tr>
+        </table>
+      </div>
+
+      ${conditionsHtml(s, safeStr(perfil.nome), condicoes, extra, CE)}
+
+      <div class="notesWrap">
+        <div class="notesTitle">${escapeHtml(s.notes)}</div>
+        <div class="ei notes notesArea" ${CE} data-k="notas" data-f="notas" placeholder="…">${escapeHtml(notas || "")}</div>
+      </div>
+
+${editorScript(s)}
     </body>
   </html>`;
 }

@@ -371,6 +371,10 @@ export default function ProfileEditScreen() {
   const fixas = p.fixas ?? {};
   const setFixas = (patch: Partial<NonNullable<Profile["fixas"]>>) =>
     setP({ ...p, fixas: { ...fixas, ...patch } });
+  // Tarifas da folha de cinema (semanal)
+  const fxC = p.fixasCinema ?? {};
+  const setFxC = (patch: Partial<NonNullable<Profile["fixasCinema"]>>) =>
+    setP({ ...p, fixasCinema: { ...fxC, ...patch } });
   // ── Condições de trabalho em caixas ──
   const boxes: CondBox[] = p.condBoxes ?? [];
   const setBoxes = (next: CondBox[]) => setP({ ...p, condBoxes: next });
@@ -491,6 +495,25 @@ export default function ProfileEditScreen() {
           <NumField label={`${gs.vehicle} (${preset.sym})`} value={fixas.viatura} editing={editing} onChange={(n) => setFixas({ viatura: n })} COLORS={COLORS} styles={s} />
           <NumField label={`${gs.material} (${preset.sym})`} value={fixas.material} editing={editing} onChange={(n) => setFixas({ material: n })} COLORS={COLORS} styles={s} />
           <NumField label={`${gs.perDiem} (${preset.sym})`} value={fixas.perDiem} editing={editing} onChange={(n) => setFixas({ perDiem: n })} COLORS={COLORS} styles={s} />
+        </View>
+
+        {/* Cinema (folha semanal): salário à semana, multiplicadores e Seg. Social */}
+        <View style={s.card}>
+          <Text style={s.fieldLabel}>
+            {t("cinema_rates_title", { defaultValue: "Cinema · folha semanal" })}
+          </Text>
+          <Text style={s.fieldHint}>
+            {t("cinema_rates_hint", { defaultValue: "Para projetos de cinema: salário à semana (5 dias), a hora vale dia ÷ 10 e as extras multiplicam essa hora. Tudo editável por projeto." })}
+          </Text>
+          <NumField label={`${gs.salary} · ${t("cinema_week", { defaultValue: "Semana de 5 dias" })}`} unit={preset.sym} value={fxC.salarioSemana} editing={editing} onChange={(n) => setFxC({ salarioSemana: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.overtimeA} (×)`} value={fxC.multHEA} editing={editing} placeholder="1,5" onChange={(n) => setFxC({ multHEA: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.overtimeB} (×)`} value={fxC.multHEB} editing={editing} placeholder="2" onChange={(n) => setFxC({ multHEB: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.recoveryHours} (×)`} value={fxC.multHR} editing={editing} placeholder="2,5" onChange={(n) => setFxC({ multHR: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.meal} (${preset.sym})`} value={fxC.refeicao} editing={editing} onChange={(n) => setFxC({ refeicao: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.telephone} (${preset.sym})`} value={fxC.telefone} editing={editing} onChange={(n) => setFxC({ telefone: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.vehicle} (${preset.sym})`} value={fxC.viatura} editing={editing} onChange={(n) => setFxC({ viatura: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${gs.material} (${preset.sym})`} value={fxC.material} editing={editing} onChange={(n) => setFxC({ material: n })} COLORS={COLORS} styles={s} />
+          <NumField label={`${t("cinema_ss", { defaultValue: "Segurança Social" })} (%)`} value={fxC.ssPercent} editing={editing} onChange={(n) => setFxC({ ssPercent: n })} COLORS={COLORS} styles={s} />
         </View>
 
         {/* (Regime Fiscal saiu do perfil: os impostos definem-se em

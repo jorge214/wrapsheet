@@ -1,5 +1,6 @@
 // src/models/project.ts
 // Fix #13: import the single canonical Fiscal type from calc/types (was duplicated here)
+import type { CinemaInfo, FormatoFolha } from "../calc/project";
 import { Dia, Fiscal } from "../calc/types";
 
 export type Perfil = {
@@ -29,6 +30,12 @@ export type Tabela = {
   limiar_B?: number;
   limiar_HR?: number;
   arredondarMeiasHoras?: boolean;
+  // Cinema (ver calc/types.ts)
+  salarioSemana?: number;
+  diasSemana?: number;
+  horasBase?: number;
+  descansoSemanal_h?: number;
+  multFolga?: number;
   ajudas?: { refeicao?: number; viatura?: number; material?: number; telefone?: number; perDiem?: number };
 };
 
@@ -45,4 +52,7 @@ export type ProjectState = {
   condBoxes?: { titulo: string; texto: string; img?: string }[];
   pago?: boolean;
   updatedAt?: number;
+  /** Formato da folha; ausente = publicidade */
+  formato?: FormatoFolha;
+  cinema?: CinemaInfo;
 };

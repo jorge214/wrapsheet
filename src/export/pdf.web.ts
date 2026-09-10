@@ -5,6 +5,7 @@
 // This approach uses the browser's own rendering engine, which is always correct.
 
 import { CalcDia, Dia } from "../calc/types";
+import { buildCinemaPdfHtml } from "./buildCinemaHtml";
 import {
   buildPdfHtml,
   PdfExtra,
@@ -33,7 +34,9 @@ export async function exportPDF(
   // O CSS das condições (saltar para página nova quando são substanciais) vive
   // agora no buildPdfHtml (partilhado com o nativo/expo-print da App Store),
   // por isso aqui já não se injeta nada.
-  const html = buildPdfHtml(
+  // Folha de cinema (semanal) tem construtor próprio; a de publicidade é a de sempre.
+  const build = extra?.cinema ? buildCinemaPdfHtml : buildPdfHtml;
+  const html = build(
     perfil, projeto, dias, calculos, totais, tabela,
     notas, locale, region, currency, taxDisclaimer, condicoes, extra
   );

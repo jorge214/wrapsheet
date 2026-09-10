@@ -1,5 +1,5 @@
 // src/stats/monthSummary.ts
-import { calcAll, calcTotals } from "../calc/engine";
+import { calcProject } from "../calc/project";
 import { effectiveFiscalOf, getSettings } from "../storage/appSettings";
 import { belongsToProfile, Dia, listAllProjectsFull } from "../storage/projects";
 
@@ -53,11 +53,12 @@ export function projectFinalValue(
   p: any,
   eff: { IRS_percent: number; IVA_percent: number }
 ): number {
-  const diasCalc = calcAll(p.dias, p.tabela);
   const rawFiscal: any = p.fiscal ?? {};
   const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? eff.IRS_percent) * 100;
   const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? eff.IVA_percent) * 100;
-  const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
+  // O motor (publicidade/cinema) é escolhido pelo próprio projeto; a Segurança
+  // Social só existe no cinema e vem da folha (sem fallback regional).
+  const totals = calcProject(p, { irs: irsPct, iva: ivaPct, SS_percent: rawFiscal.SS_percent } as any).totais;
   return Math.round((totals.ValorFinal || 0) * 100) / 100;
 }
 
@@ -124,8 +125,12 @@ export async function getMonthSummary(mes: number, ano: number, profileId?: stri
       totalMinutos += mins;
     }
 
-    // ✅ valores €
-    const diasCalc = calcAll(p.dias, p.tabela);
+    // ✅ valores € (motor escolhido pelo formato do projeto; SS só no cinema)
+    const rawFiscal: any = p.fiscal ?? {};
+    const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? eff.IRS_percent) * 100;
+    const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? eff.IVA_percent) * 100;
+    const pc = calcProject(p, { irs: irsPct, iva: ivaPct, SS_percent: rawFiscal.SS_percent } as any);
+    const diasCalc = pc.calc;
 
     // horas extra (A + B + recuperação)
     for (const dc of diasCalc as any[]) {
@@ -133,10 +138,7 @@ export async function getMonthSummary(mes: number, ano: number, profileId?: stri
         (dc?.HEA_min ?? 0) + (dc?.HEB_min ?? 0) + (dc?.HR_min ?? 0);
     }
 
-    const rawFiscal: any = p.fiscal ?? {};
-    const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? eff.IRS_percent) * 100;
-    const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? eff.IVA_percent) * 100;
-    const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
+    const totals = pc.totais;
 
     totalValorBruto += totals.ValorBruto;
     totalIRS += totals.IRS_valor;
@@ -212,11 +214,10 @@ export async function getYearSummary(ano: number, profileId?: string): Promise<Y
       totalMinutos += mins;
     }
 
-    const diasCalc = calcAll(p.dias, p.tabela);
     const rawFiscal: any = p.fiscal ?? {};
     const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? eff.IRS_percent) * 100;
     const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? eff.IVA_percent) * 100;
-    const totals = calcTotals(diasCalc, { irs: irsPct, iva: ivaPct } as any);
+    const totals = calcProject(p, { irs: irsPct, iva: ivaPct, SS_percent: rawFiscal.SS_percent } as any).totais;
 
     totalValorBruto += totals.ValorBruto;
     totalValorFinal += totals.ValorFinal;
