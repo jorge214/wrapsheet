@@ -4,8 +4,8 @@
 // A folha de publicidade (buildPdfHtml.ts) fica intacta; daqui só se importam
 // os helpers que ela já tinha (formatação, campos editáveis, condições, script
 // do editor). O que é próprio do cinema vive aqui:
-//   • salário À SEMANA (a linha de valores mostra "SEMANA 5 DIAS") e a linha
-//     "DIA DE FOLGA" com tudo a dobrar;
+//   • salário À SEMANA (a linha de valores mostra "SEMANA 5 DIAS") e a caixa
+//     "FERIADO / FOLGAS" com as tarifas a dobrar (valem para os dois casos);
 //   • linhas de FOLGA (sáb/dom) e feriados marcados a dobrar;
 //   • barra do descanso entre semanas: total, "Para 60H", saldo e as horas de
 //     recuperação cobradas;
@@ -26,8 +26,8 @@ import {
 const CINEMA_STRINGS = {
   pt: {
     title: "CINEMA", weekWord: "SEMANA", daysWord: "Dias", daysWordUp: "DIAS",
-    sheetSubtitle: "Folha de Pagamentos Individual", department: "DEPARTAMENTO:", productionType: "TIPO:",
-    productionTypePh: "Telefilme, série, documentário…", weekNr: "Semana n.º", dayOff: "DIA DE FOLGA",
+    sheetSubtitle: "Folha de Pagamentos Individual", department: "DEPARTAMENTO:", productionType: "FORMATO:",
+    productionTypePh: "Telefilme, série, documentário…", weekNr: "Semana n.º", dayOff: "FERIADO / FOLGAS",
     dayOffRow: "FOLGA", holiday: "FERIADO", restRowLabel: "FOLGA (HORAS DESCANSO)",
     restBetweenWeeks: "Horas de descanso entre uma semana e outra", target: "Para",
     recoveryBetweenWeeks: "Horas de recuperação entre uma semana e a semana seguinte",
@@ -36,8 +36,8 @@ const CINEMA_STRINGS = {
   },
   en: {
     title: "FILM", weekWord: "WEEK", daysWord: "Days", daysWordUp: "DAYS",
-    sheetSubtitle: "Individual Timesheet", department: "DEPARTMENT:", productionType: "TYPE:",
-    productionTypePh: "TV movie, series, documentary…", weekNr: "Week no.", dayOff: "DAY OFF",
+    sheetSubtitle: "Individual Timesheet", department: "DEPARTMENT:", productionType: "FORMAT:",
+    productionTypePh: "TV movie, series, documentary…", weekNr: "Week no.", dayOff: "HOLIDAY / DAYS OFF",
     dayOffRow: "DAY OFF", holiday: "HOLIDAY", restRowLabel: "DAYS OFF (REST HOURS)",
     restBetweenWeeks: "Rest hours between one week and the next", target: "Target",
     recoveryBetweenWeeks: "Recovery hours between one week and the next",
@@ -46,8 +46,8 @@ const CINEMA_STRINGS = {
   },
   es: {
     title: "CINE", weekWord: "SEMANA", daysWord: "Días", daysWordUp: "DÍAS",
-    sheetSubtitle: "Hoja de pagos individual", department: "DEPARTAMENTO:", productionType: "TIPO:",
-    productionTypePh: "Telefilme, serie, documental…", weekNr: "Semana n.º", dayOff: "DÍA DE DESCANSO",
+    sheetSubtitle: "Hoja de pagos individual", department: "DEPARTAMENTO:", productionType: "FORMATO:",
+    productionTypePh: "Telefilme, serie, documental…", weekNr: "Semana n.º", dayOff: "FESTIVO / DESCANSOS",
     dayOffRow: "DESCANSO", holiday: "FESTIVO", restRowLabel: "DESCANSO (HORAS DE DESCANSO)",
     restBetweenWeeks: "Horas de descanso entre una semana y la siguiente", target: "Para",
     recoveryBetweenWeeks: "Horas de recuperación entre una semana y la siguiente",
@@ -56,8 +56,8 @@ const CINEMA_STRINGS = {
   },
   fr: {
     title: "CINÉMA", weekWord: "SEMAINE", daysWord: "Jours", daysWordUp: "JOURS",
-    sheetSubtitle: "Feuille de paie individuelle", department: "DÉPARTEMENT :", productionType: "TYPE :",
-    productionTypePh: "Téléfilm, série, documentaire…", weekNr: "Semaine n°", dayOff: "JOUR DE REPOS",
+    sheetSubtitle: "Feuille de paie individuelle", department: "DÉPARTEMENT :", productionType: "FORMAT :",
+    productionTypePh: "Téléfilm, série, documentaire…", weekNr: "Semaine n°", dayOff: "FÉRIÉ / REPOS",
     dayOffRow: "REPOS", holiday: "FÉRIÉ", restRowLabel: "REPOS (HEURES DE REPOS)",
     restBetweenWeeks: "Heures de repos entre une semaine et la suivante", target: "Objectif",
     recoveryBetweenWeeks: "Heures de récupération entre une semaine et la suivante",
@@ -66,8 +66,8 @@ const CINEMA_STRINGS = {
   },
   de: {
     title: "FILM", weekWord: "WOCHE", daysWord: "Tage", daysWordUp: "TAGE",
-    sheetSubtitle: "Individuelle Abrechnung", department: "ABTEILUNG:", productionType: "ART:",
-    productionTypePh: "Fernsehfilm, Serie, Dokumentation…", weekNr: "Woche Nr.", dayOff: "FREIER TAG",
+    sheetSubtitle: "Individuelle Abrechnung", department: "ABTEILUNG:", productionType: "FORMAT:",
+    productionTypePh: "Fernsehfilm, Serie, Dokumentation…", weekNr: "Woche Nr.", dayOff: "FEIERTAG / FREIE TAGE",
     dayOffRow: "FREI", holiday: "FEIERTAG", restRowLabel: "FREI (RUHEZEIT)",
     restBetweenWeeks: "Ruhezeit zwischen einer Woche und der nächsten", target: "Ziel",
     recoveryBetweenWeeks: "Erholungsstunden zwischen einer Woche und der nächsten",
@@ -76,8 +76,8 @@ const CINEMA_STRINGS = {
   },
   it: {
     title: "CINEMA", weekWord: "SETTIMANA", daysWord: "Giorni", daysWordUp: "GIORNI",
-    sheetSubtitle: "Foglio paga individuale", department: "REPARTO:", productionType: "TIPO:",
-    productionTypePh: "Film TV, serie, documentario…", weekNr: "Settimana n.", dayOff: "GIORNO DI RIPOSO",
+    sheetSubtitle: "Foglio paga individuale", department: "REPARTO:", productionType: "FORMATO:",
+    productionTypePh: "Film TV, serie, documentario…", weekNr: "Settimana n.", dayOff: "FESTIVO / RIPOSI",
     dayOffRow: "RIPOSO", holiday: "FESTIVO", restRowLabel: "RIPOSO (ORE DI RIPOSO)",
     restBetweenWeeks: "Ore di riposo tra una settimana e la successiva", target: "Per",
     recoveryBetweenWeeks: "Ore di recupero tra una settimana e la successiva",
@@ -86,8 +86,8 @@ const CINEMA_STRINGS = {
   },
   nl: {
     title: "FILM", weekWord: "WEEK", daysWord: "Dagen", daysWordUp: "DAGEN",
-    sheetSubtitle: "Individuele urenstaat", department: "AFDELING:", productionType: "TYPE:",
-    productionTypePh: "Tv-film, serie, documentaire…", weekNr: "Week nr.", dayOff: "VRIJE DAG",
+    sheetSubtitle: "Individuele urenstaat", department: "AFDELING:", productionType: "FORMAAT:",
+    productionTypePh: "Tv-film, serie, documentaire…", weekNr: "Week nr.", dayOff: "FEESTDAG / VRIJE DAGEN",
     dayOffRow: "VRIJ", holiday: "FEESTDAG", restRowLabel: "VRIJ (RUSTUREN)",
     restBetweenWeeks: "Rusturen tussen de ene week en de volgende", target: "Doel",
     recoveryBetweenWeeks: "Hersteluren tussen de ene week en de volgende",
@@ -96,8 +96,8 @@ const CINEMA_STRINGS = {
   },
   pl: {
     title: "FILM", weekWord: "TYDZIEŃ", daysWord: "Dni", daysWordUp: "DNI",
-    sheetSubtitle: "Indywidualna karta wynagrodzeń", department: "DZIAŁ:", productionType: "TYP:",
-    productionTypePh: "Film TV, serial, dokument…", weekNr: "Tydzień nr", dayOff: "DZIEŃ WOLNY",
+    sheetSubtitle: "Indywidualna karta wynagrodzeń", department: "DZIAŁ:", productionType: "FORMAT:",
+    productionTypePh: "Film TV, serial, dokument…", weekNr: "Tydzień nr", dayOff: "ŚWIĘTO / DNI WOLNE",
     dayOffRow: "WOLNE", holiday: "ŚWIĘTO", restRowLabel: "WOLNE (GODZINY ODPOCZYNKU)",
     restBetweenWeeks: "Godziny odpoczynku między tygodniami", target: "Cel",
     recoveryBetweenWeeks: "Godziny odpoczynku wyrównawczego między tygodniami",

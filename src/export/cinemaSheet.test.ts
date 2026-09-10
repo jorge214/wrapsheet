@@ -97,6 +97,11 @@ describe("folha de cinema — PDF", () => {
     expect(pdf).not.toContain("contenteditable");
     expect(pdf).not.toContain("<script>");
     expect(pdf).toContain("SEG. SOCIAL");
+    // Rótulos pedidos pelo Jorge: "FORMATO" no cabeçalho (não "TIPO") e o
+    // retângulo vermelho das tarifas a dobrar chama-se "FERIADO / FOLGAS".
+    expect(pdf).toContain("FORMATO:");
+    expect(pdf).toContain("FERIADO / FOLGAS");
+    expect(pdf).not.toContain("DIA DE FOLGA");
     expect(pdf).toContain("FOLGA (HORAS DESCANSO)");
     expect(pdf).toContain("Para 60H");
     expect(pdf).toContain("@page { size: A3 landscape");
@@ -112,6 +117,8 @@ describe("folha de cinema — PDF", () => {
     );
     expect(v).toContain("@page { size: A4 portrait");
     expect(v).toContain("SOCIAL SECURITY");
+    expect(v).toContain("FORMAT:");
+    expect(v).toContain("HOLIDAY / DAYS OFF");
   });
 
   it("todas as línguas renderizam", () => {
