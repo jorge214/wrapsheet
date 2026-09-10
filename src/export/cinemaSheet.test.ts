@@ -102,6 +102,11 @@ describe("folha de cinema — PDF", () => {
     expect(pdf).toContain("FORMATO:");
     expect(pdf).toContain("FERIADO / FOLGAS");
     expect(pdf).not.toContain("DIA DE FOLGA");
+    // A caixa das tarifas a dobrar tem a MESMA estrutura da tabela de cima:
+    // título (vermelho), cabeçalhos cinzentos com a recuperação a azul, linha
+    // de unidades e valores. Ambas as tabelas trazem "HORA RECUPERAÇÃO".
+    expect(pdf).toContain('<th class="folgaTitle"');
+    expect((pdf.match(/HORA RECUPERAÇÃO/g) || []).length).toBeGreaterThanOrEqual(2);
     expect(pdf).toContain("FOLGA (HORAS DESCANSO)");
     expect(pdf).toContain("Para 60H");
     expect(pdf).toContain("@page { size: A3 landscape");

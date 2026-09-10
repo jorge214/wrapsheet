@@ -345,15 +345,17 @@ function render(
         th.h-olive { background: #7f7f2e; color: #fff; }
         th.h-purple { background: #7030a0; color: #fff; }
         th.h-total { background: #bf9000; color: #fff; }
-        th.h-red { background: #c00000; color: #fff; }
         .days .subhead th, .rates .subhead th { background: #d9d9d9; color: #111; }
         .days .subhead th.h-blue, .rates .subhead th.h-blue { background: #cfe0f2; color: #1b5fbf; }
         .days .subhead th.h-olive, .rates .subhead th.h-olive { background: #e6e6c8; color: #111; }
         .days .subhead th.h-purple, .rates .subhead th.h-purple { background: #e4d6f0; color: #111; }
         .days .subhead th.h-total, .rates .subhead th.h-total { background: #f2e2b3; color: #111; }
-        .rates.folga .subhead th, .rates.folga th.h-red { color: #c00000; }
-        .rates.folga .subhead th { background: #fbe5e5; }
-        .rates.folga td { color: #c00000; font-weight: 800; }
+        /* Caixa FERIADO / FOLGAS: MESMAS cores da tabela de valores de cima —
+           cabeçalhos cinzentos com letra branca, recuperação a azul, valores a
+           preto. Só o TÍTULO e a linha das unidades (DIA / por hora) vão a
+           vermelho, como na folha de referência. */
+        .rates.folga th.folgaTitle { background: #fff; color: #c00000; font-weight: 900; }
+        .rates.folga .subhead th, .rates.folga .subhead th.h-blue { color: #c00000; }
         .days th { font-size: 11px; }
         .days td { font-size: 11px; }
         .days .mini { font-size: 10px; font-weight: 700; }
@@ -549,13 +551,19 @@ function render(
 
       <table class="rates folga">
         <tr>
-          <th class="h-red" colspan="4">${escapeHtml(s.dayOff)}</th>
+          <th class="folgaTitle" colspan="4">${escapeHtml(s.dayOff)}</th>
+        </tr>
+        <tr>
+          <th>${escapeHtml(s.salary)}</th>
+          <th>${escapeHtml(s.overtimeA)}</th>
+          <th>${escapeHtml(s.overtimeB)}</th>
+          <th class="h-blue">${escapeHtml(s.recoveryHours)}</th>
         </tr>
         <tr class="subhead">
-          <th class="mini">${escapeHtml(s.salary)} · ${escapeHtml(s.day)}</th>
-          <th class="mini">${escapeHtml(s.overtimeA)}</th>
-          <th class="mini">${escapeHtml(s.overtimeB)}</th>
-          <th class="mini">${escapeHtml(s.recoveryHours)}</th>
+          <th class="mini">${escapeHtml(s.day)}</th>
+          <th class="mini">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
+          <th class="mini h-blue">${escapeHtml((s as any).perHourLabel || s.perHour)}</th>
         </tr>
         <tr>
           <td>${calcCell("g_fsal", fmt(R.salarioDia * mf))}</td>
