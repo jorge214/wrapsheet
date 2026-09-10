@@ -152,6 +152,186 @@ function NumField({
   );
 }
 
+/**
+ * Editor das condições de trabalho (caixas com título, texto e imagem) que
+ * saem na folha/PDF. Existe DUAS vezes no perfil — uma para publicidade e
+ * outra para cinema — porque as regras da semana não são as do dia; cada
+ * projeto novo leva as do seu formato. Era código inline; passou a componente
+ * para não haver duas cópias a divergir.
+ */
+function CondSection({
+  label, hint, tituloValue, onTituloChange, boxes, setBoxes, editing, showReset, COLORS, styles: s,
+}: {
+  label: string;
+  hint: string;
+  tituloValue?: string;
+  onTituloChange: (v: string) => void;
+  boxes: CondBox[];
+  setBoxes: (next: CondBox[]) => void;
+  editing: boolean;
+  /** Só a publicidade tem modelo de referência para repor */
+  showReset?: boolean;
+  COLORS: any;
+  styles: any;
+}) {
+  const { t } = useTranslation();
+
+  const setBox = (i: number, patch: Partial<CondBox>) =>
+    setBoxes(boxes.map((b, ix) => (ix === i ? { ...b, ...patch } : b)));
+  const addBox = () => setBoxes([...boxes, { titulo: "", texto: "" }]);
+  const removeBox = (i: number) => setBoxes(boxes.filter((_, ix) => ix !== i));
+  const moveBox = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= boxes.length) return;
+    const next = [...boxes];
+    [next[i], next[j]] = [next[j], next[i]];
+    setBoxes(next);
+  };
+
+  function resetCondDefaults() {
+    const doReset = () => setBoxes(defaultCondBoxes());
+    const title = t("reset_cond_default", { defaultValue: "Repor modelo (PDF)" });
+    const msg = t("reset_cond_confirm", { defaultValue: "Substituir as caixas atuais pelas condições do modelo de referência?" });
+    if (Platform.OS === "web") {
+      if ((window as any).confirm(`${title}\n\n${msg}`)) doReset();
+      return;
+    }
+    Alert.alert(title, msg, [
+      { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
+      { text: t("confirm", { defaultValue: "Confirmar" }), onPress: doReset },
+    ]);
+  }
+
+  async function pickBoxImage(i: number) {
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        base64: true,
+        quality: 0.5,
+        allowsMultipleSelection: false,
+      });
+      if (res.canceled || !res.assets?.length) return;
+      const a = res.assets[0];
+      let uri = a.base64
+        ? `data:${a.mimeType || "image/jpeg"};base64,${a.base64}`
+        : a.uri;
+      // Na web pode vir um blob: — converte para data URI para persistir
+      if (uri.startsWith("blob:")) {
+        const blob = await (await fetch(uri)).blob();
+        uri = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = reject;
+          r.readAsDataURL(blob);
+        });
+      }
+      if (uri.length > 1_800_000) {
+        Alert.alert(
+          t("image_too_big", { defaultValue: "Imagem demasiado grande" }),
+          t("image_too_big_msg", { defaultValue: "Escolhe uma imagem mais pequena (máx. ~1,3 MB)." })
+        );
+        if (Platform.OS === "web") (window as any).alert(t("image_too_big_msg", { defaultValue: "Escolhe uma imagem mais pequena (máx. ~1,3 MB)." }));
+        return;
+      }
+      setBox(i, { img: uri });
+    } catch (e) {
+      console.error("Erro ao escolher imagem", e);
+    }
+  }
+
+  return (
+    <>
+      <View style={{ height: 8 }} />
+      <Text style={s.fieldLabel}>{label}</Text>
+      <Text style={s.fieldHint}>{hint}</Text>
+
+      <ProfileField
+        label={t("cond_annual_title", { defaultValue: "Título da secção (anual)" })}
+        hint={t("cond_annual_title_hint", { defaultValue: "Ex.: CONDIÇÕES DE TRABALHO - NOME - A partir de 1 de Janeiro de 2026" })}
+        value={tituloValue}
+        editing={editing}
+        onChangeText={onTituloChange}
+        placeholder={t("cond_annual_title_ph", { defaultValue: "CONDIÇÕES DE TRABALHO …" })}
+        autoCapitalize="characters"
+        COLORS={COLORS}
+        styles={s}
+      />
+
+      {boxes.map((b, i) => (
+        <View key={i} style={s.condBox}>
+          {editing ? (
+            <>
+              <View style={s.condBoxHeader}>
+                <TextInput
+                  value={b.titulo}
+                  onChangeText={(v) => setBox(i, { titulo: v })}
+                  placeholder={t("box_title_ph", { defaultValue: "TÍTULO (ex.: HORA EXTRA A)" })}
+                  placeholderTextColor={COLORS.sub}
+                  style={[s.fieldInput, { flex: 1, fontWeight: "800" }]}
+                  autoCapitalize="characters"
+                />
+                <Pressable onPress={() => moveBox(i, -1)} hitSlop={6} style={s.condMiniBtn}>
+                  <Text style={s.condMiniBtnText}>↑</Text>
+                </Pressable>
+                <Pressable onPress={() => moveBox(i, 1)} hitSlop={6} style={s.condMiniBtn}>
+                  <Text style={s.condMiniBtnText}>↓</Text>
+                </Pressable>
+                <Pressable onPress={() => removeBox(i)} hitSlop={6} style={[s.condMiniBtn, { borderColor: COLORS.danger }]}>
+                  <Text style={[s.condMiniBtnText, { color: COLORS.danger }]}>✕</Text>
+                </Pressable>
+              </View>
+              <AutoGrowTextInput
+                value={b.texto}
+                onChangeText={(v: string) => setBox(i, { texto: v })}
+                placeholder={t("box_text_ph", { defaultValue: "Texto da condição…" })}
+                placeholderTextColor={COLORS.sub}
+                style={[s.fieldInput, { marginTop: 8 }]}
+              />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 }}>
+                {b.img ? (
+                  <>
+                    <Image source={{ uri: b.img }} style={s.condImg} resizeMode="cover" />
+                    <Pressable onPress={() => setBox(i, { img: undefined })} style={s.condImgBtn}>
+                      <Text style={s.condImgBtnText}>
+                        ✕ {t("remove_image", { defaultValue: "Remover imagem" })}
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Pressable onPress={() => pickBoxImage(i)} style={s.condImgBtn}>
+                    <Text style={s.condImgBtnText}>
+                      🖼 {t("add_image", { defaultValue: "Adicionar imagem" })}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            </>
+          ) : (
+            <>
+              {b.titulo ? <Text style={s.condBoxTitle}>{b.titulo}</Text> : null}
+              {b.texto ? <Text style={s.condBoxText}>{b.texto}</Text> : null}
+              {b.img ? <Image source={{ uri: b.img }} style={[s.condImg, { marginTop: 6 }]} resizeMode="contain" /> : null}
+            </>
+          )}
+        </View>
+      ))}
+
+      {editing && (
+        <View style={{ flexDirection: "row", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+          <Pressable onPress={addBox} style={s.condAddBtn}>
+            <Text style={s.condAddBtnText}>＋ {t("add_box", { defaultValue: "Adicionar caixa" })}</Text>
+          </Pressable>
+          {showReset && (
+            <Pressable onPress={resetCondDefaults} style={s.condAddBtn}>
+              <Text style={s.condAddBtnText}>↺ {t("reset_cond_default", { defaultValue: "Repor modelo (PDF)" })}</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
+    </>
+  );
+}
+
 export default function ProfileEditScreen() {
   const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const { t } = useTranslation();
@@ -375,71 +555,7 @@ export default function ProfileEditScreen() {
   const fxC = p.fixasCinema ?? {};
   const setFxC = (patch: Partial<NonNullable<Profile["fixasCinema"]>>) =>
     setP({ ...p, fixasCinema: { ...fxC, ...patch } });
-  // ── Condições de trabalho em caixas ──
-  const boxes: CondBox[] = p.condBoxes ?? [];
-  const setBoxes = (next: CondBox[]) => setP({ ...p, condBoxes: next });
-  const setBox = (i: number, patch: Partial<CondBox>) =>
-    setBoxes(boxes.map((b, ix) => (ix === i ? { ...b, ...patch } : b)));
-  const addBox = () => setBoxes([...boxes, { titulo: "", texto: "" }]);
-  const removeBox = (i: number) => setBoxes(boxes.filter((_, ix) => ix !== i));
-  const moveBox = (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= boxes.length) return;
-    const next = [...boxes];
-    [next[i], next[j]] = [next[j], next[i]];
-    setBoxes(next);
-  };
-
-  function resetCondDefaults() {
-    const doReset = () => setBoxes(defaultCondBoxes());
-    const title = t("reset_cond_default", { defaultValue: "Repor modelo (PDF)" });
-    const msg = t("reset_cond_confirm", { defaultValue: "Substituir as caixas atuais pelas condições do modelo de referência?" });
-    if (Platform.OS === "web") {
-      if ((window as any).confirm(`${title}\n\n${msg}`)) doReset();
-      return;
-    }
-    Alert.alert(title, msg, [
-      { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
-      { text: t("confirm", { defaultValue: "Confirmar" }), onPress: doReset },
-    ]);
-  }
-
-  async function pickBoxImage(i: number) {
-    try {
-      const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        base64: true,
-        quality: 0.5,
-        allowsMultipleSelection: false,
-      });
-      if (res.canceled || !res.assets?.length) return;
-      const a = res.assets[0];
-      let uri = a.base64
-        ? `data:${a.mimeType || "image/jpeg"};base64,${a.base64}`
-        : a.uri;
-      // Na web pode vir um blob: — converte para data URI para persistir
-      if (uri.startsWith("blob:")) {
-        const blob = await (await fetch(uri)).blob();
-        uri = await new Promise<string>((resolve, reject) => {
-          const r = new FileReader();
-          r.onload = () => resolve(String(r.result));
-          r.onerror = reject;
-          r.readAsDataURL(blob);
-        });
-      }
-      if (uri.length > 1_800_000) {
-        Alert.alert(
-          t("image_too_big", { defaultValue: "Imagem demasiado grande" }),
-          t("image_too_big_msg", { defaultValue: "Escolhe uma imagem mais pequena (máx. ~1,3 MB)." })
-        );
-        if (Platform.OS === "web") (window as any).alert(t("image_too_big_msg", { defaultValue: "Escolhe uma imagem mais pequena (máx. ~1,3 MB)." }));
-        return;
-      }
-      setBox(i, { img: uri });
-    } catch (e) {
-      console.error("Erro ao escolher imagem", e);
-    }
-  }
+  // ── Condições de trabalho: uma secção por FORMATO (ver CondSection) ──
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -533,95 +649,33 @@ export default function ProfileEditScreen() {
           <NumField label={t("cond_heb_from_hour", { defaultValue: "HE-B a partir do início da hora" })} value={fixas.hebFromHour} editing={editing} onChange={(n) => setFixas({ hebFromHour: n })} COLORS={COLORS} styles={s} />
           <NumField label={t("cond_hr_rest_below", { defaultValue: "HR — se descanso inferior a (h)" })} value={fixas.hrRestBelow} editing={editing} onChange={(n) => setFixas({ hrRestBelow: n })} COLORS={COLORS} styles={s} />
 
-          <View style={{ height: 8 }} />
-          <Text style={s.fieldLabel}>
-            {t("conditions_profile", { defaultValue: "Condições de trabalho (predefinição)" })}
-          </Text>
-          <Text style={s.fieldHint}>
-            {t("cond_boxes_hint", { defaultValue: "Caixas com título e texto (e imagem opcional) que saem na folha/PDF. Aplicam-se a projetos novos." })}
-          </Text>
-
-          <ProfileField
-            label={t("cond_annual_title", { defaultValue: "Título da secção (anual)" })}
-            hint={t("cond_annual_title_hint", { defaultValue: "Ex.: CONDIÇÕES DE TRABALHO - NOME - A partir de 1 de Janeiro de 2026" })}
-            value={p.condTitulo}
+          <CondSection
+            label={t("conditions_profile_ads", { defaultValue: "Condições de trabalho · Publicidade" })}
+            hint={t("cond_boxes_hint", { defaultValue: "Caixas com título e texto (e imagem opcional) que saem na folha/PDF. Aplicam-se a projetos novos." })}
+            tituloValue={p.condTitulo}
+            onTituloChange={(v) => setP({ ...p, condTitulo: v })}
+            boxes={p.condBoxes ?? []}
+            setBoxes={(next) => setP({ ...p, condBoxes: next })}
             editing={editing}
-            onChangeText={(v) => setP({ ...p, condTitulo: v })}
-            placeholder={t("cond_annual_title_ph", { defaultValue: "CONDIÇÕES DE TRABALHO …" })}
-            autoCapitalize="characters"
+            showReset
             COLORS={COLORS}
             styles={s}
           />
 
-          {boxes.map((b, i) => (
-            <View key={i} style={s.condBox}>
-              {editing ? (
-                <>
-                  <View style={s.condBoxHeader}>
-                    <TextInput
-                      value={b.titulo}
-                      onChangeText={(v) => setBox(i, { titulo: v })}
-                      placeholder={t("box_title_ph", { defaultValue: "TÍTULO (ex.: HORA EXTRA A)" })}
-                      placeholderTextColor={COLORS.sub}
-                      style={[s.fieldInput, { flex: 1, fontWeight: "800" }]}
-                      autoCapitalize="characters"
-                    />
-                    <Pressable onPress={() => moveBox(i, -1)} hitSlop={6} style={s.condMiniBtn}>
-                      <Text style={s.condMiniBtnText}>↑</Text>
-                    </Pressable>
-                    <Pressable onPress={() => moveBox(i, 1)} hitSlop={6} style={s.condMiniBtn}>
-                      <Text style={s.condMiniBtnText}>↓</Text>
-                    </Pressable>
-                    <Pressable onPress={() => removeBox(i)} hitSlop={6} style={[s.condMiniBtn, { borderColor: COLORS.danger }]}>
-                      <Text style={[s.condMiniBtnText, { color: COLORS.danger }]}>✕</Text>
-                    </Pressable>
-                  </View>
-                  <AutoGrowTextInput
-                    value={b.texto}
-                    onChangeText={(v: string) => setBox(i, { texto: v })}
-                    placeholder={t("box_text_ph", { defaultValue: "Texto da condição…" })}
-                    placeholderTextColor={COLORS.sub}
-                    style={[s.fieldInput, { marginTop: 8 }]}
-                  />
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 }}>
-                    {b.img ? (
-                      <>
-                        <Image source={{ uri: b.img }} style={s.condImg} resizeMode="cover" />
-                        <Pressable onPress={() => setBox(i, { img: undefined })} style={s.condImgBtn}>
-                          <Text style={s.condImgBtnText}>
-                            ✕ {t("remove_image", { defaultValue: "Remover imagem" })}
-                          </Text>
-                        </Pressable>
-                      </>
-                    ) : (
-                      <Pressable onPress={() => pickBoxImage(i)} style={s.condImgBtn}>
-                        <Text style={s.condImgBtnText}>
-                          🖼 {t("add_image", { defaultValue: "Adicionar imagem" })}
-                        </Text>
-                      </Pressable>
-                    )}
-                  </View>
-                </>
-              ) : (
-                <>
-                  {b.titulo ? <Text style={s.condBoxTitle}>{b.titulo}</Text> : null}
-                  {b.texto ? <Text style={s.condBoxText}>{b.texto}</Text> : null}
-                  {b.img ? <Image source={{ uri: b.img }} style={[s.condImg, { marginTop: 6 }]} resizeMode="contain" /> : null}
-                </>
-              )}
-            </View>
-          ))}
-
-          {editing && (
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
-              <Pressable onPress={addBox} style={s.condAddBtn}>
-                <Text style={s.condAddBtnText}>＋ {t("add_box", { defaultValue: "Adicionar caixa" })}</Text>
-              </Pressable>
-              <Pressable onPress={resetCondDefaults} style={s.condAddBtn}>
-                <Text style={s.condAddBtnText}>↺ {t("reset_cond_default", { defaultValue: "Repor modelo (PDF)" })}</Text>
-              </Pressable>
-            </View>
-          )}
+          {/* Cinema: condições próprias. As regras da semana (descanso entre
+              semanas, folgas e feriados a dobrar) não são as da publicidade,
+              e cada projeto novo leva as do seu formato. */}
+          <CondSection
+            label={t("conditions_profile_cinema", { defaultValue: "Condições de trabalho · Cinema" })}
+            hint={t("cond_boxes_hint_cinema", { defaultValue: "Usadas só nas folhas de cinema (à semana). Se ficarem vazias, essas folhas saem sem condições." })}
+            tituloValue={p.condTituloCinema}
+            onTituloChange={(v) => setP({ ...p, condTituloCinema: v })}
+            boxes={p.condBoxesCinema ?? []}
+            setBoxes={(next) => setP({ ...p, condBoxesCinema: next })}
+            editing={editing}
+            COLORS={COLORS}
+            styles={s}
+          />
         </View>
 
         <Pressable onPress={handleDelete} style={({ pressed }) => [s.deleteBtn, pressed && { opacity: 0.85 }]}>

@@ -32,6 +32,12 @@ export type Profile = {
   // Condições de trabalho em caixas (título + texto + imagem opcional)
   condTitulo?: string; // título da secção (ex.: "CONDIÇÕES DE TRABALHO - NOME - A partir de 1 de Janeiro de 2026")
   condBoxes?: CondBox[];
+  // Condições da folha de CINEMA — separadas de propósito: as regras da
+  // semana (descanso entre semanas, dias de folga a dobrar, feriados) não são
+  // as da publicidade. Um projeto novo leva as do SEU formato; se estiverem
+  // vazias, a folha sai sem secção de condições.
+  condTituloCinema?: string;
+  condBoxesCinema?: CondBox[];
   // Regime fiscal do utilizador (percentagens aplicadas aos valores).
   // Se um campo ficar vazio, usa-se o default do país (Definições › Região).
   fiscal?: {

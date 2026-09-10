@@ -107,6 +107,9 @@ export default function ProjectsScreen() {
   const [mes, setMes] = useState<number>(now.getMonth() + 1);
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [showAll, setShowAll] = useState<boolean>(false);
+  // Formato da folha em foco: todos, publicidade (ao dia) ou cinema (à semana).
+  // Funciona como o mês — recorta a lista e manda no que o botão "+" cria.
+  const [formato, setFormato] = useState<"todos" | "publicidade" | "cinema">("todos");
   const [pickerVisible, setPickerVisible] = useState(false);
 
   // Multi-perfil: perfil ativo (para filtrar) + lista de perfis (para o
@@ -278,7 +281,9 @@ export default function ProjectsScreen() {
       router.push("/settings/plan");
       return;
     }
-    // Primeiro o formato da folha: publicidade (ao dia) ou cinema (à semana)
+    // Com um formato escolhido no painel, cria logo nesse — não faz sentido
+    // perguntar outra vez o que já está à vista. Em "Todos", pergunta.
+    if (formato !== "todos") { createWithFormat(formato); return; }
     setFormatPick(true);
   }
 
@@ -485,20 +490,40 @@ export default function ProjectsScreen() {
     return allItems.filter((p) => (p.mes || "") === mmYYYY);
   }, [allItems, showAll, mes, ano]);
 
-  const counts = useMemo(
+  // Recorte por FORMATO da folha. Fica DENTRO do mês: primeiro o mês, depois o
+  // formato, depois a pasta (A Receber / Pagos). Folhas antigas não têm campo
+  // `formato` — são publicidade.
+  const formatScope = useMemo(() => {
+    if (formato === "cinema") return monthScope.filter((p) => p.formato === "cinema");
+    if (formato === "publicidade") return monthScope.filter((p) => p.formato !== "cinema");
+    return monthScope;
+  }, [monthScope, formato]);
+
+  // Contagens do formato: sobre o MÊS (para se ver quantas há de cada, mesmo
+  // com um formato selecionado).
+  const formatCounts = useMemo(
     () => ({
       todos: monthScope.length,
-      areceber: monthScope.filter((p) => !p.archived && !p.pago).length,
-      arquivados: monthScope.filter((p) => p.archived).length,
+      publicidade: monthScope.filter((p) => p.formato !== "cinema").length,
+      cinema: monthScope.filter((p) => p.formato === "cinema").length,
     }),
     [monthScope]
   );
 
+  const counts = useMemo(
+    () => ({
+      todos: formatScope.length,
+      areceber: formatScope.filter((p) => !p.archived && !p.pago).length,
+      arquivados: formatScope.filter((p) => p.archived).length,
+    }),
+    [formatScope]
+  );
+
   const filteredProjects = useMemo(() => {
-    if (tab === "areceber") return monthScope.filter((p) => !p.archived && !p.pago);
-    if (tab === "arquivados") return monthScope.filter((p) => p.archived);
-    return monthScope;
-  }, [monthScope, tab]);
+    if (tab === "areceber") return formatScope.filter((p) => !p.archived && !p.pago);
+    if (tab === "arquivados") return formatScope.filter((p) => p.archived);
+    return formatScope;
+  }, [formatScope, tab]);
 
   // Lista a mostrar: com pesquisa preenchida, procura pelo NOME do projeto E
   // pelo nome da PRODUTORA (cliente), em TODOS os meses e pastas (ignora o
@@ -615,6 +640,34 @@ export default function ProjectsScreen() {
         >
           <Text style={s.navArrowText}>›</Text>
         </Pressable>
+      </View>
+
+      {/* Formato da folha: Todos / Publicidade / Cinema. Recorta a lista como o
+          mês, e o botão "+" cria já no formato que estiver escolhido. */}
+      <View style={s.formatRow}>
+        {([
+          { key: "todos", label: t("format_all", { defaultValue: "Todos" }), n: formatCounts.todos },
+          { key: "publicidade", label: t("format_publicidade", { defaultValue: "Publicidade" }), n: formatCounts.publicidade },
+          { key: "cinema", label: t("format_cinema", { defaultValue: "Cinema" }), n: formatCounts.cinema },
+        ] as const).map((f) => {
+          const on = formato === f.key;
+          return (
+            <Pressable
+              key={f.key}
+              onPress={() => setFormato(f.key)}
+              style={({ pressed }) => [s.formatTab, on && s.formatTabOn, pressed && { opacity: 0.85 }]}
+            >
+              <Text
+                style={[s.formatTabText, on && s.formatTabTextOn]}
+                numberOfLines={1}
+                adjustsFontSizeToFit={Platform.OS !== "web"}
+                minimumFontScale={0.7}
+              >
+                {f.label} ({f.n})
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* Pastas: Todos / A Receber / Arquivados (Pagos) */}
@@ -805,6 +858,11 @@ export default function ProjectsScreen() {
       >
         <Text style={s.fabText}>
           {t("new_project", { defaultValue: "Novo Projeto" })}
+          {formato === "cinema"
+            ? " · " + t("format_cinema", { defaultValue: "Cinema" })
+            : formato === "publicidade"
+            ? " · " + t("format_publicidade", { defaultValue: "Publicidade" })
+            : ""}
         </Text>
       </TouchableOpacity>
 
@@ -1119,6 +1177,29 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     },
     navArrowText: { fontSize: 28, fontWeight: "900", color: COLORS.text, lineHeight: 32 },
     monthCenter: { alignItems: "center", flex: 1 },
+
+    // Formato da folha: fila mais discreta que a das pastas (é um recorte, não
+    // uma pasta) — contorno em vez de preenchimento quando está escolhido.
+    formatRow: {
+      flexDirection: "row",
+      gap: 6,
+      paddingHorizontal: 16,
+      marginBottom: 8,
+    },
+    formatTab: {
+      flex: 1,
+      paddingVertical: 6,
+      paddingHorizontal: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: "transparent",
+      alignItems: "center",
+      ...(Platform.OS === "web" ? ({ cursor: "pointer", userSelect: "none" } as any) : {}),
+    },
+    formatTabOn: { borderColor: COLORS.text, borderWidth: 1.5, backgroundColor: COLORS.card },
+    formatTabText: { color: COLORS.sub, fontWeight: "800", fontSize: 12 },
+    formatTabTextOn: { color: COLORS.text, fontWeight: "900" },
 
     folderRow: {
       flexDirection: "row",

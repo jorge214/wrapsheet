@@ -13,6 +13,8 @@ export type FormatoFolha = "publicidade" | "cinema";
 export type CinemaInfo = {
   /** Telefilme, série, documentário… (texto livre, sai na folha) */
   tipoProducao?: string;
+  /** Intervalo de datas da semana ("1 a 7"). Vazio = calculado dos dias. */
+  semanaDatas?: string;
   /** Primeiro dia da semana SEGUINTE (linha B): fecha o descanso entre semanas */
   proximaSemana?: { data?: string; inicio?: string };
   /** Overrides escritos na folha (vazio = automático) */

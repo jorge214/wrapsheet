@@ -32,7 +32,7 @@ const CINEMA_STRINGS = {
     restBetweenWeeks: "Horas de descanso entre uma semana e outra", target: "Para",
     recoveryBetweenWeeks: "Horas de recuperação entre uma semana e a semana seguinte",
     nextWeekStart: "Início da semana seguinte", ss: "SEG. SOCIAL", notChargeable: "sem hora de início → não se cobra",
-    toggleDayOff: "Folga", toggleHoliday: "Feriado",
+    toggleDayOff: "Folga", toggleHoliday: "Feriado", weekRangeSep: "a",
   },
   en: {
     title: "FILM", weekWord: "WEEK", daysWord: "Days", daysWordUp: "DAYS",
@@ -42,7 +42,7 @@ const CINEMA_STRINGS = {
     restBetweenWeeks: "Rest hours between one week and the next", target: "Target",
     recoveryBetweenWeeks: "Recovery hours between one week and the next",
     nextWeekStart: "Start of next week", ss: "SOCIAL SECURITY", notChargeable: "no start time → not charged",
-    toggleDayOff: "Day off", toggleHoliday: "Holiday",
+    toggleDayOff: "Day off", toggleHoliday: "Holiday", weekRangeSep: "to",
   },
   es: {
     title: "CINE", weekWord: "SEMANA", daysWord: "Días", daysWordUp: "DÍAS",
@@ -52,7 +52,7 @@ const CINEMA_STRINGS = {
     restBetweenWeeks: "Horas de descanso entre una semana y la siguiente", target: "Para",
     recoveryBetweenWeeks: "Horas de recuperación entre una semana y la siguiente",
     nextWeekStart: "Inicio de la semana siguiente", ss: "SEG. SOCIAL", notChargeable: "sin hora de inicio → no se cobra",
-    toggleDayOff: "Descanso", toggleHoliday: "Festivo",
+    toggleDayOff: "Descanso", toggleHoliday: "Festivo", weekRangeSep: "a",
   },
   fr: {
     title: "CINÉMA", weekWord: "SEMAINE", daysWord: "Jours", daysWordUp: "JOURS",
@@ -62,7 +62,7 @@ const CINEMA_STRINGS = {
     restBetweenWeeks: "Heures de repos entre une semaine et la suivante", target: "Objectif",
     recoveryBetweenWeeks: "Heures de récupération entre une semaine et la suivante",
     nextWeekStart: "Début de la semaine suivante", ss: "SÉCU. SOCIALE", notChargeable: "sans heure de début → non facturé",
-    toggleDayOff: "Repos", toggleHoliday: "Férié",
+    toggleDayOff: "Repos", toggleHoliday: "Férié", weekRangeSep: "au",
   },
   de: {
     title: "FILM", weekWord: "WOCHE", daysWord: "Tage", daysWordUp: "TAGE",
@@ -72,7 +72,7 @@ const CINEMA_STRINGS = {
     restBetweenWeeks: "Ruhezeit zwischen einer Woche und der nächsten", target: "Ziel",
     recoveryBetweenWeeks: "Erholungsstunden zwischen einer Woche und der nächsten",
     nextWeekStart: "Beginn der nächsten Woche", ss: "SOZIALVERS.", notChargeable: "ohne Startzeit → nicht berechnet",
-    toggleDayOff: "Frei", toggleHoliday: "Feiertag",
+    toggleDayOff: "Frei", toggleHoliday: "Feiertag", weekRangeSep: "bis",
   },
   it: {
     title: "CINEMA", weekWord: "SETTIMANA", daysWord: "Giorni", daysWordUp: "GIORNI",
@@ -82,7 +82,7 @@ const CINEMA_STRINGS = {
     restBetweenWeeks: "Ore di riposo tra una settimana e la successiva", target: "Per",
     recoveryBetweenWeeks: "Ore di recupero tra una settimana e la successiva",
     nextWeekStart: "Inizio della settimana successiva", ss: "PREV. SOCIALE", notChargeable: "senza ora di inizio → non addebitato",
-    toggleDayOff: "Riposo", toggleHoliday: "Festivo",
+    toggleDayOff: "Riposo", toggleHoliday: "Festivo", weekRangeSep: "a",
   },
   nl: {
     title: "FILM", weekWord: "WEEK", daysWord: "Dagen", daysWordUp: "DAGEN",
@@ -92,7 +92,7 @@ const CINEMA_STRINGS = {
     restBetweenWeeks: "Rusturen tussen de ene week en de volgende", target: "Doel",
     recoveryBetweenWeeks: "Hersteluren tussen de ene week en de volgende",
     nextWeekStart: "Start van de volgende week", ss: "SOC. ZEKERHEID", notChargeable: "geen starttijd → niet in rekening",
-    toggleDayOff: "Vrij", toggleHoliday: "Feestdag",
+    toggleDayOff: "Vrij", toggleHoliday: "Feestdag", weekRangeSep: "t/m",
   },
   pl: {
     title: "FILM", weekWord: "TYDZIEŃ", daysWord: "Dni", daysWordUp: "DNI",
@@ -102,7 +102,7 @@ const CINEMA_STRINGS = {
     restBetweenWeeks: "Godziny odpoczynku między tygodniami", target: "Cel",
     recoveryBetweenWeeks: "Godziny odpoczynku wyrównawczego między tygodniami",
     nextWeekStart: "Początek następnego tygodnia", ss: "UBEZP. SPOŁ.", notChargeable: "brak godziny rozpoczęcia → nie nalicza się",
-    toggleDayOff: "Wolne", toggleHoliday: "Święto",
+    toggleDayOff: "Wolne", toggleHoliday: "Święto", weekRangeSep: "–",
   },
 };
 
@@ -126,6 +126,22 @@ export function getCinemaStrings(locale: string, region?: string) {
 }
 
 type CStrings = ReturnType<typeof getCinemaStrings>;
+
+/** Intervalo de datas da semana para o cabeçalho: "17 a 23" (mesmo mês) ou
+ *  "30/9 a 4/10". É só o valor POR OMISSÃO do campo — o utilizador escreve o
+ *  que quiser por cima (como na folha de referência: "1 a 7"). */
+function intervaloSemana(dias: Dia[], sep: string): string {
+  const datas = dias.map((d) => d.data).filter(Boolean).sort();
+  if (!datas.length) return "";
+  const [a, b] = [datas[0], datas[datas.length - 1]];
+  const pa = a.split("-"), pb = b.split("-");
+  if (pa.length < 3 || pb.length < 3) return "";
+  const n = (x: string) => String(Number(x));
+  if (a === b) return n(pa[2]);
+  return pa[1] === pb[1]
+    ? `${n(pa[2])} ${sep} ${n(pb[2])}`
+    : `${n(pa[2])}/${n(pa[1])} ${sep} ${n(pb[2])}/${n(pb[1])}`;
+}
 
 // ── Linhas da tabela de dias ─────────────────────────────────────────────────
 // Mesmas colunas da publicidade menos os PER DIEMS (20 colunas). As linhas de
@@ -280,6 +296,10 @@ function render(
       }
     : { hd: "00:00", saldo: minutesToHM(-alvoH * 60), hrH: "0,0", hrV: fmt(0), seg: "00:00", cobravel: false };
 
+  // Datas da semana: escrito à mão ganha ao calculado a partir dos dias
+  const intervaloAuto = intervaloSemana(dias, (s as any).weekRangeSep || "a");
+  const semanaDatas = safeStr(info.semanaDatas ?? "");
+
   const proxData = formatDatePT(info.proximaSemana?.data);
   const proxInicio = info.proximaSemana?.inicio ?? "";
   const nextWeekRow = editable
@@ -391,6 +411,10 @@ function render(
         .sideBox .k { font-weight: 800; }
         .sideBox .v { text-align: right; font-weight: 700; white-space: nowrap; }
         .sideBox .vfRow .v { background: #fff3bf; font-weight: 900; }
+        /* Semana: número numa caixa própria e o intervalo de datas ao lado,
+           como na folha de referência ("SEMANA Nr: 2 | 1 a 7"). */
+        .sideBox .row.weekRow { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); }
+        .sideBox .vWeekNo { text-align: center; font-weight: 900; background: #f2f2f2; border-right: 1px solid #2b2b2b; }
         /* Barra do descanso entre semanas + linha B (início da semana seguinte) */
         table.weekRest { margin-top: 6px; }
         table.weekRest th { background: #f2f2f2; color: #111; font-size: 10.5px; text-align: left; padding: 5px 8px; }
@@ -509,7 +533,11 @@ function render(
             <div class="row vfRow"><div class="k">${escapeHtml(s.vf)}</div><div class="v"${editable ? ` data-c="vf"` : ""}>${fmt(totais.ValorFinal)}</div></div>
           </div>
           <div class="box sideBox">
-            <div class="row"><div class="k">${escapeHtml(s.weekNr)}</div><div class="v">${editable ? edTi("projeto", "semana", safeStr(projeto.semana ?? "")) : escapeHtml(safeStr(projeto.semana ?? ""))}</div></div>
+            <div class="row weekRow">
+              <div class="k">${escapeHtml(s.weekNr)}</div>
+              <div class="v vWeekNo">${editable ? edTi("projeto", "semana", safeStr(projeto.semana ?? "")) : escapeHtml(safeStr(projeto.semana ?? ""))}</div>
+              <div class="v vWeekDates">${editable ? edTi("cinema", "semanaDatas", semanaDatas, `placeholder="${escapeHtml(intervaloAuto)}"`) : escapeHtml(semanaDatas || intervaloAuto)}</div>
+            </div>
             <div class="row"><div class="k">${escapeHtml(s.month)}</div><div class="v">${escapeHtml(mesNome)}</div></div>
             <div class="row"><div class="k">${escapeHtml(s.year)}</div><div class="v">${escapeHtml(String(projeto.ano))}</div></div>
           </div>

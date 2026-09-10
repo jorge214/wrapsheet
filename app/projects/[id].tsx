@@ -831,8 +831,8 @@ export default function ProjectEditor() {
         c.proximaSemana = { ...(c.proximaSemana ?? {}), inicio: String(value ?? "") };
       } else if (f === "hrSemanaHoras" || f === "hrSemanaValor") {
         c[f] = numOpt(value);
-      } else if (f === "tipoProducao") {
-        c.tipoProducao = oneLine(value);
+      } else if (f === "tipoProducao" || f === "semanaDatas") {
+        c[f] = oneLine(value);
       } else return null;
       return { ...p, cinema: c };
     };

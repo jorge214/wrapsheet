@@ -471,11 +471,14 @@ export async function createProject(opts?: { mes?: number; ano?: number; formato
 
   const active = await getActiveProfile();
   const perfil = active ? blankPerfil(active as any) : blankPerfil();
-  const condicoesFromProfile = (active as any)?.condicoes || "";
   const fixas = (active as any)?.fixas || {};
-  // Cinema: tarifas próprias do perfil (semana + multiplicadores + SS)
+  // Cinema: tarifas E condições próprias do perfil (as regras da semana não são
+  // as da publicidade). Cada projeto leva as condições do SEU formato.
   const cinema = opts?.formato === "cinema";
   const fxC = (active as any)?.fixasCinema || {};
+  const condicoesFromProfile = cinema ? "" : (active as any)?.condicoes || "";
+  const condTituloFromProfile = (cinema ? (active as any)?.condTituloCinema : (active as any)?.condTitulo) || "";
+  const condBoxesFromProfile = cinema ? (active as any)?.condBoxesCinema : (active as any)?.condBoxes;
 
   const projeto: ProjetoInfo = {
     titulo: "",
@@ -570,8 +573,8 @@ export async function createProject(opts?: { mes?: number; ano?: number; formato
     dias: cinema ? cinemaWeekDias(monday, regiaoPT) : [defaultDia(today)],
     notas: "",
     condicoes: condicoesFromProfile,
-    condTitulo: (active as any)?.condTitulo || "",
-    condBoxes: Array.isArray((active as any)?.condBoxes) ? (active as any).condBoxes : undefined,
+    condTitulo: condTituloFromProfile,
+    condBoxes: Array.isArray(condBoxesFromProfile) ? condBoxesFromProfile : undefined,
     updatedAt: new Date().toISOString(),
   };
 
@@ -791,23 +794,40 @@ export async function duplicateProjectToProfile(
   const now = new Date().toISOString();
 
   // Tarifas do perfil de destino (se tiver) — o resto da folha (dias, projeto)
-  // fica igual; muda o dono e o cabeçalho pessoal.
-  const fixas: any = (target as any)?.fixas || {};
+  // fica igual; muda o dono e o cabeçalho pessoal. Cada formato tem as suas:
+  // publicidade traz salário/dia e taxas €/h; cinema traz salário/semana e
+  // multiplicadores (aplicar as de publicidade a uma folha de cinema dava
+  // valores errados sem dar erro).
+  const ehCinema = original.formato === "cinema";
+  const fixas: any = (ehCinema ? (target as any)?.fixasCinema : (target as any)?.fixas) || {};
   const tabela: Tabela = {
     ...original.tabela,
-    salarioDia: fixas.salarioDia ?? original.tabela.salarioDia,
-    rateHEA: fixas.rateHEA ?? original.tabela.rateHEA,
-    rateHEB: fixas.rateHEB ?? original.tabela.rateHEB,
-    rateHR: fixas.rateHR ?? original.tabela.rateHR,
+    ...(ehCinema
+      ? {
+          salarioSemana: fixas.salarioSemana ?? original.tabela.salarioSemana,
+          multHEA: fixas.multHEA ?? original.tabela.multHEA,
+          multHEB: fixas.multHEB ?? original.tabela.multHEB,
+          multHR: fixas.multHR ?? original.tabela.multHR,
+        }
+      : {
+          salarioDia: fixas.salarioDia ?? original.tabela.salarioDia,
+          rateHEA: fixas.rateHEA ?? original.tabela.rateHEA,
+          rateHEB: fixas.rateHEB ?? original.tabela.rateHEB,
+          rateHR: fixas.rateHR ?? original.tabela.rateHR,
+        }),
     ajudas: {
       ...original.tabela.ajudas!,
       refeicao: fixas.refeicao ?? original.tabela.ajudas!.refeicao,
       telefone: fixas.telefone ?? original.tabela.ajudas!.telefone,
       viatura: fixas.viatura ?? original.tabela.ajudas!.viatura,
       material: fixas.material ?? original.tabela.ajudas!.material,
-      perDiem: fixas.perDiem ?? original.tabela.ajudas!.perDiem,
+      perDiem: ehCinema ? original.tabela.ajudas!.perDiem : (fixas.perDiem ?? original.tabela.ajudas!.perDiem),
     },
   };
+
+  // Condições do perfil de destino, também do formato desta folha
+  const tCondTitulo = ehCinema ? (target as any)?.condTituloCinema : (target as any)?.condTitulo;
+  const tCondBoxes = ehCinema ? (target as any)?.condBoxesCinema : (target as any)?.condBoxes;
 
   const clone: ProjectState = {
     ...original,
@@ -815,11 +835,9 @@ export async function duplicateProjectToProfile(
     profileId: targetProfileId,
     perfil: target ? blankPerfil(target as any) : original.perfil,
     tabela,
-    condicoes: (target as any)?.condicoes ?? original.condicoes,
-    condTitulo: (target as any)?.condTitulo ?? original.condTitulo,
-    condBoxes: Array.isArray((target as any)?.condBoxes)
-      ? (target as any).condBoxes
-      : original.condBoxes,
+    condicoes: ehCinema ? original.condicoes : ((target as any)?.condicoes ?? original.condicoes),
+    condTitulo: tCondTitulo ?? original.condTitulo,
+    condBoxes: Array.isArray(tCondBoxes) ? tCondBoxes : original.condBoxes,
     projeto: {
       ...original.projeto,
       filme: original.projeto.filme
