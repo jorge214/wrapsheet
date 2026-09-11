@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/fast-check.mjs\"",
+            "timeout": 20,
+            "statusMessage": "A validar traduções…"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/verify.mjs\" --hook",
+            "timeout": 180,
+            "statusMessage": "A verificar tipos e testes…"
+          }
+        ]
+      }
+    ]
+  }
+}

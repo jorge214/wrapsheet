@@ -1,0 +1,9 @@
+app/projects/[id].tsx(263,39): error TS2783: 'jantarTrabalho' is specified more than once, so this usage will be overwritten.
+app/projects/[id].tsx(263,64): error TS2783: 'tempoTransporteMin' is specified more than once, so this usage will be overwritten.
+app/projects/[id].tsx(275,11): error TS2322: Type '{ tabela: { ajudas: Ajudas; salarioDia?: number; salarioSemana?: number; diasSemana?: number; horasBase?: number; descansoSemanal_h?: number; multFolga?: number; H_dia: number; descanso_min: number; ... 8 more ...; limiar_HR?: number; }; ... 13 more ...; updatedAt: string; }' is not assignable to type 'ProjectState'.
+app/projects/[id].tsx(388,25): error TS2345: Argument of type 'import("C:/Users/jorge/app-horas-mobile/src/models/project").ProjectState' is not assignable to parameter of type 'import("C:/Users/jorge/app-horas-mobile/src/storage/projects").ProjectState'.
+src/ui/layout.ts(9,22): error TS2339: Property 'headerTop' does not exist on type '{ pageX: number; pageTop: number; section: number; card: number; listGap: number; }'.
+src/ui/layout.ts(10,23): error TS2551: Property 'sectionGap' does not exist on type '{ pageX: number; pageTop: number; section: number; card: number; listGap: number; }'. Did you mean 'section'?
+src/ui/layout.ts(11,20): error TS2339: Property 'cardGap' does not exist on type '{ pageX: number; pageTop: number; section: number; card: number; listGap: number; }'.
+src/ui/typography.ts(32,20): error TS2339: Property 'label' does not exist on type '{ h1: number; h2: number; h3: number; body: number; small: number; tiny: number; }'.
+src/ui/WebHead.web.tsx(1,10): error TS2614: Module '"expo-router/head"' has no exported member 'Head'. Did you mean to use 'import Head from "expo-router/head"' instead?

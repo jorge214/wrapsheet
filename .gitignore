@@ -46,3 +46,8 @@ app-example
 
 # Supabase CLI local artifacts
 supabase/.temp/
+
+# Claude Code: hooks e regras vao para o repo (.claude/settings.json);
+# preferencias pessoais e estado de sessao ficam de fora.
+.claude/settings.local.json
+.claude/worktrees/
