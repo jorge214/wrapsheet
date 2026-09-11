@@ -13,13 +13,15 @@ código através do React Native Web, publicado na Vercel a partir de `main`.
 | | |
 |---|---|
 | `npm test` | testes (vitest) |
-| `node scripts/verify.mjs` | tipos + testes — a verificação de fim de tarefa |
+| `npm run verify` | tipos + testes — a verificação de fim de tarefa |
+| `npx tsc --noEmit` | só os tipos |
 | `npx expo export -p web` | compila o pacote web (prova que nada partiu) |
 | `npx expo start` | app em desenvolvimento (Expo Go) |
 
-`npx tsc --noEmit` **não funciona sozinho**: a `tsconfig.json` tem um erro
-(TS5098) que o faz abortar antes de verificar o que quer que seja. Usa sempre
-`--module esnext --moduleResolution bundler`, ou o `verify.mjs`, que já o faz.
+O `verify` usa a MESMA configuração que o VS Code — a `tsconfig.json` sobrepunha
+`module` e `moduleResolution` à base do Expo, que traz `customConditions`, e isso
+dava TS5098: o tsc abortava antes de verificar o que quer que fosse. Os dois
+overrides foram removidos.
 
 ## Regras que não se quebram
 
@@ -27,6 +29,12 @@ código através do React Native Web, publicado na Vercel a partir de `main`.
 calculados à mão e justificados em comentário.** Nunca se altera um valor
 esperado para fazer um teste passar. Quando um teste falha, o errado é o
 código. Esta é a regra mais importante deste ficheiro.
+
+E não fica só na palavra: `engine.test.ts` e `cinema.test.ts` estão numa regra
+de permissão `ask`, por isso editá-los pede autorização ao Jorge. Acrescentar
+testes é livre; mexer num valor esperado passa pelos olhos dele. (O hook `Stop`
+impede que uma tarefa termine com um teste vermelho, e é precisamente essa
+pressão que torna tentador "corrigir" o número esperado em vez do código.)
 
 **Migrações têm de ser ADITIVAS.** A app da App Store e a web partilham a mesma
 base de dados de produção. Uma versão antiga da app continua a ler as mesmas
@@ -86,8 +94,8 @@ O hook `Stop` corre o `verify.mjs` sozinho, mas o hábito é este:
    provam os números, não provam que a folha está bonita.
 
 Os hooks do Claude Code só disparam quando é o Claude a editar. Para as
-edições à mão há o `pre-commit` (instala-se uma vez com
-`node scripts/install-git-hooks.mjs`).
+edições à mão há o `pre-commit` do git, instalado sozinho a cada `npm install`
+(script `prepare`) — numa máquina nova não é preciso lembrar-se de nada.
 
 ## Armadilhas conhecidas
 
@@ -101,4 +109,7 @@ edições à mão há o `pre-commit` (instala-se uma vez com
 - **Há 9 erros de tipos antigos** noutros ficheiros (`layout.ts`,
   `typography.ts`, `WebHead.web.tsx`, e a duplicação de tipos `ProjectState`
   entre `models/` e `storage/`). Estão em `scripts/tsc-baseline.txt` para o
-  `verify` não reclamar deles. Não os aumentes; arranjá-los é trabalho à parte.
+  `verify` não reclamar deles, mas a linha de base **só encolhe**: o `verify`
+  conta OCORRÊNCIAS (um segundo erro igual ao mesmo ficheiro bloqueia) e
+  reescreve o ficheiro sozinho quando um erro antigo desaparece. Arranja-os
+  quando passares por perto; não os aumentes.

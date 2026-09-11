@@ -11,6 +11,7 @@
     "lint": "expo lint",
     "test": "vitest run",
     "verify": "node scripts/verify.mjs",
+    "prepare": "node scripts/install-git-hooks.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {

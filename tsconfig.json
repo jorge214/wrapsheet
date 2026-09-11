@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "esnext",
     "jsx": "react-native",
     "strict": true,
     "baseUrl": ".",
@@ -10,7 +9,6 @@
         "./*"
       ]
     },
-    "moduleResolution": "node",
     "allowJs": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
