@@ -763,7 +763,10 @@ export default function ProjectsScreen() {
                   )}
 
                   <Text style={s.subtitle} numberOfLines={1}>
-                    {(p.formato === "cinema" ? t("format_cinema_short", { defaultValue: "Cinema" }) + " · " : "") + (p.cliente || "—") + " · " + (p.mes || "--/----")}
+                    {(p.formato === "cinema"
+                      ? t("format_cinema_short", { defaultValue: "Cinema" })
+                      : t("format_publicidade", { defaultValue: "Publicidade" })) +
+                      " · " + (p.cliente || "—") + " · " + (p.mes || "--/----")}
                   </Text>
                 </View>
 

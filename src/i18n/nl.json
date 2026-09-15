@@ -405,6 +405,8 @@
   "cond_annual_title": "Sectietitel (jaarlijks)",
   "cond_annual_title_hint": "Bijv.: ARBEIDSVOORWAARDEN - NAAM - Vanaf 1 januari 2026",
   "cond_annual_title_ph": "ARBEIDSVOORWAARDEN …",
+  "cond_annual_title_ph_ads": "ARBEIDSVOORWAARDEN RECLAME …",
+  "cond_annual_title_ph_cinema": "ARBEIDSVOORWAARDEN FILM …",
   "box_title_ph": "TITEL (bijv. OVERUREN A)",
   "box_text_ph": "Tekst van de voorwaarde…",
   "add_box": "Vak toevoegen",

@@ -62,6 +62,8 @@ describe("folha de cinema — editor", () => {
     expect(html).toContain('data-c="w_hd"');           // descanso entre semanas
     expect(html).toContain('data-f="hrSemanaHoras"');  // override das horas de recuperação
     expect(html).toContain('data-f="proxInicio"');     // linha B: hora de início
+    expect(html).toContain('data-f="proxNumero"');     // linha B: nº da semana seguinte
+    expect(html).toContain('data-c="wd"');            // dia da semana atualiza ao mudar a data
     expect(html).toContain('data-f="proxData"');       // linha B: data
     expect(html).toContain('data-f="tipoProducao"');
     expect(html).toContain('data-act="folga"');
@@ -108,6 +110,12 @@ describe("folha de cinema — PDF", () => {
     expect(pdf).toContain('<th class="folgaTitle"');
     expect((pdf.match(/HORA RECUPERAÇÃO/g) || []).length).toBeGreaterThanOrEqual(2);
     expect(pdf).toContain("FOLGA (HORAS DESCANSO)");
+    // Notas do Jorge de 15/09: dia da semana por cima da data, título a azul,
+    // linha B com o nº da semana seguinte, e a nota "não se cobra" fora da folha.
+    expect(pdf).toContain('<span class="wd">Seg</span>');
+    expect(pdf).toContain("background: #1f5fa8");
+    expect(pdf).toContain("Semana seguinte n.º");
+    expect(pdf).not.toContain("não se cobra");
     expect(pdf).toContain("Para 60H");
     expect(pdf).toContain("@page { size: A3 landscape");
     // 60:00 de descanso (05 + 24 + 24 + 07) e nada a cobrar

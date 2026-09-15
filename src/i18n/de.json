@@ -395,6 +395,8 @@
   "cond_annual_title": "Abschnittstitel (jährlich)",
   "cond_annual_title_hint": "Z. B.: ARBEITSBEDINGUNGEN - NAME - Ab 1. Januar 2026",
   "cond_annual_title_ph": "ARBEITSBEDINGUNGEN …",
+  "cond_annual_title_ph_ads": "ARBEITSBEDINGUNGEN WERBUNG …",
+  "cond_annual_title_ph_cinema": "ARBEITSBEDINGUNGEN FILM …",
   "box_title_ph": "TITEL (z. B. ÜBERSTUNDEN A)",
   "box_text_ph": "Text der Bedingung…",
   "add_box": "Kasten hinzufügen",

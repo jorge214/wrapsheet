@@ -25,6 +25,7 @@ import {
   CondBox,
   Profile,
   defaultCondBoxes,
+  defaultCondBoxesCinema,
   deleteProfile,
   getProfileById,
   setActiveProfileId,
@@ -160,7 +161,7 @@ function NumField({
  * para não haver duas cópias a divergir.
  */
 function CondSection({
-  label, hint, tituloValue, onTituloChange, boxes, setBoxes, editing, showReset, COLORS, styles: s,
+  label, hint, tituloValue, onTituloChange, tituloPlaceholder, boxes, setBoxes, editing, resetModel, COLORS, styles: s,
 }: {
   label: string;
   hint: string;
@@ -169,8 +170,10 @@ function CondSection({
   boxes: CondBox[];
   setBoxes: (next: CondBox[]) => void;
   editing: boolean;
-  /** Só a publicidade tem modelo de referência para repor */
-  showReset?: boolean;
+  /** Placeholder do título — diz de que formato são estas condições */
+  tituloPlaceholder: string;
+  /** Modelo de referência do formato, para "Repor modelo (PDF)"; sem isto o botão não aparece */
+  resetModel?: () => CondBox[];
   COLORS: any;
   styles: any;
 }) {
@@ -189,7 +192,7 @@ function CondSection({
   };
 
   function resetCondDefaults() {
-    const doReset = () => setBoxes(defaultCondBoxes());
+    const doReset = () => setBoxes(resetModel ? resetModel() : []);
     const title = t("reset_cond_default", { defaultValue: "Repor modelo (PDF)" });
     const msg = t("reset_cond_confirm", { defaultValue: "Substituir as caixas atuais pelas condições do modelo de referência?" });
     if (Platform.OS === "web") {
@@ -243,19 +246,20 @@ function CondSection({
     <>
       <View style={{ height: 8 }} />
       <Text style={s.fieldLabel}>{label}</Text>
-      <Text style={s.fieldHint}>{hint}</Text>
 
+      {/* Título primeiro, notas informativas por baixo — pedido do Jorge (15/09) */}
       <ProfileField
         label={t("cond_annual_title", { defaultValue: "Título da secção (anual)" })}
         hint={t("cond_annual_title_hint", { defaultValue: "Ex.: CONDIÇÕES DE TRABALHO - NOME - A partir de 1 de Janeiro de 2026" })}
         value={tituloValue}
         editing={editing}
         onChangeText={onTituloChange}
-        placeholder={t("cond_annual_title_ph", { defaultValue: "CONDIÇÕES DE TRABALHO …" })}
+        placeholder={tituloPlaceholder}
         autoCapitalize="characters"
         COLORS={COLORS}
         styles={s}
       />
+      <Text style={s.fieldHint}>{hint}</Text>
 
       {boxes.map((b, i) => (
         <View key={i} style={s.condBox}>
@@ -321,7 +325,7 @@ function CondSection({
           <Pressable onPress={addBox} style={s.condAddBtn}>
             <Text style={s.condAddBtnText}>＋ {t("add_box", { defaultValue: "Adicionar caixa" })}</Text>
           </Pressable>
-          {showReset && (
+          {resetModel && (
             <Pressable onPress={resetCondDefaults} style={s.condAddBtn}>
               <Text style={s.condAddBtnText}>↺ {t("reset_cond_default", { defaultValue: "Repor modelo (PDF)" })}</Text>
             </Pressable>
@@ -657,7 +661,8 @@ export default function ProfileEditScreen() {
             boxes={p.condBoxes ?? []}
             setBoxes={(next) => setP({ ...p, condBoxes: next })}
             editing={editing}
-            showReset
+            resetModel={defaultCondBoxes}
+            tituloPlaceholder={t("cond_annual_title_ph_ads", { defaultValue: "CONDIÇÕES DE TRABALHO DE PUBLICIDADE …" })}
             COLORS={COLORS}
             styles={s}
           />
@@ -673,6 +678,8 @@ export default function ProfileEditScreen() {
             boxes={p.condBoxesCinema ?? []}
             setBoxes={(next) => setP({ ...p, condBoxesCinema: next })}
             editing={editing}
+            resetModel={defaultCondBoxesCinema}
+            tituloPlaceholder={t("cond_annual_title_ph_cinema", { defaultValue: "CONDIÇÕES DE TRABALHO DE CINEMA …" })}
             COLORS={COLORS}
             styles={s}
           />

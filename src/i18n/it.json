@@ -395,6 +395,8 @@
   "cond_annual_title": "Titolo della sezione (annuale)",
   "cond_annual_title_hint": "Es.: CONDIZIONI DI LAVORO - NOME - Dal 1º gennaio 2026",
   "cond_annual_title_ph": "CONDIZIONI DI LAVORO …",
+  "cond_annual_title_ph_ads": "CONDIZIONI DI LAVORO PUBBLICITÀ …",
+  "cond_annual_title_ph_cinema": "CONDIZIONI DI LAVORO CINEMA …",
   "box_title_ph": "TITOLO (es.: STRAORDINARIO A)",
   "box_text_ph": "Testo della condizione…",
   "add_box": "Aggiungi riquadro",

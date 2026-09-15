@@ -395,6 +395,8 @@
   "cond_annual_title": "Section title (annual)",
   "cond_annual_title_hint": "E.g.: WORKING CONDITIONS - NAME - Effective 1 January 2026",
   "cond_annual_title_ph": "WORKING CONDITIONS …",
+  "cond_annual_title_ph_ads": "ADVERTISING WORKING CONDITIONS …",
+  "cond_annual_title_ph_cinema": "FILM WORKING CONDITIONS …",
   "box_title_ph": "TITLE (e.g. OVERTIME A)",
   "box_text_ph": "Condition text…",
   "add_box": "Add box",

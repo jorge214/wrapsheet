@@ -768,6 +768,23 @@ export function formatDatePT(iso?: string) {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
+/** Dia da semana abreviado na língua da folha ("Seg", "Mon", "Lun") — sai por
+ *  cima da data em cada linha, nas duas folhas. Sem o ponto que algumas
+ *  línguas põem ("seg.") e com maiúscula inicial. */
+export function weekdayShort(iso: string | undefined, locale: string): string {
+  if (!iso) return "";
+  const d = new Date(String(iso).slice(0, 10) + "T12:00:00");
+  if (isNaN(d.getTime())) return "";
+  let w = "";
+  try {
+    w = new Intl.DateTimeFormat(locale || "pt", { weekday: "short" }).format(d);
+  } catch {
+    w = new Intl.DateTimeFormat("pt", { weekday: "short" }).format(d);
+  }
+  w = w.replace(/\.$/, "");
+  return w.charAt(0).toUpperCase() + w.slice(1);
+}
+
 function headerRow(label: string, value: string) {
   return `
     <div class="row">
@@ -967,7 +984,7 @@ export function buildPdfHtml(
       return `
         <tr>
           <td class="left">${escapeHtml(d.descricao || "")}</td>
-          <td class="cData">${escapeHtml(formatDatePT(d.data))}</td>
+          <td class="cData"><span class="wd">${escapeHtml(weekdayShort(d.data, locale))}</span>${escapeHtml(formatDatePT(d.data))}</td>
           <td class="right cSal">${fmt((d as any).salarioDia ?? salarioDia)}</td>
           <td class="cCont">${escapeHtml((d as any).cont || "")}</td>
           <td class="cIni">${escapeHtml(d.inicio || "")}</td>
@@ -1069,6 +1086,8 @@ export function buildPdfHtml(
         .days .subhead th.h-total, .rates .subhead th.h-total { background: #f2e2b3; color: #111; }
         .days th { font-size: 11px; }
         .days td { font-size: 11px; }
+        /* Dia da semana por cima da data ("Seg" / "14/09/2026") — em bloco, para não alargar a coluna */
+        .days .wd { display: block; font-size: 9px; line-height: 1.1; color: #666; font-weight: 700; }
         .days .mini { font-size: 10px; font-weight: 700; }
         /* Coluna "C" (horario continuo): marca manual, centrada e a laranja. */
         .days th.cmark, .days td.cCont { text-align: center; padding-left: 3px; padding-right: 3px; }
@@ -1396,7 +1415,8 @@ export function buildEditableDayRowsHtml(
   dias: Dia[],
   calculos: CalcDia[],
   tabela: PdfTabela,
-  currency: string = "EUR"
+  currency: string = "EUR",
+  locale: string = "pt"
 ): string {
   const fmt = (n: number) => fmtMoney(n, currency);
   const salarioDia = Number(tabela.salarioDia || 0);
@@ -1414,7 +1434,7 @@ export function buildEditableDayRowsHtml(
       return `
         <tr>
           <td class="left">${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
-          <td class="dateCell">${edDate(i, formatDatePT(d.data))}</td>
+          <td class="dateCell"><span class="wd" data-c="wd" data-i="${i}">${escapeHtml(weekdayShort(d.data, locale))}</span>${edDate(i, formatDatePT(d.data))}</td>
           <td>${edNum(i, "salarioDia", "sal", fmt(eff))}</td>
           <td class="contCell">${edDi(i, "cont", (d as any).cont || "", "cmark")}</td>
           <td class="timeCell">${edTime(i, "inicio", d.inicio || "")}</td>
@@ -1880,7 +1900,7 @@ export function buildEditableSheetHtml(
   const pctEdit = (f: string, v?: number) =>
     `<span class="ei money pctv" ${CE} inputmode="decimal" data-k="fiscal" data-f="${f}">${escapeHtml(String(v ?? 0))}</span>%`;
 
-  const dayRows = buildEditableDayRowsHtml(dias, calculos, tabela, currency);
+  const dayRows = buildEditableDayRowsHtml(dias, calculos, tabela, currency, locale);
 
   const unitH = `<span class="mini">${curSym} ${escapeHtml(s.perHour)}</span>`;
   const unitD = `<span class="mini">${curSym} ${escapeHtml(s.perDayUnit)}</span>`;
@@ -1932,6 +1952,8 @@ export function buildEditableSheetHtml(
         .days .subhead th.h-total, .rates .subhead th.h-total { background: #f2e2b3; color: #111; }
         .days th { font-size: 11px; }
         .days td { font-size: 11px; }
+        /* Dia da semana por cima da data ("Seg" / "14/09/2026") — em bloco, para não alargar a coluna */
+        .days .wd { display: block; font-size: 9px; line-height: 1.1; color: #666; font-weight: 700; }
         .days .mini { font-size: 10px; font-weight: 700; }
         .left { text-align: left; }
         .right { text-align: right; }

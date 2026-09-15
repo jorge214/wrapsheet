@@ -405,6 +405,8 @@
   "cond_annual_title": "Tytuł sekcji (roczny)",
   "cond_annual_title_hint": "Np.: WARUNKI PRACY - IMIĘ I NAZWISKO - Od 1 stycznia 2026",
   "cond_annual_title_ph": "WARUNKI PRACY …",
+  "cond_annual_title_ph_ads": "WARUNKI PRACY REKLAMA …",
+  "cond_annual_title_ph_cinema": "WARUNKI PRACY FILM …",
   "box_title_ph": "TYTUŁ (np. NADGODZINY A)",
   "box_text_ph": "Treść warunku…",
   "add_box": "Dodaj ramkę",

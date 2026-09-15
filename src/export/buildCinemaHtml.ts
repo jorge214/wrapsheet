@@ -18,7 +18,7 @@ import { minutesToHM, ratesFor } from "../calc/engine";
 import type { CalcDia, Dia } from "../calc/types";
 import {
   applyFontScale, CE, conditionsHtml, currencySymbol, edDate, edDi, edMi, edNum, edTi, edTime,
-  editorScript, escapeHtml, fmtMoney, fmtNum, formatDatePT, getMonthName, getStrings, safeStr,
+  editorScript, escapeHtml, fmtMoney, fmtNum, formatDatePT, getMonthName, getStrings, safeStr, weekdayShort,
   type PdfExtra, type PdfPerfil, type PdfProjeto, type PdfTabela, type PdfTotais,
 } from "./buildPdfHtml";
 
@@ -31,7 +31,7 @@ const CINEMA_STRINGS = {
     dayOffRow: "FOLGA", holiday: "FERIADO", restRowLabel: "FOLGA (HORAS DESCANSO)",
     restBetweenWeeks: "Horas de descanso entre uma semana e outra", target: "Para",
     recoveryBetweenWeeks: "Horas de recuperação entre uma semana e a semana seguinte",
-    nextWeekStart: "Início da semana seguinte", ss: "SEG. SOCIAL", notChargeable: "sem hora de início → não se cobra",
+    nextWeekStart: "Início da semana seguinte", nextWeekNr: "Semana seguinte n.º", ss: "SEG. SOCIAL",
     toggleDayOff: "Folga", toggleHoliday: "Feriado", weekRangeSep: "a",
   },
   en: {
@@ -41,7 +41,7 @@ const CINEMA_STRINGS = {
     dayOffRow: "DAY OFF", holiday: "HOLIDAY", restRowLabel: "DAYS OFF (REST HOURS)",
     restBetweenWeeks: "Rest hours between one week and the next", target: "Target",
     recoveryBetweenWeeks: "Recovery hours between one week and the next",
-    nextWeekStart: "Start of next week", ss: "SOCIAL SECURITY", notChargeable: "no start time → not charged",
+    nextWeekStart: "Start of next week", nextWeekNr: "Next week no.", ss: "SOCIAL SECURITY",
     toggleDayOff: "Day off", toggleHoliday: "Holiday", weekRangeSep: "to",
   },
   es: {
@@ -51,7 +51,7 @@ const CINEMA_STRINGS = {
     dayOffRow: "DESCANSO", holiday: "FESTIVO", restRowLabel: "DESCANSO (HORAS DE DESCANSO)",
     restBetweenWeeks: "Horas de descanso entre una semana y la siguiente", target: "Para",
     recoveryBetweenWeeks: "Horas de recuperación entre una semana y la siguiente",
-    nextWeekStart: "Inicio de la semana siguiente", ss: "SEG. SOCIAL", notChargeable: "sin hora de inicio → no se cobra",
+    nextWeekStart: "Inicio de la semana siguiente", nextWeekNr: "Semana siguiente n.º", ss: "SEG. SOCIAL",
     toggleDayOff: "Descanso", toggleHoliday: "Festivo", weekRangeSep: "a",
   },
   fr: {
@@ -61,7 +61,7 @@ const CINEMA_STRINGS = {
     dayOffRow: "REPOS", holiday: "FÉRIÉ", restRowLabel: "REPOS (HEURES DE REPOS)",
     restBetweenWeeks: "Heures de repos entre une semaine et la suivante", target: "Objectif",
     recoveryBetweenWeeks: "Heures de récupération entre une semaine et la suivante",
-    nextWeekStart: "Début de la semaine suivante", ss: "SÉCU. SOCIALE", notChargeable: "sans heure de début → non facturé",
+    nextWeekStart: "Début de la semaine suivante", nextWeekNr: "Semaine suivante n°", ss: "SÉCU. SOCIALE",
     toggleDayOff: "Repos", toggleHoliday: "Férié", weekRangeSep: "au",
   },
   de: {
@@ -71,7 +71,7 @@ const CINEMA_STRINGS = {
     dayOffRow: "FREI", holiday: "FEIERTAG", restRowLabel: "FREI (RUHEZEIT)",
     restBetweenWeeks: "Ruhezeit zwischen einer Woche und der nächsten", target: "Ziel",
     recoveryBetweenWeeks: "Erholungsstunden zwischen einer Woche und der nächsten",
-    nextWeekStart: "Beginn der nächsten Woche", ss: "SOZIALVERS.", notChargeable: "ohne Startzeit → nicht berechnet",
+    nextWeekStart: "Beginn der nächsten Woche", nextWeekNr: "Nächste Woche Nr.", ss: "SOZIALVERS.",
     toggleDayOff: "Frei", toggleHoliday: "Feiertag", weekRangeSep: "bis",
   },
   it: {
@@ -81,7 +81,7 @@ const CINEMA_STRINGS = {
     dayOffRow: "RIPOSO", holiday: "FESTIVO", restRowLabel: "RIPOSO (ORE DI RIPOSO)",
     restBetweenWeeks: "Ore di riposo tra una settimana e la successiva", target: "Per",
     recoveryBetweenWeeks: "Ore di recupero tra una settimana e la successiva",
-    nextWeekStart: "Inizio della settimana successiva", ss: "PREV. SOCIALE", notChargeable: "senza ora di inizio → non addebitato",
+    nextWeekStart: "Inizio della settimana successiva", nextWeekNr: "Settimana successiva n.", ss: "PREV. SOCIALE",
     toggleDayOff: "Riposo", toggleHoliday: "Festivo", weekRangeSep: "a",
   },
   nl: {
@@ -91,7 +91,7 @@ const CINEMA_STRINGS = {
     dayOffRow: "VRIJ", holiday: "FEESTDAG", restRowLabel: "VRIJ (RUSTUREN)",
     restBetweenWeeks: "Rusturen tussen de ene week en de volgende", target: "Doel",
     recoveryBetweenWeeks: "Hersteluren tussen de ene week en de volgende",
-    nextWeekStart: "Start van de volgende week", ss: "SOC. ZEKERHEID", notChargeable: "geen starttijd → niet in rekening",
+    nextWeekStart: "Start van de volgende week", nextWeekNr: "Volgende week nr.", ss: "SOC. ZEKERHEID",
     toggleDayOff: "Vrij", toggleHoliday: "Feestdag", weekRangeSep: "t/m",
   },
   pl: {
@@ -101,7 +101,7 @@ const CINEMA_STRINGS = {
     dayOffRow: "WOLNE", holiday: "ŚWIĘTO", restRowLabel: "WOLNE (GODZINY ODPOCZYNKU)",
     restBetweenWeeks: "Godziny odpoczynku między tygodniami", target: "Cel",
     recoveryBetweenWeeks: "Godziny odpoczynku wyrównawczego między tygodniami",
-    nextWeekStart: "Początek następnego tygodnia", ss: "UBEZP. SPOŁ.", notChargeable: "brak godziny rozpoczęcia → nie nalicza się",
+    nextWeekStart: "Początek następnego tygodnia", nextWeekNr: "Następny tydzień nr", ss: "UBEZP. SPOŁ.",
     toggleDayOff: "Wolne", toggleHoliday: "Święto", weekRangeSep: "–",
   },
 };
@@ -149,20 +149,23 @@ function intervaloSemana(dias: Dia[], sep: string): string {
 // os botões duplicar/remover (⧉ ✕) e dois interruptores: Folga e Feriado.
 function dayRowHtml(
   d: Dia, i: number, c: CalcDia | undefined, s: CStrings, fmt: (n: number) => string,
-  salarioDiaBase: number, editable: boolean
+  salarioDiaBase: number, editable: boolean, locale: string
 ): string {
   const descanso = !!c?.descanso;
   const cls = [d.folga ? "folgaRow" : "", d.feriado ? "feriadoRow" : "", descanso ? "restRow" : ""].filter(Boolean).join(" ");
   const eff = (d as any).salarioDia ?? (descanso ? 0 : c?.salarioDia ?? salarioDiaBase);
   const star = d.feriado ? `<span class="fer" title="${escapeHtml(s.holiday)}">★</span>` : "";
-  const hd = escapeHtml(minutesToHM(c?.HD_min ?? 0));
-  const ht = escapeHtml(minutesToHM(c?.HT_min ?? 0));
+  // Folga sem horas: em branco — o descanso do fim de semana mostra-se todo
+  // no último dia trabalhado (regra do guia, nota do Jorge de 15/09).
+  const hd = descanso ? "" : escapeHtml(minutesToHM(c?.HD_min ?? 0));
+  const ht = descanso ? "" : escapeHtml(minutesToHM(c?.HT_min ?? 0));
+  const wd = escapeHtml(weekdayShort(d.data, locale));
 
   if (!editable) {
     return `
         <tr class="${cls}">
           <td class="left">${star}${escapeHtml(d.descricao || (d.folga ? s.dayOffRow : ""))}</td>
-          <td class="cData">${escapeHtml(formatDatePT(d.data))}</td>
+          <td class="cData"><span class="wd">${wd}</span>${escapeHtml(formatDatePT(d.data))}</td>
           <td class="right cSal">${fmt(eff)}</td>
           <td class="cCont">${escapeHtml((d as any).cont || "")}</td>
           <td class="cIni">${escapeHtml(d.inicio || "")}</td>
@@ -189,7 +192,7 @@ function dayRowHtml(
   return `
         <tr class="${cls}">
           <td class="left">${star}${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span><span class="rowTogs">${tog("folga", !!d.folga, s.toggleDayOff)}${tog("feriado", !!d.feriado, s.toggleHoliday)}</span></td>
-          <td class="dateCell">${edDate(i, formatDatePT(d.data))}</td>
+          <td class="dateCell"><span class="wd" data-c="wd" data-i="${i}">${wd}</span>${edDate(i, formatDatePT(d.data))}</td>
           <td>${edNum(i, "salarioDia", "sal", fmt(eff))}</td>
           <td class="contCell">${edDi(i, "cont", (d as any).cont || "", "cmark")}</td>
           <td class="timeCell">${edTime(i, "inicio", d.inicio || "")}</td>
@@ -224,7 +227,7 @@ export function buildCinemaEditableDayRowsHtml(
   const s = getCinemaStrings(locale, region);
   const fmt = (n: number) => fmtMoney(n, currency);
   const R = ratesFor(tabela as any);
-  return dias.map((d, i) => dayRowHtml(d, i, calculos[i], s, fmt, R.salarioDia, true)).join("");
+  return dias.map((d, i) => dayRowHtml(d, i, calculos[i], s, fmt, R.salarioDia, true, locale)).join("");
 }
 
 // ── Construtor (PDF e editor) ────────────────────────────────────────────────
@@ -281,7 +284,7 @@ function render(
   const calcCell = (cKey: string, val: string) =>
     editable ? `<span data-c="${cKey}">${val}</span>` : val;
 
-  const dayRows = dias.map((d, i) => dayRowHtml(d, i, calculos[i], s, fmt, R.salarioDia, editable)).join("");
+  const dayRows = dias.map((d, i) => dayRowHtml(d, i, calculos[i], s, fmt, R.salarioDia, editable, locale)).join("");
 
   // Descanso entre semanas + recuperação (linha da folha de referência)
   const alvoH = semana ? Math.round(semana.alvo_min / 60) : 60;
@@ -302,22 +305,24 @@ function render(
 
   const proxData = formatDatePT(info.proximaSemana?.data);
   const proxInicio = info.proximaSemana?.inicio ?? "";
+  const proxNumero = safeStr(info.proximaSemana?.numero ?? "");
+  // Linha B: nº da semana seguinte (numa caixa, como o do cabeçalho), data e
+  // hora de início. Sem coluna de descanso — esse total já está no último dia
+  // trabalhado — e sem a nota "não se cobra", que saiu da folha (15/09).
   const nextWeekRow = editable
     ? `<tr>
           <td class="bTag">B</td>
+          <td class="vWeekNo">${edTi("cinema", "proxNumero", proxNumero)}</td>
           <td class="left">${escapeHtml(s.nextWeekStart)}</td>
           <td class="dateCell"><input class="ei date" type="text" inputmode="numeric" autocomplete="off" size="10" data-k="cinema" data-f="proxData" value="${escapeHtml(proxData)}"></td>
           <td class="timeCell"><input class="ei time" type="text" inputmode="numeric" autocomplete="off" data-k="cinema" data-f="proxInicio" value="${escapeHtml(proxInicio)}"></td>
-          <td class="blue calc" data-c="w_seg">${escapeHtml(wk.seg)}</td>
-          <td class="hint">${wk.cobravel ? "" : escapeHtml(s.notChargeable)}</td>
         </tr>`
     : `<tr>
           <td class="bTag">B</td>
+          <td class="vWeekNo">${escapeHtml(proxNumero)}</td>
           <td class="left">${escapeHtml(s.nextWeekStart)}</td>
           <td class="cData">${escapeHtml(proxData)}</td>
           <td class="cIni">${escapeHtml(proxInicio)}</td>
-          <td class="blue">${escapeHtml(wk.seg)}</td>
-          <td class="hint">${wk.cobravel ? "" : escapeHtml(s.notChargeable)}</td>
         </tr>`;
 
   const hrHCell = editable
@@ -344,7 +349,8 @@ function render(
         * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         html, body { margin: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
-        .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #c00000; color: #fff; }
+        /* Título a AZUL: distingue a folha de cinema da de publicidade (vermelha) num relance */
+        .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #1f5fa8; color: #fff; }
         .titleBox .ei { display: block; width: 100%; min-height: 1.2em; color: #fff; background: transparent; text-align: center; font-weight: 800; letter-spacing: .5px; }
         .titleBox .ei:empty::before { color: rgba(255,255,255,0.85); }
         .titleBox .ei:focus { background: rgba(255,255,255,.18); box-shadow: none; }
@@ -378,6 +384,8 @@ function render(
         .rates.folga .subhead th, .rates.folga .subhead th.h-blue { color: #c00000; }
         .days th { font-size: 11px; }
         .days td { font-size: 11px; }
+        /* Dia da semana por cima da data ("Seg" / "14/09/2026") — em bloco, para não alargar a coluna */
+        .days .wd { display: block; font-size: 9px; line-height: 1.1; color: #666; font-weight: 700; }
         .days .mini { font-size: 10px; font-weight: 700; }
         .days th.cmark, .days td.cCont { text-align: center; padding-left: 3px; padding-right: 3px; }
         .days td.cCont { color: #c65a00; font-weight: 800; text-transform: uppercase; }
@@ -416,18 +424,21 @@ function render(
         .sideBox .row.weekRow { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); }
         .sideBox .vWeekNo { text-align: center; font-weight: 900; background: #f2f2f2; border-right: 1px solid #2b2b2b; }
         /* Barra do descanso entre semanas + linha B (início da semana seguinte) */
-        table.weekRest { margin-top: 6px; }
+        /* Largura fixa a 100%: nunca transborda a página, os textos longos partem linha */
+        table.weekRest { margin-top: 6px; table-layout: fixed; width: 100%; }
+        table.weekRest th { white-space: normal; }
         table.weekRest th { background: #f2f2f2; color: #111; font-size: 10.5px; text-align: left; padding: 5px 8px; }
-        table.weekRest th.lbl { background: #c00000; color: #fff; text-align: center; width: 15%; }
+        table.weekRest th.lbl { background: #2e75b6; color: #fff; text-align: center; width: 15%; }
         table.weekRest td { font-size: 11.5px; font-weight: 800; white-space: nowrap; }
         table.weekRest td.blue { color: #1b5fbf; }
         table.weekRest td.hr { background: #fff3bf; }
         table.weekRest th.rec { background: #cfe0f2; color: #1b5fbf; }
-        table.nextWeek { margin-top: 6px; width: 60%; }
+        table.nextWeek { margin-top: 6px; width: 60%; max-width: 100%; table-layout: fixed; }
         table.nextWeek th { font-size: 10.5px; }
         table.nextWeek td.bTag { background: #2e75b6; color: #fff; font-weight: 900; width: 26px; }
         table.nextWeek td.left { text-align: left; font-size: 11px; }
-        table.nextWeek td.hint { font-size: 10px; color: #7a0000; font-weight: 700; text-align: left; border-left: 0; }
+        table.nextWeek td.vWeekNo { width: 44px; text-align: center; font-weight: 900; background: #f2f2f2; }
+        table.nextWeek td.vWeekNo .ei { display: block; text-align: center; }
         table.endTotals { width: auto; margin-left: auto; margin-top: 8px; }
         table.endTotals th { background: #f2f2f2; color: #111; text-align: left; font-size: 11px; padding: 5px 10px; min-width: 130px; }
         table.endTotals td { font-weight: 900; text-align: right; font-size: 11px; min-width: 120px; }
@@ -478,7 +489,7 @@ function render(
         .rowTogs { display: block; white-space: nowrap; margin-top: 3px; }
         .rtog { display: inline-block; cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 9px; font-weight: 800; text-transform: uppercase; color: #9a9a9a; border: 1px solid #cfcfcf; border-radius: 999px; padding: 1px 6px; margin-right: 3px; }
         .rtog.on { color: #fff; background: #c00000; border-color: #c00000; }
-        @media print { .addDayBar, .rowBtns, .rowTogs, table.nextWeek td.hint { display: none; } }
+        @media print { .addDayBar, .rowBtns, .rowTogs { display: none; } }
         ` : `
         /* ── PDF ── */
         .condGroup { break-inside: avoid; page-break-inside: avoid; } .condTopSpacer { display: block; height: 6mm; } .condWrap { margin-top: 0; }
@@ -487,13 +498,12 @@ function render(
         .condRow { break-inside: avoid; page-break-inside: avoid; }
         table.endTotals, table.weekRest, table.nextWeek { break-inside: avoid; page-break-inside: avoid; }
         tr { break-inside: avoid; page-break-inside: avoid; }
-        table.nextWeek td.hint { display: none; }
         @media print {
           @page { size: ${pageCss}; margin: ${pageMargin}; }
           body { padding: 0; }
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 1.1px; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; } table.weekRest th, table.weekRest td { font-size: 9px; padding: 3px 5px; }" + (extra?.ipadPdf ? " table.days, table.days th, table.days td { min-width: 0 !important; }" : "")
-            : "table.days { table-layout: fixed; } .days th, .days td { word-break: break-word; padding: 3px 4px; } .days th { font-size: 9px; padding-left: 2px; padding-right: 2px; letter-spacing: -0.2px; } .days col.col-desc { width: 6%; } .days col.col-data { width: 7%; } .days col.col-sal { width: 5.5%; } .days col.col-cont { width: 2%; } .days col.col-ini { width: 4%; } .days col.col-ref { width: 4.6%; } .days col.col-fim { width: 4%; } .days col.col-ht { width: 5.3%; } .days col.col-hd { width: 5.3%; } .days col.col-pd { width: 4.6%; } .days col.col-ott { width: 3.8%; } .days col.col-otv { width: 5.6%; } .days col.col-tot { width: 6%; } .condMain { font-size: 11px; padding: 4px 8px; } .condT { font-size: 9px; padding: 4px 5px; } .condB { font-size: 10px; line-height: 1.3; padding: 4px 7px; } .conditionsBody { font-size: 10px; line-height: 1.3; padding: 6px 8px; } .condRow { grid-template-columns: 220px minmax(0, 1fr); }"}
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } table.days { table-layout: fixed; width: 100%; } .days th, .days td { min-width: 0 !important; word-break: break-word; } .days th { font-size: 7.5px; } .days td { font-size: 9px; } .days .wd { font-size: 7.5px; } .days th, .days td { padding: 3px 1px; } .days col.col-desc { width: 7%; } .days col.col-data { width: 8%; } .days col.col-sal { width: 6%; } .days col.col-cont { width: 1.5%; } .days col.col-ini { width: 4%; } .days col.col-ref { width: 4.5%; } .days col.col-fim { width: 4%; } .days col.col-ht { width: 4.5%; } .days col.col-hd { width: 5%; } .days col.col-pd { width: 4.6%; } .days col.col-ott { width: 3.3%; } .days col.col-otv { width: 5.4%; } .days col.col-tot { width: 6.5%; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; } table.weekRest th, table.weekRest td { font-size: 9px; padding: 3px 5px; }" + (extra?.ipadPdf ? " table.days, table.days th, table.days td { min-width: 0 !important; }" : "")
+            : "table.days { table-layout: fixed; width: 100%; } .days th, .days td { min-width: 0 !important; word-break: break-word; padding: 3px 4px; } .days th { font-size: 9px; padding-left: 2px; padding-right: 2px; letter-spacing: -0.2px; } .days col.col-desc { width: 6%; } .days col.col-data { width: 7%; } .days col.col-sal { width: 5.5%; } .days col.col-cont { width: 2%; } .days col.col-ini { width: 4%; } .days col.col-ref { width: 4.6%; } .days col.col-fim { width: 4%; } .days col.col-ht { width: 5.3%; } .days col.col-hd { width: 5.3%; } .days col.col-pd { width: 4.6%; } .days col.col-ott { width: 3.8%; } .days col.col-otv { width: 5.6%; } .days col.col-tot { width: 6%; } .condMain { font-size: 11px; padding: 4px 8px; } .condT { font-size: 9px; padding: 4px 5px; } .condB { font-size: 10px; line-height: 1.3; padding: 4px 7px; } .conditionsBody { font-size: 10px; line-height: 1.3; padding: 6px 8px; } .condRow { grid-template-columns: 220px minmax(0, 1fr); }"}
         }
         `}
       </style>
@@ -667,11 +677,10 @@ function render(
       <table class="nextWeek">
         <tr class="subhead">
           <th class="mini"></th>
+          <th class="mini">${escapeHtml(s.nextWeekNr)}</th>
           <th class="mini">${escapeHtml(s.description)}</th>
           <th class="mini">${escapeHtml(s.date)}</th>
           <th class="mini">${escapeHtml(s.start)}</th>
-          <th class="mini blue">${escapeHtml(s.restHours)}</th>
-          <th class="mini" style="border-left:0"></th>
         </tr>
         ${nextWeekRow}
       </table>

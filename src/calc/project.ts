@@ -15,8 +15,9 @@ export type CinemaInfo = {
   tipoProducao?: string;
   /** Intervalo de datas da semana ("1 a 7"). Vazio = calculado dos dias. */
   semanaDatas?: string;
-  /** Primeiro dia da semana SEGUINTE (linha B): fecha o descanso entre semanas */
-  proximaSemana?: { data?: string; inicio?: string };
+  /** Primeiro dia da semana SEGUINTE (linha B): fecha o descanso entre semanas.
+   *  `numero` é o nº dessa semana, como o do cabeçalho. */
+  proximaSemana?: { data?: string; inicio?: string; numero?: string };
   /** Overrides escritos na folha (vazio = automático) */
   hrSemanaHoras?: number;
   hrSemanaValor?: number;
@@ -48,7 +49,8 @@ export const isCinema = (p: { formato?: string } | null | undefined): boolean =>
 export function calcProject(p: ProjectLike, fiscal?: any): ProjectCalc {
   const f = fiscal ?? p.fiscal ?? {};
   if (isCinema(p)) {
-    const calc = calcAllCinema(p.dias, p.tabela);
+    // O início da semana seguinte entra já no descanso do último dia trabalhado
+    const calc = calcAllCinema(p.dias, p.tabela, p.cinema?.proximaSemana);
     const semana = calcSemanaCinema(p.dias, calc, p.tabela, p.cinema?.proximaSemana, {
       hrSemanaHoras: p.cinema?.hrSemanaHoras,
       hrSemanaValor: p.cinema?.hrSemanaValor,

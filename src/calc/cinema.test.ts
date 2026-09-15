@@ -13,6 +13,11 @@ import type { Dia, Tabela } from "./types";
 //   HE-A ×1,5 = 27 €/h · HE-B ×2 = 36 €/h · Recuperação ×2,5 = 45 €/h
 //   Dia de folga / feriado (×2): 360 € · 54 · 72 · 90
 // Horário: 11h (10h + 1h refeição) → HE-A a partir da 12.ª hora (limiar 11).
+//
+// Regra de APRESENTAÇÃO do descanso (nota do Jorge, 15/09/2026): o descanso
+// do fim de semana — até ao início da semana seguinte — mostra-se TODO no
+// último dia trabalhado; as folgas sem horas ficam em branco (0). Os totais
+// em € não mudam com isto; só muda em que linha o descanso aparece.
 // ─────────────────────────────────────────────────────────────────────────────
 
 function tabela(o: Partial<Tabela> = {}): Tabela {
@@ -44,6 +49,7 @@ const SEMANA_10 = [
   folga("2023-07-22"),
   folga("2023-07-23"),
 ];
+const SEG_07 = { data: "2023-07-24", inicio: "07:00" };
 
 describe("taxas do cinema (ratesFor)", () => {
   it("900 €/semana de 5 dias → 180 €/dia, 18 €/h, 27 / 36 / 45 €/h", () => {
@@ -66,23 +72,30 @@ describe("taxas do cinema (ratesFor)", () => {
   });
 });
 
-describe("descanso por linha (imagem 10)", () => {
-  it("sex 19:00→24:00 = 05:00; sáb e dom = 24:00 cada", () => {
+describe("descanso por linha (imagem 10) — o fim de semana mostra-se na sexta", () => {
+  it("sem linha B: sex = 19:00→24:00 (5h) + sáb 24h + dom 24h = 53:00; folgas em branco", () => {
     const r = restPerRow(SEMANA_10);
     // seg 19:00 → ter 09:00 = 14h; ter idem; qua 20:00 → qui 07:00 = 11h; qui 19:00 → sex 07:00 = 12h
     expect(r[0]).toBe(14 * 60);
     expect(r[1]).toBe(14 * 60);
     expect(r[2]).toBe(11 * 60);
     expect(r[3]).toBe(12 * 60);
-    expect(r[4]).toBe(5 * 60);   // sex: 19:00 → meia-noite
-    expect(r[5]).toBe(24 * 60);  // sáb (folga)
-    expect(r[6]).toBe(24 * 60);  // dom (folga)
+    expect(r[4]).toBe(53 * 60);  // sex: 5h + 24h + 24h (sem semana seguinte)
+    expect(r[5]).toBe(0);        // sáb (folga): já contada na sexta
+    expect(r[6]).toBe(0);        // dom (folga): idem
+  });
+
+  it("com linha B seg 07:00: sex = 5 + 24 + 24 + 7 = 60:00", () => {
+    const r = restPerRow(SEMANA_10, SEG_07);
+    expect(r[4]).toBe(60 * 60);
+    expect(r[5]).toBe(0);
+    expect(r[6]).toBe(0);
   });
 });
 
 describe("semana completa (imagem 10): 05 + 24 + 24 + 07 = 60h → nada a cobrar", () => {
-  const calc = calcAllCinema(SEMANA_10, tabela());
-  const sem = calcSemanaCinema(SEMANA_10, calc, tabela(), { data: "2023-07-24", inicio: "07:00" });
+  const calc = calcAllCinema(SEMANA_10, tabela(), SEG_07);
+  const sem = calcSemanaCinema(SEMANA_10, calc, tabela(), SEG_07);
 
   it("dias normais: 180 € (10h/11h) e 207 € (12h = 180 + 1h HE-A a 27 €)", () => {
     expect(calc[0].totalDia).toBe(180);
@@ -94,13 +107,14 @@ describe("semana completa (imagem 10): 05 + 24 + 24 + 07 = 60h → nada a cobrar
     expect(calc.every((c) => c.HR_min === 0)).toBe(true);
   });
 
-  it("folgas sem horas: 0 €, marcadas como descanso, com 24h de descanso", () => {
+  it("folgas sem horas: 0 €, marcadas como descanso, e em branco (o descanso está na sexta)", () => {
     expect(calc[5].totalDia).toBe(0);
     expect(calc[5].descanso).toBe(true);
-    expect(calc[5].HD_min).toBe(1440);
+    expect(calc[5].HD_min).toBe(0);
+    expect(calc[4].HD_min).toBe(60 * 60); // a sexta mostra as 60h
   });
 
-  it("linha B seg 07:00 → segmento 07:00; total 60:00; saldo 0; HR 0", () => {
+  it("segmento 07:00 (já dentro da sexta); total 60:00; saldo 0; HR 0", () => {
     expect(sem.segmento_min).toBe(7 * 60);
     expect(sem.descanso_min).toBe(60 * 60);
     expect(sem.saldo_min).toBe(0);
@@ -124,13 +138,13 @@ describe("exemplo 1 (imagem 11): sábado de folga TRABALHADO → 48h → 12h a c
     folga("2023-07-23"),
   ];
   const t = tabela();
-  const calc = calcAllCinema(dias, t);
-  const sem = calcSemanaCinema(dias, calc, t, { data: "2023-07-24", inicio: "07:00" });
+  const calc = calcAllCinema(dias, t, SEG_07);
+  const sem = calcSemanaCinema(dias, calc, t, SEG_07);
 
-  it("descanso: sex 20:00→sáb 07:00 = 11h; sáb 18:00→24:00 = 6h; dom 24h; + 7h = 48h", () => {
+  it("descanso volta a contar dia a dia: sex 20:00→sáb 07:00 = 11h; sáb (último trabalhado) = 6 + 24 + 7 = 37h; dom em branco → 48h", () => {
     expect(calc[1].HD_min).toBe(11 * 60);
-    expect(calc[2].HD_min).toBe(6 * 60);
-    expect(calc[3].HD_min).toBe(24 * 60);
+    expect(calc[2].HD_min).toBe(37 * 60);
+    expect(calc[3].HD_min).toBe(0);
     expect(sem.descanso_min).toBe(48 * 60);
     expect(sem.saldo_min).toBe(-12 * 60);
   });
@@ -153,9 +167,11 @@ describe("exemplo 1 (imagem 11): sábado de folga TRABALHADO → 48h → 12h a c
 });
 
 describe("exemplo 3 (imagem 13): última semana, início seguinte a 00:00 → défice mostra-se mas não se cobra", () => {
-  const calc = calcAllCinema(SEMANA_10, tabela());
-  const sem = calcSemanaCinema(SEMANA_10, calc, tabela(), { data: "2023-07-24", inicio: "00:00" });
-  it("53h: saldo −7h, não cobrável, HR 0", () => {
+  const prox = { data: "2023-07-24", inicio: "00:00" };
+  const calc = calcAllCinema(SEMANA_10, tabela(), prox);
+  const sem = calcSemanaCinema(SEMANA_10, calc, tabela(), prox);
+  it("53h na sexta: saldo −7h, não cobrável, HR 0", () => {
+    expect(calc[4].HD_min).toBe(53 * 60);
     expect(sem.descanso_min).toBe(53 * 60);
     expect(sem.saldo_min).toBe(-7 * 60);
     expect(sem.cobravel).toBe(false);
@@ -163,8 +179,10 @@ describe("exemplo 3 (imagem 13): última semana, início seguinte a 00:00 → d�
     expect(sem.HR_valor).toBe(0);
   });
   it("sem linha B de todo: também não se cobra", () => {
-    const s2 = calcSemanaCinema(SEMANA_10, calc, tabela(), undefined);
+    const c2 = calcAllCinema(SEMANA_10, tabela());
+    const s2 = calcSemanaCinema(SEMANA_10, c2, tabela(), undefined);
     expect(s2.segmento_min).toBe(0);
+    expect(s2.descanso_min).toBe(53 * 60);
     expect(s2.cobravel).toBe(false);
     expect(s2.HR_valor).toBe(0);
   });
@@ -176,11 +194,12 @@ describe("exemplo 4 (imagem 14): descanso acima das 60h → +02:00, nada a cobra
     dia("2023-07-22", "05:00", "17:00", { descricao: "FOLGA", folga: true }), // folga trabalhada
     folga("2023-07-23"),
   ];
-  const calc = calcAllCinema(dias, tabela());
-  const sem = calcSemanaCinema(dias, calc, tabela(), { data: "2023-07-24", inicio: "19:00" });
-  it("12 + 7 + 24 + 19 = 62h → saldo +2h", () => {
+  const prox = { data: "2023-07-24", inicio: "19:00" };
+  const calc = calcAllCinema(dias, tabela(), prox);
+  const sem = calcSemanaCinema(dias, calc, tabela(), prox);
+  it("sex 12h (→ sáb 05:00) + sáb 7 + 24 + 19 = 50h → 62h → saldo +2h", () => {
     expect(calc[0].HD_min).toBe(12 * 60);
-    expect(calc[1].HD_min).toBe(7 * 60);
+    expect(calc[1].HD_min).toBe(50 * 60);
     expect(sem.descanso_min).toBe(62 * 60);
     expect(sem.saldo_min).toBe(2 * 60);
     expect(sem.HR_valor).toBe(0);
@@ -194,18 +213,19 @@ describe("arredondamento: a meia hora sobe para a hora seguinte", () => {
     expect(roundHalfUpHours(29)).toBe(0);
   });
   it("semana com défice de 30 min (início seguinte 06:30) → 1h × 90 = 90 €", () => {
-    const calc = calcAllCinema(SEMANA_10, tabela());
-    const sem = calcSemanaCinema(SEMANA_10, calc, tabela(), { data: "2023-07-24", inicio: "06:30" });
+    const prox = { data: "2023-07-24", inicio: "06:30" };
+    const calc = calcAllCinema(SEMANA_10, tabela(), prox);
+    const sem = calcSemanaCinema(SEMANA_10, calc, tabela(), prox);
     expect(sem.saldo_min).toBe(-30);
     expect(sem.HR_h).toBe(1);
     expect(sem.HR_valor).toBe(90);
   });
   it("overrides escritos na folha ganham ao automático", () => {
-    const calc = calcAllCinema(SEMANA_10, tabela());
-    const sem = calcSemanaCinema(SEMANA_10, calc, tabela(), { data: "2023-07-24", inicio: "07:00" }, { hrSemanaHoras: 3 });
+    const calc = calcAllCinema(SEMANA_10, tabela(), SEG_07);
+    const sem = calcSemanaCinema(SEMANA_10, calc, tabela(), SEG_07, { hrSemanaHoras: 3 });
     expect(sem.HR_h).toBe(3);
     expect(sem.HR_valor).toBe(270);
-    const sem2 = calcSemanaCinema(SEMANA_10, calc, tabela(), { data: "2023-07-24", inicio: "07:00" }, { hrSemanaValor: 123.45 });
+    const sem2 = calcSemanaCinema(SEMANA_10, calc, tabela(), SEG_07, { hrSemanaValor: 123.45 });
     expect(sem2.HR_valor).toBe(123.45);
   });
 });

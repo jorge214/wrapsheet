@@ -395,6 +395,8 @@
   "cond_annual_title": "Titre de la section (annuel)",
   "cond_annual_title_hint": "Ex. : CONDITIONS DE TRAVAIL - NOM - À partir du 1er janvier 2026",
   "cond_annual_title_ph": "CONDITIONS DE TRAVAIL …",
+  "cond_annual_title_ph_ads": "CONDITIONS DE TRAVAIL PUBLICITÉ …",
+  "cond_annual_title_ph_cinema": "CONDITIONS DE TRAVAIL CINÉMA …",
   "box_title_ph": "TITRE (ex. : HEURE SUP A)",
   "box_text_ph": "Texte de la condition…",
   "add_box": "Ajouter un encadré",

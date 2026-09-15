@@ -29,7 +29,7 @@ import { Dia } from "../../src/calc/types";
 import { isFeriadoPT } from "../../src/calc/feriadosPT";
 import { calcProject, isCinema } from "../../src/calc/project";
 import { getPreset } from "../../src/constants/countryPresets";
-import { buildPdfHtml, buildEditableSheetHtml, buildEditableDayRowsHtml, fmtMoney, getStrings } from "../../src/export/buildPdfHtml";
+import { buildPdfHtml, buildEditableSheetHtml, buildEditableDayRowsHtml, fmtMoney, getStrings, weekdayShort } from "../../src/export/buildPdfHtml";
 import { buildCinemaEditableDayRowsHtml, buildCinemaEditableSheetHtml, getCinemaStrings } from "../../src/export/buildCinemaHtml";
 import { formatNumber } from "../../src/format/money";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -615,7 +615,9 @@ export default function ProjectEditor() {
       return {
         // Cinema: folga sem horas mostra 0; folga trabalhada/feriado mostra o dia a dobrar
         sal: fmt(x.salarioDia ?? (pc.formato === "cinema" ? (c.descanso ? 0 : (c.salarioDia ?? salG)) : salG)),
-        ht: minutesToHM(c.HT_min || 0), hd: minutesToHM(c.HD_min || 0),
+        wd: weekdayShort(x.data, i18n.language),
+        // Folga sem horas (cinema): em branco — o descanso está no último dia trabalhado
+        ht: c.descanso ? "" : minutesToHM(c.HT_min || 0), hd: c.descanso ? "" : minutesToHM(c.HD_min || 0),
         // Ajudas efetivas do dia (override do dia ?? global) vêm do motor
         d_ref: fmt(c.ajRef || 0), d_per: fmt(c.ajPer || 0), d_tel: fmt(c.ajTel || 0), d_viat: fmt(c.ajViat || 0), d_mat: fmt(c.ajMat || 0),
         hea_h: dec(c.HEA_min || 0), hea_v: fmt(c.HEA_valor || 0),
@@ -716,7 +718,7 @@ export default function ProjectEditor() {
       const cur = getPreset(regionCode).currency;
       const rowsHtml = pcN.formato === "cinema"
         ? buildCinemaEditableDayRowsHtml(next.dias, pcN.calc as any, next.tabela as any, cur, i18n.language, regionCode)
-        : buildEditableDayRowsHtml(next.dias, pcN.calc as any, next.tabela as any, cur);
+        : buildEditableDayRowsHtml(next.dias, pcN.calc as any, next.tabela as any, cur, i18n.language);
       if (Platform.OS === "web") {
         const msg = { type: "ws:setRows", html: rowsHtml };
         editIframeRef.current?.contentWindow?.postMessage(msg, "*");
@@ -829,6 +831,8 @@ export default function ProjectEditor() {
         c.proximaSemana = { ...(c.proximaSemana ?? {}), data: `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` };
       } else if (f === "proxInicio") {
         c.proximaSemana = { ...(c.proximaSemana ?? {}), inicio: String(value ?? "") };
+      } else if (f === "proxNumero") {
+        c.proximaSemana = { ...(c.proximaSemana ?? {}), numero: oneLine(value) };
       } else if (f === "hrSemanaHoras" || f === "hrSemanaValor") {
         c[f] = numOpt(value);
       } else if (f === "tipoProducao" || f === "semanaDatas") {

@@ -17,6 +17,14 @@ export function defaultCondBoxes(): CondBox[] {
   return condBoxesFor(i18n.language || "pt");
 }
 
+// Modelo das condições da folha de CINEMA (semanal) — as do guia do setor:
+// horário de 11h, recuperação entre semanas, folgas e feriados a dobrar.
+export function defaultCondBoxesCinema(): CondBox[] {
+  const { condBoxesCinemaFor } = require("./condDefaultsCinema") as typeof import("./condDefaultsCinema");
+  const i18n = (require("../i18n/i18n") as typeof import("../i18n/i18n")).default;
+  return condBoxesCinemaFor(i18n.language || "pt");
+}
+
 export type Profile = {
   id: string;
   nome: string;
