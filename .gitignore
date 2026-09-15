@@ -51,3 +51,6 @@ supabase/.temp/
 # preferencias pessoais e estado de sessao ficam de fora.
 .claude/settings.local.json
 .claude/worktrees/
+
+# Copias de seguranca da base de dados (dados de toda a gente — NUNCA no git)
+backups/
