@@ -39,7 +39,7 @@ import {
   renameProject,
 } from "../../src/storage/projects";
 import { MonthYearModal } from "../../src/ui/MonthYearModal";
-import { FormatPickerModal } from "../../src/ui/FormatPickerModal";
+import { FormatPickerModal, type FormatPick } from "../../src/ui/FormatPickerModal";
 import {
   getActiveProfileId,
   listProfiles,
@@ -281,19 +281,21 @@ export default function ProjectsScreen() {
       router.push("/settings/plan");
       return;
     }
-    // Com um formato escolhido no painel, cria logo nesse — não faz sentido
-    // perguntar outra vez o que já está à vista. Em "Todos", pergunta.
-    if (formato !== "todos") { createWithFormat(formato); return; }
+    // Com "Publicidade" escolhida no painel, cria logo — não faz sentido
+    // perguntar o que já está à vista. Em "Cinema" ainda há que escolher a
+    // semana (5 ou 6 dias); em "Todos" pergunta tudo.
+    if (formato === "publicidade") { createWithFormat({ formato: "publicidade" }); return; }
     setFormatPick(true);
   }
 
-  async function createWithFormat(formato: "publicidade" | "cinema") {
+  async function createWithFormat(pick: FormatPick) {
     setFormatPick(false);
+    const { formato, diasSemana } = pick;
     try {
       // O projeto nasce no mês que está a ser visto na lista — assim, fazer em
       // agosto a folha de maio é só navegar para maio e criar. A ver "todos",
       // não há mês em foco: fica o corrente (comportamento de sempre).
-      const id = await createProject({ ...(showAll ? {} : { mes, ano }), formato });
+      const id = await createProject({ ...(showAll ? {} : { mes, ano }), formato, diasSemana });
       router.push(`/projects/${id}`);
     } catch (e) {
       console.error("Erro ao criar projeto", e);
@@ -869,7 +871,7 @@ export default function ProjectsScreen() {
         </Text>
       </TouchableOpacity>
 
-      <FormatPickerModal visible={formatPick} onClose={() => setFormatPick(false)} onPick={createWithFormat} />
+      <FormatPickerModal visible={formatPick} onClose={() => setFormatPick(false)} onPick={createWithFormat} cinemaOnly={formato === "cinema"} />
 
       {/* Mover projeto para outro mês (menu ⋯). O mês do projeto vem do índice
           no formato "MM/AAAA"; se faltar, abre no mês em foco na lista. */}

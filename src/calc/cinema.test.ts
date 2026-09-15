@@ -206,6 +206,75 @@ describe("exemplo 4 (imagem 14): descanso acima das 60h → +02:00, nada a cobra
   });
 });
 
+describe("semana de 6 DIAS: salário ÷ 6, 36h de descanso entre semanas", () => {
+  // 900 €/semana de 6 dias → 150 €/dia → 15 €/h → HE-A 22,50 · HE-B 30 · HR 37,50
+  // Folga/feriado ×2: 300 € · 45 · 60 · 75
+  const t6 = tabela({ diasSemana: 6, descansoSemanal_h: 36 });
+  const SEMANA_6 = [
+    dia("2023-07-17", "08:00", "19:00"), // seg, 11h → sem HE
+    dia("2023-07-18", "08:00", "19:00"),
+    dia("2023-07-19", "08:00", "19:00"),
+    dia("2023-07-20", "08:00", "19:00"),
+    dia("2023-07-21", "08:00", "19:00"),
+    dia("2023-07-22", "08:00", "19:00"), // sáb, dia normal numa semana de 6
+    folga("2023-07-23"),               // dom
+  ];
+
+  it("taxas: 150 €/dia, 15 €/h, 22,50 / 30 / 37,50; folga a dobrar 300 / 45 / 60 / 75", () => {
+    const R = ratesFor(t6);
+    expect(R.salarioDia).toBe(150);
+    expect(R.horaBase).toBe(15);
+    expect(R.rateHEA).toBe(22.5);
+    expect(R.rateHEB).toBe(30);
+    expect(R.rateHR).toBe(37.5);
+    expect(R.rateHR * R.multFolga).toBe(75);
+  });
+
+  it("sáb 19:00 → 24:00 (5h) + dom 24h + seg 07:00 = 36h → exatamente o alvo, nada a cobrar", () => {
+    const calc = calcAllCinema(SEMANA_6, t6, SEG_07);
+    const sem = calcSemanaCinema(SEMANA_6, calc, t6, SEG_07);
+    expect(calc[5].HD_min).toBe(36 * 60); // o sábado é o último dia trabalhado
+    expect(calc[6].HD_min).toBe(0);       // domingo em branco
+    expect(sem.alvo_min).toBe(36 * 60);
+    expect(sem.descanso_min).toBe(36 * 60);
+    expect(sem.saldo_min).toBe(0);
+    expect(sem.HR_valor).toBe(0);
+    // seis dias normais de 11h a 150 € = 900 €
+    const t = calcTotals(calc, { IRS_percent: 0, IVA_percent: 0 }, { extraBruto: sem.HR_valor });
+    expect(t.ValorBruto).toBe(900);
+  });
+
+  it("semana seguinte às 06:00 → 35h → 1h de recuperação × 75 € = 75 €", () => {
+    const prox = { data: "2023-07-24", inicio: "06:00" };
+    const calc = calcAllCinema(SEMANA_6, t6, prox);
+    const sem = calcSemanaCinema(SEMANA_6, calc, t6, prox);
+    expect(sem.saldo_min).toBe(-60);
+    expect(sem.HR_h).toBe(1);
+    expect(sem.rateHR_folga).toBe(75);
+    expect(sem.HR_valor).toBe(75);
+  });
+
+  it("sem descansoSemanal_h na tabela, o alvo vem do nº de dias: 6 → 36h", () => {
+    const t = tabela({ diasSemana: 6, descansoSemanal_h: undefined });
+    const calc = calcAllCinema(SEMANA_6, t, SEG_07);
+    expect(calcSemanaCinema(SEMANA_6, calc, t, SEG_07).alvo_min).toBe(36 * 60);
+  });
+
+  it("domingo trabalhado numa semana de 6 é folga a dobrar: 300 € (11h → sem HE)", () => {
+    const dias = [...SEMANA_6.slice(0, 6), dia("2023-07-23", "08:00", "19:00", { descricao: "FOLGA", folga: true })];
+    const calc = calcAllCinema(dias, t6, SEG_07);
+    expect(calc[6].dobra).toBe(2);
+    expect(calc[6].totalDia).toBe(300);
+    // e o descanso volta a contar dia a dia: sáb 19:00 → dom 08:00 = 13h; dom 19:00 → 24:00 + 7h = 12h → 25h
+    expect(calc[5].HD_min).toBe(13 * 60);
+    expect(calc[6].HD_min).toBe(12 * 60);
+    const sem = calcSemanaCinema(dias, calc, t6, SEG_07);
+    expect(sem.descanso_min).toBe(25 * 60);
+    expect(sem.HR_h).toBe(11); // 36 − 25 = 11h × 75 € = 825 €
+    expect(sem.HR_valor).toBe(825);
+  });
+});
+
 describe("arredondamento: a meia hora sobe para a hora seguinte", () => {
   it("4h30 → 5; 4h15 → 4; 0h29 → 0", () => {
     expect(roundHalfUpHours(270)).toBe(5);

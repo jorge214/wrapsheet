@@ -202,15 +202,16 @@ function mondayFor(mes?: number, ano?: number): dayjs.Dayjs {
   return first.add((8 - first.day()) % 7, "day").startOf("day");
 }
 
-// Seg-sex de trabalho (horário base 08:00-19:00 = 11h, sem extras) + sáb/dom
-// como linhas de FOLGA sem horas. Feriados obrigatórios (só região PT) ficam
+// Dias de trabalho (horário base 08:00-19:00 = 11h, sem extras) + o resto da
+// semana como linhas de FOLGA sem horas: seg-sex + sáb/dom (5 dias) ou
+// seg-sáb + dom (6 dias). Feriados obrigatórios (só região PT) ficam
 // marcados a dobrar logo à nascença.
-export function cinemaWeekDias(monday: dayjs.Dayjs, autoFeriado: boolean): Dia[] {
+export function cinemaWeekDias(monday: dayjs.Dayjs, autoFeriado: boolean, nDias: 5 | 6 = 5): Dia[] {
   const dias: Dia[] = [];
   for (let i = 0; i < 7; i++) {
     const iso = monday.add(i, "day").format("YYYY-MM-DD");
     const base = defaultDia(iso);
-    if (i >= 5) {
+    if (i >= nDias) {
       dias.push({ ...base, descricao: i18n.t("cinema_day_off", { defaultValue: "FOLGA" }), folga: true, inicio: "", fim: "" });
     } else {
       dias.push({ ...base, inicio: "08:00", fim: "19:00", ...(autoFeriado && isFeriadoPT(iso) ? { feriado: true } : {}) });
@@ -465,7 +466,13 @@ export async function saveProject(
  * lista de projetos passa o mês que está a ser visto, para uma folha de maio
  * feita em agosto nascer logo em maio. Sem opts, usa o mês corrente.
  */
-export async function createProject(opts?: { mes?: number; ano?: number; formato?: FormatoFolha }): Promise<string> {
+export async function createProject(opts?: {
+  mes?: number;
+  ano?: number;
+  formato?: FormatoFolha;
+  /** Cinema: dias de trabalho na semana (5 = +2 folgas e 60h de descanso; 6 = +1 folga e 36h) */
+  diasSemana?: 5 | 6;
+}): Promise<string> {
   const id = String(Date.now());
   const today = dayjs().format("YYYY-MM-DD");
 
@@ -475,6 +482,7 @@ export async function createProject(opts?: { mes?: number; ano?: number; formato
   // Cinema: tarifas E condições próprias do perfil (as regras da semana não são
   // as da publicidade). Cada projeto leva as condições do SEU formato.
   const cinema = opts?.formato === "cinema";
+  const nDias: 5 | 6 = opts?.diasSemana === 6 ? 6 : 5;
   const fxC = (active as any)?.fixasCinema || {};
   const condicoesFromProfile = cinema ? "" : (active as any)?.condicoes || "";
   const condTituloFromProfile = (cinema ? (active as any)?.condTituloCinema : (active as any)?.condTitulo) || "";
@@ -517,15 +525,15 @@ export async function createProject(opts?: { mes?: number; ano?: number; formato
   };
 
   if (cinema) {
-    // Cinema: a SEMANA define o dia (÷ 5), a hora vale dia ÷ 10, e as taxas
-    // saem dos MULTIPLICADORES do perfil (não de valores €/h fixos). Sem per
-    // diems. As regras de horas extra (horário base, limiares) são as mesmas.
+    // Cinema: a SEMANA define o dia (÷ 5 ou ÷ 6), a hora vale dia ÷ 10, e as
+    // taxas saem dos MULTIPLICADORES do perfil (não de valores €/h fixos). Sem
+    // per diems. As regras de horas extra (horário base, limiares) são as mesmas.
     Object.assign(tabela, {
       salarioDia: undefined,
       salarioSemana: fxC.salarioSemana ?? 0,
-      diasSemana: 5,
+      diasSemana: nDias,
       horasBase: HORAS_BASE_CINEMA,
-      descansoSemanal_h: DESCANSO_SEMANAL_H[5],
+      descansoSemanal_h: DESCANSO_SEMANAL_H[nDias],
       multFolga: 2,
       multHEA: fxC.multHEA ?? 1.5,
       multHEB: fxC.multHEB ?? 2.0,
@@ -570,7 +578,7 @@ export async function createProject(opts?: { mes?: number; ano?: number; formato
       // Segurança Social: só no cinema, vinda do perfil (editável na folha)
       ...(cinema && fxC.ssPercent != null ? { SS_percent: Number(fxC.ssPercent) || 0 } : {}),
     },
-    dias: cinema ? cinemaWeekDias(monday, regiaoPT) : [defaultDia(today)],
+    dias: cinema ? cinemaWeekDias(monday, regiaoPT, nDias) : [defaultDia(today)],
     notas: "",
     condicoes: condicoesFromProfile,
     condTitulo: condTituloFromProfile,

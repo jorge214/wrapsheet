@@ -134,6 +134,18 @@ describe("folha de cinema — PDF", () => {
     expect(v).toContain("HOLIDAY / DAYS OFF");
   });
 
+  it("semana de 6 dias: rótulo e alvo de 36h vêm da tabela", () => {
+    const p6 = { ...p, tabela: { ...tabela(), diasSemana: 6, descansoSemanal_h: 36 } };
+    const pc6 = calcProject(p6);
+    const h = buildCinemaPdfHtml(
+      p6.perfil as any, p6.projeto as any, p6.dias, pc6.calc, pc6.totais as any, p6.tabela as any,
+      "", "pt", "pt", "EUR", "", "", { fiscal: p6.fiscal, cinema: { semana: pc6.semana!, info: p6.cinema, diasSemana: 6 } } as any
+    );
+    expect(h).toContain("SEMANA 6 DIAS");
+    expect(h).toContain("Para 36H");
+    expect(h).not.toContain("Para 60H");
+  });
+
   it("todas as línguas renderizam", () => {
     for (const loc of ["pt", "pt-BR", "en", "es", "fr", "de", "it", "nl", "pl"]) {
       const h = buildCinemaPdfHtml(p.perfil as any, p.projeto as any, p.dias, pc.calc, pc.totais as any, p.tabela as any, "", loc, "pt", "EUR", "", "", extra as any);
