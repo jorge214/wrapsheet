@@ -543,6 +543,7 @@
   "cinema_ss": "Previdenza sociale",
   "cinema_week6": "Settimana di 6 giorni",
   "cinema_week6_hint": "I campi vuoti usano i valori della settimana di 5 giorni.",
+  "cinema_rest_hours": "Riposo · Ore di riposo tra le settimane (h)",
   "cinema_rules_title": "Cinema · Regole degli straordinari",
   "cinema_rules_hint": "Da quale ora si addebitano straordinari e/o recupero. Il valore predefinito è come nel PDF. Le regole possono differire dalla pubblicità.",
   "toast_moved_month": "✓ Progetto spostato",

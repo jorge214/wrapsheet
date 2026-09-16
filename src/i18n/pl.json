@@ -543,6 +543,7 @@
   "cinema_ss": "Ubezpieczenie społeczne",
   "cinema_week6": "Tydzień 6-dniowy",
   "cinema_week6_hint": "Puste pola używają wartości tygodnia 5-dniowego.",
+  "cinema_rest_hours": "Dzień wolny · Godziny odpoczynku między tygodniami (h)",
   "cinema_rules_title": "Film · Reguły nadgodzin",
   "cinema_rules_hint": "Od której godziny naliczane są nadgodziny i/lub godziny odpoczynku. Domyślnie jak w PDF. Reguły mogą różnić się od reklamy.",
   "toast_moved_month": "✓ Projekt przeniesiony",

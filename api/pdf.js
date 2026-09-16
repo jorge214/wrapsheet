@@ -73,9 +73,11 @@ async function getBrowser() {
     browserPromise = null;
   }
   browserPromise = (async () => {
-    const puppeteer = require("puppeteer-core");
+    // import() e não require(): na Vercel o puppeteer-core só carrega como
+    // módulo ES ("require() of ES Module … not supported").
+    const puppeteer = (await import("puppeteer-core")).default;
     if (NA_VERCEL) {
-      const chromium = require("@sparticuz/chromium-min");
+      const chromium = (await import("@sparticuz/chromium-min")).default;
       // O binário do pacote é o chrome-headless-shell: tem de arrancar em modo
       // "shell" (o "headless: true" novo do puppeteer manda flags que ele não tem).
       return puppeteer.launch({

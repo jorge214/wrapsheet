@@ -543,6 +543,7 @@
   "cinema_ss": "Previdência Social",
   "cinema_week6": "Semana de 6 dias",
   "cinema_week6_hint": "Campos vazios usam os valores da semana de 5 dias.",
+  "cinema_rest_hours": "Folga · Horas de descanso entre semanas (h)",
   "cinema_rules_title": "Cinema · Regras de horas extra",
   "cinema_rules_hint": "A partir de que hora se cobra horas extra e/ou de recuperação. A predefinição é igual ao PDF. As regras podem não ser as mesmas da publicidade.",
   "toast_moved_month": "✓ Projeto movido de mês",

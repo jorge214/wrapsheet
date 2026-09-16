@@ -646,6 +646,8 @@ export default function ProjectEditor() {
       const mf = R.multFolga;
       const w = pc.semana;
       Object.assign(g, {
+        // Dia da semana da data de início da semana seguinte (linha B)
+        w_wd: weekdayShort((p as any).cinema?.proximaSemana?.data, i18n.language),
         g_sem: dec2(p.tabela.salarioSemana),
         g_fsal: fmt(salG * mf), g_fhea: fmt(R.rateHEA * mf), g_fheb: fmt(R.rateHEB * mf), g_fhr: fmt(R.rateHR * mf),
         bss: fmt(tot.SS_valor ?? 0),

@@ -543,6 +543,7 @@
   "cinema_ss": "Sociale zekerheid",
   "cinema_week6": "Week van 6 dagen",
   "cinema_week6_hint": "Lege velden gebruiken de waarden van de week van 5 dagen.",
+  "cinema_rest_hours": "Vrije dag · Rusturen tussen weken (u)",
   "cinema_rules_title": "Film · Overurenregels",
   "cinema_rules_hint": "Vanaf welk uur overuren en/of hersteluren worden gerekend. Standaard volgens de PDF. De regels kunnen afwijken van reclame.",
   "toast_moved_month": "✓ Project verplaatst",

@@ -949,7 +949,8 @@ export function buildPdfHtml(
   // pouco para a esquerda e dá espaço p/ alargar DATA/SALÁRIO SEM empurrar a
   // tabela para a direita (não transborda -> não encolhe -> condições intactas).
   // Sem margem negativa (isso cortava no WebKit).
-  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "14mm";
+  // Margens mínimas (pai do Jorge, 16/09): a folha ocupa a página toda
+  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "6mm";
 
   // As condições nunca partem a meio: ou cabem a seguir à tabela, ou saltam
   // inteiras para a folha de baixo. Vai no HTML partilhado, por isso aplica-se
@@ -1087,7 +1088,7 @@ export function buildPdfHtml(
         .days th { font-size: 11px; }
         .days td { font-size: 11px; }
         /* Dia da semana por cima da data ("Seg" / "14/09/2026") — em bloco, para não alargar a coluna */
-        .days .wd { display: block; font-size: 9px; line-height: 1.1; color: #666; font-weight: 700; }
+        .days .wd { display: block; font-size: inherit; line-height: 1.1; color: #666; font-weight: 700; }
         .days .mini { font-size: 10px; font-weight: 700; }
         /* Coluna "C" (horario continuo): marca manual, centrada e a laranja. */
         .days th.cmark, .days td.cCont { text-align: center; padding-left: 3px; padding-right: 3px; }
@@ -1953,7 +1954,7 @@ export function buildEditableSheetHtml(
         .days th { font-size: 11px; }
         .days td { font-size: 11px; }
         /* Dia da semana por cima da data ("Seg" / "14/09/2026") — em bloco, para não alargar a coluna */
-        .days .wd { display: block; font-size: 9px; line-height: 1.1; color: #666; font-weight: 700; }
+        .days .wd { display: block; font-size: inherit; line-height: 1.1; color: #666; font-weight: 700; }
         .days .mini { font-size: 10px; font-weight: 700; }
         .left { text-align: left; }
         .right { text-align: right; }

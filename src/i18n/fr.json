@@ -543,6 +543,7 @@
   "cinema_ss": "Sécurité sociale",
   "cinema_week6": "Semaine de 6 jours",
   "cinema_week6_hint": "Les champs vides utilisent les valeurs de la semaine de 5 jours.",
+  "cinema_rest_hours": "Repos · Heures de repos entre les semaines (h)",
   "cinema_rules_title": "Cinéma · Règles des heures supplémentaires",
   "cinema_rules_hint": "À partir de quelle heure les heures supplémentaires et/ou de récupération sont facturées. La valeur par défaut est celle du PDF. Les règles peuvent différer de la publicité.",
   "toast_moved_month": "✓ Projet déplacé",

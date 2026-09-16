@@ -325,17 +325,19 @@ function render(
   // dias — a descrição ocupa as 4 colunas do horário e o resto da largura é
   // uma célula sem bordas (notas do pai do Jorge, 16/09).
   const nwVoid = `<td class="void" colspan="13"></td>`;
+  // Dia da semana por cima da data, como nas linhas dos dias (pai, 16/09)
+  const wdProx = escapeHtml(weekdayShort(info.proximaSemana?.data, locale));
   const nextWeekRow = editable
     ? `<tr>
           <td class="vWeekNo">${edTi("cinema", "proxNumero", proxNumero)}</td>
-          <td class="dateCell"><input class="ei date" type="text" inputmode="numeric" autocomplete="off" size="10" data-k="cinema" data-f="proxData" value="${escapeHtml(proxData)}"></td>
+          <td class="dateCell"><span class="wd" data-c="w_wd">${wdProx}</span><input class="ei date" type="text" inputmode="numeric" autocomplete="off" size="10" data-k="cinema" data-f="proxData" value="${escapeHtml(proxData)}"></td>
           <td class="timeCell"><input class="ei time" type="text" inputmode="numeric" autocomplete="off" data-k="cinema" data-f="proxInicio" value="${escapeHtml(proxInicio)}"></td>
           <td class="nwDesc" colspan="4">${escapeHtml(s.nextWeekStart)}</td>
           ${nwVoid}
         </tr>`
     : `<tr>
           <td class="vWeekNo">${escapeHtml(proxNumero)}</td>
-          <td class="cData">${escapeHtml(proxData)}</td>
+          <td class="cData"><span class="wd">${wdProx}</span>${escapeHtml(proxData)}</td>
           <td class="cIni">${escapeHtml(proxInicio)}</td>
           <td class="nwDesc" colspan="4">${escapeHtml(s.nextWeekStart)}</td>
           ${nwVoid}
@@ -350,7 +352,8 @@ function render(
 
   const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
   const pageWidthPx = extra?.orientation === "portrait" ? 794 : 1587;
-  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "14mm";
+  // Margens mínimas (pai do Jorge, 16/09): a folha ocupa a página toda
+  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "6mm";
 
   const titleBar = editable
     ? edTi("projeto", "folhaTitulo", projeto.folhaTitulo || "", `placeholder="${escapeHtml(s.title)}"`)
@@ -401,7 +404,9 @@ function render(
         .days th { font-size: 11px; }
         .days td { font-size: 11px; }
         /* Dia da semana por cima da data ("Seg" / "14/09/2026") — em bloco, para não alargar a coluna */
-        .days .wd { display: block; font-size: 9px; line-height: 1.1; color: #666; font-weight: 700; }
+        /* Dia da semana por cima da data: o mesmo tamanho do texto da célula
+           ("Filmagem"), pedido do pai do Jorge (16/09) */
+        .days .wd, table.nextWeek .wd { display: block; font-size: inherit; line-height: 1.1; color: #666; font-weight: 700; }
         .days .mini { font-size: 10px; font-weight: 700; }
         .days th.cmark, .days td.cCont { text-align: center; padding-left: 3px; padding-right: 3px; }
         .days td.cCont { color: #c65a00; font-weight: 800; text-transform: uppercase; }
@@ -521,7 +526,7 @@ function render(
           @page { size: ${pageCss}; margin: ${pageMargin}; }
           body { padding: 0; }
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } table.days { table-layout: fixed; width: 100%; } .days th, .days td { min-width: 0 !important; word-break: break-word; } .days th { font-size: 7.5px; } .days td { font-size: 9px; } .days .wd { font-size: 7.5px; } .days th, .days td { padding: 3px 1px; } col.col-desc { width: 7%; } col.col-data { width: 8%; } col.col-sal { width: 6%; } col.col-cont { width: 1.5%; } col.col-ini { width: 4%; } col.col-ref { width: 4.5%; } col.col-fim { width: 4%; } col.col-ht { width: 4.5%; } col.col-hd { width: 5%; } col.col-pd { width: 4.6%; } col.col-ott { width: 3.3%; } col.col-otv { width: 5.4%; } col.col-tot { width: 6.5%; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; } table.weekRest th, table.weekRest td { font-size: 9px; padding: 3px 5px; }" + (extra?.ipadPdf ? " table.days, table.days th, table.days td { min-width: 0 !important; }" : "")
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } table.days { table-layout: fixed; width: 100%; } .days th, .days td { min-width: 0 !important; word-break: break-word; } .days th { font-size: 7.5px; } .days td { font-size: 9px; } .days th, .days td { padding: 3px 1px; } col.col-desc { width: 7%; } col.col-data { width: 8%; } col.col-sal { width: 6%; } col.col-cont { width: 1.5%; } col.col-ini { width: 4%; } col.col-ref { width: 4.5%; } col.col-fim { width: 4%; } col.col-ht { width: 4.5%; } col.col-hd { width: 5%; } col.col-pd { width: 4.6%; } col.col-ott { width: 3.3%; } col.col-otv { width: 5.4%; } col.col-tot { width: 6.5%; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; } table.weekRest th, table.weekRest td { font-size: 9px; padding: 3px 5px; }" + (extra?.ipadPdf ? " table.days, table.days th, table.days td { min-width: 0 !important; }" : "")
             : "table.days { table-layout: fixed; width: 100%; } .days th, .days td { min-width: 0 !important; word-break: break-word; padding: 3px 4px; } .days th { font-size: 9px; padding-left: 2px; padding-right: 2px; letter-spacing: -0.2px; } col.col-desc { width: 6%; } col.col-data { width: 7%; } col.col-sal { width: 5.5%; } col.col-cont { width: 2%; } col.col-ini { width: 4%; } col.col-ref { width: 4.6%; } col.col-fim { width: 4%; } col.col-ht { width: 5.3%; } col.col-hd { width: 5.3%; } col.col-pd { width: 4.6%; } col.col-ott { width: 3.8%; } col.col-otv { width: 5.6%; } col.col-tot { width: 6%; } .condMain { font-size: 11px; padding: 4px 8px; } .condT { font-size: 9px; padding: 4px 5px; } .condB { font-size: 10px; line-height: 1.3; padding: 4px 7px; } .conditionsBody { font-size: 10px; line-height: 1.3; padding: 6px 8px; } .condRow { grid-template-columns: 220px minmax(0, 1fr); }"}
         }
         `}

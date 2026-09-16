@@ -491,7 +491,11 @@ export async function createProject(opts?: {
   // Tarifas do cinema: a semana de 6 dias tem os seus valores no perfil e,
   // onde estiverem vazios, herda os da semana de 5.
   const fxC5 = (active as any)?.fixasCinema || {};
-  const fxC = nDias === 6 ? { ...fxC5, ...semVazios((active as any)?.fixasCinema6) } : fxC5;
+  const fxC6 = (active as any)?.fixasCinema6 || {};
+  const fxC = nDias === 6 ? { ...fxC5, ...semVazios(fxC6) } : fxC5;
+  // Horas de descanso entre semanas: NÃO herdam da semana de 5 (60h) para a de
+  // 6 (36h) — cada uma tem a sua predefinição do guia.
+  const descansoPerfil = nDias === 6 ? fxC6.descansoSemanal_h : fxC5.descansoSemanal_h;
   // Regras de horas extra próprias do cinema (predefinição = PDF)
   const regrasC = (active as any)?.regrasCinema || {};
   const condicoesFromProfile = cinema ? "" : (active as any)?.condicoes || "";
@@ -544,7 +548,7 @@ export async function createProject(opts?: {
       salarioSemana: fxC.salarioSemana ?? 0,
       diasSemana: nDias,
       horasBase: regrasC.hDia != null ? Math.max(1, Number(regrasC.hDia) - 1) : HORAS_BASE_CINEMA,
-      descansoSemanal_h: DESCANSO_SEMANAL_H[nDias],
+      descansoSemanal_h: descansoPerfil != null && descansoPerfil !== "" ? Number(descansoPerfil) : DESCANSO_SEMANAL_H[nDias],
       multFolga: 2,
       multHEA: fxC.multHEA ?? 1.5,
       multHEB: fxC.multHEB ?? 2.0,

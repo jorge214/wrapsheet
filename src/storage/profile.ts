@@ -83,6 +83,9 @@ export type Profile = {
     viatura?: number;
     material?: number;
     ssPercent?: number;     // Segurança Social % (retida como o IRS)
+    // FOLGA · horas de descanso entre semanas (o alvo da folha: "Para 60H").
+    // Vazio = 60 na semana de 5 dias, 36 na de 6. Pedido do pai do Jorge (16/09).
+    descansoSemanal_h?: number;
   };
   // Semana de 6 DIAS: os mesmos valores, para os projetos de cinema criados
   // com 6 dias. Campo vazio = usa-se o da semana de 5 dias.

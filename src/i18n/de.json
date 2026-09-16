@@ -543,6 +543,7 @@
   "cinema_ss": "Sozialversicherung",
   "cinema_week6": "6-Tage-Woche",
   "cinema_week6_hint": "Leere Felder verwenden die Werte der 5-Tage-Woche.",
+  "cinema_rest_hours": "Freier Tag · Ruhestunden zwischen den Wochen (Std.)",
   "cinema_rules_title": "Film · Überstundenregeln",
   "cinema_rules_hint": "Ab welcher Stunde Überstunden und/oder Erholungsstunden berechnet werden. Die Vorgabe entspricht dem PDF. Die Regeln können von der Werbung abweichen.",
   "toast_moved_month": "✓ Projekt verschoben",

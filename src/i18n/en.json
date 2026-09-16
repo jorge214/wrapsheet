@@ -545,6 +545,7 @@
   "cinema_ss": "Social security",
   "cinema_week6": "6-day week",
   "cinema_week6_hint": "Empty fields use the 5-day week values.",
+  "cinema_rest_hours": "Day off · Rest hours between weeks (h)",
   "cinema_rules_title": "Film · Overtime rules",
   "cinema_rules_hint": "From which hour overtime and/or recovery hours are charged. The default is the same as the PDF. The rules may differ from advertising.",
   "toast_moved_month": "✓ Project moved",
