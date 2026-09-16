@@ -742,12 +742,15 @@ function render(
         // Linha B alinhada às colunas da tabela dos dias também no ecrã: aqui a
         // tabela dos dias é de largura automática, por isso copiam-se as
         // larguras medidas das 7 primeiras colunas (no PDF é o colgroup que alinha).
+        // Mede-se em px de CSS: o editor aplica "zoom" ao <html> (na web) e os
+        // rects vêm escalados — dividir pelo zoom, senão a linha B sai a metade.
         var syncTimer = null;
         function syncNextWeek(){
           var d = document.querySelector('table.days'), n = document.querySelector('table.nextWeek'); if(!d || !n) return;
           var ths = d.querySelectorAll('tr.subhead th'), cols = n.querySelectorAll('col'); if(ths.length < 7 || cols.length < 7) return;
-          n.style.width = d.getBoundingClientRect().width + 'px';
-          for(var i = 0; i < 7; i++){ cols[i].style.width = ths[i].getBoundingClientRect().width + 'px'; }
+          var z = parseFloat(document.documentElement.style.zoom) || 1;
+          n.style.width = (d.getBoundingClientRect().width / z) + 'px';
+          for(var i = 0; i < 7; i++){ cols[i].style.width = (ths[i].getBoundingClientRect().width / z) + 'px'; }
         }
         function syncSoon(){ if(syncTimer) return; syncTimer = setTimeout(function(){ syncTimer = null; syncNextWeek(); }, 50); }
         syncNextWeek(); window.addEventListener('load', syncNextWeek); window.addEventListener('resize', syncSoon);

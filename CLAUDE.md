@@ -92,6 +92,10 @@ O hook `Stop` corre o `verify.mjs` sozinho, mas o hábito é este:
 2. `npx expo export -p web` — se mexeste em algo que a web usa
 3. Mexeste numa folha? Gera uma amostra HTML e **olha para ela**. Os testes
    provam os números, não provam que a folha está bonita.
+   Para olhar sem browser aberto: `node scripts/shot.js <url-ou-file://> out.png 390 844`
+   emula um iPhone (1024 1366 = iPad; último argumento `1` = página inteira) com o
+   Edge em headless e o protocolo DevTools. O `--window-size` do headless não
+   desce abaixo de ~480 px, por isso capturas "de iPhone" sem emulação mentem.
 
 Os hooks do Claude Code só disparam quando é o Claude a editar. Para as
 edições à mão há o `pre-commit` do git, instalado sozinho a cada `npm install`
