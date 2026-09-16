@@ -76,6 +76,15 @@ pelo formato do projeto. Nunca decidir o formato fora dele.
 morto). Comunica com a app por mensagens `ws:*` (`ws:edit`, `ws:addDay`,
 `ws:calc`…) tratadas em `handleEditMessage`, em `app/projects/[id].tsx`.
 
+**PDF na web** — `src/export/pdf.web.ts` NÃO manda o browser imprimir: envia o
+HTML da folha para `api/pdf.js` (função serverless da Vercel, Chromium via
+`@sparticuz/chromium-min` + `puppeteer-core`, fonte Roboto embutida como "Segoe
+UI") e recebe um PDF a sério, igual em Chrome, Firefox, Safari e PWA. Só com
+sessão Supabase (Bearer). Se a função falhar, cai na impressão do browser (só
+fiável no Chrome). Testar sem publicar: `node scripts/pdf-local.mjs folha.html out.pdf`
+(usa o Edge local; compara o nº de páginas com o `msedge --print-to-pdf`). A
+versão do pack de Chromium em `api/pdf.js` tem de ser a do `package.json`.
+
 **Armazenamento** (`src/storage/`) — tudo em AsyncStorage, sincronizado para o
 Supabase como blob JSON. `projects.ts` é o ficheiro central.
 
