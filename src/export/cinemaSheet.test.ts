@@ -114,7 +114,11 @@ describe("folha de cinema — PDF", () => {
     // linha B com o nº da semana seguinte, e a nota "não se cobra" fora da folha.
     expect(pdf).toContain('<span class="wd">Seg</span>');
     expect(pdf).toContain("background: #1f5fa8");
-    expect(pdf).toContain("Semana seguinte n.º");
+    // 16/09: a linha B é SEMANA NÚMERO · DATA · INÍCIO · DESCRIÇÃO, alinhada às
+    // colunas da tabela dos dias (mesmo colgroup; a descrição ocupa as 4 do horário).
+    expect(pdf).toContain("SEMANA NÚMERO");
+    expect(pdf).toContain('<td class="nwDesc" colspan="4">Início da semana seguinte</td>');
+    expect((pdf.match(/<colgroup>/g) || []).length).toBe(2);
     expect(pdf).not.toContain("não se cobra");
     expect(pdf).toContain("Para 60H");
     expect(pdf).toContain("@page { size: A3 landscape");

@@ -84,6 +84,17 @@ export type Profile = {
     material?: number;
     ssPercent?: number;     // Segurança Social % (retida como o IRS)
   };
+  // Semana de 6 DIAS: os mesmos valores, para os projetos de cinema criados
+  // com 6 dias. Campo vazio = usa-se o da semana de 5 dias.
+  fixasCinema6?: Profile["fixasCinema"];
+  // Regras de horas extra do CINEMA — podem não ser as da publicidade (notas
+  // do pai do Jorge, 16/09). Vazio = predefinição do PDF (11 / 12 / 19 / 10).
+  regrasCinema?: {
+    hDia?: number;
+    heaFromHour?: number;
+    hebFromHour?: number;
+    hrRestBelow?: number;
+  };
   /** Carimbo da última edição — o sync usa-o para decidir quem ganha */
   updatedAt?: string;
 };

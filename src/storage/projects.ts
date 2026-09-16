@@ -466,6 +466,11 @@ export async function saveProject(
  * lista de projetos passa o mês que está a ser visto, para uma folha de maio
  * feita em agosto nascer logo em maio. Sem opts, usa o mês corrente.
  */
+/** Só os campos preenchidos (para uma tabela de valores herdar de outra) */
+function semVazios<T extends object>(o: T | undefined | null): Partial<T> {
+  return Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v != null && v !== "")) as Partial<T>;
+}
+
 export async function createProject(opts?: {
   mes?: number;
   ano?: number;
@@ -483,7 +488,12 @@ export async function createProject(opts?: {
   // as da publicidade). Cada projeto leva as condições do SEU formato.
   const cinema = opts?.formato === "cinema";
   const nDias: 5 | 6 = opts?.diasSemana === 6 ? 6 : 5;
-  const fxC = (active as any)?.fixasCinema || {};
+  // Tarifas do cinema: a semana de 6 dias tem os seus valores no perfil e,
+  // onde estiverem vazios, herda os da semana de 5.
+  const fxC5 = (active as any)?.fixasCinema || {};
+  const fxC = nDias === 6 ? { ...fxC5, ...semVazios((active as any)?.fixasCinema6) } : fxC5;
+  // Regras de horas extra próprias do cinema (predefinição = PDF)
+  const regrasC = (active as any)?.regrasCinema || {};
   const condicoesFromProfile = cinema ? "" : (active as any)?.condicoes || "";
   const condTituloFromProfile = (cinema ? (active as any)?.condTituloCinema : (active as any)?.condTitulo) || "";
   const condBoxesFromProfile = cinema ? (active as any)?.condBoxesCinema : (active as any)?.condBoxes;
@@ -525,14 +535,15 @@ export async function createProject(opts?: {
   };
 
   if (cinema) {
-    // Cinema: a SEMANA define o dia (÷ 5 ou ÷ 6), a hora vale dia ÷ 10, e as
-    // taxas saem dos MULTIPLICADORES do perfil (não de valores €/h fixos). Sem
-    // per diems. As regras de horas extra (horário base, limiares) são as mesmas.
+    // Cinema: a SEMANA define o dia (÷ 5 ou ÷ 6), a hora vale dia ÷ horas de
+    // trabalho diárias sem a de refeição (horário base 11 → 10), e as taxas
+    // saem dos MULTIPLICADORES do perfil (não de valores €/h fixos). Sem per
+    // diems. As regras de horas extra são as do cinema, não as da publicidade.
     Object.assign(tabela, {
       salarioDia: undefined,
       salarioSemana: fxC.salarioSemana ?? 0,
       diasSemana: nDias,
-      horasBase: HORAS_BASE_CINEMA,
+      horasBase: regrasC.hDia != null ? Math.max(1, Number(regrasC.hDia) - 1) : HORAS_BASE_CINEMA,
       descansoSemanal_h: DESCANSO_SEMANAL_H[nDias],
       multFolga: 2,
       multHEA: fxC.multHEA ?? 1.5,
@@ -541,7 +552,10 @@ export async function createProject(opts?: {
       rateHEA: undefined,
       rateHEB: undefined,
       rateHR: undefined,
-      limiar_HR: fixas.hrRestBelow ?? 10,
+      H_dia: regrasC.hDia ?? 11,
+      limiar_A: (regrasC.heaFromHour ?? 12) - 1,
+      limiar_B: (regrasC.hebFromHour ?? 19) - 1,
+      limiar_HR: regrasC.hrRestBelow ?? 10,
       ajudas: {
         refeicao: fxC.refeicao ?? 0,
         telefone: fxC.telefone ?? 0,
@@ -807,7 +821,11 @@ export async function duplicateProjectToProfile(
   // multiplicadores (aplicar as de publicidade a uma folha de cinema dava
   // valores errados sem dar erro).
   const ehCinema = original.formato === "cinema";
-  const fixas: any = (ehCinema ? (target as any)?.fixasCinema : (target as any)?.fixas) || {};
+  const fixas: any = ehCinema
+    ? original.tabela.diasSemana === 6
+      ? { ...((target as any)?.fixasCinema || {}), ...semVazios((target as any)?.fixasCinema6) }
+      : (target as any)?.fixasCinema || {}
+    : (target as any)?.fixas || {};
   const tabela: Tabela = {
     ...original.tabela,
     ...(ehCinema
