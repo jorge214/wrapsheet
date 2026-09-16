@@ -76,10 +76,12 @@ async function getBrowser() {
     const puppeteer = require("puppeteer-core");
     if (NA_VERCEL) {
       const chromium = require("@sparticuz/chromium-min");
+      // O binário do pacote é o chrome-headless-shell: tem de arrancar em modo
+      // "shell" (o "headless: true" novo do puppeteer manda flags que ele não tem).
       return puppeteer.launch({
-        args: chromium.args,
+        args: await puppeteer.defaultArgs({ args: chromium.args, headless: "shell" }),
         executablePath: await chromium.executablePath(CHROMIUM_PACK),
-        headless: true,
+        headless: "shell",
       });
     }
     const local = [
