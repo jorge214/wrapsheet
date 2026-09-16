@@ -171,7 +171,9 @@ module.exports = async (req, res) => {
   } catch (e) {
     console.error("[api/pdf]", e);
     browserPromise = null; // próxima chamada arranca um browser novo
-    res.status(500).json({ error: "render" });
+    // A mensagem (sem stack) vai na resposta: os logs da Vercel não se leem
+    // pela API e sem isto um 500 é mudo.
+    res.status(500).json({ error: "render", detail: String((e && e.message) || e).slice(0, 300) });
   }
 };
 
