@@ -85,6 +85,13 @@ fiável no Chrome). Testar sem publicar: `node scripts/pdf-local.mjs folha.html 
 (usa o Edge local; compara o nº de páginas com o `msedge --print-to-pdf`). A
 versão do pack de Chromium em `api/pdf.js` tem de ser a do `package.json`.
 
+A folha VERTICAL de publicidade não cabe na largura do A4: a tabela dos dias
+pede 985 px e a página dá 748 — quem a faz caber é o **encolhimento automático**
+do motor (~25%), e é isso que também a faz caber numa página só. Daí os motores
+discordarem (o iPad precisou do frame 794×1123 por causa disto). Medir antes de
+mexer: `node scripts/pdf-extents.mjs out.pdf` dá folha, mancha e margens reais de
+cada página; um script com Chromium + Roboto à largura útil mostra se transborda.
+
 **Armazenamento** (`src/storage/`) — tudo em AsyncStorage, sincronizado para o
 Supabase como blob JSON. `projects.ts` é o ficheiro central.
 
