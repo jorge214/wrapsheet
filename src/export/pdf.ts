@@ -2,7 +2,11 @@
 // Native delivery (iOS / Android) via expo-print + expo-sharing.
 // Metro bundler uses pdf.web.ts on web instead of this file.
 
-import * as FileSystem from "expo-file-system";
+// "/legacy": no SDK 54 o export principal do expo-file-system deixou de ter
+// cacheDirectory/copyAsync. Sem isto, o "if (cacheDirectory)" abaixo era
+// sempre falso, a cópia com nome nunca corria, e o PDF seguia para o email/
+// WhatsApp com o nome aleatório da impressão (relatado pela sócia do Jorge, 19/09).
+import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
@@ -87,15 +91,19 @@ export async function exportPDF(
       `Folha_${projeto.filme || "Projeto"}_${mesNome}_${projeto.ano}`
     );
 
-    const fsAny = FileSystem as any;
-    if (fsAny.cacheDirectory) {
-      const dest = `${fsAny.cacheDirectory}${baseName}.pdf`;
+    // Copia para um ficheiro com o nome certo — é esse nome que o email, o
+    // WhatsApp e o "Guardar em Ficheiros" mostram.
+    if (FileSystem.cacheDirectory) {
+      const dest = `${FileSystem.cacheDirectory}${baseName}.pdf`;
       try {
+        await FileSystem.deleteAsync(dest, { idempotent: true });
         await FileSystem.copyAsync({ from: outUri, to: dest });
         outUri = dest;
       } catch (e) {
         console.warn("PDF copyAsync falhou, a usar uri original:", e);
       }
+    } else {
+      console.warn("PDF: sem cacheDirectory, o ficheiro segue com o nome da impressão");
     }
 
     if (await Sharing.isAvailableAsync()) {
