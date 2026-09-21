@@ -5,9 +5,27 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/projects/:id", "destination": "/projects/[id].html" },
-    { "source": "/profiles/:id", "destination": "/profiles/[id].html" },
-    { "source": "/privacy/en", "destination": "/privacy.html" },
-    { "source": "/terms/en", "destination": "/terms.html" }
-  ]
+    {
+      "source": "/projects/:id",
+      "destination": "/projects/[id].html"
+    },
+    {
+      "source": "/profiles/:id",
+      "destination": "/profiles/[id].html"
+    },
+    {
+      "source": "/privacy/en",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/terms/en",
+      "destination": "/terms.html"
+    }
+  ],
+  "functions": {
+    "api/pdf.js": {
+      "maxDuration": 60,
+      "includeFiles": "api/fonts/**"
+    }
+  }
 }
