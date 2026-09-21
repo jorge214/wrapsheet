@@ -354,6 +354,14 @@ function render(
   const pageWidthPx = extra?.orientation === "portrait" ? 794 : 1587;
   // Margens mínimas (pai do Jorge, 16/09): a folha ocupa a página toda
   const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "6mm";
+  // VERTICAL: a tabela dos dias e a linha B levam 985 px de largura FIXA — mais
+  // do que os 748 px úteis do A4 — de propósito. É o mesmo que a folha de
+  // publicidade faz por natureza (a tabela dela mede 985 px de conteúdo): o
+  // motor alarga a página a essa largura e encolhe tudo ~25% para caber, de
+  // forma uniforme, em Blink e WebKit. Com 100% (748 px) nada encolhia e 20
+  // colunas não tinham largura para as palavras dos cabeçalhos ("DESCRIÇÃ O",
+  // "INÍCI O" — visto no PC a 21/09) e os totais caíam para a 2.ª página.
+  // As duas tabelas com a MESMA largura fixa ficam alinhadas sem script.
 
   const titleBar = editable
     ? edTi("projeto", "folhaTitulo", projeto.folhaTitulo || "", `placeholder="${escapeHtml(s.title)}"`)
@@ -526,7 +534,7 @@ function render(
           @page { size: ${pageCss}; margin: ${pageMargin}; }
           body { padding: 0; }
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } table.days { table-layout: fixed; width: 100%; } .days th, .days td { min-width: 0 !important; word-break: break-word; } .days th { font-size: 7.5px; } .days td { font-size: 9px; } .days th, .days td { padding: 3px 1px; } col.col-desc { width: 7%; } col.col-data { width: 8%; } col.col-sal { width: 6%; } col.col-cont { width: 1.5%; } col.col-ini { width: 4%; } col.col-ref { width: 4.5%; } col.col-fim { width: 4%; } col.col-ht { width: 4.5%; } col.col-hd { width: 5%; } col.col-pd { width: 4.6%; } col.col-ott { width: 3.3%; } col.col-otv { width: 5.4%; } col.col-tot { width: 6.5%; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; } table.weekRest th, table.weekRest td { font-size: 9px; padding: 3px 5px; }" + (extra?.ipadPdf ? " table.days, table.days th, table.days td { min-width: 0 !important; }" : "")
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } table.days, table.nextWeek { table-layout: fixed; width: 985px; } .days th, .days td { min-width: 0 !important; } .days th { font-size: 7.5px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 1.1px; } col.col-desc { width: 6.2%; } col.col-data { width: 7.4%; } col.col-sal { width: 6%; } col.col-cont { width: 1.5%; } col.col-ini { width: 4%; } col.col-ref { width: 5%; } col.col-fim { width: 4%; } col.col-ht { width: 5.6%; } col.col-hd { width: 5.6%; } col.col-pd { width: 4.6%; } col.col-ott { width: 3.2%; } col.col-otv { width: 5.3%; } col.col-tot { width: 6.1%; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; } table.weekRest th, table.weekRest td { font-size: 9px; padding: 3px 5px; }" + (extra?.ipadPdf ? " table.days, table.days th, table.days td { min-width: 0 !important; }" : "")
             : "table.days { table-layout: fixed; width: 100%; } .days th, .days td { min-width: 0 !important; word-break: break-word; padding: 3px 4px; } .days th { font-size: 9px; padding-left: 2px; padding-right: 2px; letter-spacing: -0.2px; } col.col-desc { width: 6%; } col.col-data { width: 7%; } col.col-sal { width: 5.5%; } col.col-cont { width: 2%; } col.col-ini { width: 4%; } col.col-ref { width: 4.6%; } col.col-fim { width: 4%; } col.col-ht { width: 5.3%; } col.col-hd { width: 5.3%; } col.col-pd { width: 4.6%; } col.col-ott { width: 3.8%; } col.col-otv { width: 5.6%; } col.col-tot { width: 6%; } .condMain { font-size: 11px; padding: 4px 8px; } .condT { font-size: 9px; padding: 4px 5px; } .condB { font-size: 10px; line-height: 1.3; padding: 4px 7px; } .conditionsBody { font-size: 10px; line-height: 1.3; padding: 6px 8px; } .condRow { grid-template-columns: 220px minmax(0, 1fr); }"}
         }
         `}
