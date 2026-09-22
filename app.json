@@ -3,7 +3,7 @@
     "name": "WrapSheet",
     "slug": "wrapsheet",
     "owner": "costa1904",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "wrapsheet",
@@ -68,9 +68,7 @@
         "projectId": "6add5ccd-c99b-4660-a1eb-84246ef113c0"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.1.0",
     "updates": {
       "url": "https://u.expo.dev/6add5ccd-c99b-4660-a1eb-84246ef113c0"
     }

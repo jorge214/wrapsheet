@@ -100,6 +100,15 @@ nunca mais do que 10). O direito vive na tabela `entitlements` do Supabase;
 RevenueCat (iOS) e Stripe (web) escrevem lá os dois, e `getMaxProfiles` lê de
 lá em qualquer plataforma.
 
+**Versão da app vs runtime da OTA.** `app.json` tem `version` (o que a App
+Store/Play mostram; a Apple exige subir a cada envio depois de uma versão
+aprovada) e `runtimeVersion` FIXO em `"1.1.0"` — é a etiqueta que decide que
+builds recebem cada `eas update`. A build da App Store 1.1.0 nasceu com a
+política `appVersion`, logo o seu runtime é a string `1.1.0`; manter esse valor
+é o que permite uma OTA chegar-lhe. Só se muda o `runtimeVersion` quando o
+código NATIVO muda (dependência nativa nova, SDK novo) — e nesse dia a OTA
+deixa de chegar às builds antigas, que só se atualizam pela loja.
+
 ## Antes de dizer que está feito
 
 O hook `Stop` corre o `verify.mjs` sozinho, mas o hábito é este:
