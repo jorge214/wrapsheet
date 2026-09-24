@@ -351,7 +351,9 @@ function render(
     : escapeHtml(wk.hrV);
 
   const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
-  const pageWidthPx = extra?.orientation === "portrait" ? 794 : 1587;
+  // iPad vertical: quadro de 1040 px (ver pdf.ts) — a tabela de 985 px cabe sem
+  // encolher, logo sem inflação de texto do WebKit.
+  const pageWidthPx = extra?.orientation === "portrait" ? (extra?.ipadPdf ? 1040 : 794) : 1587;
   // Margens mínimas (pai do Jorge, 16/09): a folha ocupa a página toda
   // Horizontal: 6 mm na web (Blink aplica-os tal e qual, medido) mas 14 mm no
   // nativo — o WebKit encaixa a folha A3 em A4 e a margem encolhe ~0,7×, e com

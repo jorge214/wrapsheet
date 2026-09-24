@@ -74,8 +74,14 @@ export async function exportPDF(
     // a fonte normal (10px), as células ficam com o MESMO tamanho aparente do
     // iPhone (10/794 = 7.5/595 = 1.26% da página). iPhone/web ficam em 595×842.
     const isIpadPortrait = portrait && isIpad;
-    const pageW = portrait ? (isIpadPortrait ? 794 : 595) : 1191;
-    const pageH = isIpadPortrait ? 1123 : 842;
+    // Cinema no iPad: a tabela dos dias e a linha B têm 985 px FIXOS (mais do
+    // que os 794 do quadro A4), e se transbordam o WebKit encolhe e volta a
+    // inflar o texto — o "caos" visto no iPad a 24/09. Quadro mais largo, com
+    // a MESMA proporção A4 (1040/1471 = 794/1123), para ficar à escala 1,0.
+    // O viewport da folha acompanha (pageWidthPx em buildCinemaHtml).
+    const wideIpad = isIpadPortrait && !!extraNative.cinema;
+    const pageW = portrait ? (isIpadPortrait ? (wideIpad ? 1040 : 794) : 595) : 1191;
+    const pageH = isIpadPortrait ? (wideIpad ? 1471 : 1123) : 842;
     const result = await Print.printToFileAsync({
       html,
       width: pageW,
