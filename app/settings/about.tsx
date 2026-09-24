@@ -4,6 +4,22 @@ import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../src/theme/ThemeProvider";
+import Constants from "expo-constants";
+import * as Updates from "expo-updates";
+
+// Versão + build + atualização OTA a correr. Serve para saber, sem adivinhar,
+// que código está instalado (as OTA chegam em silêncio e só se aplicam ao
+// arranque seguinte). Na web e no Expo Go não há OTA: mostra só a versão.
+function versionLine(): string {
+  const v = Constants.expoConfig?.version ?? "";
+  const build = (Constants as any).nativeBuildVersion ?? "";
+  let ota = "";
+  try {
+    const id = (Updates as any).updateId as string | null | undefined;
+    if (!IS_WEB && (Updates as any).isEnabled) ota = id ? id.slice(0, 8) : "embutida";
+  } catch {}
+  return [v && `v${v}`, build && `(${build})`, ota && `· OTA ${ota}`].filter(Boolean).join(" ");
+}
 
 const SUPPORT_EMAIL = "getwrapsheet@gmail.com";
 const SUPPORT_URL = "https://wrapsheet-app.com/support";
@@ -105,6 +121,10 @@ export default function AboutScreen() {
             </Text>
           </Pressable>
         </View>
+
+        <Text selectable style={{ color: COLORS.sub, fontSize: 11, marginTop: 12, textAlign: "center" }}>
+          {versionLine()}
+        </Text>
       </View>
     </SafeAreaView>
   );
