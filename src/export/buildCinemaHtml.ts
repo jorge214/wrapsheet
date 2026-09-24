@@ -353,12 +353,19 @@ function render(
   const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
   // iPad vertical: quadro de 1040 px (ver pdf.ts) — a tabela de 985 px cabe sem
   // encolher, logo sem inflação de texto do WebKit.
-  const pageWidthPx = extra?.orientation === "portrait" ? (extra?.ipadPdf ? 1040 : 794) : 1587;
+  const pageWidthPx = extra?.orientation === "portrait" ? (extra?.ipadPdf ? 1060 : 794) : 1587;
   // Margens mínimas (pai do Jorge, 16/09): a folha ocupa a página toda
   // Horizontal: 6 mm na web (Blink aplica-os tal e qual, medido) mas 14 mm no
   // nativo — o WebKit encaixa a folha A3 em A4 e a margem encolhe ~0,7×, e com
   // 6 mm ficava sem folga nenhuma nas bordas (TestFlight, 24/09).
-  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : (extra?.nativePrint ? "14mm" : "6mm");
+  // NATIVO (WebKit do expo-print, iPhone/iPad): as margens @page NÃO se veem —
+  // o WebKit desconta-as ao espaço útil e depois estica a página até às
+  // bordas do papel (dois PDF do iPhone a 24/09, com 6 e 14 mm, saíram ambos
+  // colados às bordas; o de 14 mm só tinha menos linhas por página). Logo:
+  // @page a 0 e a margem como PADDING do body, que é conteúdo e imprime.
+  // WEB (Blink no servidor): as margens @page são reais (medidas) — mantêm-se.
+  const pageMargin = extra?.nativePrint ? "0" : (extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "6mm");
+  const nativeBodyPad = extra?.nativePrint ? "28px 28px 18px 28px" : "0";
   // VERTICAL: a tabela dos dias e a linha B levam 985 px de largura FIXA — mais
   // do que os 748 px úteis do A4 — de propósito. É o mesmo que a folha de
   // publicidade faz por natureza (a tabela dela mede 985 px de conteúdo): o
@@ -542,7 +549,7 @@ function render(
         tr { break-inside: avoid; page-break-inside: avoid; }
         @media print {
           @page { size: ${pageCss}; margin: ${pageMargin}; }
-          body { padding: 0; }
+          body { padding: ${nativeBodyPad}; }
           ${extra?.orientation === "portrait"
             ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } table.days, table.nextWeek { table-layout: fixed; width: 985px; } .days th, .days td { min-width: 0 !important; } .days th { font-size: 7.5px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 1.1px; } col.col-desc { width: 6.2%; } col.col-data { width: 7.4%; } col.col-sal { width: 6%; } col.col-cont { width: 1.5%; } col.col-ini { width: 4%; } col.col-ref { width: 5%; } col.col-fim { width: 4%; } col.col-ht { width: 5.6%; } col.col-hd { width: 5.6%; } col.col-pd { width: 4.6%; } col.col-ott { width: 3.2%; } col.col-otv { width: 5.3%; } col.col-tot { width: 6.1%; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; } table.weekRest th, table.weekRest td { font-size: 9px; padding: 3px 5px; }" + (extra?.ipadPdf ? " table.days, table.days th, table.days td { min-width: 0 !important; }" : "")
             : "table.days { table-layout: fixed; width: 100%; } .days th, .days td { min-width: 0 !important; word-break: break-word; padding: 3px 4px; } .days th { font-size: 9px; padding-left: 2px; padding-right: 2px; letter-spacing: -0.2px; } col.col-desc { width: 6%; } col.col-data { width: 7%; } col.col-sal { width: 5.5%; } col.col-cont { width: 2%; } col.col-ini { width: 4%; } col.col-ref { width: 4.6%; } col.col-fim { width: 4%; } col.col-ht { width: 5.3%; } col.col-hd { width: 5.3%; } col.col-pd { width: 4.6%; } col.col-ott { width: 3.8%; } col.col-otv { width: 5.6%; } col.col-tot { width: 6%; } .condMain { font-size: 11px; padding: 4px 8px; } .condT { font-size: 9px; padding: 4px 5px; } .condB { font-size: 10px; line-height: 1.3; padding: 4px 7px; } .conditionsBody { font-size: 10px; line-height: 1.3; padding: 6px 8px; } .condRow { grid-template-columns: 220px minmax(0, 1fr); }"}

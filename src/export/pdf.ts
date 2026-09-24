@@ -80,8 +80,9 @@ export async function exportPDF(
     // a MESMA proporção A4 (1040/1471 = 794/1123), para ficar à escala 1,0.
     // O viewport da folha acompanha (pageWidthPx em buildCinemaHtml).
     const wideIpad = isIpadPortrait && !!extraNative.cinema;
-    const pageW = portrait ? (isIpadPortrait ? (wideIpad ? 1040 : 794) : 595) : 1191;
-    const pageH = isIpadPortrait ? (wideIpad ? 1471 : 1123) : 842;
+    // (1060/1499 = 0,7072 ≈ A4; 985 px de tabela + 56 px de padding cabem em 1060)
+    const pageW = portrait ? (isIpadPortrait ? (wideIpad ? 1060 : 794) : 595) : 1191;
+    const pageH = isIpadPortrait ? (wideIpad ? 1499 : 1123) : 842;
     const result = await Print.printToFileAsync({
       html,
       width: pageW,
