@@ -950,7 +950,10 @@ export function buildPdfHtml(
   // tabela para a direita (não transborda -> não encolhe -> condições intactas).
   // Sem margem negativa (isso cortava no WebKit).
   // Margens mínimas (pai do Jorge, 16/09): a folha ocupa a página toda
-  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "6mm";
+  // Horizontal: 6 mm na web (Blink aplica-os tal e qual) mas 14 mm no nativo — o
+  // WebKit encaixa a folha A3 em A4 e a margem encolhe ~0,7×; com 6 mm ficava
+  // sem folga nas bordas (TestFlight, 24/09). Era o valor calibrado de sempre.
+  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : (extra?.nativePrint ? "14mm" : "6mm");
 
   // As condições nunca partem a meio: ou cabem a seguir à tabela, ou saltam
   // inteiras para a folha de baixo. Vai no HTML partilhado, por isso aplica-se

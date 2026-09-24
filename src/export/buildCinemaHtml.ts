@@ -353,7 +353,10 @@ function render(
   const pageCss = extra?.orientation === "portrait" ? "A4 portrait" : "A3 landscape";
   const pageWidthPx = extra?.orientation === "portrait" ? 794 : 1587;
   // Margens mínimas (pai do Jorge, 16/09): a folha ocupa a página toda
-  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "6mm";
+  // Horizontal: 6 mm na web (Blink aplica-os tal e qual, medido) mas 14 mm no
+  // nativo — o WebKit encaixa a folha A3 em A4 e a margem encolhe ~0,7×, e com
+  // 6 mm ficava sem folga nenhuma nas bordas (TestFlight, 24/09).
+  const pageMargin = extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : (extra?.nativePrint ? "14mm" : "6mm");
   // VERTICAL: a tabela dos dias e a linha B levam 985 px de largura FIXA — mais
   // do que os 748 px úteis do A4 — de propósito. É o mesmo que a folha de
   // publicidade faz por natureza (a tabela dela mede 985 px de conteúdo): o
@@ -375,6 +378,11 @@ function render(
       <style>
         * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         html, body { margin: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        /* text-size-adjust: 100% DESLIGA o font boosting do WebKit — no iPhone a
+           folha imprime encolhida (escala < 1) e sem isto o WebKit inflava o texto
+           das células: cabeçalhos "HORAS TRABALHO / HORAS DESCANSO" encavalitados
+           (TestFlight, 24/09). A publicidade já tinha a regra; o cinema não. */
+        html { -webkit-print-color-adjust: exact; print-color-adjust: exact; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 18px; color: #111; background: #fff; }
         /* Título a AZUL: distingue a folha de cinema da de publicidade (vermelha) num relance */
         .titleBox { border: 2px solid #2b2b2b; padding: 8px 10px; text-align: center; font-weight: 800; letter-spacing: .5px; background: #1f5fa8; color: #fff; }
