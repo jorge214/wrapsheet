@@ -30,7 +30,7 @@ import { isFeriadoPT } from "../../src/calc/feriadosPT";
 import { calcProject, isCinema } from "../../src/calc/project";
 import { getPreset } from "../../src/constants/countryPresets";
 import { buildPdfHtml, buildEditableSheetHtml, buildEditableDayRowsHtml, fmtMoney, getStrings, weekdayShort } from "../../src/export/buildPdfHtml";
-import { buildCinemaEditableDayRowsHtml, buildCinemaEditableSheetHtml, getCinemaStrings } from "../../src/export/buildCinemaHtml";
+import { buildCinemaEditableDayRowsHtml, buildCinemaEditableSheetHtml, buildCinemaPdfHtml, getCinemaStrings } from "../../src/export/buildCinemaHtml";
 import { formatNumber } from "../../src/format/money";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -485,10 +485,14 @@ export default function ProjectEditor() {
   const exportPreviewHtml = useMemo(() => {
     if (!exportOpen || !project) return "";
     const rPreset = getPreset(regionCode);
-    const html = buildPdfHtml(
-      project.perfil, project.projeto, project.dias, calculos, totais, project.tabela as any,
+    // A miniatura tem de ser a folha do FORMATO do projeto: um projeto de cinema
+    // mostrava a folha de publicidade (visto no Samsung, 28/09).
+    const pcThumb = calcProject(project as any);
+    const buildThumb = pcThumb.formato === "cinema" ? buildCinemaPdfHtml : buildPdfHtml;
+    const html = buildThumb(
+      project.perfil, project.projeto, project.dias, pcThumb.calc as any, pcThumb.totais as any, project.tabela as any,
       project.notas, i18n.language, regionCode, rPreset.currency, t("tax_disclaimer"), project.condicoes,
-      { fiscal: project.fiscal as any, condTitulo: project.condTitulo, condBoxes: project.condBoxes }
+      { fiscal: project.fiscal as any, condTitulo: project.condTitulo, condBoxes: project.condBoxes, ...cinemaExtra(project, pcThumb) }
     );
     // Mesmo auto-ajuste do preview real: encolhe a folha para caber na largura
     // da miniatura (representa o print, que também encolhe uniformemente)
@@ -2162,6 +2166,10 @@ function NativeThumb({ html }: { html: string }) {
             contentMode="mobile"
             scrollEnabled={false}
             javaScriptEnabled
+            // Android: a miniatura vertical saía em branco (28/09). O cartão é
+            // uma WebView escalada por transform; em hardware o Android limita o
+            // tamanho da textura e a mais alta (a vertical) ficava vazia.
+            androidLayerType={Platform.OS === "android" ? "software" : undefined}
             onMessage={(e: any) => {
               try {
                 const d = JSON.parse(e?.nativeEvent?.data ?? "{}");
