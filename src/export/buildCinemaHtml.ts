@@ -325,6 +325,12 @@ function render(
   // dias — a descrição ocupa as 4 colunas do horário e o resto da largura é
   // uma célula sem bordas (notas do pai do Jorge, 16/09).
   const nwVoid = `<td class="void" colspan="13"></td>`;
+  // As 7 primeiras colunas da linha B (1+1+1+4) mais a célula vazia de 13 somam
+  // as 20 da tabela dos dias. No PDF a linha B vai DENTRO da tabela dos dias:
+  // fica alinhada por construção, sem larguras fixas nem script a medir — era
+  // isso que obrigava a tabela a ter 985 px fixos e estragava a vertical no
+  // iPhone (24/09). No editor continua em tabela própria (o script das linhas
+  // conta as linhas de table.days e não pode ver estas duas).
   // Dia da semana por cima da data, como nas linhas dos dias (pai, 16/09)
   const wdProx = escapeHtml(weekdayShort(info.proximaSemana?.data, locale));
   const nextWeekRow = editable
@@ -342,6 +348,15 @@ function render(
           <td class="nwDesc" colspan="4">${escapeHtml(s.nextWeekStart)}</td>
           ${nwVoid}
         </tr>`;
+
+  const nextWeekBlock = `<tr class="nwHead">
+          <th>${escapeHtml((s as any).weekNumber || s.nextWeekNr)}</th>
+          <th>${escapeHtml(s.date)}</th>
+          <th>${escapeHtml(s.start)}</th>
+          <th colspan="4">${escapeHtml(s.description)}</th>
+          ${nwVoid}
+        </tr>
+        ${nextWeekRow}`;
 
   const hrHCell = editable
     ? `<span class="ei money" ${CE} inputmode="decimal" data-k="cinema" data-f="hrSemanaHoras" data-c="w_hr_h">${escapeHtml(wk.hrH)}</span>`
@@ -366,14 +381,12 @@ function render(
   // WEB (Blink no servidor): as margens @page são reais (medidas) — mantêm-se.
   const pageMargin = extra?.nativePrint ? "0" : (extra?.orientation === "portrait" ? "7mm 6mm 3mm 6mm" : "6mm");
   const nativeBodyPad = extra?.nativePrint ? "28px 28px 18px 28px" : "0";
-  // VERTICAL: a tabela dos dias e a linha B levam 985 px de largura FIXA — mais
-  // do que os 748 px úteis do A4 — de propósito. É o mesmo que a folha de
-  // publicidade faz por natureza (a tabela dela mede 985 px de conteúdo): o
-  // motor alarga a página a essa largura e encolhe tudo ~25% para caber, de
-  // forma uniforme, em Blink e WebKit. Com 100% (748 px) nada encolhia e 20
-  // colunas não tinham largura para as palavras dos cabeçalhos ("DESCRIÇÃ O",
-  // "INÍCI O" — visto no PC a 21/09) e os totais caíam para a 2.ª página.
-  // As duas tabelas com a MESMA largura fixa ficam alinhadas sem script.
+  // VERTICAL: a tabela dos dias fica em layout AUTOMÁTICO, exatamente como a de
+  // publicidade (que imprime bem no iPhone desde a 1.1.0): cada coluna toma a
+  // largura do seu conteúdo, o total dá ~1000 px, ultrapassa os 748 px úteis do
+  // A4 e o motor encolhe a folha inteira de forma uniforme. Tentar prender a
+  // tabela a uma largura (100% partia as palavras dos cabeçalhos; 985 px fixos
+  // estragava a vertical do iPhone) foi o erro de 21 a 24/09.
 
   const titleBar = editable
     ? edTi("projeto", "folhaTitulo", projeto.folhaTitulo || "", `placeholder="${escapeHtml(s.title)}"`)
@@ -481,6 +494,10 @@ function render(
         table.weekRest th.rec { background: #cfe0f2; color: #1b5fbf; }
         /* Linha B: as mesmas colunas da tabela dos dias (colgroup partilhado),
            colada a ela; a célula .void ocupa o resto da largura sem bordas. */
+        /* Linha B dentro da tabela dos dias (PDF): cabeçalho cinzento como os
+           outros e a célula vazia sem bordas. No editor é tabela própria. */
+        .days tr.nwHead th { background: #7f7f7f; }
+        .days .void { border: 0; background: transparent; }
         table.nextWeek { margin-top: -2px; width: 100%; table-layout: fixed; }
         table.nextWeek th { font-size: 10.5px; white-space: normal; }
         table.nextWeek td { font-size: 11.5px; }
@@ -551,7 +568,7 @@ function render(
           @page { size: ${pageCss}; margin: ${pageMargin}; }
           body { padding: ${nativeBodyPad}; }
           ${extra?.orientation === "portrait"
-            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } table.days, table.nextWeek { table-layout: fixed; width: 985px; } .days th, .days td { min-width: 0 !important; } .days th { font-size: 7.5px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 1.1px; } col.col-desc { width: 6.2%; } col.col-data { width: 7.4%; } col.col-sal { width: 6%; } col.col-cont { width: 1.5%; } col.col-ini { width: 4%; } col.col-ref { width: 5%; } col.col-fim { width: 4%; } col.col-ht { width: 5.6%; } col.col-hd { width: 5.6%; } col.col-pd { width: 4.6%; } col.col-ott { width: 3.2%; } col.col-otv { width: 5.3%; } col.col-tot { width: 6.1%; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; } table.weekRest th, table.weekRest td { font-size: 9px; padding: 3px 5px; }" + (extra?.ipadPdf ? " table.days, table.days th, table.days td { min-width: 0 !important; }" : "")
+            ? "body { font-size: 9px; } .titleBox { font-size: 13px; } .k, .v, .uv { font-size: 10px; } .days th { font-size: 8px; } .days td { font-size: 10px; } .days th, .days td { padding: 4px 1.1px; } .secTitle { font-size: 10px; } table.rates { table-layout: auto; } .condMain { font-size: 10px; padding: 3px 8px; } .condT { font-size: 8.5px; padding: 3px 4px; } .condB, .conditionsBody { font-size: 9.5px; line-height: 1.28; padding: 3px 6px; } .condRow { grid-template-columns: 150px minmax(0, 1fr); } .days td.cData { min-width: 60px; } .days td.cSal { min-width: 54px; } table.weekRest th, table.weekRest td { font-size: 9px; padding: 3px 5px; }" + (extra?.ipadPdf ? " table.days, table.days th, table.days td { min-width: 0 !important; }" : "")
             : "table.days { table-layout: fixed; width: 100%; } .days th, .days td { min-width: 0 !important; word-break: break-word; padding: 3px 4px; } .days th { font-size: 9px; padding-left: 2px; padding-right: 2px; letter-spacing: -0.2px; } col.col-desc { width: 6%; } col.col-data { width: 7%; } col.col-sal { width: 5.5%; } col.col-cont { width: 2%; } col.col-ini { width: 4%; } col.col-ref { width: 4.6%; } col.col-fim { width: 4%; } col.col-ht { width: 5.3%; } col.col-hd { width: 5.3%; } col.col-pd { width: 4.6%; } col.col-ott { width: 3.8%; } col.col-otv { width: 5.6%; } col.col-tot { width: 6%; } .condMain { font-size: 11px; padding: 4px 8px; } .condT { font-size: 9px; padding: 4px 5px; } .condB { font-size: 10px; line-height: 1.3; padding: 4px 7px; } .conditionsBody { font-size: 10px; line-height: 1.3; padding: 6px 8px; } .condRow { grid-template-columns: 220px minmax(0, 1fr); }"}
         }
         `}
@@ -699,19 +716,13 @@ function render(
           <th class="mini h-total">${escapeHtml(s.day)}</th>
         </tr>
         ${dayRows}
+        ${editable ? "" : nextWeekBlock}
       </table>
 
-      <table class="nextWeek">
+      ${editable ? `<table class="nextWeek">
         ${colgroup}
-        <tr>
-          <th>${escapeHtml((s as any).weekNumber || s.nextWeekNr)}</th>
-          <th>${escapeHtml(s.date)}</th>
-          <th>${escapeHtml(s.start)}</th>
-          <th colspan="4">${escapeHtml(s.description)}</th>
-          ${nwVoid}
-        </tr>
-        ${nextWeekRow}
-      </table>
+        ${nextWeekBlock}
+      </table>` : ""}
 
       <table class="weekRest">
         <tr>

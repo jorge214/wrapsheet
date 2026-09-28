@@ -115,10 +115,24 @@ describe("folha de cinema — PDF", () => {
     expect(pdf).toContain('<span class="wd">Seg</span>');
     expect(pdf).toContain("background: #1f5fa8");
     // 16/09: a linha B é SEMANA NÚMERO · DATA · INÍCIO · DESCRIÇÃO, alinhada às
-    // colunas da tabela dos dias (mesmo colgroup; a descrição ocupa as 4 do horário).
+    // colunas da tabela dos dias. 28/09: no PDF passou a ser duas linhas DENTRO
+    // da tabela dos dias (alinhamento por construção, sem larguras fixas — as
+    // fixas estragavam a vertical no iPhone). Logo: UM só colgroup e nenhuma
+    // tabela nextWeek no PDF; no editor continua em tabela própria.
     expect(pdf).toContain("SEMANA NÚMERO");
     expect(pdf).toContain('<td class="nwDesc" colspan="4">Início da semana seguinte</td>');
-    expect((pdf.match(/<colgroup>/g) || []).length).toBe(2);
+    expect((pdf.match(/<colgroup>/g) || []).length).toBe(1);
+    expect(pdf).toContain('<tr class="nwHead">');
+    expect(pdf).not.toContain('<table class="nextWeek">');
+
+    // E no EDITOR a linha B fica em tabela própria (o script das linhas conta
+    // as linhas de table.days e não pode ver as duas linhas da semana seguinte).
+    const ed = buildCinemaEditableSheetHtml(
+      p.perfil as any, p.projeto as any, p.dias, pc.calc, pc.totais as any, p.tabela as any,
+      "", "pt", "pt", "EUR", "", "",
+      { fiscal: p.fiscal, cinema: { semana: pc.semana!, info: p.cinema, diasSemana: 5 } } as any
+    );
+    expect(ed).toContain('<table class="nextWeek">');
     expect(pdf).not.toContain("não se cobra");
     expect(pdf).toContain("Para 60H");
     expect(pdf).toContain("@page { size: A3 landscape");
