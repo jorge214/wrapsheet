@@ -17,6 +17,14 @@ export function defaultCondBoxes(): CondBox[] {
   return condBoxesFor(i18n.language || "pt");
 }
 
+// Modelo das condições da folha de CINEMA (semanal) — as do guia do setor:
+// horário de 11h, recuperação entre semanas, folgas e feriados a dobrar.
+export function defaultCondBoxesCinema(): CondBox[] {
+  const { condBoxesCinemaFor } = require("./condDefaultsCinema") as typeof import("./condDefaultsCinema");
+  const i18n = (require("../i18n/i18n") as typeof import("../i18n/i18n")).default;
+  return condBoxesCinemaFor(i18n.language || "pt");
+}
+
 export type Profile = {
   id: string;
   nome: string;
@@ -32,11 +40,18 @@ export type Profile = {
   // Condições de trabalho em caixas (título + texto + imagem opcional)
   condTitulo?: string; // título da secção (ex.: "CONDIÇÕES DE TRABALHO - NOME - A partir de 1 de Janeiro de 2026")
   condBoxes?: CondBox[];
+  // Condições da folha de CINEMA — separadas de propósito: as regras da
+  // semana (descanso entre semanas, dias de folga a dobrar, feriados) não são
+  // as da publicidade. Um projeto novo leva as do SEU formato; se estiverem
+  // vazias, a folha sai sem secção de condições.
+  condTituloCinema?: string;
+  condBoxesCinema?: CondBox[];
   // Regime fiscal do utilizador (percentagens aplicadas aos valores).
   // Se um campo ficar vazio, usa-se o default do país (Definições › Região).
   fiscal?: {
     IRS_percent?: number;
     IVA_percent?: number;
+    SS_percent?: number;
   };
   // Condições fixas (a linha de taxas): aplicam-se automaticamente a projetos novos
   fixas?: {
@@ -54,6 +69,34 @@ export type Profile = {
     heaFromHour?: number; // HE-A a partir desta hora de trabalho (default 12)
     hebFromHour?: number; // HE-B a partir desta hora de trabalho (default 19)
     hrRestBelow?: number; // Recuperação se descanso entre dias < N horas (default 10)
+  };
+  // Tarifas da folha de CINEMA (semanal): a semana define o dia, a hora é
+  // dia/10, e as extras saem de multiplicadores (não de €/h fixos).
+  // Aplicam-se a projetos novos de cinema; tudo editável na folha.
+  fixasCinema?: {
+    salarioSemana?: number; // € por semana de 5 dias
+    multHEA?: number;       // hora extra A = hora × isto (default 1,5)
+    multHEB?: number;       // hora extra B (default 2)
+    multHR?: number;        // hora de recuperação (default 2,5)
+    refeicao?: number;      // € por dia
+    telefone?: number;
+    viatura?: number;
+    material?: number;
+    ssPercent?: number;     // Segurança Social % (retida como o IRS)
+    // FOLGA · horas de descanso entre semanas (o alvo da folha: "Para 60H").
+    // Vazio = 60 na semana de 5 dias, 36 na de 6. Pedido do pai do Jorge (16/09).
+    descansoSemanal_h?: number;
+  };
+  // Semana de 6 DIAS: os mesmos valores, para os projetos de cinema criados
+  // com 6 dias. Campo vazio = usa-se o da semana de 5 dias.
+  fixasCinema6?: Profile["fixasCinema"];
+  // Regras de horas extra do CINEMA — podem não ser as da publicidade (notas
+  // do pai do Jorge, 16/09). Vazio = predefinição do PDF (11 / 12 / 19 / 10).
+  regrasCinema?: {
+    hDia?: number;
+    heaFromHour?: number;
+    hebFromHour?: number;
+    hrRestBelow?: number;
   };
   /** Carimbo da última edição — o sync usa-o para decidir quem ganha */
   updatedAt?: string;

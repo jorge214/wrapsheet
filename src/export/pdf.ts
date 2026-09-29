@@ -2,12 +2,17 @@
 // Native delivery (iOS / Android) via expo-print + expo-sharing.
 // Metro bundler uses pdf.web.ts on web instead of this file.
 
-import * as FileSystem from "expo-file-system";
+// "/legacy": no SDK 54 o export principal do expo-file-system deixou de ter
+// cacheDirectory/copyAsync. Sem isto, o "if (cacheDirectory)" abaixo era
+// sempre falso, a cópia com nome nunca corria, e o PDF seguia para o email/
+// WhatsApp com o nome aleatório da impressão (relatado pela sócia do Jorge, 19/09).
+import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
 
 import { CalcDia, Dia } from "../calc/types";
+import { buildCinemaPdfHtml } from "./buildCinemaHtml";
 import {
   buildPdfHtml,
   PdfExtra,
@@ -48,7 +53,9 @@ export async function exportPDF(
     // builder calibrar a paginação ao motor certo (≠ do Blink na web).
     const isIpad = Platform.OS === "ios" && (Platform as any).isPad === true;
     const extraNative: PdfExtra = { ...extra, nativePrint: true, ipadPdf: isIpad };
-    const html = buildPdfHtml(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extraNative);
+    // Folha de cinema (semanal) tem construtor próprio; a de publicidade é a de sempre.
+    const build = extraNative.cinema ? buildCinemaPdfHtml : buildPdfHtml;
+    const html = build(perfil, projeto, dias, calculos, totais, tabela, notas, locale, region, currency, taxDisclaimer, condicoes, extraNative);
 
     // Horizontal = A3 landscape (1191×842 pt, como sempre foi — a tabela dos
     // dias precisa desta largura); vertical = A4 portrait (595×842).
@@ -67,8 +74,15 @@ export async function exportPDF(
     // a fonte normal (10px), as células ficam com o MESMO tamanho aparente do
     // iPhone (10/794 = 7.5/595 = 1.26% da página). iPhone/web ficam em 595×842.
     const isIpadPortrait = portrait && isIpad;
-    const pageW = portrait ? (isIpadPortrait ? 794 : 595) : 1191;
-    const pageH = isIpadPortrait ? 1123 : 842;
+    // Cinema no iPad: a tabela dos dias e a linha B têm 985 px FIXOS (mais do
+    // que os 794 do quadro A4), e se transbordam o WebKit encolhe e volta a
+    // inflar o texto — o "caos" visto no iPad a 24/09. Quadro mais largo, com
+    // a MESMA proporção A4 (1040/1471 = 794/1123), para ficar à escala 1,0.
+    // O viewport da folha acompanha (pageWidthPx em buildCinemaHtml).
+    const wideIpad = isIpadPortrait && !!extraNative.cinema;
+    // (1060/1499 = 0,7072 ≈ A4; 985 px de tabela + 56 px de padding cabem em 1060)
+    const pageW = portrait ? (isIpadPortrait ? (wideIpad ? 1060 : 794) : 595) : 1191;
+    const pageH = isIpadPortrait ? (wideIpad ? 1499 : 1123) : 842;
     const result = await Print.printToFileAsync({
       html,
       width: pageW,
@@ -84,15 +98,19 @@ export async function exportPDF(
       `Folha_${projeto.filme || "Projeto"}_${mesNome}_${projeto.ano}`
     );
 
-    const fsAny = FileSystem as any;
-    if (fsAny.cacheDirectory) {
-      const dest = `${fsAny.cacheDirectory}${baseName}.pdf`;
+    // Copia para um ficheiro com o nome certo — é esse nome que o email, o
+    // WhatsApp e o "Guardar em Ficheiros" mostram.
+    if (FileSystem.cacheDirectory) {
+      const dest = `${FileSystem.cacheDirectory}${baseName}.pdf`;
       try {
+        await FileSystem.deleteAsync(dest, { idempotent: true });
         await FileSystem.copyAsync({ from: outUri, to: dest });
         outUri = dest;
       } catch (e) {
         console.warn("PDF copyAsync falhou, a usar uri original:", e);
       }
+    } else {
+      console.warn("PDF: sem cacheDirectory, o ficheiro segue com o nome da impressão");
     }
 
     if (await Sharing.isAvailableAsync()) {

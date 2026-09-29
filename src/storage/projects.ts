@@ -1,5 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import dayjs from "dayjs";
+import { DESCANSO_SEMANAL_H, HORAS_BASE_CINEMA } from "../calc/cinema";
+import { isFeriadoPT } from "../calc/feriadosPT";
+import type { CinemaInfo, FormatoFolha } from "../calc/project";
 import i18n from "../i18n/i18n";
 import { getPreset } from "../constants/countryPresets";
 import { effectiveFiscalOf, getSettings } from "./appSettings";
@@ -35,6 +38,11 @@ export type Dia = {
   hrValor?: number;
   /** Total do dia negociado à mão (vazio = soma automática) */
   totalDia?: number;
+  // ── Cinema (folha semanal) ──
+  /** Linha de FOLGA (sáb/dom). Sem horas = descanso (0 €); com horas = folga trabalhada (a dobrar). */
+  folga?: boolean;
+  /** Feriado obrigatório: dia a dobrar. */
+  feriado?: boolean;
 };
 
 export type Ajudas = {
@@ -47,6 +55,12 @@ export type Ajudas = {
 
 export type Tabela = {
   salarioDia?: number;
+  // ── Cinema: a SEMANA define o dia (ver calc/types.ts) ──
+  salarioSemana?: number;
+  diasSemana?: number;
+  horasBase?: number;
+  descansoSemanal_h?: number;
+  multFolga?: number;
   H_dia: number;
   descanso_min: number;
   multHEA?: number;
@@ -64,6 +78,8 @@ export type Tabela = {
 export type Fiscal = {
   IRS_percent: number;
   IVA_percent: number;
+  /** Segurança Social (cinema). Ausente = sem linha. */
+  SS_percent?: number;
   nota?: string;
 };
 
@@ -99,6 +115,10 @@ export type ProjectState = {
    *  por isso sincroniza sem alterar o esquema da BD. Projetos legados ficam
    *  sem isto (undefined) e são tratados como do perfil ativo (ver filtros). */
   profileId?: string;
+  /** Formato da folha. Ausente = publicidade (projetos antigos). */
+  formato?: FormatoFolha;
+  /** Só em folhas de cinema: tipo de produção, linha B (semana seguinte), overrides. */
+  cinema?: CinemaInfo;
   perfil: Perfil;
   projeto: ProjetoInfo;
   tabela: Tabela;
@@ -121,6 +141,8 @@ export type ProjectListItem = {
   updatedAt: string;
   /** Perfil dono (multi-perfil). Undefined em itens legados. */
   profileId?: string;
+  /** Formato da folha (a lista mostra "Cinema" nas semanais). */
+  formato?: FormatoFolha;
 };
 
 /* ------------ Keys no AsyncStorage ------------ */
@@ -165,6 +187,37 @@ function defaultDia(date: string): Dia {
     // um valor — incluindo 0 — faz-se na folha; apagar volta ao automático).
     ajRefeicao: 0, ajViatura: 0, ajTelefone: 0, ajMaterial: 0, ajPerDiem: 0,
   };
+}
+
+/* ------ Cinema: semana de trabalho (5 dias + 2 folgas) ------ */
+
+// Segunda-feira da semana em foco: a de hoje se o mês pedido for o corrente
+// (ou nenhum); senão a primeira segunda-feira desse mês.
+function mondayFor(mes?: number, ano?: number): dayjs.Dayjs {
+  const hoje = dayjs();
+  const corrente =
+    mes == null || ano == null || (mes === hoje.month() + 1 && ano === hoje.year());
+  if (corrente) return hoje.subtract((hoje.day() + 6) % 7, "day").startOf("day");
+  const first = dayjs(new Date(ano!, mes! - 1, 1));
+  return first.add((8 - first.day()) % 7, "day").startOf("day");
+}
+
+// Dias de trabalho (horário base 08:00-19:00 = 11h, sem extras) + o resto da
+// semana como linhas de FOLGA sem horas: seg-sex + sáb/dom (5 dias) ou
+// seg-sáb + dom (6 dias). Feriados obrigatórios (só região PT) ficam
+// marcados a dobrar logo à nascença.
+export function cinemaWeekDias(monday: dayjs.Dayjs, autoFeriado: boolean, nDias: 5 | 6 = 5): Dia[] {
+  const dias: Dia[] = [];
+  for (let i = 0; i < 7; i++) {
+    const iso = monday.add(i, "day").format("YYYY-MM-DD");
+    const base = defaultDia(iso);
+    if (i >= nDias) {
+      dias.push({ ...base, descricao: i18n.t("cinema_day_off", { defaultValue: "FOLGA" }), folga: true, inicio: "", fim: "" });
+    } else {
+      dias.push({ ...base, inicio: "08:00", fim: "19:00", ...(autoFeriado && isFeriadoPT(iso) ? { feriado: true } : {}) });
+    }
+  }
+  return dias;
 }
 
 function defaultTabela(): Tabela {
@@ -264,6 +317,8 @@ function upgradeProject(raw: any, id: string): ProjectState {
   const fiscal: Fiscal = {
     IRS_percent: Number(rawFiscal.IRS_percent ?? rawFiscal.irs ?? rawFiscal.IRS ?? 0),
     IVA_percent: Number(rawFiscal.IVA_percent ?? rawFiscal.iva ?? rawFiscal.IVA ?? 0),
+    // Segurança Social só existe no cinema; ausente fica ausente (sem linha)
+    ...(rawFiscal.SS_percent != null ? { SS_percent: Number(rawFiscal.SS_percent) || 0 } : {}),
     nota: rawFiscal.nota ?? "",
   };
 
@@ -320,6 +375,9 @@ function upgradeProject(raw: any, id: string): ProjectState {
     // fazendo os projetos "seguirem" o utilizador de perfil em perfil.)
     profileId:
       typeof raw.profileId === "string" && raw.profileId ? raw.profileId : undefined,
+    // Formato da folha (cinema) e o seu bloco — preservados tal como vieram.
+    formato: raw.formato === "cinema" ? "cinema" : undefined,
+    cinema: raw.formato === "cinema" && raw.cinema && typeof raw.cinema === "object" ? raw.cinema : undefined,
     perfil,
     projeto,
     tabela,
@@ -379,6 +437,7 @@ export async function saveProject(
     pago: !!toSave.pago,
     updatedAt,
     profileId: toSave.profileId,
+    formato: toSave.formato,
   };
 
   if (isArchived) {
@@ -407,14 +466,41 @@ export async function saveProject(
  * lista de projetos passa o mês que está a ser visto, para uma folha de maio
  * feita em agosto nascer logo em maio. Sem opts, usa o mês corrente.
  */
-export async function createProject(opts?: { mes?: number; ano?: number }): Promise<string> {
+/** Só os campos preenchidos (para uma tabela de valores herdar de outra) */
+function semVazios<T extends object>(o: T | undefined | null): Partial<T> {
+  return Object.fromEntries(Object.entries(o || {}).filter(([, v]) => v != null && v !== "")) as Partial<T>;
+}
+
+export async function createProject(opts?: {
+  mes?: number;
+  ano?: number;
+  formato?: FormatoFolha;
+  /** Cinema: dias de trabalho na semana (5 = +2 folgas e 60h de descanso; 6 = +1 folga e 36h) */
+  diasSemana?: 5 | 6;
+}): Promise<string> {
   const id = String(Date.now());
   const today = dayjs().format("YYYY-MM-DD");
 
   const active = await getActiveProfile();
   const perfil = active ? blankPerfil(active as any) : blankPerfil();
-  const condicoesFromProfile = (active as any)?.condicoes || "";
   const fixas = (active as any)?.fixas || {};
+  // Cinema: tarifas E condições próprias do perfil (as regras da semana não são
+  // as da publicidade). Cada projeto leva as condições do SEU formato.
+  const cinema = opts?.formato === "cinema";
+  const nDias: 5 | 6 = opts?.diasSemana === 6 ? 6 : 5;
+  // Tarifas do cinema: a semana de 6 dias tem os seus valores no perfil e,
+  // onde estiverem vazios, herda os da semana de 5.
+  const fxC5 = (active as any)?.fixasCinema || {};
+  const fxC6 = (active as any)?.fixasCinema6 || {};
+  const fxC = nDias === 6 ? { ...fxC5, ...semVazios(fxC6) } : fxC5;
+  // Horas de descanso entre semanas: NÃO herdam da semana de 5 (60h) para a de
+  // 6 (36h) — cada uma tem a sua predefinição do guia.
+  const descansoPerfil = nDias === 6 ? fxC6.descansoSemanal_h : fxC5.descansoSemanal_h;
+  // Regras de horas extra próprias do cinema (predefinição = PDF)
+  const regrasC = (active as any)?.regrasCinema || {};
+  const condicoesFromProfile = cinema ? "" : (active as any)?.condicoes || "";
+  const condTituloFromProfile = (cinema ? (active as any)?.condTituloCinema : (active as any)?.condTitulo) || "";
+  const condBoxesFromProfile = cinema ? (active as any)?.condBoxesCinema : (active as any)?.condBoxes;
 
   const projeto: ProjetoInfo = {
     titulo: "",
@@ -452,9 +538,52 @@ export async function createProject(opts?: { mes?: number; ano?: number }): Prom
     },
   };
 
+  if (cinema) {
+    // Cinema: a SEMANA define o dia (÷ 5 ou ÷ 6), a hora vale dia ÷ horas de
+    // trabalho diárias sem a de refeição (horário base 11 → 10), e as taxas
+    // saem dos MULTIPLICADORES do perfil (não de valores €/h fixos). Sem per
+    // diems. As regras de horas extra são as do cinema, não as da publicidade.
+    Object.assign(tabela, {
+      salarioDia: undefined,
+      salarioSemana: fxC.salarioSemana ?? 0,
+      diasSemana: nDias,
+      horasBase: regrasC.hDia != null ? Math.max(1, Number(regrasC.hDia) - 1) : HORAS_BASE_CINEMA,
+      descansoSemanal_h: descansoPerfil != null && descansoPerfil !== "" ? Number(descansoPerfil) : DESCANSO_SEMANAL_H[nDias],
+      multFolga: 2,
+      multHEA: fxC.multHEA ?? 1.5,
+      multHEB: fxC.multHEB ?? 2.0,
+      multHR: fxC.multHR ?? 2.5,
+      rateHEA: undefined,
+      rateHEB: undefined,
+      rateHR: undefined,
+      H_dia: regrasC.hDia ?? 11,
+      limiar_A: (regrasC.heaFromHour ?? 12) - 1,
+      limiar_B: (regrasC.hebFromHour ?? 19) - 1,
+      limiar_HR: regrasC.hrRestBelow ?? 10,
+      ajudas: {
+        refeicao: fxC.refeicao ?? 0,
+        telefone: fxC.telefone ?? 0,
+        viatura: fxC.viatura ?? 0,
+        material: fxC.material ?? 0,
+        perDiem: 0,
+      },
+    } as Partial<Tabela>);
+  }
+  const monday = mondayFor(opts?.mes, opts?.ano);
+  const regiaoPT = (settings.region ?? "pt") === "pt";
+
   const novo: ProjectState = {
     id,
     profileId: active?.id || undefined,
+    formato: cinema ? "cinema" : undefined,
+    cinema: cinema
+      ? {
+          tipoProducao: "",
+          // Linha B: a semana seguinte começa na segunda a seguir; a hora fica
+          // por preencher (sem ela o descanso entre semanas não se cobra).
+          proximaSemana: { data: monday.add(7, "day").format("YYYY-MM-DD"), inicio: "" },
+        }
+      : undefined,
     perfil,
     projeto,
     tabela,
@@ -464,12 +593,14 @@ export async function createProject(opts?: { mes?: number; ano?: number }): Prom
     fiscal: {
       ...defaultFiscal(),
       ...effectiveFiscalOf(settings),
+      // Segurança Social: só no cinema, vinda do perfil (editável na folha)
+      ...(cinema && fxC.ssPercent != null ? { SS_percent: Number(fxC.ssPercent) || 0 } : {}),
     },
-    dias: [defaultDia(today)],
+    dias: cinema ? cinemaWeekDias(monday, regiaoPT, nDias) : [defaultDia(today)],
     notas: "",
     condicoes: condicoesFromProfile,
-    condTitulo: (active as any)?.condTitulo || "",
-    condBoxes: Array.isArray((active as any)?.condBoxes) ? (active as any).condBoxes : undefined,
+    condTitulo: condTituloFromProfile,
+    condBoxes: Array.isArray(condBoxesFromProfile) ? condBoxesFromProfile : undefined,
     updatedAt: new Date().toISOString(),
   };
 
@@ -483,6 +614,7 @@ export async function createProject(opts?: { mes?: number; ano?: number }): Prom
     mes: `${String(novo.projeto.mes).padStart(2, "0")}/${novo.projeto.ano}`,
     updatedAt: novo.updatedAt,
     profileId: novo.profileId,
+    formato: novo.formato,
   });
   await writeIndex(KEY_INDEX, index);
 
@@ -535,6 +667,7 @@ export async function duplicateProject(id: string): Promise<string> {
     mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
     updatedAt: now,
     profileId: clone.profileId,
+    formato: clone.formato,
   });
   await writeIndex(KEY_INDEX, index);
 
@@ -574,6 +707,78 @@ export async function duplicateProjectToMonth(
     mes: `${String(mes).padStart(2, "0")}/${ano}`,
     updatedAt: now,
     profileId: clone.profileId,
+    formato: clone.formato,
+  });
+  await writeIndex(KEY_INDEX, index);
+
+  return newId;
+}
+
+/* ------ Cinema: duplicar para a SEMANA SEGUINTE ------ */
+// Uma rodagem de 15-20 semanas = 15-20 folhas com o mesmo cabeçalho. Copia o
+// projeto, avança todas as datas 7 dias e deixa as horas EM BRANCO — o que
+// muda de semana para semana é o horário; o resto já lá está. Um dia que
+// fique por preencher paga 0 (nota-se), em vez de repetir a semana passada.
+export async function duplicateProjectNextWeek(id: string): Promise<string> {
+  const original = await getProject(id);
+  if (!original) throw new Error("Projeto não encontrado");
+  const settings = await getSettings();
+  const regiaoPT = (settings.region ?? "pt") === "pt";
+
+  const newId = String(Date.now());
+  const now = new Date().toISOString();
+  const shift = (iso?: string) =>
+    iso && dayjs(iso).isValid() ? dayjs(iso).add(7, "day").format("YYYY-MM-DD") : iso;
+
+  const dias: Dia[] = original.dias.map((d) => {
+    const data = shift(d.data) || d.data;
+    const n: any = {
+      ...d,
+      data,
+      inicio: "",
+      fim: "",
+      refeicaoTrabalho: "00:00",
+      jantarTrabalho: "00:00",
+      pago: false,
+    };
+    // Overrides negociados dessa semana não passam para a seguinte
+    for (const k of ["salarioDia", "heaHoras", "hebHoras", "hrHoras", "heaValor", "hebValor", "hrValor", "totalDia"]) delete n[k];
+    n.feriado = !d.folga && regiaoPT && isFeriadoPT(data) ? true : undefined;
+    return n as Dia;
+  });
+
+  // O primeiro dia normal diz a que mês pertence a semana nova
+  const primeiro = dias.find((d) => !d.folga) ?? dias[0];
+  const dt = primeiro?.data && dayjs(primeiro.data).isValid() ? dayjs(primeiro.data) : dayjs();
+  const semAtual = String(original.projeto.semana ?? "").trim();
+  const semanaLabel = /^\d+$/.test(semAtual) ? String(Number(semAtual) + 1) : original.projeto.semana;
+
+  const clone: ProjectState = {
+    ...original,
+    id: newId,
+    dias,
+    pago: false,
+    projeto: { ...original.projeto, mes: dt.month() + 1, ano: dt.year(), semana: semanaLabel },
+    cinema: {
+      ...(original.cinema ?? {}),
+      proximaSemana: { data: shift(original.cinema?.proximaSemana?.data), inicio: "" },
+      hrSemanaHoras: undefined,
+      hrSemanaValor: undefined,
+    },
+    updatedAt: now,
+  };
+
+  await AsyncStorage.setItem(KEY_PROJECT_PREFIX + newId, JSON.stringify(clone));
+
+  const index = await readIndex(KEY_INDEX);
+  index.push({
+    id: newId,
+    nome: clone.projeto.titulo || clone.projeto.filme || "",
+    cliente: clone.projeto.produtora || "",
+    mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
+    updatedAt: now,
+    profileId: clone.profileId,
+    formato: clone.formato,
   });
   await writeIndex(KEY_INDEX, index);
 
@@ -615,23 +820,44 @@ export async function duplicateProjectToProfile(
   const now = new Date().toISOString();
 
   // Tarifas do perfil de destino (se tiver) — o resto da folha (dias, projeto)
-  // fica igual; muda o dono e o cabeçalho pessoal.
-  const fixas: any = (target as any)?.fixas || {};
+  // fica igual; muda o dono e o cabeçalho pessoal. Cada formato tem as suas:
+  // publicidade traz salário/dia e taxas €/h; cinema traz salário/semana e
+  // multiplicadores (aplicar as de publicidade a uma folha de cinema dava
+  // valores errados sem dar erro).
+  const ehCinema = original.formato === "cinema";
+  const fixas: any = ehCinema
+    ? original.tabela.diasSemana === 6
+      ? { ...((target as any)?.fixasCinema || {}), ...semVazios((target as any)?.fixasCinema6) }
+      : (target as any)?.fixasCinema || {}
+    : (target as any)?.fixas || {};
   const tabela: Tabela = {
     ...original.tabela,
-    salarioDia: fixas.salarioDia ?? original.tabela.salarioDia,
-    rateHEA: fixas.rateHEA ?? original.tabela.rateHEA,
-    rateHEB: fixas.rateHEB ?? original.tabela.rateHEB,
-    rateHR: fixas.rateHR ?? original.tabela.rateHR,
+    ...(ehCinema
+      ? {
+          salarioSemana: fixas.salarioSemana ?? original.tabela.salarioSemana,
+          multHEA: fixas.multHEA ?? original.tabela.multHEA,
+          multHEB: fixas.multHEB ?? original.tabela.multHEB,
+          multHR: fixas.multHR ?? original.tabela.multHR,
+        }
+      : {
+          salarioDia: fixas.salarioDia ?? original.tabela.salarioDia,
+          rateHEA: fixas.rateHEA ?? original.tabela.rateHEA,
+          rateHEB: fixas.rateHEB ?? original.tabela.rateHEB,
+          rateHR: fixas.rateHR ?? original.tabela.rateHR,
+        }),
     ajudas: {
       ...original.tabela.ajudas!,
       refeicao: fixas.refeicao ?? original.tabela.ajudas!.refeicao,
       telefone: fixas.telefone ?? original.tabela.ajudas!.telefone,
       viatura: fixas.viatura ?? original.tabela.ajudas!.viatura,
       material: fixas.material ?? original.tabela.ajudas!.material,
-      perDiem: fixas.perDiem ?? original.tabela.ajudas!.perDiem,
+      perDiem: ehCinema ? original.tabela.ajudas!.perDiem : (fixas.perDiem ?? original.tabela.ajudas!.perDiem),
     },
   };
+
+  // Condições do perfil de destino, também do formato desta folha
+  const tCondTitulo = ehCinema ? (target as any)?.condTituloCinema : (target as any)?.condTitulo;
+  const tCondBoxes = ehCinema ? (target as any)?.condBoxesCinema : (target as any)?.condBoxes;
 
   const clone: ProjectState = {
     ...original,
@@ -639,11 +865,9 @@ export async function duplicateProjectToProfile(
     profileId: targetProfileId,
     perfil: target ? blankPerfil(target as any) : original.perfil,
     tabela,
-    condicoes: (target as any)?.condicoes ?? original.condicoes,
-    condTitulo: (target as any)?.condTitulo ?? original.condTitulo,
-    condBoxes: Array.isArray((target as any)?.condBoxes)
-      ? (target as any).condBoxes
-      : original.condBoxes,
+    condicoes: ehCinema ? original.condicoes : ((target as any)?.condicoes ?? original.condicoes),
+    condTitulo: tCondTitulo ?? original.condTitulo,
+    condBoxes: Array.isArray(tCondBoxes) ? tCondBoxes : original.condBoxes,
     projeto: {
       ...original.projeto,
       filme: original.projeto.filme
@@ -663,6 +887,7 @@ export async function duplicateProjectToProfile(
     mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
     updatedAt: now,
     profileId: targetProfileId,
+    formato: clone.formato,
   });
   await writeIndex(KEY_INDEX, index);
 

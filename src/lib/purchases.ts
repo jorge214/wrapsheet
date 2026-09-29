@@ -1,5 +1,6 @@
 // src/lib/purchases.ts
-// PASSO 7 — camada de compras (RevenueCat / IAP da Apple), iOS-only por agora.
+// PASSO 7 — camada de compras (RevenueCat): IAP da Apple no iOS e, assim que
+// existir a chave `goog_…`, faturação do Google Play no Android.
 //
 // TUDO é lazy: o SDK nativo `react-native-purchases` NÃO existe no Expo Go nem
 // na web. Por isso nunca se importa no topo — carrega-se com require() dentro de
@@ -16,9 +17,12 @@
 // é a fonte imediata no iOS; o Supabase é a fonte partilhada (web/android).
 import { Platform } from "react-native";
 
-// Chave PÚBLICA do RevenueCat (App/iOS) — segura no cliente. Vem de env; o
-// placeholder deixa o código compilar antes de a teres.
+// Chaves PÚBLICAS do RevenueCat — seguras no cliente, vêm de env. Enquanto a
+// do Android não existir (produtos ainda por criar na Play Console), as compras
+// ficam desligadas nessa plataforma sem partir nada: isPurchasesAvailable()
+// devolve falso e o paywall mostra a alternativa, tal como já fazia.
 const RC_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || "";
+const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || "";
 // IDs definidos na App Store Connect / RevenueCat
 export const RC_ENTITLEMENT_ID = "profiles_10";
 export const IAP_MONTHLY_ID = "wrapsheet_profiles10_monthly";
@@ -26,8 +30,15 @@ export const IAP_YEARLY_ID = "wrapsheet_profiles10_yearly";
 
 let configuredFor: string | null = null;
 
+/** Chave da loja desta plataforma ("" desliga as compras aqui). */
+function storeKey(): string {
+  if (Platform.OS === "ios") return RC_IOS_KEY;
+  if (Platform.OS === "android") return RC_ANDROID_KEY;
+  return ""; // web: a compra é pela Stripe (ver src/lib/webCheckout.ts)
+}
+
 function getSDK(): any | null {
-  if (Platform.OS !== "ios") return null; // iOS-only por agora
+  if (Platform.OS !== "ios" && Platform.OS !== "android") return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require("react-native-purchases").default;
@@ -38,16 +49,17 @@ function getSDK(): any | null {
 
 /** Há SDK de compras disponível nesta plataforma/build? (falso no Expo Go/web) */
 export function isPurchasesAvailable(): boolean {
-  return !!RC_IOS_KEY && !!getSDK();
+  return !!storeKey() && !!getSDK();
 }
 
 /** Configura o SDK uma vez, ligando a compra ao user_id do Supabase. */
 export async function configurePurchases(supabaseUserId: string): Promise<boolean> {
   const P = getSDK();
-  if (!P || !RC_IOS_KEY || !supabaseUserId) return false;
+  const key = storeKey();
+  if (!P || !key || !supabaseUserId) return false;
   if (configuredFor === supabaseUserId) return true;
   try {
-    P.configure({ apiKey: RC_IOS_KEY, appUserID: supabaseUserId });
+    P.configure({ apiKey: key, appUserID: supabaseUserId });
     configuredFor = supabaseUserId;
     return true;
   } catch {

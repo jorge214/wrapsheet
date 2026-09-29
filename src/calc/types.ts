@@ -38,17 +38,39 @@ export type Dia = {
   hrValor?: number;
   /** Total do dia negociado à mão (vazio = soma automática) */
   totalDia?: number;
+
+  // ── Cinema (folha semanal) ──
+  /** Linha de FOLGA da semana (sáb/dom). Sem horas = descanso (0 €, conta
+   *  24h de descanso); COM horas = dia de folga trabalhado (tudo a dobrar). */
+  folga?: boolean;
+  /** Feriado obrigatório: dia normal a dobrar (salário e taxas × multFolga). */
+  feriado?: boolean;
 };
 
 // Tipo canónico — valores sempre em percentagem (ex: 25 significa 25%)
 export type Fiscal = {
   IRS_percent: number;
   IVA_percent: number;
+  /** Segurança Social (cinema): retida como o IRS. Ausente/0 = sem linha. */
+  SS_percent?: number;
   nota?: string;
 };
 
 export type Tabela = {
   salarioDia?: number;     // €
+
+  // ── Cinema (folha semanal): a SEMANA define o dia ──
+  /** Salário por semana. Quando existe, salarioDia = salarioSemana / diasSemana
+   *  (o salarioDia guardado é ignorado — a semana é a fonte de verdade). */
+  salarioSemana?: number;
+  diasSemana?: number;     // 5 | 6
+  /** Divisor do valor-hora (cinema: 10h de trabalho + 1h de refeição = 11h de
+   *  horário, mas a hora vale salário/10). Ausente = H_dia (publicidade). */
+  horasBase?: number;
+  /** Descanso mínimo entre semanas, em horas (60 = semana de 5 dias; 36 = 6). */
+  descansoSemanal_h?: number;
+  /** Dia de folga trabalhado / feriado: salário e taxas × isto (default 2). */
+  multFolga?: number;
   multHEA?: number;        // default 1.5
   multHEB?: number;        // default 2.0
   multHR?: number;         // default 3.0
@@ -93,4 +115,9 @@ export type CalcDia = {
   ajTel: number;
   ajMat: number;
   ajPer: number;
+
+  /** Multiplicador aplicado ao dia (2 = folga trabalhada/feriado; 1 = normal). */
+  dobra: number;
+  /** Linha de descanso (folga sem horas): 0 € mas conta horas de descanso. */
+  descanso: boolean;
 };

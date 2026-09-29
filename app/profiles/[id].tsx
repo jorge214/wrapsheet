@@ -25,6 +25,7 @@ import {
   CondBox,
   Profile,
   defaultCondBoxes,
+  defaultCondBoxesCinema,
   deleteProfile,
   getProfileById,
   setActiveProfileId,
@@ -152,6 +153,190 @@ function NumField({
   );
 }
 
+/**
+ * Editor das condições de trabalho (caixas com título, texto e imagem) que
+ * saem na folha/PDF. Existe DUAS vezes no perfil — uma para publicidade e
+ * outra para cinema — porque as regras da semana não são as do dia; cada
+ * projeto novo leva as do seu formato. Era código inline; passou a componente
+ * para não haver duas cópias a divergir.
+ */
+function CondSection({
+  mainTitle, hint, tituloValue, onTituloChange, boxes, setBoxes, editing, resetModel, COLORS, styles: s,
+}: {
+  /** Título principal da secção, numa barra cinzenta (ex.: CONDIÇÕES DE TRABALHO DE CINEMA) */
+  mainTitle: string;
+  hint: string;
+  tituloValue?: string;
+  onTituloChange: (v: string) => void;
+  boxes: CondBox[];
+  setBoxes: (next: CondBox[]) => void;
+  editing: boolean;
+  /** Modelo de referência do formato, para "Repor modelo (PDF)"; sem isto o botão não aparece */
+  resetModel?: () => CondBox[];
+  COLORS: any;
+  styles: any;
+}) {
+  const { t } = useTranslation();
+
+  const setBox = (i: number, patch: Partial<CondBox>) =>
+    setBoxes(boxes.map((b, ix) => (ix === i ? { ...b, ...patch } : b)));
+  const addBox = () => setBoxes([...boxes, { titulo: "", texto: "" }]);
+  const removeBox = (i: number) => setBoxes(boxes.filter((_, ix) => ix !== i));
+  const moveBox = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= boxes.length) return;
+    const next = [...boxes];
+    [next[i], next[j]] = [next[j], next[i]];
+    setBoxes(next);
+  };
+
+  function resetCondDefaults() {
+    const doReset = () => setBoxes(resetModel ? resetModel() : []);
+    const title = t("reset_cond_default", { defaultValue: "Repor modelo (PDF)" });
+    const msg = t("reset_cond_confirm", { defaultValue: "Substituir as caixas atuais pelas condições do modelo de referência?" });
+    if (Platform.OS === "web") {
+      if ((window as any).confirm(`${title}\n\n${msg}`)) doReset();
+      return;
+    }
+    Alert.alert(title, msg, [
+      { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
+      { text: t("confirm", { defaultValue: "Confirmar" }), onPress: doReset },
+    ]);
+  }
+
+  async function pickBoxImage(i: number) {
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        base64: true,
+        quality: 0.5,
+        allowsMultipleSelection: false,
+      });
+      if (res.canceled || !res.assets?.length) return;
+      const a = res.assets[0];
+      let uri = a.base64
+        ? `data:${a.mimeType || "image/jpeg"};base64,${a.base64}`
+        : a.uri;
+      // Na web pode vir um blob: — converte para data URI para persistir
+      if (uri.startsWith("blob:")) {
+        const blob = await (await fetch(uri)).blob();
+        uri = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = reject;
+          r.readAsDataURL(blob);
+        });
+      }
+      if (uri.length > 1_800_000) {
+        Alert.alert(
+          t("image_too_big", { defaultValue: "Imagem demasiado grande" }),
+          t("image_too_big_msg", { defaultValue: "Escolhe uma imagem mais pequena (máx. ~1,3 MB)." })
+        );
+        if (Platform.OS === "web") (window as any).alert(t("image_too_big_msg", { defaultValue: "Escolhe uma imagem mais pequena (máx. ~1,3 MB)." }));
+        return;
+      }
+      setBox(i, { img: uri });
+    } catch (e) {
+      console.error("Erro ao escolher imagem", e);
+    }
+  }
+
+  return (
+    <>
+      <View style={{ height: 8 }} />
+      {/* Título principal numa barra cinzenta; por baixo, o título anual com o
+          exemplo e as notas (pedidos do Jorge de 15/09 e do pai de 16/09) */}
+      <View style={s.condMain}>
+        <Text style={s.condMainText}>{mainTitle}</Text>
+      </View>
+
+      <ProfileField
+        label={t("cond_annual_title", { defaultValue: "Título da secção (anual)" })}
+        hint={t("cond_annual_title_hint", { defaultValue: "Ex.: CONDIÇÕES DE TRABALHO - NOME - A partir de 1 de Janeiro de 2026" })}
+        value={tituloValue}
+        editing={editing}
+        onChangeText={onTituloChange}
+        autoCapitalize="characters"
+        COLORS={COLORS}
+        styles={s}
+      />
+      <Text style={s.fieldHint}>{hint}</Text>
+
+      {boxes.map((b, i) => (
+        <View key={i} style={s.condBox}>
+          {editing ? (
+            <>
+              <View style={s.condBoxHeader}>
+                <TextInput
+                  value={b.titulo}
+                  onChangeText={(v) => setBox(i, { titulo: v })}
+                  placeholder={t("box_title_ph", { defaultValue: "TÍTULO (ex.: HORA EXTRA A)" })}
+                  placeholderTextColor={COLORS.sub}
+                  style={[s.fieldInput, { flex: 1, fontWeight: "800" }]}
+                  autoCapitalize="characters"
+                />
+                <Pressable onPress={() => moveBox(i, -1)} hitSlop={6} style={s.condMiniBtn}>
+                  <Text style={s.condMiniBtnText}>↑</Text>
+                </Pressable>
+                <Pressable onPress={() => moveBox(i, 1)} hitSlop={6} style={s.condMiniBtn}>
+                  <Text style={s.condMiniBtnText}>↓</Text>
+                </Pressable>
+                <Pressable onPress={() => removeBox(i)} hitSlop={6} style={[s.condMiniBtn, { borderColor: COLORS.danger }]}>
+                  <Text style={[s.condMiniBtnText, { color: COLORS.danger }]}>✕</Text>
+                </Pressable>
+              </View>
+              <AutoGrowTextInput
+                value={b.texto}
+                onChangeText={(v: string) => setBox(i, { texto: v })}
+                placeholder={t("box_text_ph", { defaultValue: "Texto da condição…" })}
+                placeholderTextColor={COLORS.sub}
+                style={[s.fieldInput, { marginTop: 8 }]}
+              />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 }}>
+                {b.img ? (
+                  <>
+                    <Image source={{ uri: b.img }} style={s.condImg} resizeMode="cover" />
+                    <Pressable onPress={() => setBox(i, { img: undefined })} style={s.condImgBtn}>
+                      <Text style={s.condImgBtnText}>
+                        ✕ {t("remove_image", { defaultValue: "Remover imagem" })}
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Pressable onPress={() => pickBoxImage(i)} style={s.condImgBtn}>
+                    <Text style={s.condImgBtnText}>
+                      🖼 {t("add_image", { defaultValue: "Adicionar imagem" })}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            </>
+          ) : (
+            <>
+              {b.titulo ? <Text style={s.condBoxTitle}>{b.titulo}</Text> : null}
+              {b.texto ? <Text style={s.condBoxText}>{b.texto}</Text> : null}
+              {b.img ? <Image source={{ uri: b.img }} style={[s.condImg, { marginTop: 6 }]} resizeMode="contain" /> : null}
+            </>
+          )}
+        </View>
+      ))}
+
+      {editing && (
+        <View style={{ flexDirection: "row", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+          <Pressable onPress={addBox} style={s.condAddBtn}>
+            <Text style={s.condAddBtnText}>＋ {t("add_box", { defaultValue: "Adicionar caixa" })}</Text>
+          </Pressable>
+          {resetModel && (
+            <Pressable onPress={resetCondDefaults} style={s.condAddBtn}>
+              <Text style={s.condAddBtnText}>↺ {t("reset_cond_default", { defaultValue: "Repor modelo (PDF)" })}</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
+    </>
+  );
+}
+
 export default function ProfileEditScreen() {
   const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const { t } = useTranslation();
@@ -164,6 +349,9 @@ export default function ProfileEditScreen() {
   // O perfil abre SEMPRE em modo de edição (mexe-se e carrega-se em Guardar;
   // não há passo "Editar" intermédio).
   const [editing] = useState(true);
+  // Secção aberta: Publicidade (vermelho) ou Cinema (azul) — cada uma junta
+  // valores, regras de horas extra e condições do seu formato.
+  const [secao, setSecao] = useState<"publicidade" | "cinema">("publicidade");
   const [saving, setSaving] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
   const [preset, setPreset] = useState<{ IRS_percent: number; IVA_percent: number; taxIncome: string; taxVat: string; sym: string }>({
@@ -371,71 +559,39 @@ export default function ProfileEditScreen() {
   const fixas = p.fixas ?? {};
   const setFixas = (patch: Partial<NonNullable<Profile["fixas"]>>) =>
     setP({ ...p, fixas: { ...fixas, ...patch } });
-  // ── Condições de trabalho em caixas ──
-  const boxes: CondBox[] = p.condBoxes ?? [];
-  const setBoxes = (next: CondBox[]) => setP({ ...p, condBoxes: next });
-  const setBox = (i: number, patch: Partial<CondBox>) =>
-    setBoxes(boxes.map((b, ix) => (ix === i ? { ...b, ...patch } : b)));
-  const addBox = () => setBoxes([...boxes, { titulo: "", texto: "" }]);
-  const removeBox = (i: number) => setBoxes(boxes.filter((_, ix) => ix !== i));
-  const moveBox = (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= boxes.length) return;
-    const next = [...boxes];
-    [next[i], next[j]] = [next[j], next[i]];
-    setBoxes(next);
-  };
+  // Tarifas da folha de cinema (semanal)
+  const fxC = p.fixasCinema ?? {};
+  const setFxC = (patch: Partial<NonNullable<Profile["fixasCinema"]>>) =>
+    setP({ ...p, fixasCinema: { ...fxC, ...patch } });
+  // Semana de 6 dias: os mesmos valores; vazio herda da semana de 5
+  const fxC6 = p.fixasCinema6 ?? {};
+  const setFxC6 = (patch: Partial<NonNullable<Profile["fixasCinema"]>>) =>
+    setP({ ...p, fixasCinema6: { ...fxC6, ...patch } });
+  // Regras de horas extra do cinema (podem não ser as da publicidade)
+  const regrasC = p.regrasCinema ?? {};
+  const setRegrasC = (patch: Partial<NonNullable<Profile["regrasCinema"]>>) =>
+    setP({ ...p, regrasCinema: { ...regrasC, ...patch } });
 
-  function resetCondDefaults() {
-    const doReset = () => setBoxes(defaultCondBoxes());
-    const title = t("reset_cond_default", { defaultValue: "Repor modelo (PDF)" });
-    const msg = t("reset_cond_confirm", { defaultValue: "Substituir as caixas atuais pelas condições do modelo de referência?" });
-    if (Platform.OS === "web") {
-      if ((window as any).confirm(`${title}\n\n${msg}`)) doReset();
-      return;
-    }
-    Alert.alert(title, msg, [
-      { text: t("cancel", { defaultValue: "Cancelar" }), style: "cancel" },
-      { text: t("confirm", { defaultValue: "Confirmar" }), onPress: doReset },
-    ]);
-  }
-
-  async function pickBoxImage(i: number) {
-    try {
-      const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        base64: true,
-        quality: 0.5,
-        allowsMultipleSelection: false,
-      });
-      if (res.canceled || !res.assets?.length) return;
-      const a = res.assets[0];
-      let uri = a.base64
-        ? `data:${a.mimeType || "image/jpeg"};base64,${a.base64}`
-        : a.uri;
-      // Na web pode vir um blob: — converte para data URI para persistir
-      if (uri.startsWith("blob:")) {
-        const blob = await (await fetch(uri)).blob();
-        uri = await new Promise<string>((resolve, reject) => {
-          const r = new FileReader();
-          r.onload = () => resolve(String(r.result));
-          r.onerror = reject;
-          r.readAsDataURL(blob);
-        });
-      }
-      if (uri.length > 1_800_000) {
-        Alert.alert(
-          t("image_too_big", { defaultValue: "Imagem demasiado grande" }),
-          t("image_too_big_msg", { defaultValue: "Escolhe uma imagem mais pequena (máx. ~1,3 MB)." })
-        );
-        if (Platform.OS === "web") (window as any).alert(t("image_too_big_msg", { defaultValue: "Escolhe uma imagem mais pequena (máx. ~1,3 MB)." }));
-        return;
-      }
-      setBox(i, { img: uri });
-    } catch (e) {
-      console.error("Erro ao escolher imagem", e);
-    }
-  }
+  // Os mesmos nove campos para a semana de 5 e a de 6 dias. Na de 6, o
+  // placeholder mostra o valor da de 5 — é o que se usa se ficar vazio.
+  type FxC = NonNullable<Profile["fixasCinema"]>;
+  const ph = (n?: number, fallback?: string) => (n != null ? String(n).replace(".", ",") : fallback);
+  const cinemaFields = (v: FxC, set: (patch: Partial<FxC>) => void, fb: FxC = {}, descansoPh = "60") => (
+    <>
+      <NumField label={gs.salary} unit={preset.sym} value={v.salarioSemana} editing={editing} placeholder={ph(fb.salarioSemana)} onChange={(n) => set({ salarioSemana: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`${gs.overtimeA} (×)`} value={v.multHEA} editing={editing} placeholder={ph(fb.multHEA, "1,5")} onChange={(n) => set({ multHEA: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`${gs.overtimeB} (×)`} value={v.multHEB} editing={editing} placeholder={ph(fb.multHEB, "2")} onChange={(n) => set({ multHEB: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`${gs.recoveryHours} (×)`} value={v.multHR} editing={editing} placeholder={ph(fb.multHR, "2,5")} onChange={(n) => set({ multHR: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`${gs.meal} (${preset.sym})`} value={v.refeicao} editing={editing} placeholder={ph(fb.refeicao)} onChange={(n) => set({ refeicao: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`${gs.telephone} (${preset.sym})`} value={v.telefone} editing={editing} placeholder={ph(fb.telefone)} onChange={(n) => set({ telefone: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`${gs.vehicle} (${preset.sym})`} value={v.viatura} editing={editing} placeholder={ph(fb.viatura)} onChange={(n) => set({ viatura: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`${gs.material} (${preset.sym})`} value={v.material} editing={editing} placeholder={ph(fb.material)} onChange={(n) => set({ material: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`${t("cinema_ss", { defaultValue: "Segurança Social" })} (%)`} value={v.ssPercent} editing={editing} placeholder={ph(fb.ssPercent)} onChange={(n) => set({ ssPercent: n })} COLORS={COLORS} styles={s} />
+      {/* FOLGA · horas de descanso entre semanas — o alvo "Para 60H" da folha (pai, 16/09) */}
+      <NumField label={t("cinema_rest_hours", { defaultValue: "Folga · Horas de descanso entre semanas (h)" })} value={v.descansoSemanal_h} editing={editing} placeholder={descansoPh} onChange={(n) => set({ descansoSemanal_h: n })} COLORS={COLORS} styles={s} />
+    </>
+  );
+  // ── Condições de trabalho: uma secção por FORMATO (ver CondSection) ──
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -474,133 +630,122 @@ export default function ProfileEditScreen() {
           <ProfileField label={t("swift", { defaultValue: "SWIFT / BIC" })} value={p.swift} editing={editing} onChangeText={(v) => setP({ ...p, swift: v })} placeholder={t("swift_placeholder")} autoCapitalize="characters" COLORS={COLORS} styles={s} />
         </View>
 
-        {/* Condições fixas (a linha de taxas): aplicadas a projetos novos */}
-        <View style={s.card}>
-          <Text style={s.fieldLabel}>
-            {t("fixed_conditions", { defaultValue: "Condições fixas (taxas)" })}
-          </Text>
-          <Text style={s.fieldHint}>
-            {t("fixed_conditions_hint", { defaultValue: "Aplicam-se automaticamente a projetos novos. Podes editá-las por projeto." })}
-          </Text>
-          <NumField label={gs.salary} unit={preset.sym} value={fixas.salarioDia} editing={editing} onChange={(n) => setFixas({ salarioDia: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`HEA · ${gs.overtimeA} (${preset.sym}/h)`} value={fixas.rateHEA} editing={editing} onChange={(n) => setFixas({ rateHEA: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`HEB · ${gs.overtimeB} (${preset.sym}/h)`} value={fixas.rateHEB} editing={editing} onChange={(n) => setFixas({ rateHEB: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`HR · ${gs.recoveryHours} (${preset.sym}/h)`} value={fixas.rateHR} editing={editing} onChange={(n) => setFixas({ rateHR: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.meal} (${preset.sym})`} value={fixas.refeicao} editing={editing} onChange={(n) => setFixas({ refeicao: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.telephone} (${preset.sym})`} value={fixas.telefone} editing={editing} onChange={(n) => setFixas({ telefone: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.vehicle} (${preset.sym})`} value={fixas.viatura} editing={editing} onChange={(n) => setFixas({ viatura: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.material} (${preset.sym})`} value={fixas.material} editing={editing} onChange={(n) => setFixas({ material: n })} COLORS={COLORS} styles={s} />
-          <NumField label={`${gs.perDiem} (${preset.sym})`} value={fixas.perDiem} editing={editing} onChange={(n) => setFixas({ perDiem: n })} COLORS={COLORS} styles={s} />
+        {/* Publicidade (vermelho) / Cinema (azul): cada secção junta TUDO do
+            seu formato — valores, regras de horas extra e condições de
+            trabalho — num bloco único (notas do pai do Jorge, 16/09). */}
+        <View style={s.secRow}>
+          <Pressable
+            onPress={() => setSecao("publicidade")}
+            style={({ pressed }) => [s.secBtn, { backgroundColor: "#c00000" }, secao !== "publicidade" && s.secBtnOff, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={s.secBtnText}>{t("format_publicidade", { defaultValue: "Publicidade" })}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setSecao("cinema")}
+            style={({ pressed }) => [s.secBtn, { backgroundColor: "#2e75b6" }, secao !== "cinema" && s.secBtnOff, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={s.secBtnText}>{t("format_cinema", { defaultValue: "Cinema" })}</Text>
+          </Pressable>
         </View>
 
-        {/* (Regime Fiscal saiu do perfil: os impostos definem-se em
-            Definições › Região Fiscal e valem para a app toda; exceções
-            editam-se diretamente na folha de cada projeto.) */}
-
-        {/* Regras de horas extra + Condições de trabalho (última secção) */}
-        <View style={s.card}>
-          <Text style={s.fieldLabel}>
-            {t("overtime_rules_title", { defaultValue: "Regras de horas extra" })}
-          </Text>
-          <Text style={s.fieldHint}>
-            {t("overtime_rules_hint", { defaultValue: "A partir de que hora se cobra cada coisa. Predefinição igual ao PDF." })}
-          </Text>
-          <NumField label={t("cond_base_hours", { defaultValue: "Horário Base" })} value={fixas.hDia} editing={editing} onChange={(n) => setFixas({ hDia: n })} COLORS={COLORS} styles={s} />
-          <NumField label={t("cond_hea_from_hour", { defaultValue: "HE-A a partir do início da hora" })} value={fixas.heaFromHour} editing={editing} onChange={(n) => setFixas({ heaFromHour: n })} COLORS={COLORS} styles={s} />
-          <NumField label={t("cond_heb_from_hour", { defaultValue: "HE-B a partir do início da hora" })} value={fixas.hebFromHour} editing={editing} onChange={(n) => setFixas({ hebFromHour: n })} COLORS={COLORS} styles={s} />
-          <NumField label={t("cond_hr_rest_below", { defaultValue: "HR — se descanso inferior a (h)" })} value={fixas.hrRestBelow} editing={editing} onChange={(n) => setFixas({ hrRestBelow: n })} COLORS={COLORS} styles={s} />
-
-          <View style={{ height: 8 }} />
-          <Text style={s.fieldLabel}>
-            {t("conditions_profile", { defaultValue: "Condições de trabalho (predefinição)" })}
-          </Text>
-          <Text style={s.fieldHint}>
-            {t("cond_boxes_hint", { defaultValue: "Caixas com título e texto (e imagem opcional) que saem na folha/PDF. Aplicam-se a projetos novos." })}
-          </Text>
-
-          <ProfileField
-            label={t("cond_annual_title", { defaultValue: "Título da secção (anual)" })}
-            hint={t("cond_annual_title_hint", { defaultValue: "Ex.: CONDIÇÕES DE TRABALHO - NOME - A partir de 1 de Janeiro de 2026" })}
-            value={p.condTitulo}
-            editing={editing}
-            onChangeText={(v) => setP({ ...p, condTitulo: v })}
-            placeholder={t("cond_annual_title_ph", { defaultValue: "CONDIÇÕES DE TRABALHO …" })}
-            autoCapitalize="characters"
-            COLORS={COLORS}
-            styles={s}
-          />
-
-          {boxes.map((b, i) => (
-            <View key={i} style={s.condBox}>
-              {editing ? (
-                <>
-                  <View style={s.condBoxHeader}>
-                    <TextInput
-                      value={b.titulo}
-                      onChangeText={(v) => setBox(i, { titulo: v })}
-                      placeholder={t("box_title_ph", { defaultValue: "TÍTULO (ex.: HORA EXTRA A)" })}
-                      placeholderTextColor={COLORS.sub}
-                      style={[s.fieldInput, { flex: 1, fontWeight: "800" }]}
-                      autoCapitalize="characters"
-                    />
-                    <Pressable onPress={() => moveBox(i, -1)} hitSlop={6} style={s.condMiniBtn}>
-                      <Text style={s.condMiniBtnText}>↑</Text>
-                    </Pressable>
-                    <Pressable onPress={() => moveBox(i, 1)} hitSlop={6} style={s.condMiniBtn}>
-                      <Text style={s.condMiniBtnText}>↓</Text>
-                    </Pressable>
-                    <Pressable onPress={() => removeBox(i)} hitSlop={6} style={[s.condMiniBtn, { borderColor: COLORS.danger }]}>
-                      <Text style={[s.condMiniBtnText, { color: COLORS.danger }]}>✕</Text>
-                    </Pressable>
-                  </View>
-                  <AutoGrowTextInput
-                    value={b.texto}
-                    onChangeText={(v: string) => setBox(i, { texto: v })}
-                    placeholder={t("box_text_ph", { defaultValue: "Texto da condição…" })}
-                    placeholderTextColor={COLORS.sub}
-                    style={[s.fieldInput, { marginTop: 8 }]}
-                  />
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 8 }}>
-                    {b.img ? (
-                      <>
-                        <Image source={{ uri: b.img }} style={s.condImg} resizeMode="cover" />
-                        <Pressable onPress={() => setBox(i, { img: undefined })} style={s.condImgBtn}>
-                          <Text style={s.condImgBtnText}>
-                            ✕ {t("remove_image", { defaultValue: "Remover imagem" })}
-                          </Text>
-                        </Pressable>
-                      </>
-                    ) : (
-                      <Pressable onPress={() => pickBoxImage(i)} style={s.condImgBtn}>
-                        <Text style={s.condImgBtnText}>
-                          🖼 {t("add_image", { defaultValue: "Adicionar imagem" })}
-                        </Text>
-                      </Pressable>
-                    )}
-                  </View>
-                </>
-              ) : (
-                <>
-                  {b.titulo ? <Text style={s.condBoxTitle}>{b.titulo}</Text> : null}
-                  {b.texto ? <Text style={s.condBoxText}>{b.texto}</Text> : null}
-                  {b.img ? <Image source={{ uri: b.img }} style={[s.condImg, { marginTop: 6 }]} resizeMode="contain" /> : null}
-                </>
-              )}
+        {secao === "publicidade" ? (
+          <>
+            {/* Valores da folha diária: aplicados a projetos novos */}
+            <View style={s.card}>
+              <Text style={s.fieldLabel}>
+                {t("fixed_conditions", { defaultValue: "Publicidade · Folha diária" })}
+              </Text>
+              <Text style={s.fieldHint}>
+                {t("fixed_conditions_hint", { defaultValue: "Salários e valores de horas extra. Aplicam-se automaticamente a projetos novos. Tudo editável por projeto." })}
+              </Text>
+              <NumField label={gs.salary} unit={preset.sym} value={fixas.salarioDia} editing={editing} onChange={(n) => setFixas({ salarioDia: n })} COLORS={COLORS} styles={s} />
+              <NumField label={`HEA · ${gs.overtimeA} (${preset.sym}/h)`} value={fixas.rateHEA} editing={editing} onChange={(n) => setFixas({ rateHEA: n })} COLORS={COLORS} styles={s} />
+              <NumField label={`HEB · ${gs.overtimeB} (${preset.sym}/h)`} value={fixas.rateHEB} editing={editing} onChange={(n) => setFixas({ rateHEB: n })} COLORS={COLORS} styles={s} />
+              <NumField label={`HR · ${gs.recoveryHours} (${preset.sym}/h)`} value={fixas.rateHR} editing={editing} onChange={(n) => setFixas({ rateHR: n })} COLORS={COLORS} styles={s} />
+              <NumField label={`${gs.meal} (${preset.sym})`} value={fixas.refeicao} editing={editing} onChange={(n) => setFixas({ refeicao: n })} COLORS={COLORS} styles={s} />
+              <NumField label={`${gs.telephone} (${preset.sym})`} value={fixas.telefone} editing={editing} onChange={(n) => setFixas({ telefone: n })} COLORS={COLORS} styles={s} />
+              <NumField label={`${gs.vehicle} (${preset.sym})`} value={fixas.viatura} editing={editing} onChange={(n) => setFixas({ viatura: n })} COLORS={COLORS} styles={s} />
+              <NumField label={`${gs.material} (${preset.sym})`} value={fixas.material} editing={editing} onChange={(n) => setFixas({ material: n })} COLORS={COLORS} styles={s} />
+              <NumField label={`${gs.perDiem} (${preset.sym})`} value={fixas.perDiem} editing={editing} onChange={(n) => setFixas({ perDiem: n })} COLORS={COLORS} styles={s} />
             </View>
-          ))}
 
-          {editing && (
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
-              <Pressable onPress={addBox} style={s.condAddBtn}>
-                <Text style={s.condAddBtnText}>＋ {t("add_box", { defaultValue: "Adicionar caixa" })}</Text>
-              </Pressable>
-              <Pressable onPress={resetCondDefaults} style={s.condAddBtn}>
-                <Text style={s.condAddBtnText}>↺ {t("reset_cond_default", { defaultValue: "Repor modelo (PDF)" })}</Text>
-              </Pressable>
+            {/* Regras de horas extra + condições de trabalho: um bloco único */}
+            <View style={s.card}>
+              <Text style={s.fieldLabel}>
+                {t("overtime_rules_title", { defaultValue: "Publicidade · Regras de horas extra" })}
+              </Text>
+              <Text style={s.fieldHint}>
+                {t("overtime_rules_hint", { defaultValue: "A partir de que hora se cobra horas extra e/ou de recuperação. A predefinição é igual ao PDF." })}
+              </Text>
+              <NumField label={t("cond_base_hours", { defaultValue: "Horário Base" })} value={fixas.hDia} editing={editing} placeholder="11" onChange={(n) => setFixas({ hDia: n })} COLORS={COLORS} styles={s} />
+              <NumField label={t("cond_hea_from_hour", { defaultValue: "HE-A a partir do início da hora" })} value={fixas.heaFromHour} editing={editing} placeholder="12" onChange={(n) => setFixas({ heaFromHour: n })} COLORS={COLORS} styles={s} />
+              <NumField label={t("cond_heb_from_hour", { defaultValue: "HE-B a partir do início da hora" })} value={fixas.hebFromHour} editing={editing} placeholder="19" onChange={(n) => setFixas({ hebFromHour: n })} COLORS={COLORS} styles={s} />
+              <NumField label={t("cond_hr_rest_below", { defaultValue: "HR — se descanso inferior a (h)" })} value={fixas.hrRestBelow} editing={editing} placeholder="10" onChange={(n) => setFixas({ hrRestBelow: n })} COLORS={COLORS} styles={s} />
+
+              <CondSection
+                mainTitle={t("cond_annual_title_ph_ads", { defaultValue: "CONDIÇÕES DE TRABALHO DE PUBLICIDADE" })}
+                hint={t("cond_boxes_hint", { defaultValue: "Caixas com título e texto (e imagem opcional) que saem na folha/PDF. Aplicam-se a projetos novos." })}
+                tituloValue={p.condTitulo}
+                onTituloChange={(v) => setP({ ...p, condTitulo: v })}
+                boxes={p.condBoxes ?? []}
+                setBoxes={(next) => setP({ ...p, condBoxes: next })}
+                editing={editing}
+                resetModel={defaultCondBoxes}
+                COLORS={COLORS}
+                styles={s}
+              />
             </View>
-          )}
-        </View>
+          </>
+        ) : (
+          <>
+            {/* Valores da folha semanal: semana de 5 dias e semana de 6 dias */}
+            <View style={s.card}>
+              <Text style={s.fieldLabel}>
+                {t("cinema_rates_title", { defaultValue: "Cinema · Folha semanal" })}
+              </Text>
+              <Text style={s.fieldHint}>
+                {t("cinema_rates_hint", { defaultValue: "Salários e valores de horas extra. Aplicam-se automaticamente a projetos novos. O valor dia é o salário da semana a dividir pelos dias de trabalho; a hora é o valor dia a dividir pelas horas de trabalho diárias (sem a de refeição). As horas extra e de recuperação multiplicam a hora normal pelo número aqui inserido. Tudo editável por projeto." })}
+              </Text>
+              <Text style={s.subTitle}>{gs.salary} · {t("cinema_week", { defaultValue: "Semana de 5 dias" })}</Text>
+              {cinemaFields(fxC, setFxC, {}, "60")}
+              <Text style={s.subTitle}>{gs.salary} · {t("cinema_week6", { defaultValue: "Semana de 6 dias" })}</Text>
+              <Text style={s.fieldHint}>
+                {t("cinema_week6_hint", { defaultValue: "Campos vazios usam os valores da semana de 5 dias." })}
+              </Text>
+              {cinemaFields(fxC6, setFxC6, fxC, "36")}
+            </View>
 
+            {/* Regras de horas extra do cinema + condições de trabalho: um bloco único */}
+            <View style={s.card}>
+              <Text style={s.fieldLabel}>
+                {t("cinema_rules_title", { defaultValue: "Cinema · Regras de horas extra" })}
+              </Text>
+              <Text style={s.fieldHint}>
+                {t("cinema_rules_hint", { defaultValue: "A partir de que hora se cobra horas extra e/ou de recuperação. A predefinição é igual ao PDF. As regras podem não ser as mesmas da publicidade." })}
+              </Text>
+              <NumField label={t("cond_base_hours", { defaultValue: "Horário Base" })} value={regrasC.hDia} editing={editing} placeholder="11" onChange={(n) => setRegrasC({ hDia: n })} COLORS={COLORS} styles={s} />
+              <NumField label={t("cond_hea_from_hour", { defaultValue: "HE-A a partir do início da hora" })} value={regrasC.heaFromHour} editing={editing} placeholder="12" onChange={(n) => setRegrasC({ heaFromHour: n })} COLORS={COLORS} styles={s} />
+              <NumField label={t("cond_heb_from_hour", { defaultValue: "HE-B a partir do início da hora" })} value={regrasC.hebFromHour} editing={editing} placeholder="19" onChange={(n) => setRegrasC({ hebFromHour: n })} COLORS={COLORS} styles={s} />
+              <NumField label={t("cond_hr_rest_below", { defaultValue: "HR — se descanso inferior a (h)" })} value={regrasC.hrRestBelow} editing={editing} placeholder="10" onChange={(n) => setRegrasC({ hrRestBelow: n })} COLORS={COLORS} styles={s} />
+
+              {/* Cinema: condições próprias. As regras da semana (descanso entre
+                  semanas, folgas e feriados a dobrar) não são as da publicidade,
+                  e cada projeto novo leva as do seu formato. */}
+              <CondSection
+                mainTitle={t("cond_annual_title_ph_cinema", { defaultValue: "CONDIÇÕES DE TRABALHO DE CINEMA" })}
+                hint={t("cond_boxes_hint_cinema", { defaultValue: "Usadas só nas folhas de cinema (à semana). Se ficarem vazias, essas folhas saem sem condições." })}
+                tituloValue={p.condTituloCinema}
+                onTituloChange={(v) => setP({ ...p, condTituloCinema: v })}
+                boxes={p.condBoxesCinema ?? []}
+                setBoxes={(next) => setP({ ...p, condBoxesCinema: next })}
+                editing={editing}
+                resetModel={defaultCondBoxesCinema}
+                COLORS={COLORS}
+                styles={s}
+              />
+            </View>
+          </>
+        )}
         <Pressable onPress={handleDelete} style={({ pressed }) => [s.deleteBtn, pressed && { opacity: 0.85 }]}>
           <Text style={s.deleteBtnText}>
             {t("delete_profile", { defaultValue: "Apagar perfil" })}
@@ -697,6 +842,16 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     fieldWrapper: { marginBottom: 10 },
     fieldLabel: { color: COLORS.sub, fontSize: 12, fontWeight: "900", marginBottom: 6 },
     fieldHint: { color: COLORS.sub, fontSize: 11, marginBottom: 6, fontStyle: "italic" },
+    // Subtítulo de uma tabela de valores (ex.: SALÁRIO · Semana de 6 dias)
+    subTitle: { color: COLORS.text, fontSize: 12.5, fontWeight: "900", marginTop: 12, marginBottom: 6, letterSpacing: 0.3 },
+    // Botões Publicidade (vermelho) / Cinema (azul) que abrem cada secção
+    secRow: { flexDirection: "row", gap: 10 },
+    secBtn: { flex: 1, borderRadius: 14, paddingVertical: 13, alignItems: "center" },
+    secBtnOff: { opacity: 0.4 },
+    secBtnText: { color: "#fff", fontWeight: "900", fontSize: 15, letterSpacing: 0.3 },
+    // Título principal das condições de trabalho, em barra cinzenta
+    condMain: { backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0", borderRadius: 10, paddingVertical: 9, paddingHorizontal: 12, marginBottom: 10 },
+    condMainText: { color: COLORS.text, fontWeight: "900", fontSize: 13, letterSpacing: 0.4 },
     fieldValue: {
       fontSize: 16,
       color: COLORS.text,

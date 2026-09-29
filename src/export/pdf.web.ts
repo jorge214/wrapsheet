@@ -14,6 +14,7 @@
 
 import { CalcDia, Dia } from "../calc/types";
 import { supabase } from "../lib/supabase";
+import { buildCinemaPdfHtml } from "./buildCinemaHtml";
 import {
   buildPdfHtml,
   PdfExtra,
@@ -155,7 +156,9 @@ export async function exportPDF(
   condicoes?: string,
   extra?: PdfExtra
 ): Promise<void> {
-  const html = buildPdfHtml(
+  // Folha de cinema (semanal) tem construtor próprio; a de publicidade é a de sempre.
+  const build = extra?.cinema ? buildCinemaPdfHtml : buildPdfHtml;
+  const html = build(
     perfil, projeto, dias, calculos, totais, tabela,
     notas, locale, region, currency, taxDisclaimer, condicoes, extra
   );
