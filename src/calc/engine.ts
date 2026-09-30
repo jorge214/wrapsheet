@@ -62,6 +62,20 @@ export function dayGapMinutes(dateA: string, dateB: string): number {
  *  que o motor usa por omissão. Cinema: a SEMANA define o dia (salarioSemana /
  *  diasSemana) e a hora vale salário/horasBase (10h). Publicidade: salarioDia
  *  e salário/H_dia — exatamente como sempre. */
+/**
+ * Taxa €/h gravada na tabela, ou undefined se não há valor. No CINEMA (salário
+ * à semana) um 0 €/h não é um valor, é lixo: a semente antiga do editor gravava
+ * 0 nos projetos de cinema (usava a base da publicidade, salarioDia, que no
+ * cinema não existe) e a folha mostrava 0,00 €. Trata-se como "sem valor" e
+ * cai no multiplicador. Na publicidade um 0 é respeitado tal qual. Usado por
+ * ratesFor (cabeçalho da folha) E por calcDay (o que se paga) — os dois têm de
+ * concordar, senão a folha anuncia 27 €/h e paga 0.
+ */
+export function taxaGravada(tabela: Tabela, v?: number): number | undefined {
+  const cinema = tabela.salarioSemana != null && (Number(tabela.diasSemana) || 0) > 0;
+  return v == null || (cinema && v === 0) ? undefined : v;
+}
+
 export function ratesFor(tabela: Tabela) {
   const nDias = Number(tabela.diasSemana) || 0;
   const semana = Number(tabela.salarioSemana);
@@ -78,9 +92,9 @@ export function ratesFor(tabela: Tabela) {
   return {
     salarioDia,
     horaBase,
-    rateHEA: tabela.rateHEA ?? horaBase * multHEA,
-    rateHEB: tabela.rateHEB ?? horaBase * multHEB,
-    rateHR: tabela.rateHR ?? horaBase * multHR,
+    rateHEA: taxaGravada(tabela, tabela.rateHEA) ?? horaBase * multHEA,
+    rateHEB: taxaGravada(tabela, tabela.rateHEB) ?? horaBase * multHEB,
+    rateHR: taxaGravada(tabela, tabela.rateHR) ?? horaBase * multHR,
     multFolga: tabela.multFolga ?? 2,
   };
 }
@@ -144,10 +158,12 @@ export function calcDay(dia: Dia, prox: Dia | undefined, tabela: Tabela, opts?: 
   const divisor = tabela.horasBase ?? H_dia_h;
   const horaBase = divisor > 0 ? baseHora / divisor : 0;
 
-  // Se a taxa €/hora foi editada diretamente na folha, usa-a; senão deriva de salário/H × multiplicador
-  const rateHEA = (tabela.rateHEA ?? (horaBase * multHEA)) * dobra;
-  const rateHEB = (tabela.rateHEB ?? (horaBase * multHEB)) * dobra;
-  const rateHR  = (tabela.rateHR  ?? (horaBase * multHR)) * dobra;
+  // Se a taxa €/hora foi editada diretamente na folha, usa-a; senão deriva de
+  // salário/H × multiplicador. A MESMA guarda do ratesFor (taxaGravada): no
+  // cinema um 0 gravado não é valor.
+  const rateHEA = (taxaGravada(tabela, tabela.rateHEA) ?? (horaBase * multHEA)) * dobra;
+  const rateHEB = (taxaGravada(tabela, tabela.rateHEB) ?? (horaBase * multHEB)) * dobra;
+  const rateHR  = (taxaGravada(tabela, tabela.rateHR)  ?? (horaBase * multHR)) * dobra;
 
   const ini = hmToMinutes(dia.inicio);
   const fim = hmToMinutes(dia.fim);

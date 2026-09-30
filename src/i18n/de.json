@@ -538,7 +538,7 @@
   "format_cinema_6days": "Film · 6-Tage-Woche",
   "format_cinema_6_hint": "6 Tage + 1 freier Tag; 36 Stunden Ruhezeit zwischen den Wochen.",
   "cinema_rates_title": "Film · Wochenabrechnung",
-  "cinema_rates_hint": "Gagen und Überstundenwerte. Gelten automatisch für neue Projekte. Die Tagesgage ist die Wochengage geteilt durch die Arbeitstage (5 oder 6); der Stundensatz ist die Tagesgage geteilt durch die täglichen Arbeitsstunden (ohne Essensstunde) aus den Regeln unten. Für Überstunden und/oder Erholungsstunden wird der normale Stundensatz mit der hier eingegebenen Dezimalzahl multipliziert. Alles pro Projekt änderbar.",
+  "cinema_rates_hint": "Gagen und Überstundenwerte. Gelten automatisch für neue Projekte. Die Tagesgage ist die Wochengage geteilt durch die Arbeitstage (5 oder 6); der normale Stundensatz ist die Tagesgage geteilt durch die täglichen Arbeitsstunden (ohne Essensstunde) aus den Regeln unten. Überstunden und Erholungsstunden verwenden die hier eingegebenen Stundenwerte, wie in der Werbung; bleiben sie leer, nimmt die Abrechnung den normalen Stundensatz × 1,5, × 2 und × 2,5. Alles pro Projekt änderbar.",
   "cinema_week": "5-Tage-Woche",
   "cinema_ss": "Sozialversicherung",
   "cinema_week6": "6-Tage-Woche",

@@ -538,7 +538,7 @@
   "format_cinema_6days": "Cinéma · semaine de 6 jours",
   "format_cinema_6_hint": "6 jours + 1 repos ; 36 heures de repos entre les semaines.",
   "cinema_rates_title": "Cinéma · Feuille hebdomadaire",
-  "cinema_rates_hint": "Salaires et valeurs des heures supplémentaires. Appliqués automatiquement aux nouveaux projets. Le tarif journalier est le salaire hebdomadaire divisé par les jours de travail (5 ou 6) ; le taux horaire est le tarif journalier divisé par les heures de travail quotidiennes (hors heure de repas) des règles ci-dessous. Pour les heures supplémentaires et/ou de récupération, le taux horaire normal est multiplié par le nombre décimal saisi ici. Tout est modifiable par projet.",
+  "cinema_rates_hint": "Salaires et valeurs des heures supplémentaires. Appliqués automatiquement aux nouveaux projets. Le tarif journalier est le salaire hebdomadaire divisé par les jours de travail (5 ou 6) ; le taux horaire normal est le tarif journalier divisé par les heures de travail quotidiennes (hors heure de repas) des règles ci-dessous. Les heures supplémentaires et de récupération utilisent les valeurs horaires saisies ici, comme en publicité ; si elles restent vides, la feuille utilise le taux horaire normal × 1,5, × 2 et × 2,5. Tout est modifiable par projet.",
   "cinema_week": "Semaine de 5 jours",
   "cinema_ss": "Sécurité sociale",
   "cinema_week6": "Semaine de 6 jours",

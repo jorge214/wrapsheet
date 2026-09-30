@@ -540,7 +540,7 @@
   "format_cinema_6days": "Cinema · semana de 6 dias",
   "format_cinema_6_hint": "6 dias + 1 folga; 36 horas de descanso entre semanas.",
   "cinema_rates_title": "Cinema · Folha semanal",
-  "cinema_rates_hint": "Salários e valores de horas extra. Aplicam-se automaticamente a projetos novos. O valor dia é o salário da semana a dividir pelos dias de trabalho (5 ou 6); o valor da hora é o valor dia a dividir pelas horas de trabalho diárias (excluindo a hora de refeição) das regras abaixo. Para as horas extra e/ou de recuperação, multiplica-se o valor da hora normal pelo número decimal aqui inserido. Tudo editável por projeto.",
+  "cinema_rates_hint": "Salários e valores de horas extra. Aplicam-se automaticamente a projetos novos. O valor dia é o salário da semana a dividir pelos dias de trabalho (5 ou 6); a hora normal é o valor dia a dividir pelas horas de trabalho diárias (excluindo a hora de refeição) das regras abaixo. As horas extra e de recuperação usam os valores por hora aqui inseridos, como na publicidade; se ficarem vazios, a folha usa a hora normal × 1,5, × 2 e × 2,5. Tudo editável por projeto.",
   "cinema_week": "Semana de 5 dias",
   "cinema_ss": "Segurança Social",
   "cinema_week6": "Semana de 6 dias",

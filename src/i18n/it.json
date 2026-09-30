@@ -538,7 +538,7 @@
   "format_cinema_6days": "Cinema · settimana di 6 giorni",
   "format_cinema_6_hint": "6 giorni + 1 riposo; 36 ore di riposo tra settimane.",
   "cinema_rates_title": "Cinema · Foglio settimanale",
-  "cinema_rates_hint": "Salari e valori degli straordinari. Applicati automaticamente ai nuovi progetti. Il valore giornaliero è il salario settimanale diviso per i giorni di lavoro (5 o 6); il valore dell'ora è il valore giornaliero diviso per le ore di lavoro giornaliere (esclusa l'ora del pasto) delle regole qui sotto. Per straordinari e/o recupero si moltiplica il valore dell'ora normale per il numero decimale inserito qui. Tutto modificabile per progetto.",
+  "cinema_rates_hint": "Salari e valori degli straordinari. Applicati automaticamente ai nuovi progetti. Il valore giornaliero è il salario settimanale diviso per i giorni di lavoro (5 o 6); l'ora normale è il valore giornaliero diviso per le ore di lavoro giornaliere (esclusa l'ora del pasto) delle regole qui sotto. Straordinari e recupero usano i valori orari inseriti qui, come nella pubblicità; se restano vuoti, il foglio usa l'ora normale × 1,5, × 2 e × 2,5. Tutto modificabile per progetto.",
   "cinema_week": "Settimana di 5 giorni",
   "cinema_ss": "Previdenza sociale",
   "cinema_week6": "Settimana di 6 giorni",

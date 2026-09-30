@@ -538,7 +538,7 @@
   "format_cinema_6days": "Film · 6-daagse week",
   "format_cinema_6_hint": "6 dagen + 1 vrije dag; 36 uur rust tussen weken.",
   "cinema_rates_title": "Film · Weekstaat",
-  "cinema_rates_hint": "Gages en overurenwaarden. Automatisch toegepast op nieuwe projecten. De daggage is het weeksalaris gedeeld door de werkdagen (5 of 6); het uurtarief is de daggage gedeeld door de dagelijkse werkuren (zonder het maaltijduur) uit de regels hieronder. Voor overuren en/of hersteluren wordt het normale uurtarief vermenigvuldigd met het hier ingevoerde decimale getal. Alles per project aanpasbaar.",
+  "cinema_rates_hint": "Gages en overurenwaarden. Automatisch toegepast op nieuwe projecten. De daggage is het weeksalaris gedeeld door de werkdagen (5 of 6); het normale uurtarief is de daggage gedeeld door de dagelijkse werkuren (zonder het maaltijduur) uit de regels hieronder. Overuren en hersteluren gebruiken de hier ingevoerde uurwaarden, zoals bij reclame; blijven ze leeg, dan gebruikt de staat het normale uurtarief × 1,5, × 2 en × 2,5. Alles per project aanpasbaar.",
   "cinema_week": "Week van 5 dagen",
   "cinema_ss": "Sociale zekerheid",
   "cinema_week6": "Week van 6 dagen",

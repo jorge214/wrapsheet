@@ -576,12 +576,24 @@ export default function ProfileEditScreen() {
   // placeholder mostra o valor da de 5 — é o que se usa se ficar vazio.
   type FxC = NonNullable<Profile["fixasCinema"]>;
   const ph = (n?: number, fallback?: string) => (n != null ? String(n).replace(".", ",") : fallback);
-  const cinemaFields = (v: FxC, set: (patch: Partial<FxC>) => void, fb: FxC = {}, descansoPh = "60") => (
+  // Horas extra e recuperação em VALORES por hora, como na publicidade (pai do
+  // Jorge, 30/09): é o técnico que faz as contas e o valor define o
+  // multiplicador. O placeholder mostra o que a folha usa se ficar vazio:
+  // hora normal × 1,5 / 2 / 2,5, com a hora normal = semana ÷ dias ÷ 10.
+  const defaultRate = (v: FxC, fb: FxC, nDias: 5 | 6, mult: number) => {
+    const sem = Number(v.salarioSemana ?? fb.salarioSemana);
+    if (!Number.isFinite(sem) || sem <= 0) return undefined;
+    // O mesmo divisor que o createProject grava na folha: horário base das
+    // regras de cinema menos a hora de refeição (11 → 10).
+    const horas = regrasC.hDia != null ? Math.max(1, Number(regrasC.hDia) - 1) : 10;
+    return (Math.round((sem / nDias / horas) * mult * 100) / 100).toFixed(2).replace(".", ",");
+  };
+  const cinemaFields = (v: FxC, set: (patch: Partial<FxC>) => void, fb: FxC = {}, descansoPh = "60", nDias: 5 | 6 = 5) => (
     <>
       <NumField label={gs.salary} unit={preset.sym} value={v.salarioSemana} editing={editing} placeholder={ph(fb.salarioSemana)} onChange={(n) => set({ salarioSemana: n })} COLORS={COLORS} styles={s} />
-      <NumField label={`${gs.overtimeA} (×)`} value={v.multHEA} editing={editing} placeholder={ph(fb.multHEA, "1,5")} onChange={(n) => set({ multHEA: n })} COLORS={COLORS} styles={s} />
-      <NumField label={`${gs.overtimeB} (×)`} value={v.multHEB} editing={editing} placeholder={ph(fb.multHEB, "2")} onChange={(n) => set({ multHEB: n })} COLORS={COLORS} styles={s} />
-      <NumField label={`${gs.recoveryHours} (×)`} value={v.multHR} editing={editing} placeholder={ph(fb.multHR, "2,5")} onChange={(n) => set({ multHR: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`HEA · ${gs.overtimeA} (${preset.sym}/h)`} value={v.rateHEA} editing={editing} placeholder={ph(fb.rateHEA) ?? defaultRate(v, fb, nDias, 1.5)} onChange={(n) => set({ rateHEA: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`HEB · ${gs.overtimeB} (${preset.sym}/h)`} value={v.rateHEB} editing={editing} placeholder={ph(fb.rateHEB) ?? defaultRate(v, fb, nDias, 2)} onChange={(n) => set({ rateHEB: n })} COLORS={COLORS} styles={s} />
+      <NumField label={`HR · ${gs.recoveryHours} (${preset.sym}/h)`} value={v.rateHR} editing={editing} placeholder={ph(fb.rateHR) ?? defaultRate(v, fb, nDias, 2.5)} onChange={(n) => set({ rateHR: n })} COLORS={COLORS} styles={s} />
       <NumField label={`${gs.meal} (${preset.sym})`} value={v.refeicao} editing={editing} placeholder={ph(fb.refeicao)} onChange={(n) => set({ refeicao: n })} COLORS={COLORS} styles={s} />
       <NumField label={`${gs.telephone} (${preset.sym})`} value={v.telefone} editing={editing} placeholder={ph(fb.telefone)} onChange={(n) => set({ telefone: n })} COLORS={COLORS} styles={s} />
       <NumField label={`${gs.vehicle} (${preset.sym})`} value={v.viatura} editing={editing} placeholder={ph(fb.viatura)} onChange={(n) => set({ viatura: n })} COLORS={COLORS} styles={s} />
@@ -704,15 +716,15 @@ export default function ProfileEditScreen() {
                 {t("cinema_rates_title", { defaultValue: "Cinema · Folha semanal" })}
               </Text>
               <Text style={s.fieldHint}>
-                {t("cinema_rates_hint", { defaultValue: "Salários e valores de horas extra. Aplicam-se automaticamente a projetos novos. O valor dia é o salário da semana a dividir pelos dias de trabalho; a hora é o valor dia a dividir pelas horas de trabalho diárias (sem a de refeição). As horas extra e de recuperação multiplicam a hora normal pelo número aqui inserido. Tudo editável por projeto." })}
+                {t("cinema_rates_hint", { defaultValue: "Salários e valores de horas extra. Aplicam-se automaticamente a projetos novos. O valor dia é o salário da semana a dividir pelos dias de trabalho (5 ou 6); a hora normal é o valor dia a dividir pelas horas de trabalho diárias (excluindo a hora de refeição) das regras abaixo. As horas extra e de recuperação usam os valores por hora aqui inseridos, como na publicidade; se ficarem vazios, a folha usa a hora normal × 1,5, × 2 e × 2,5. Tudo editável por projeto." })}
               </Text>
               <Text style={s.subTitle}>{gs.salary} · {t("cinema_week", { defaultValue: "Semana de 5 dias" })}</Text>
-              {cinemaFields(fxC, setFxC, {}, "60")}
+              {cinemaFields(fxC, setFxC, {}, "60", 5)}
               <Text style={s.subTitle}>{gs.salary} · {t("cinema_week6", { defaultValue: "Semana de 6 dias" })}</Text>
               <Text style={s.fieldHint}>
                 {t("cinema_week6_hint", { defaultValue: "Campos vazios usam os valores da semana de 5 dias." })}
               </Text>
-              {cinemaFields(fxC6, setFxC6, fxC, "36")}
+              {cinemaFields(fxC6, setFxC6, fxC, "36", 6)}
             </View>
 
             {/* Regras de horas extra do cinema + condições de trabalho: um bloco único */}

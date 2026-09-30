@@ -538,7 +538,7 @@
   "format_cinema_6days": "Film · tydzień 6-dniowy",
   "format_cinema_6_hint": "6 dni + 1 wolny; 36 godzin odpoczynku między tygodniami.",
   "cinema_rates_title": "Film · Karta tygodniowa",
-  "cinema_rates_hint": "Gaże i wartości nadgodzin. Stosowane automatycznie do nowych projektów. Stawka dzienna to pensja tygodniowa podzielona przez dni pracy (5 lub 6); stawka godzinowa to stawka dzienna podzielona przez dzienne godziny pracy (bez godziny posiłku) z reguł poniżej. Dla nadgodzin i/lub godzin odpoczynku mnoży się stawkę za normalną godzinę przez wpisaną tu liczbę dziesiętną. Wszystko edytowalne w projekcie.",
+  "cinema_rates_hint": "Gaże i wartości nadgodzin. Stosowane automatycznie do nowych projektów. Stawka dzienna to pensja tygodniowa podzielona przez dni pracy (5 lub 6); normalna stawka godzinowa to stawka dzienna podzielona przez dzienne godziny pracy (bez godziny posiłku) z reguł poniżej. Nadgodziny i godziny odpoczynku używają wpisanych tu stawek godzinowych, jak w reklamie; jeśli zostaną puste, karta używa normalnej stawki × 1,5, × 2 i × 2,5. Wszystko edytowalne w projekcie.",
   "cinema_week": "Tydzień 5-dniowy",
   "cinema_ss": "Ubezpieczenie społeczne",
   "cinema_week6": "Tydzień 6-dniowy",

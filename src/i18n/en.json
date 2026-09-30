@@ -540,7 +540,7 @@
   "format_cinema_6days": "Film · 6-day week",
   "format_cinema_6_hint": "6 days + 1 day off; 36 hours of rest between weeks.",
   "cinema_rates_title": "Film · Weekly sheet",
-  "cinema_rates_hint": "Salaries and overtime values. Applied automatically to new projects. The day rate is the weekly salary divided by the working days (5 or 6); the hourly rate is the day rate divided by the daily working hours (excluding the meal hour) set in the rules below. Overtime and/or recovery hours multiply the normal hourly rate by the decimal number entered here. All editable per project.",
+  "cinema_rates_hint": "Salaries and overtime values. Applied automatically to new projects. The day rate is the weekly salary divided by the working days (5 or 6); the normal hourly rate is the day rate divided by the daily working hours (excluding the meal hour) set in the rules below. Overtime and recovery hours use the per-hour values entered here, as in advertising; if left empty, the sheet uses the normal hourly rate × 1.5, × 2 and × 2.5. All editable per project.",
   "cinema_week": "5-day week",
   "cinema_ss": "Social security",
   "cinema_week6": "6-day week",

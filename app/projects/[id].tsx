@@ -691,11 +691,17 @@ export default function ProjectEditor() {
     if (!p0) return;
     // Semeia as taxas HE se ainda não existirem, para o input e o cálculo
     // coincidirem (e mudar o salário depois já não as altera).
-    const base = Number(p0.tabela.salarioDia || 0) / (p0.tabela.H_dia || 11);
+    // Pelo MOTOR (ratesFor), que sabe a base dos dois formatos: publicidade =
+    // salário-dia ÷ horas; cinema = semana ÷ dias ÷ horasBase. A fórmula antiga
+    // usava salarioDia, que no cinema é undefined → base 0 → as três taxas
+    // ficavam gravadas a 0,00 € e ganhavam ao multiplicador. Era o "os valores
+    // estão sempre a 0" que o Jorge viu nas folhas de cinema (30/09).
+    const R0 = ratesFor(p0.tabela as any);
+    const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
     const patch: any = {};
-    if (p0.tabela.rateHEA == null) patch.rateHEA = Math.round(base * Number(p0.tabela.multHEA ?? 1.5) * 100) / 100;
-    if (p0.tabela.rateHEB == null) patch.rateHEB = Math.round(base * Number(p0.tabela.multHEB ?? 2.0) * 100) / 100;
-    if (p0.tabela.rateHR == null) patch.rateHR = Math.round(base * Number(p0.tabela.multHR ?? 3.0) * 100) / 100;
+    if (p0.tabela.rateHEA == null) patch.rateHEA = round2(R0.rateHEA);
+    if (p0.tabela.rateHEB == null) patch.rateHEB = round2(R0.rateHEB);
+    if (p0.tabela.rateHR == null) patch.rateHR = round2(R0.rateHR);
     let p = p0;
     if (Object.keys(patch).length) { p = { ...p0, tabela: { ...p0.tabela, ...patch } }; persist(p); }
 

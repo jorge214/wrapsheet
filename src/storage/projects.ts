@@ -550,12 +550,16 @@ export async function createProject(opts?: {
       horasBase: regrasC.hDia != null ? Math.max(1, Number(regrasC.hDia) - 1) : HORAS_BASE_CINEMA,
       descansoSemanal_h: descansoPerfil != null && descansoPerfil !== "" ? Number(descansoPerfil) : DESCANSO_SEMANAL_H[nDias],
       multFolga: 2,
-      multHEA: fxC.multHEA ?? 1.5,
-      multHEB: fxC.multHEB ?? 2.0,
-      multHR: fxC.multHR ?? 2.5,
-      rateHEA: undefined,
-      rateHEB: undefined,
-      rateHR: undefined,
+      // Multiplicadores PREDEFINIDOS (pai do Jorge, 30/09): já não vêm do perfil.
+      // Quem quer outra proporção põe o VALOR por hora (rateHEA/B/HR abaixo).
+      multHEA: 1.5,
+      multHEB: 2.0,
+      multHR: 2.5,
+      // Valores por hora do perfil (30/09). Sem valor, fica undefined e o
+      // motor cai nos multiplicadores (hora normal × 1,5 / 2 / 2,5).
+      rateHEA: fxC.rateHEA ?? undefined,
+      rateHEB: fxC.rateHEB ?? undefined,
+      rateHR: fxC.rateHR ?? undefined,
       H_dia: regrasC.hDia ?? 11,
       limiar_A: (regrasC.heaFromHour ?? 12) - 1,
       limiar_B: (regrasC.hebFromHour ?? 19) - 1,
@@ -835,9 +839,15 @@ export async function duplicateProjectToProfile(
     ...(ehCinema
       ? {
           salarioSemana: fixas.salarioSemana ?? original.tabela.salarioSemana,
-          multHEA: fixas.multHEA ?? original.tabela.multHEA,
-          multHEB: fixas.multHEB ?? original.tabela.multHEB,
-          multHR: fixas.multHR ?? original.tabela.multHR,
+          // No cinema as taxas derivam do salário: sem valor no perfil de destino
+          // NÃO se herdam as do original (seriam as taxas de um salário que já não
+          // é este). Ficam vazias e o motor deriva-as do salário novo × 1,5/2/2,5.
+          rateHEA: fixas.rateHEA,
+          rateHEB: fixas.rateHEB,
+          rateHR: fixas.rateHR,
+          multHEA: 1.5,
+          multHEB: 2.0,
+          multHR: 2.5,
         }
       : {
           salarioDia: fixas.salarioDia ?? original.tabela.salarioDia,

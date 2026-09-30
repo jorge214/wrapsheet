@@ -75,6 +75,17 @@ export type Profile = {
   // Aplicam-se a projetos novos de cinema; tudo editável na folha.
   fixasCinema?: {
     salarioSemana?: number; // € por semana de 5 dias
+    // VALORES por hora (€/h) das horas extra e de recuperação — como na
+    // publicidade. No cinema quem faz as contas é o técnico: põe o valor e é
+    // isso que define o multiplicador (pai do Jorge, 30/09). Vazio = usa-se
+    // a hora normal × 1,5 / 2 / 2,5.
+    rateHEA?: number;
+    rateHEB?: number;
+    rateHR?: number;
+    // Multiplicadores: já NÃO aparecem no perfil nem são lidos (30/09) — são
+    // predefinidos no createProject (1,5 / 2 / 2,5). Os campos ficam no tipo só
+    // porque perfis antigos ainda os podem ter gravados no blob (migração
+    // aditiva); o valor gravado é ignorado.
     multHEA?: number;       // hora extra A = hora × isto (default 1,5)
     multHEB?: number;       // hora extra B (default 2)
     multHR?: number;        // hora de recuperação (default 2,5)
