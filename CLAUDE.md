@@ -109,6 +109,15 @@ política `appVersion`, logo o seu runtime é a string `1.1.0`; manter esse valo
 código NATIVO muda (dependência nativa nova, SDK novo) — e nesse dia a OTA
 deixa de chegar às builds antigas, que só se atualizam pela loja.
 
+**Publicar uma OTA de produção** tem três armadilhas: `.env.local` aponta à
+Supabase de DEV (pô-lo de lado e `EXPO_NO_DOTENV=1`), a cache do Metro guarda
+o URL inlinado (`--clear-cache`) e a chave `EXPO_PUBLIC_REVENUECAT_IOS_KEY` do
+`eas.json` NÃO entra num `eas update` (exportá-la no comando). Depois de
+publicar, `node scripts/ota-verifica.mjs <id-do-update-iOS>` pede o manifesto
+de produção e prova o bundle que os iPhones vão receber (Supabase de produção,
+sem dev, chave `appl_`, código novo). O bundle iOS é bytecode Hermes: strings
+com acentos estão em UTF-16, o `grep` diz "Binary file" e mente.
+
 ## Antes de dizer que está feito
 
 O hook `Stop` corre o `verify.mjs` sozinho, mas o hábito é este:
