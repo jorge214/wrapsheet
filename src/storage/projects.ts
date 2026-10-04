@@ -7,6 +7,7 @@ import i18n from "../i18n/i18n";
 import { getPreset } from "../constants/countryPresets";
 import { effectiveFiscalOf, getSettings } from "./appSettings";
 import { CondBox, getActiveProfile, getProfileById } from "./profile";
+import { formatoDoBlob, formatoDoResumo } from "./formato";
 
 /* ------------ Tipos internos ------------ */
 
@@ -166,6 +167,34 @@ async function readIndex(key: string): Promise<ProjectListItem[]> {
 
 async function writeIndex(key: string, list: ProjectListItem[]) {
   await AsyncStorage.setItem(key, JSON.stringify(list));
+}
+
+// A lista separa Publicidade / Cinema pelo `formato` do RESUMO, não da folha.
+// Resumos sem formato vêm do código antigo (anterior a 29/09, que não o
+// escrevia — p.ex. folhas de cinema descarregadas pela web antiga) e do
+// arquivar/desarquivar, que o esquecia até 03/10: a folha abria como cinema mas
+// aparecia em Publicidade, com a etiqueta errada. Aqui lê-se a folha desses
+// resumos UMA vez e grava-se o formato explícito ("publicidade" incluído, para
+// não voltar a ler). Junta-se ao índice RELIDO no fim, para não pisar uma
+// escrita feita entretanto (o sync grava projetos ao arrancar).
+async function readIndexComFormato(key: string, prefix: string): Promise<ProjectListItem[]> {
+  const list = await readIndex(key);
+  const sem = list.filter((i) => i.formato == null);
+  if (!sem.length) return list;
+  const achados = new Map<string, ProjectListItem["formato"]>();
+  for (const [k, v] of await AsyncStorage.multiGet(sem.map((i) => prefix + i.id))) {
+    if (!v) continue;
+    try {
+      achados.set(k.slice(prefix.length), formatoDoResumo(JSON.parse(v)));
+    } catch {
+      // folha ilegível: fica como está
+    }
+  }
+  if (!achados.size) return list;
+  const fresh = await readIndex(key);
+  for (const it of fresh) if (it.formato == null && achados.has(it.id)) it.formato = achados.get(it.id);
+  await writeIndex(key, fresh);
+  return fresh;
 }
 
 /* ------------ Defaults ------------ */
@@ -376,8 +405,11 @@ function upgradeProject(raw: any, id: string): ProjectState {
     profileId:
       typeof raw.profileId === "string" && raw.profileId ? raw.profileId : undefined,
     // Formato da folha (cinema) e o seu bloco — preservados tal como vieram.
-    formato: raw.formato === "cinema" ? "cinema" : undefined,
-    cinema: raw.formato === "cinema" && raw.cinema && typeof raw.cinema === "object" ? raw.cinema : undefined,
+    // Uma folha de cinema que perdeu a etiqueta num aparelho com o código
+    // antigo recupera-a pela tabela (ver storage/formato.ts); o bloco `cinema`
+    // (linha B, tipo de produção) esse perdeu-se, e tudo o resto aceita-o vazio.
+    formato: formatoDoBlob(raw),
+    cinema: formatoDoBlob(raw) === "cinema" && raw.cinema && typeof raw.cinema === "object" ? raw.cinema : undefined,
     perfil,
     projeto,
     tabela,
@@ -396,7 +428,7 @@ function upgradeProject(raw: any, id: string): ProjectState {
 
 // lista de projetos para o ecrã /projects (apenas ativos)
 export async function listProjects(): Promise<ProjectListItem[]> {
-  return await readIndex(KEY_INDEX);
+  return await readIndexComFormato(KEY_INDEX, KEY_PROJECT_PREFIX);
 }
 
 // obter projeto completo (ATIVO OU ARQUIVADO) para o editor /projects/[id]
@@ -424,7 +456,11 @@ export async function saveProject(
 ): Promise<void> {
   const updatedAt =
     opts?.keepTimestamp && p.updatedAt ? p.updatedAt : new Date().toISOString();
-  const toSave: ProjectState = { ...p, updatedAt };
+  // O sync grava aqui o blob da cloud TAL COMO VEIO (sem passar pelo
+  // upgradeProject): se um aparelho antigo lhe tirou a etiqueta de cinema,
+  // repõe-se já, na folha e no resumo da lista.
+  const formato = formatoDoBlob(p);
+  const toSave: ProjectState = { ...p, ...(formato ? { formato } : {}), updatedAt };
 
   const archivedIndex = await readIndex(KEY_ARCHIVED_INDEX);
   const isArchived = archivedIndex.some((i) => i.id === p.id);
@@ -437,7 +473,7 @@ export async function saveProject(
     pago: !!toSave.pago,
     updatedAt,
     profileId: toSave.profileId,
-    formato: toSave.formato,
+    formato: formatoDoResumo(toSave),
   };
 
   if (isArchived) {
@@ -929,6 +965,8 @@ export async function archiveProject(id: string): Promise<void> {
     pago: !!project.pago,
     updatedAt: new Date().toISOString(),
     profileId: project.profileId,
+    // Faltava (até 03/10): o cinema arquivado aparecia como publicidade.
+    formato: formatoDoResumo(project),
   });
   await writeIndex(KEY_ARCHIVED_INDEX, archivedIndex);
 
@@ -937,7 +975,7 @@ export async function archiveProject(id: string): Promise<void> {
 
 // listar arquivados
 export async function listArchivedProjects(): Promise<ProjectListItem[]> {
-  return await readIndex(KEY_ARCHIVED_INDEX);
+  return await readIndexComFormato(KEY_ARCHIVED_INDEX, KEY_ARCHIVED_PREFIX);
 }
 
 // desarquivar: volta o projeto para a lista ativa e marca como NÃO pago ("A Receber")
@@ -969,6 +1007,8 @@ export async function unarchiveProject(id: string): Promise<void> {
     pago: false,
     updatedAt: restored.updatedAt,
     profileId: restored.profileId,
+    // Faltava (até 03/10): o cinema desarquivado voltava à lista em Publicidade.
+    formato: formatoDoResumo(restored),
   };
   const existing = index.findIndex((i) => i.id === id);
   if (existing >= 0) index[existing] = summary;
