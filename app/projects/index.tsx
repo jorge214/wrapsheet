@@ -585,15 +585,15 @@ export default function ProjectsScreen() {
       <View style={s.header}>
         {!isWide && (
           <Pressable onPress={() => router.back()} hitSlop={10}>
-            <Text style={s.backLink}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+            <Text style={s.backLink} numberOfLines={1}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
           </Pressable>
         )}
 
-        <Text style={s.headerTitle}>
+        <Text style={[s.headerTitle, { flexShrink: 1, textAlign: "center" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
           {t("projects", { defaultValue: "Projetos" })}
         </Text>
 
-        {!isWide && <View style={{ width: 70 }} />}
+        {!isWide && <View style={{ width: 84 }} />}
       </View>
 
       {/* PESQUISA por nome — procura em todos os meses/pastas */}
@@ -1135,7 +1135,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       color: COLORS.text, // ✅ neutro (sem azul)
       fontSize: 15,
       fontWeight: "800",
-      width: 70,
+      width: 84,
       opacity: 0.9,
     },
     headerTitle: {

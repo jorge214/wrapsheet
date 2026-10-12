@@ -610,10 +610,10 @@ export default function ProfileEditScreen() {
       <View style={s.header}>
         {/* Sempre em edição: Voltar (com aviso se houver alterações) + Guardar */}
         <Pressable onPress={handleCancel} hitSlop={8}>
-          <Text style={s.backLink}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+          <Text style={s.backLink} numberOfLines={1}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
         </Pressable>
 
-        <Text style={s.headerTitle}>
+        <Text style={[s.headerTitle, { flexShrink: 1, textAlign: "center" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
           {t("profile", { defaultValue: "Perfil" })}
         </Text>
 
@@ -824,7 +824,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       alignItems: "center",
       justifyContent: "space-between",
     },
-    backLink: { color: COLORS.text, fontSize: 15, fontWeight: "800", width: 80 },
+    backLink: { color: COLORS.text, fontSize: 15, fontWeight: "800", width: 84 },
     headerTitle: { color: COLORS.text, fontSize: 28, fontWeight: "900", letterSpacing: -0.2 },
 
     actionBtn: {

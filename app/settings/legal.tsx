@@ -30,12 +30,12 @@ export default function LegalScreen() {
       {/* Header */}
       <View style={s.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={s.backLink}>‹ {t("back")}</Text>
+          <Text style={s.backLink} numberOfLines={1}>‹ {t("back")}</Text>
         </Pressable>
         <Text style={s.headerTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
           {t("legal_title_short", { defaultValue: "Termos e Privacidade" })}
         </Text>
-        <View style={{ width: 70 }} />
+        <View style={{ width: 84 }} />
       </View>
 
       <View style={s.card}>
@@ -79,7 +79,7 @@ const createStyles = (COLORS: any) =>
       color: COLORS.text,
       fontWeight: "800",
       fontSize: 15,
-      width: 70,
+      width: 84,
       opacity: 0.9,
     },
     headerTitle: {

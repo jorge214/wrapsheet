@@ -86,12 +86,12 @@ export default function RegionScreen() {
         <View style={ss.column}>
         <View style={[ss.header, { borderColor: COLORS.border }]}>
           <Pressable onPress={() => router.back()} hitSlop={10}>
-            <Text style={[ss.backLink, { color: COLORS.text }]}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+            <Text style={[ss.backLink, { color: COLORS.text }]} numberOfLines={1}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
           </Pressable>
-          <Text style={[ss.headerTitle, { color: COLORS.text }]}>
+          <Text style={[ss.headerTitle, { color: COLORS.text }, { flexShrink: 1, textAlign: "center" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
             {t("settings_section_region")}
           </Text>
-          <View style={{ width: 70 }} />
+          <View style={{ width: 84 }} />
         </View>
 
         {/* Taxas em vigor na app (standard do país, editáveis à mão) */}
@@ -208,7 +208,7 @@ const ss = StyleSheet.create({
     marginBottom: 6,
   },
   headerTitle: { fontSize: 22, fontWeight: "800" },
-  backLink: { fontSize: 15, fontWeight: "800", width: 70, opacity: 0.9 },
+  backLink: { fontSize: 15, fontWeight: "800", width: 84, opacity: 0.9 },
   taxCard: {
     marginHorizontal: 16,
     marginTop: 10,

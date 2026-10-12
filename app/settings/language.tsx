@@ -60,12 +60,12 @@ export default function LanguageScreen() {
         <View style={ss.column}>
           <View style={[ss.header, { borderColor: COLORS.border }]}>
             <Pressable onPress={() => router.back()} hitSlop={10}>
-              <Text style={[ss.backLink, { color: COLORS.text }]}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+              <Text style={[ss.backLink, { color: COLORS.text }]} numberOfLines={1}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
             </Pressable>
-            <Text style={[ss.headerTitle, { color: COLORS.text }]}>
+            <Text style={[ss.headerTitle, { color: COLORS.text }, { flexShrink: 1, textAlign: "center" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
               {t("settings_section_language", { defaultValue: "Language" })}
             </Text>
-            <View style={{ width: 70 }} />
+            <View style={{ width: 84 }} />
           </View>
 
           {LANGS.map((l) => (
@@ -106,7 +106,7 @@ const ss = StyleSheet.create({
     marginBottom: 6,
   },
   headerTitle: { fontSize: 22, fontWeight: "800" },
-  backLink: { fontSize: 15, fontWeight: "800", width: 70, opacity: 0.9 },
+  backLink: { fontSize: 15, fontWeight: "800", width: 84, opacity: 0.9 },
   row: {
     paddingVertical: 16,
     paddingHorizontal: 16,

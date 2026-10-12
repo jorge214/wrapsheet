@@ -100,12 +100,12 @@ export default function BackupScreen() {
       {/* Header */}
       <View style={s.header}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Text style={s.backLink}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+          <Text style={s.backLink} numberOfLines={1}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
         </Pressable>
-        <Text style={s.headerTitle}>
+        <Text style={[s.headerTitle, { flexShrink: 1, textAlign: "center" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
           {t("backup_title", { defaultValue: "Backup e importação" })}
         </Text>
-        <View style={{ width: 70 }} />
+        <View style={{ width: 84 }} />
       </View>
 
       <ScrollView contentContainerStyle={s.content}>
@@ -240,7 +240,7 @@ const createStyles = (COLORS: any) =>
       color: COLORS.text,
       fontWeight: "800",
       fontSize: 15,
-      width: 70,
+      width: 84,
       opacity: 0.9,
     },
     headerTitle: {

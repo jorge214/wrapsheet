@@ -112,10 +112,10 @@ export default function AccountScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <View style={s.header}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Text style={s.backLink}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
+          <Text style={s.backLink} numberOfLines={1}>‹ {t("back", { defaultValue: "Voltar" })}</Text>
         </Pressable>
-        <Text style={s.headerTitle}>{t("account_title")}</Text>
-        <View style={{ width: 70 }} />
+        <Text style={[s.headerTitle, { flexShrink: 1, textAlign: "center" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{t("account_title")}</Text>
+        <View style={{ width: 84 }} />
       </View>
 
       <ScrollView contentContainerStyle={s.scroll}>
@@ -258,7 +258,7 @@ const styles = (COLORS: any, mode: "light" | "dark") =>
       borderBottomWidth: 1,
       borderColor: COLORS.border,
     },
-    backLink: { color: COLORS.text, fontSize: 15, fontWeight: "800", width: 70, opacity: 0.9 },
+    backLink: { color: COLORS.text, fontSize: 15, fontWeight: "800", width: 84, opacity: 0.9 },
     headerTitle: { fontSize: 22, fontWeight: "700", color: COLORS.text },
     scroll: { padding: 16, gap: 16, paddingBottom: 40 },
 

@@ -82,14 +82,14 @@ export default function AboutScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <View style={[ss.header, { borderColor: COLORS.border }]}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Text style={[ss.backLink, { color: COLORS.text }]}>
+          <Text style={[ss.backLink, { color: COLORS.text }]} numberOfLines={1}>
             ‹ {t("back", { defaultValue: "Voltar" })}
           </Text>
         </Pressable>
-        <Text style={[ss.headerTitle, { color: COLORS.text }]}>
+        <Text style={[ss.headerTitle, { color: COLORS.text }, { flexShrink: 1, textAlign: "center" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
           {t("settings_contact", { defaultValue: "Suporte" })}
         </Text>
-        <View style={{ width: 70 }} />
+        <View style={{ width: 84 }} />
       </View>
 
       <View style={[ss.card, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
@@ -141,7 +141,7 @@ const ss = StyleSheet.create({
     borderBottomWidth: 1,
     marginBottom: 6,
   },
-  backLink: { fontSize: 15, fontWeight: "800", width: 70, opacity: 0.9 },
+  backLink: { fontSize: 15, fontWeight: "800", width: 84, opacity: 0.9 },
   headerTitle: { fontSize: 22, fontWeight: "700" },
   card: { marginHorizontal: 16, marginTop: 12, borderWidth: 1, borderRadius: 14, padding: 14 },
   title: { fontSize: 18, fontWeight: "800" },

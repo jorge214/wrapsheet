@@ -226,13 +226,13 @@ export default function ProfilesListScreen() {
       <View style={s.header}>
         {!isWide && (
           <Pressable onPress={() => router.back()} hitSlop={8}>
-            <Text style={s.backLink}>
+            <Text style={s.backLink} numberOfLines={1}>
               ‹ {t("back", { defaultValue: "Voltar" })}
             </Text>
           </Pressable>
         )}
 
-        <Text style={s.headerTitle}>
+        <Text style={[s.headerTitle, { flexShrink: 1, textAlign: "center" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
           {t("profiles_title", { defaultValue: "Perfis" })}
         </Text>
 
@@ -400,7 +400,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       color: COLORS.text, // ✅ neutro (igual ideia aos Projetos)
       fontSize: 15,
       fontWeight: "800",
-      width: 70,
+      width: 84,
     },
     headerTitle: {
       color: COLORS.text,
