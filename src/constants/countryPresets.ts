@@ -1,7 +1,7 @@
 export type RegionCode =
   | "pt" | "es" | "fr" | "uk" | "de"
   | "se" | "ch" | "cz" | "no" | "fi"
-  | "nl" | "be" | "at" | "pl" | "hu" | "dk";
+  | "nl" | "be" | "at" | "pl" | "hu" | "dk" | "it";
 
 export type RegionPreset = {
   code: RegionCode;
@@ -141,6 +141,23 @@ export const REGION_PRESETS: Record<RegionCode, RegionPreset> = {
 
   // Tabela base comum (10h/dia, descanso 11h) para as regiões novas — o
   // utilizador ajusta no Perfil; as taxas fiscais são indicativas (disclaimer).
+  // Itália (12/10/2026: já há uma equipa italiana a usar a app e não havia
+  // região — usavam a de Portugal). Regras de horas extra genéricas, como as
+  // outras não verificadas; falta confirmar com eles como funciona lá (a
+  // pergunta já lhes foi feita). Impostos: Ritenuta d'acconto 20% (retenção
+  // na fonte de quem passa fatura a uma empresa) e IVA 22% — indicativos.
+  it: {
+    code: "it",
+    otVerified: false,
+    nameKey: "region_it",
+    flag: "🇮🇹",
+    currency: "EUR",
+    currencySymbol: "€",
+    taxLabels: { incomeTax: "Ritenuta", vat: "IVA" },
+    fiscal: { IRS_percent: 20, IVA_percent: 22 },
+    tabela: { H_dia: 10, descanso_min: 11, multHEA: 1.5, multHEB: 2.0, multHR: 2.0, limiar_A: 10, limiar_B: 14 },
+  },
+
   nl: {
     code: "nl",
     otVerified: false,
