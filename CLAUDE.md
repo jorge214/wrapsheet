@@ -75,6 +75,17 @@ pelo formato do projeto. Nunca decidir o formato fora dele.
 **O editor a sério é a WebView HTML**, não o `EditableSheet` nativo (código
 morto). Comunica com a app por mensagens `ws:*` (`ws:edit`, `ws:addDay`,
 `ws:calc`…) tratadas em `handleEditMessage`, em `app/projects/[id].tsx`.
+Na web o ouvinte `message` é por ecrã, e depois de um `router.push` (p.ex.
+"Duplicar") o ecrã do projeto anterior fica MONTADO por baixo, escondido, com
+o ouvinte vivo — por isso `handleEditMessage` só aceita mensagens cujo
+`ev.source` é um dos iframes do próprio ecrã. Sem isso, o projeto anterior
+recebia (e enviava para a cloud) cada edição feita no novo.
+
+**`persist` nunca grava a cópia do ecrã por cima de uma versão mais recente**:
+se o sync descarregou entretanto a versão do outro aparelho (PWA no Dock,
+app no fundo), aplica só a edição de agora por cima dela
+(`src/storage/merge.ts`). O envio para a cloud é adiado 800 ms e vai com o
+objeto que `saveProject` devolve (o carimbado), não com o que entrou.
 
 **PDF na web** — `src/export/pdf.web.ts` NÃO manda o browser imprimir: envia o
 HTML da folha para `api/pdf.js` (função serverless da Vercel, Chromium via
@@ -93,7 +104,12 @@ mexer: `node scripts/pdf-extents.mjs out.pdf` dá folha, mancha e margens reais 
 cada página; um script com Chromium + Roboto à largura útil mostra se transborda.
 
 **Armazenamento** (`src/storage/`) — tudo em AsyncStorage, sincronizado para o
-Supabase como blob JSON. `projects.ts` é o ficheiro central.
+Supabase como blob JSON. `projects.ts` é o ficheiro central. A lista de
+projetos lê um ÍNDICE de resumos (nome, mês, formato…), não as folhas; toda a
+alteração ao índice passa por `updateIndex(key, mexe)`, uma de cada vez —
+nunca `readIndex` + `writeIndex` soltos, que duas gravações em simultâneo (a
+folha grava a cada tecla, o sync grava ao acordar) se pisavam e um título
+acabado de escrever aparecia "Sem nome".
 
 **Perfis** — multi-perfil é a funcionalidade paga (1 grátis, 10 no plano pago,
 nunca mais do que 10). O direito vive na tabela `entitlements` do Supabase;

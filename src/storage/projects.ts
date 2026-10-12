@@ -169,6 +169,27 @@ async function writeIndex(key: string, list: ProjectListItem[]) {
   await AsyncStorage.setItem(key, JSON.stringify(list));
 }
 
+// Toda a alteração ao índice passa por aqui, UMA de cada vez. Cada sítio fazia
+// "ler → mexer → escrever" por conta própria e duas gravações ao mesmo tempo
+// (a folha grava a cada tecla; o sync grava ao chegar ao primeiro plano)
+// pisavam-se: a segunda escrevia a lista que tinha lido ANTES da primeira, e o
+// resumo da primeira voltava ao que era — o título acabado de escrever
+// aparecia "Sem nome" na lista com a folha certa por dentro (12/10/2026).
+let filaIndice: Promise<unknown> = Promise.resolve();
+function updateIndex(
+  key: string,
+  mexe: (list: ProjectListItem[]) => ProjectListItem[] | void
+): Promise<ProjectListItem[]> {
+  const run = filaIndice.then(async () => {
+    const list = await readIndex(key);
+    const out = mexe(list) || list;
+    await writeIndex(key, out);
+    return out;
+  });
+  filaIndice = run.catch(() => {});
+  return run;
+}
+
 // A lista separa Publicidade / Cinema pelo `formato` do RESUMO, não da folha.
 // Resumos sem formato vêm do código antigo (anterior a 29/09, que não o
 // escrevia — p.ex. folhas de cinema descarregadas pela web antiga) e do
@@ -191,10 +212,9 @@ async function readIndexComFormato(key: string, prefix: string): Promise<Project
     }
   }
   if (!achados.size) return list;
-  const fresh = await readIndex(key);
-  for (const it of fresh) if (it.formato == null && achados.has(it.id)) it.formato = achados.get(it.id);
-  await writeIndex(key, fresh);
-  return fresh;
+  return updateIndex(key, (fresh) => {
+    for (const it of fresh) if (it.formato == null && achados.has(it.id)) it.formato = achados.get(it.id);
+  });
 }
 
 /* ------------ Defaults ------------ */
@@ -453,7 +473,7 @@ export async function getProject(id: string): Promise<ProjectState | null> {
 export async function saveProject(
   p: ProjectState,
   opts?: { keepTimestamp?: boolean }
-): Promise<void> {
+): Promise<ProjectState> {
   const updatedAt =
     opts?.keepTimestamp && p.updatedAt ? p.updatedAt : new Date().toISOString();
   // O sync grava aqui o blob da cloud TAL COMO VEIO (sem passar pelo
@@ -476,24 +496,22 @@ export async function saveProject(
     formato: formatoDoResumo(toSave),
   };
 
+  const poe = (list: ProjectListItem[]) => {
+    const i = list.findIndex((it) => it.id === p.id);
+    if (i >= 0) list[i] = summary;
+    else list.push(summary);
+  };
   if (isArchived) {
     await AsyncStorage.setItem(KEY_ARCHIVED_PREFIX + p.id, JSON.stringify(toSave));
-
-    const idx = archivedIndex.findIndex((i) => i.id === p.id);
-    if (idx >= 0) archivedIndex[idx] = summary;
-    else archivedIndex.push(summary);
-
-    await writeIndex(KEY_ARCHIVED_INDEX, archivedIndex);
+    await updateIndex(KEY_ARCHIVED_INDEX, poe);
   } else {
     await AsyncStorage.setItem(KEY_PROJECT_PREFIX + p.id, JSON.stringify(toSave));
-
-    const index = await readIndex(KEY_INDEX);
-    const existingIdx = index.findIndex((i) => i.id === p.id);
-    if (existingIdx >= 0) index[existingIdx] = summary;
-    else index.push(summary);
-
-    await writeIndex(KEY_INDEX, index);
+    await updateIndex(KEY_INDEX, poe);
   }
+  // O que ficou gravado, COM o carimbo: é isto que se envia para a cloud (o
+  // objeto que entrou ainda trazia o carimbo antigo, e o outro aparelho
+  // achava que não havia nada de novo).
+  return toSave;
 }
 
 // criar projeto novo
@@ -646,17 +664,17 @@ export async function createProject(opts?: {
 
   await AsyncStorage.setItem(KEY_PROJECT_PREFIX + id, JSON.stringify(novo));
 
-  const index = await readIndex(KEY_INDEX);
-  index.push({
-    id,
-    nome: "",
-    cliente: "",
-    mes: `${String(novo.projeto.mes).padStart(2, "0")}/${novo.projeto.ano}`,
-    updatedAt: novo.updatedAt,
-    profileId: novo.profileId,
-    formato: novo.formato,
+  await updateIndex(KEY_INDEX, (index) => {
+    index.push({
+      id,
+      nome: "",
+      cliente: "",
+      mes: `${String(novo.projeto.mes).padStart(2, "0")}/${novo.projeto.ano}`,
+      updatedAt: novo.updatedAt,
+      profileId: novo.profileId,
+      formato: formatoDoResumo(novo),
+    });
   });
-  await writeIndex(KEY_INDEX, index);
 
   return id;
 }
@@ -664,17 +682,13 @@ export async function createProject(opts?: {
 // apagar projeto ATIVO
 export async function deleteProject(id: string): Promise<void> {
   await AsyncStorage.removeItem(KEY_PROJECT_PREFIX + id);
-  const index = await readIndex(KEY_INDEX);
-  const next = index.filter((p) => p.id !== id);
-  await writeIndex(KEY_INDEX, next);
+  await updateIndex(KEY_INDEX, (index) => index.filter((p) => p.id !== id));
 }
 
 // apagar projeto ARQUIVADO
 export async function deleteArchivedProject(id: string): Promise<void> {
   await AsyncStorage.removeItem(KEY_ARCHIVED_PREFIX + id);
-  const index = await readIndex(KEY_ARCHIVED_INDEX);
-  const next = index.filter((p) => p.id !== id);
-  await writeIndex(KEY_ARCHIVED_INDEX, next);
+  await updateIndex(KEY_ARCHIVED_INDEX, (index) => index.filter((p) => p.id !== id));
 }
 
 // duplicar projeto (mesmo mês/ano)
@@ -690,26 +704,30 @@ export async function duplicateProject(id: string): Promise<string> {
     id: newId,
     projeto: {
       ...original.projeto,
-      filme: original.projeto.filme
-        ? `${original.projeto.filme}${i18n.t("copy_suffix")}`
-        : "",
+      // O nome que a lista mostra é o título (ou, sem título, o filme): é a
+      // esse que se junta " (cópia)". Antes só o filme o levava e o título era
+      // copiado tal e qual — a cópia ficava com o MESMO nome do original, e no
+      // índice entrava "Sem nome" porque só se olhava para o filme (12/10).
+      ...(original.projeto.titulo
+        ? { titulo: `${original.projeto.titulo}${i18n.t("copy_suffix")}` }
+        : { filme: original.projeto.filme ? `${original.projeto.filme}${i18n.t("copy_suffix")}` : "" }),
     },
     updatedAt: now,
   };
 
   await AsyncStorage.setItem(KEY_PROJECT_PREFIX + newId, JSON.stringify(clone));
 
-  const index = await readIndex(KEY_INDEX);
-  index.push({
-    id: newId,
-    nome: clone.projeto.filme || "",
-    cliente: clone.projeto.produtora || "",
-    mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
-    updatedAt: now,
-    profileId: clone.profileId,
-    formato: clone.formato,
+  await updateIndex(KEY_INDEX, (index) => {
+    index.push({
+      id: newId,
+      nome: clone.projeto.titulo || clone.projeto.filme || "",
+      cliente: clone.projeto.produtora || "",
+      mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
+      updatedAt: now,
+      profileId: clone.profileId,
+      formato: formatoDoResumo(clone),
+    });
   });
-  await writeIndex(KEY_INDEX, index);
 
   return newId;
 }
@@ -739,17 +757,17 @@ export async function duplicateProjectToMonth(
 
   await AsyncStorage.setItem(KEY_PROJECT_PREFIX + newId, JSON.stringify(clone));
 
-  const index = await readIndex(KEY_INDEX);
-  index.push({
-    id: newId,
-    nome: clone.projeto.filme || "",
-    cliente: clone.projeto.produtora || "",
-    mes: `${String(mes).padStart(2, "0")}/${ano}`,
-    updatedAt: now,
-    profileId: clone.profileId,
-    formato: clone.formato,
+  await updateIndex(KEY_INDEX, (index) => {
+    index.push({
+      id: newId,
+      nome: clone.projeto.titulo || clone.projeto.filme || "",
+      cliente: clone.projeto.produtora || "",
+      mes: `${String(mes).padStart(2, "0")}/${ano}`,
+      updatedAt: now,
+      profileId: clone.profileId,
+      formato: formatoDoResumo(clone),
+    });
   });
-  await writeIndex(KEY_INDEX, index);
 
   return newId;
 }
@@ -810,17 +828,17 @@ export async function duplicateProjectNextWeek(id: string): Promise<string> {
 
   await AsyncStorage.setItem(KEY_PROJECT_PREFIX + newId, JSON.stringify(clone));
 
-  const index = await readIndex(KEY_INDEX);
-  index.push({
-    id: newId,
-    nome: clone.projeto.titulo || clone.projeto.filme || "",
-    cliente: clone.projeto.produtora || "",
-    mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
-    updatedAt: now,
-    profileId: clone.profileId,
-    formato: clone.formato,
+  await updateIndex(KEY_INDEX, (index) => {
+    index.push({
+      id: newId,
+      nome: clone.projeto.titulo || clone.projeto.filme || "",
+      cliente: clone.projeto.produtora || "",
+      mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
+      updatedAt: now,
+      profileId: clone.profileId,
+      formato: formatoDoResumo(clone),
+    });
   });
-  await writeIndex(KEY_INDEX, index);
 
   return newId;
 }
@@ -925,17 +943,17 @@ export async function duplicateProjectToProfile(
 
   await AsyncStorage.setItem(KEY_PROJECT_PREFIX + newId, JSON.stringify(clone));
 
-  const index = await readIndex(KEY_INDEX);
-  index.push({
-    id: newId,
-    nome: clone.projeto.titulo || clone.projeto.filme || "",
-    cliente: clone.projeto.produtora || "",
-    mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
-    updatedAt: now,
-    profileId: targetProfileId,
-    formato: clone.formato,
+  await updateIndex(KEY_INDEX, (index) => {
+    index.push({
+      id: newId,
+      nome: clone.projeto.titulo || clone.projeto.filme || "",
+      cliente: clone.projeto.produtora || "",
+      mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
+      updatedAt: now,
+      profileId: targetProfileId,
+      formato: formatoDoResumo(clone),
+    });
   });
-  await writeIndex(KEY_INDEX, index);
 
   return newId;
 }
@@ -956,19 +974,19 @@ export async function archiveProject(id: string): Promise<void> {
 
   await AsyncStorage.setItem(KEY_ARCHIVED_PREFIX + id, JSON.stringify(project));
 
-  const archivedIndex = await readIndex(KEY_ARCHIVED_INDEX);
-  archivedIndex.push({
-    id,
-    nome: project.projeto.titulo || project.projeto.filme || "",
-    cliente: project.projeto.produtora || "",
-    mes: `${String(project.projeto.mes).padStart(2, "0")}/${project.projeto.ano}`,
-    pago: !!project.pago,
-    updatedAt: new Date().toISOString(),
-    profileId: project.profileId,
-    // Faltava (até 03/10): o cinema arquivado aparecia como publicidade.
-    formato: formatoDoResumo(project),
+  await updateIndex(KEY_ARCHIVED_INDEX, (archivedIndex) => {
+    archivedIndex.push({
+      id,
+      nome: project.projeto.titulo || project.projeto.filme || "",
+      cliente: project.projeto.produtora || "",
+      mes: `${String(project.projeto.mes).padStart(2, "0")}/${project.projeto.ano}`,
+      pago: !!project.pago,
+      updatedAt: new Date().toISOString(),
+      profileId: project.profileId,
+      // Faltava (até 03/10): o cinema arquivado aparecia como publicidade.
+      formato: formatoDoResumo(project),
+    });
   });
-  await writeIndex(KEY_ARCHIVED_INDEX, archivedIndex);
 
   await deleteProject(id);
 }
@@ -998,7 +1016,6 @@ export async function unarchiveProject(id: string): Promise<void> {
 
   await AsyncStorage.setItem(KEY_PROJECT_PREFIX + id, JSON.stringify(restored));
 
-  const index = await readIndex(KEY_INDEX);
   const summary: ProjectListItem = {
     id,
     nome: restored.projeto.titulo || restored.projeto.filme || "",
@@ -1010,10 +1027,11 @@ export async function unarchiveProject(id: string): Promise<void> {
     // Faltava (até 03/10): o cinema desarquivado voltava à lista em Publicidade.
     formato: formatoDoResumo(restored),
   };
-  const existing = index.findIndex((i) => i.id === id);
-  if (existing >= 0) index[existing] = summary;
-  else index.push(summary);
-  await writeIndex(KEY_INDEX, index);
+  await updateIndex(KEY_INDEX, (index) => {
+    const existing = index.findIndex((i) => i.id === id);
+    if (existing >= 0) index[existing] = summary;
+    else index.push(summary);
+  });
 
   await deleteArchivedProject(id);
 }
@@ -1113,7 +1131,10 @@ export async function backfillProfileIds(): Promise<void> {
   const all = await listAllProjectsFull();
   for (const p of all) {
     if (!p.profileId) {
-      await saveProject({ ...p, profileId: active.id });
+      // keepTimestamp: o carimbo do perfil não é uma edição do utilizador. Sem
+      // isto, uma cópia local VELHA ficava "mais recente" do que a da cloud e
+      // o sync seguinte enviava-a por cima do que o outro aparelho tinha feito.
+      await saveProject({ ...p, profileId: active.id }, { keepTimestamp: true });
     }
   }
 }

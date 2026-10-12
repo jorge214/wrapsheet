@@ -2,6 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { aplicarEdicaoSobre, guardadoMaisRecente } from "../../src/storage/merge";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
@@ -281,6 +282,7 @@ export default function ProjectEditor() {
     };
     setProject(normalized);
     projectRef.current = normalized;
+    baseStampRef.current = normalized.updatedAt;
   }, [id]);
 
   useEffect(() => {
@@ -335,7 +337,9 @@ export default function ProjectEditor() {
   // página (senão o gesto de recuar levava-te para a lista de projetos).
   useEffect(() => {
     if (Platform.OS !== "web" || !editHtml) return;
-    window.history.pushState({ wsEditor: true }, "");
+    // Mantém o estado do React Navigation (o `id` da entrada): sem ele o
+    // router perdia o sítio no histórico e podia remontar o ecrã a meio.
+    window.history.pushState({ ...(window.history.state || {}), wsEditor: true }, "");
     const onPop = () => setEditHtml(false);
     window.addEventListener("popstate", onPop);
     return () => {
@@ -380,17 +384,53 @@ export default function ProjectEditor() {
     return () => { restoreOrientation(); };
   }, [showPreview]);
 
+  // Carimbo da versão em que este ecrã se baseia (a que carregou ou gravou por
+  // último). Se o armazenamento tiver uma mais recente — o sync descarregou-a
+  // do outro aparelho enquanto a app estava no fundo, p.ex. a PWA no Dock do
+  // Mac — a edição aplica-se por cima dessa, em vez de a apagar com a cópia
+  // velha inteira (os italianos perdiam o título e as horas, 12/10/2026).
+  const baseStampRef = useRef<string | number | undefined>(undefined);
+  // Envio para a cloud com atraso: a folha grava a cada tecla e N envios em
+  // simultâneo chegavam ao servidor por qualquer ordem (o último a chegar
+  // ganhava, mesmo sendo um título a meio). Um envio por pausa de escrita; ao
+  // sair do ecrã vai o que estiver pendente.
+  const uploadTimer = useRef<any>(null);
+  const uploadPending = useRef<ProjectState | null>(null);
+  const userRef = useRef(user);
+  userRef.current = user;
+  function flushUpload() {
+    if (uploadTimer.current) { clearTimeout(uploadTimer.current); uploadTimer.current = null; }
+    const p = uploadPending.current;
+    uploadPending.current = null;
+    if (p && userRef.current) syncProjectToCloud(userRef.current.id, p as any);
+  }
+  function agendaUpload(p: ProjectState) {
+    uploadPending.current = p;
+    if (uploadTimer.current) clearTimeout(uploadTimer.current);
+    uploadTimer.current = setTimeout(flushUpload, 800);
+  }
+  useEffect(() => () => flushUpload(), []);
+
   async function persist(next: ProjectState) {
+    const anterior = projectRef.current;
     setProject(next);
     projectRef.current = next;
     setSaveStatus("saving");
     try {
-      await saveProject(next);
+      // (`any`: o ProjectState de models/ e o de storage/ ainda são dois tipos)
+      const guardado: any = await getProject(next.id);
+      if (anterior && guardado && guardadoMaisRecente({ updatedAt: baseStampRef.current ?? anterior.updatedAt }, guardado)) {
+        next = aplicarEdicaoSobre(anterior, next, guardado as ProjectState);
+        setProject(next);
+        projectRef.current = next;
+      }
+      const gravado: any = await saveProject(next as any);
+      baseStampRef.current = gravado.updatedAt;
+      agendaUpload(gravado);
       setSaveStatus("saved");
     } catch {
       setSaveStatus("idle");
     }
-    if (user) syncProjectToCloud(user.id, next as any);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => setSaveStatus("idle"), 1500);
   }
@@ -712,6 +752,17 @@ export default function ProjectEditor() {
   function handleEditMessage(ev: MessageEvent) {
     const d: any = ev.data;
     if (!d || !d.type) return;
+    // Web: só mensagens das folhas DESTE ecrã. Depois de "Duplicar" (ou de
+    // qualquer outra navegação para outro projeto) o ecrã do projeto anterior
+    // fica montado por baixo, escondido, com o ouvinte vivo — e aplicava ao
+    // SEU projeto cada edição feita na folha do novo, e enviava-a para a
+    // cloud. Era o "um projeto passou para o outro / dois projetos iguais"
+    // dos italianos (12/10/2026). No nativo o WebView entrega só ao seu ecrã.
+    if (Platform.OS === "web") {
+      const src = (ev as any).source;
+      const minhas = [editIframeRef.current?.contentWindow, inlineSheetRef.current?.contentWindow].filter(Boolean);
+      if (!src || !minhas.includes(src)) return;
+    }
     const p = projectRef.current;
     if (!p) return;
     if (d.type === "ws:ready") { postEditCalc(p); return; }
@@ -867,7 +918,13 @@ export default function ProjectEditor() {
         next = r;
         break;
       }
-      case "tabela": next = { ...p, tabela: { ...p.tabela, [d.f]: num(d.value) } }; break;
+      case "tabela": {
+        // Taxas €/h apagadas na folha = volta ao automático (hora normal × 1,5 /
+        // × 2 / × 3). Antes ficava 0 gravado e pagava 0 € por cada hora extra.
+        const taxa = d.f === "rateHEA" || d.f === "rateHEB" || d.f === "rateHR";
+        next = { ...p, tabela: { ...p.tabela, [d.f]: taxa ? numOpt(d.value) : num(d.value) } };
+        break;
+      }
       case "ajudas": next = { ...p, tabela: { ...p.tabela, ajudas: { ...(p.tabela.ajudas as any), [d.f]: num(d.value) } } }; break;
       case "dia": {
         if (d.i == null || Number.isNaN(Number(d.i))) {

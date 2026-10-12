@@ -106,7 +106,8 @@ export default function ProfilesListScreen() {
       await waitForServerEntitlement(user.id);
       await refresh();
       // Limpa o parâmetro para não repetir a espera em cada recarregamento
-      window.history.replaceState({}, "", window.location.pathname);
+      // (mantendo o estado do router, que guarda aqui o id da entrada)
+      window.history.replaceState(window.history.state, "", window.location.pathname);
     })();
   }, [user?.id]);
 

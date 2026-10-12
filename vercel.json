@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export -p web",
+  "buildCommand": "npx expo export -p web && cp dist/+not-found.html dist/404.html",
   "outputDirectory": "dist",
   "framework": null,
   "cleanUrls": true,
