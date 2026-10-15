@@ -188,6 +188,8 @@ export type YearSummary = {
   totalValorBruto: number;
   totalValorFinal: number;
   totalReceber: number;
+  /** Por receber LÍQUIDO (depois de impostos) — o que o dashboard e a página inicial mostram. */
+  totalReceberLiquido: number;
   totalPago: number;
 };
 
@@ -205,6 +207,7 @@ export async function getYearSummary(ano: number, profileId?: string): Promise<Y
   let totalValorBruto = 0;
   let totalValorFinal = 0;
   let totalReceber = 0;
+  let totalReceberLiquido = 0;
   let totalPago = 0;
 
   for (const p of inYear) {
@@ -222,7 +225,7 @@ export async function getYearSummary(ano: number, profileId?: string): Promise<Y
     totalValorBruto += totals.ValorBruto;
     totalValorFinal += totals.ValorFinal;
     if (p.pago) totalPago += totals.ValorFinal;
-    else totalReceber += totals.ValorBruto;
+    else { totalReceber += totals.ValorBruto; totalReceberLiquido += totals.ValorFinal; }
   }
 
   const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -234,6 +237,7 @@ export async function getYearSummary(ano: number, profileId?: string): Promise<Y
     totalValorBruto: r2(totalValorBruto),
     totalValorFinal: r2(totalValorFinal),
     totalReceber: r2(totalReceber),
+    totalReceberLiquido: r2(totalReceberLiquido),
     totalPago: r2(totalPago),
   };
 }

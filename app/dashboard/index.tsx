@@ -186,7 +186,9 @@ export default function DashboardScreen() {
     diasTrabalhoMes: dias,
     valorBrutoMes: monthSummary?.totalValorBruto ?? 0,
     valorLiquidoMes: monthSummary?.totalValorFinal ?? 0,
-    receberMes: monthSummary?.totalReceber ?? 0,
+    // LÍQUIDO, como a página inicial e como o "Pago" ao lado (antes mostrava o
+    // bruto: 3.631 € aqui contra 2.868 € na página inicial, o mesmo "A receber").
+    receberMes: monthSummary?.totalReceberLiquido ?? 0,
     pagoMes: monthSummary?.totalPago ?? 0,
     irsMes: monthSummary?.totalIRS ?? 0,
     ivaMes: monthSummary?.totalIVA ?? 0,
@@ -196,7 +198,7 @@ export default function DashboardScreen() {
     horasAno: yearSummary?.totalHoras ?? 0,
     valorBrutoAno: yearSummary?.totalValorBruto ?? 0,
     valorLiquidoAno: yearSummary?.totalValorFinal ?? 0,
-    receberAno: yearSummary?.totalReceber ?? 0,
+    receberAno: yearSummary?.totalReceberLiquido ?? 0,
     pagoAno: yearSummary?.totalPago ?? 0,
   };
 }, [projects, archived, monthSummary, yearSummary, ano, monthKey]);
