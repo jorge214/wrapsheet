@@ -130,6 +130,8 @@ export type ProjectState = {
   condTitulo?: string;
   condBoxes?: CondBox[];
   pago?: boolean; // projeto já pago
+  // (a folha de exemplo leva também `exemplo: true` no blob — ver storage/exemplo.ts;
+  // fica fora do tipo para não mexer no erro antigo da duplicação de ProjectState)
   updatedAt: string;
 };
 
@@ -440,6 +442,9 @@ function upgradeProject(raw: any, id: string): ProjectState {
     condTitulo: raw.condTitulo || "",
     condBoxes: Array.isArray(raw.condBoxes) ? raw.condBoxes : undefined,
     pago: !!raw.pago,
+    // Lista FIXA de campos: o que não vier aqui perde-se na leitura (foi assim
+    // que o código antigo apagava o `formato`). A marca da folha de exemplo:
+    ...(raw.exemplo === true ? { exemplo: true } : {}),
     updatedAt: raw.updatedAt || new Date().toISOString(),
   };
 }

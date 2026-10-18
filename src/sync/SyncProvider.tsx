@@ -8,6 +8,7 @@ import {
 } from "../storage/clearLocal";
 import { fullSync } from "./syncService";
 import { backfillProfileIds } from "../storage/projects";
+import { criarExemploSePreciso } from "../storage/exemplo";
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -34,6 +35,10 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     // Multi-perfil: carimba os projetos legados (sem profileId) com o perfil
     // ativo — depois do download, para carimbar já com os dados mais recentes.
     await backfillProfileIds();
+    // Quem ainda não tem nenhuma folha (local E na nuvem) recebe uma de exemplo,
+    // uma vez por conta. Depois do download, para não a criar a quem só está
+    // num aparelho novo.
+    await criarExemploSePreciso(user as any);
   }
 
   // Sync on login
