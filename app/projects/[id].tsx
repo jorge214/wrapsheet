@@ -58,6 +58,7 @@ import {
 } from "../../src/storage/projects";
 import EditableSheet, { SHEET_W } from "../../src/ui/EditableSheet";
 import { MonthYearModal } from "../../src/ui/MonthYearModal";
+import { parseDataPT } from "../../src/export/dataPT";
 
 /* ---------- Paleta (manual, neutra) ---------- */
 const COLORS = {
@@ -340,7 +341,7 @@ export default function ProjectEditor() {
     // Mantém o estado do React Navigation (o `id` da entrada): sem ele o
     // router perdia o sítio no histórico e podia remontar o ecrã a meio.
     window.history.pushState({ ...(window.history.state || {}), wsEditor: true }, "");
-    const onPop = () => setEditHtml(false);
+    const onPop = () => fecharEditor();
     window.addEventListener("popstate", onPop);
     return () => {
       window.removeEventListener("popstate", onPop);
@@ -383,6 +384,17 @@ export default function ProjectEditor() {
     ScreenOrientation.unlockAsync().catch(() => {});
     return () => { restoreOrientation(); };
   }, [showPreview]);
+
+  // Fechar o editor: primeiro manda a folha gravar a célula que ainda está
+  // aberta (a data/hora só se envia ao sair da célula — fechar com o teclado
+  // aberto perdia o que se tinha escrito), e só depois desmonta.
+  function fecharEditor() {
+    try {
+      if (Platform.OS === "web") editIframeRef.current?.contentWindow?.postMessage({ type: "ws:flush" }, "*");
+      else editWebViewRef.current?.injectJavaScript("window.__wsFlush && window.__wsFlush(); true;");
+    } catch {}
+    setTimeout(() => setEditHtml(false), 150);
+  }
 
   // Carimbo da versão em que este ecrã se baseia (a que carregou ou gravou por
   // último). Se o armazenamento tiver uma mais recente — o sync descarregou-a
@@ -889,9 +901,9 @@ export default function ProjectEditor() {
     const applyCinema = (f: string, value: any): ProjectState | null => {
       const c: any = { ...(p.cinema ?? {}) };
       if (f === "proxData" || f === "data") {
-        const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(value).trim());
-        if (!m) return null;
-        c.proximaSemana = { ...(c.proximaSemana ?? {}), data: `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` };
+        const iso = parseDataPT(value);
+        if (!iso) return null;
+        c.proximaSemana = { ...(c.proximaSemana ?? {}), data: iso };
       } else if (f === "proxInicio") {
         c.proximaSemana = { ...(c.proximaSemana ?? {}), inicio: String(value ?? "") };
       } else if (f === "proxNumero") {
@@ -936,9 +948,9 @@ export default function ProjectEditor() {
         }
         let val: any = d.value;
         if (d.f === "data") {
-          const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(d.value).trim());
-          if (!m) return; // data incompleta/ inválida — não guarda parcial
-          val = `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+          const iso = parseDataPT(d.value);
+          if (!iso) return; // data inválida — a folha já a reverteu ao sair da célula
+          val = iso;
         } else if (d.f === "pago") {
           val = !!d.value;
         } else if (DIA_NUM.has(d.f)) {
@@ -1967,7 +1979,7 @@ export default function ProjectEditor() {
         animationType="slide"
         visible={editHtml}
         supportedOrientations={["portrait", "landscape"]}
-        onRequestClose={() => setEditHtml(false)}
+        onRequestClose={() => fecharEditor()}
       >
         {/* SafeAreaProvider PRÓPRIO dentro do modal: mede a janela do modal e
             acompanha a rotação (os insets do ecrã por trás ficam em portrait
@@ -1991,7 +2003,7 @@ export default function ProjectEditor() {
                   <Text style={ss.exportBtnText}>{t("export_pdf")}</Text>
                 </Pressable>
               )}
-              <Pressable onPress={() => setEditHtml(false)} hitSlop={12} style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}>
+              <Pressable onPress={() => fecharEditor()} hitSlop={12} style={({ pressed }) => [ss.previewCloseBtn, pressed && { opacity: 0.7 }]}>
                 <Text style={ss.previewCloseText}>✕ {t("close", { defaultValue: "Fechar" })}</Text>
               </Pressable>
             </View>

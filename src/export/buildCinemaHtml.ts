@@ -785,6 +785,8 @@ function render(
         document.addEventListener('click', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('rtog')) return;
+          // grava primeiro a célula aberta (data/hora escrita e ainda sem blur)
+          if(window.__wsFlush) window.__wsFlush();
           var i = parseInt(el.getAttribute('data-i'), 10);
           post({ type: el.getAttribute('data-act') === 'folga' ? 'ws:toggleFolga' : 'ws:toggleFeriado', i: i });
         }, true);

@@ -34,7 +34,18 @@ export function aplicarEdicaoSobre<T extends Record<string, any>>(anterior: T, e
   const chaves = new Set([...Object.keys(anterior), ...Object.keys(editado)]);
   for (const k of chaves) {
     if (k === "updatedAt" || k === "id") continue;
-    if (JSON.stringify(anterior[k]) !== JSON.stringify(editado[k])) out[k] = editado[k];
+    if (JSON.stringify(anterior[k]) === JSON.stringify(editado[k])) continue;
+    // Os DIAS juntam-se linha a linha: mudar a data de UM dia num ecrã com a
+    // cópia velha repunha TODOS os dias dessa cópia por cima dos que o outro
+    // aparelho tinha mudado ("mudas o primeiro dia e ele muda os outros").
+    // Só se a semana mudou de forma (dias acrescentados/removidos) é que vai
+    // a lista toda, que aí não há linha a linha que faça sentido.
+    const a = anterior[k], e = editado[k], g = guardado[k];
+    if (k === "dias" && Array.isArray(a) && Array.isArray(e) && Array.isArray(g) && a.length === e.length && g.length === e.length) {
+      out[k] = e.map((row: any, i: number) => (JSON.stringify(a[i]) !== JSON.stringify(row) ? row : g[i]));
+      continue;
+    }
+    out[k] = editado[k];
   }
   return out as T;
 }

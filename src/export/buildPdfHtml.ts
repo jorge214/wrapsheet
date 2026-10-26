@@ -1475,6 +1475,29 @@ export function editorScript(s: any): string {
           else if(window.parent && window.parent!==window){ window.parent.postMessage(m,'*'); }
         }catch(e){} }
         function di(el){ var i = el.getAttribute('data-i'); return i===null? null : parseInt(i,10); }
+        // Grava a célula que está a ser editada (o blur é que envia a edição).
+        // Chamado antes de redesenhar linhas, antes de duplicar/remover/folga e
+        // antes de fechar o editor: sem isto, no iPhone, o que se tinha escrito
+        // perdia-se (o WebKit não dispara blur quando a célula é removida).
+        function flushEdit(){
+          var a = document.activeElement;
+          if(a && a.blur && a.classList && a.classList.contains('ei')){ try{ a.blur(); }catch(err){} }
+        }
+        window.__wsFlush = flushEdit;
+        // Hora/data: a PRIMEIRA tecla depois de entrar substitui o valor todo.
+        // Dependia só de select() ao entrar, e no iPhone a seleção às vezes não
+        // pega: o que se escrevia era INSERIDO no meio do valor antigo ("16:00"
+        // + "7" → "1670" → 16:59; datas com o ano trocado). Agora, se a primeira
+        // ação é escrever, o valor passa a ser só o que se escreveu.
+        function freshInput(el, e){
+          if(!el.__fresh) return;
+          el.__fresh = false;
+          var t = e && e.inputType ? String(e.inputType) : '';
+          if(t.indexOf('insert') === 0 && t !== 'insertFromPaste' && e.data != null){ el.value = String(e.data); }
+        }
+        function flashInvalid(el){
+          try{ el.style.backgroundColor = '#fde2e1'; setTimeout(function(){ el.style.backgroundColor = ''; }, 900); }catch(err){}
+        }
         document.addEventListener('input', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('ei')) return;
@@ -1490,17 +1513,19 @@ export function editorScript(s: any): string {
           return t ? Math.max(0, t.querySelectorAll('tr').length - 3) : 0;
         }
         var addBtn = document.getElementById('wsAddDay');
-        if(addBtn){ addBtn.addEventListener('click', function(){ post({ type:'ws:addDay' }); }); }
+        if(addBtn){ addBtn.addEventListener('click', function(){ flushEdit(); post({ type:'ws:addDay' }); }); }
         var dupBtn = document.getElementById('wsDupDay');
-        if(dupBtn){ dupBtn.addEventListener('click', function(){ post({ type:'ws:dupDay', i: lastDayIndex() }); }); }
+        if(dupBtn){ dupBtn.addEventListener('click', function(){ flushEdit(); post({ type:'ws:dupDay', i: lastDayIndex() }); }); }
         var delBtn = document.getElementById('wsDelDay');
         if(delBtn){ delBtn.addEventListener('click', function(){
+          flushEdit();
           if(window.confirm(${JSON.stringify((s as any).removeDayConfirm || "Remover este dia?")})){ post({ type:'ws:removeDay', i: lastDayIndex() }); }
         }); }
         // Duplicar (⧉) / remover (✕) um dia
         document.addEventListener('click', function(e){
           var el = e.target;
           if(!el.classList || !el.classList.contains('rbtn')) return;
+          flushEdit();
           var i = parseInt(el.getAttribute('data-i'), 10);
           if(el.getAttribute('data-act') === 'del'){
             if(window.confirm(${JSON.stringify((s as any).removeDayConfirm || "Remover este dia?")})){ post({ type:'ws:removeDay', i:i }); }
@@ -1512,6 +1537,7 @@ export function editorScript(s: any): string {
         window.__wsSetRows = function(html){
           var t = document.querySelector('table.days');
           if(!t) return;
+          flushEdit();
           var rows = t.querySelectorAll('tr');
           for(var k = rows.length - 1; k >= 2; k--){ rows[k].parentNode.removeChild(rows[k]); }
           var tb = (t.tBodies && t.tBodies[0]) ? t.tBodies[0] : t;
@@ -1584,7 +1610,11 @@ export function editorScript(s: any): string {
           var rest = d.slice(hourLen);
           var mm = rest.length===0 ? '00' : (rest.length===1 ? rest+'0' : rest.slice(0,2));
           var h = Math.min(23, parseInt(hh,10)||0);
-          var m = Math.min(59, parseInt(mm,10)||0);
+          var m = parseInt(mm,10)||0;
+          // Minutos impossíveis ("16:70") NÃO se cortam para :59 — era assim
+          // que 17:00 mal escrito virava 16:59 sem ninguém dar por isso. A hora
+          // é recusada e a célula volta ao valor anterior (ver o blur).
+          if(m > 59) return null;
           return (h<10?'0'+h:''+h)+':'+(m<10?'0'+m:''+m);
         }
         // Horas = <input> real. Aqui manda-se em .value (não textContent) e o
@@ -1599,13 +1629,16 @@ export function editorScript(s: any): string {
         document.addEventListener('focusin', function(e){
           var el = e.target;
           if(!isTimeInput(el)) return;
+          el.__orig = el.value;
+          el.__fresh = true;
           el.value = String(el.value||'').replace(/\\D/g,'').slice(0,4);
-          setTimeout(function(){ if(document.activeElement===el){ try{ el.select(); }catch(err){} } }, 0);
+          setTimeout(function(){ if(document.activeElement===el){ try{ el.select(); el.setSelectionRange(0, el.value.length); }catch(err){} } }, 0);
         }, true);
         // Ao ESCREVER: máscara ao vivo ("08"→"08:", "0845"→"08:45"), cursor no fim.
         document.addEventListener('input', function(e){
           var el = e.target;
           if(!isTimeInput(el)) return;
+          freshInput(el, e);
           var deleting = !!(e.inputType && e.inputType.indexOf('delete') === 0);
           var out = fmtTime(el.value, false, deleting);
           // Só mexer no cursor quando REESCREVEMOS de facto — ao apagar sem
@@ -1619,7 +1652,9 @@ export function editorScript(s: any): string {
         document.addEventListener('blur', function(e){
           var el = e.target;
           if(!isTimeInput(el)) return;
+          el.__fresh = false;
           var out = fmtTime(el.value, true);
+          if(out === null){ el.value = el.__orig || ''; flashInvalid(el); return; }
           el.value = out;
           post({ type:'ws:edit', k:'dia', f: el.getAttribute('data-f'), i: di(el), value: out });
         }, true);
@@ -1644,11 +1679,14 @@ export function editorScript(s: any): string {
         document.addEventListener('focusin', function(e){
           var el = e.target;
           if(!isDateInput(el)) return;
-          setTimeout(function(){ if(document.activeElement===el){ try{ el.select(); }catch(err){} } }, 0);
+          el.__orig = el.value;
+          el.__fresh = true;
+          setTimeout(function(){ if(document.activeElement===el){ try{ el.select(); el.setSelectionRange(0, el.value.length); }catch(err){} } }, 0);
         }, true);
         document.addEventListener('input', function(e){
           var el = e.target;
           if(!isDateInput(el)) return;
+          freshInput(el, e);
           var caret = el.selectionStart || 0;
           // quantos dígitos ficam à esquerda do cursor (as "/" não contam)
           var before = 0, k;
@@ -1664,7 +1702,21 @@ export function editorScript(s: any): string {
         document.addEventListener('blur', function(e){
           var el = e.target;
           if(!isDateInput(el)) return;
-          var out = fmtDate(el.value);
+          el.__fresh = false;
+          // Completa e valida ao sair: DDMMAA (ano com 2 dígitos) → 20AA; só
+          // aceita datas que existem. O que não for data volta ao valor anterior
+          // (e a célula pisca) — antes ficava à vista mas não se gravava, e o
+          // utilizador não percebia porque "não assumia a data".
+          var dg = String(el.value||'').replace(/\\D/g,'');
+          if(dg.length === 6) dg = dg.slice(0,4) + '20' + dg.slice(4,6);
+          var ok = false;
+          if(dg.length === 8){
+            var dd = parseInt(dg.slice(0,2),10), mo = parseInt(dg.slice(2,4),10), yy = parseInt(dg.slice(4,8),10);
+            var dt = new Date(Date.UTC(yy, mo-1, dd));
+            ok = yy >= 1900 && yy <= 2100 && dt.getUTCFullYear() === yy && dt.getUTCMonth() === mo-1 && dt.getUTCDate() === dd;
+          }
+          if(!ok){ el.value = el.__orig || ''; if(dg.length) flashInvalid(el); return; }
+          var out = fmtDate(dg);
           el.value = out;
           post({ type:'ws:edit', k:'dia', f:'data', i: di(el), value: out });
         }, true);
@@ -1693,6 +1745,7 @@ export function editorScript(s: any): string {
         window.addEventListener('message', function(e){
           var d = e.data; if(!d) return;
           if(d.type === 'ws:calc'){ applyCalc(d); }
+          else if(d.type === 'ws:flush'){ flushEdit(); }
           else if(d.type === 'ws:setRows'){ window.__wsSetRows(d.html); }
           else if(d.type === 'ws:zoom'){
             if(d.zoom === 'auto'){ fit(); }

@@ -49,6 +49,23 @@ describe("edição sobre uma versão que ficou velha", () => {
     expect(out.updatedAt).toBe(guardado.updatedAt);
   });
 
+  it("dias juntam-se LINHA A LINHA: mudar a data do 1.º dia não repõe os outros dias da cópia velha", () => {
+    // O PC pôs dias alternados (seg 12, qua 14, sex 16); o iPhone ainda tinha
+    // a semana seguida (12, 13, 14) e mudou só a data do 1.º dia para 11.
+    const velho = { id: "1", updatedAt: "2026-10-26T08:00:00.000Z", dias: [{ data: "2026-10-12" }, { data: "2026-10-13" }, { data: "2026-10-14" }] };
+    const guardadoPC = { id: "1", updatedAt: "2026-10-26T09:00:00.000Z", dias: [{ data: "2026-10-12" }, { data: "2026-10-14" }, { data: "2026-10-16" }] };
+    const editado = { ...velho, dias: [{ data: "2026-10-11" }, { data: "2026-10-13" }, { data: "2026-10-14" }] };
+    const out = aplicarEdicaoSobre(velho, editado, guardadoPC);
+    expect(out.dias.map((d) => d.data)).toEqual(["2026-10-11", "2026-10-14", "2026-10-16"]);
+  });
+
+  it("se a semana mudou de forma (dia acrescentado), vai a lista editada toda", () => {
+    const velho = { id: "1", updatedAt: "2026-10-26T08:00:00.000Z", dias: [{ data: "2026-10-12" }] };
+    const guardadoPC = { id: "1", updatedAt: "2026-10-26T09:00:00.000Z", dias: [{ data: "2026-10-13" }] };
+    const editado = { ...velho, dias: [{ data: "2026-10-12" }, { data: "2026-10-13" }] };
+    expect(aplicarEdicaoSobre(velho, editado, guardadoPC).dias).toHaveLength(2);
+  });
+
   it("sem diferenças, devolve a versão guardada tal e qual", () => {
     expect(aplicarEdicaoSobre(carregado, { ...carregado }, guardado)).toEqual(guardado);
   });
