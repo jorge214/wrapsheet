@@ -40,6 +40,7 @@ import {
 } from "../../src/storage/projects";
 import { MonthYearModal } from "../../src/ui/MonthYearModal";
 import { FormatPickerModal, type FormatPick } from "../../src/ui/FormatPickerModal";
+import { mesDaFolhaCinema } from "../../src/storage/novaFolha";
 import {
   getActiveProfileId,
   listProfiles,
@@ -290,12 +291,18 @@ export default function ProjectsScreen() {
 
   async function createWithFormat(pick: FormatPick) {
     setFormatPick(false);
-    const { formato, diasSemana } = pick;
+    const { formato, diasSemana, semanas } = pick;
     try {
       // O projeto nasce no mês que está a ser visto na lista — assim, fazer em
       // agosto a folha de maio é só navegar para maio e criar. A ver "todos",
       // não há mês em foco: fica o corrente (comportamento de sempre).
-      const id = await createProject({ ...(showAll ? {} : { mes, ano }), formato, diasSemana });
+      const id = await createProject({ ...(showAll ? {} : { mes, ano }), formato, diasSemana, semanas });
+      // A semana seguinte pode cair já no mês a seguir: a lista passa para lá,
+      // senão ao voltar a folha nova parecia ter desaparecido.
+      if (formato === "cinema" && semanas && !showAll) {
+        const alvo = mesDaFolhaCinema(mes, ano, semanas);
+        if (alvo.mes !== mes || alvo.ano !== ano) { setMes(alvo.mes); setAno(alvo.ano); }
+      }
       router.push(`/projects/${id}`);
     } catch (e) {
       console.error("Erro ao criar projeto", e);
@@ -871,7 +878,7 @@ export default function ProjectsScreen() {
         </Text>
       </TouchableOpacity>
 
-      <FormatPickerModal visible={formatPick} onClose={() => setFormatPick(false)} onPick={createWithFormat} cinemaOnly={formato === "cinema"} />
+      <FormatPickerModal visible={formatPick} onClose={() => setFormatPick(false)} onPick={createWithFormat} cinemaOnly={formato === "cinema"} mes={showAll ? undefined : mes} ano={showAll ? undefined : ano} />
 
       {/* Mover projeto para outro mês (menu ⋯). O mês do projeto vem do índice
           no formato "MM/AAAA"; se faltar, abre no mês em foco na lista. */}

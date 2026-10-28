@@ -538,6 +538,7 @@
   "format_cinema": "Cinéma",
   "format_cinema_hint": "Feuille à la semaine : 5 jours + 2 repos, repos entre semaines, fériés doublés.",
   "new_project_week_title": "Semaine de combien de jours ?",
+  "new_project_which_week": "Quelle semaine ?",
   "format_cinema_5days": "Cinéma · semaine de 5 jours",
   "format_cinema_6days": "Cinéma · semaine de 6 jours",
   "format_cinema_6_hint": "6 jours + 1 repos ; 36 heures de repos entre les semaines.",

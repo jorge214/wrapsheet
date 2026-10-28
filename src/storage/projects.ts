@@ -8,6 +8,7 @@ import { getPreset } from "../constants/countryPresets";
 import { effectiveFiscalOf, getSettings } from "./appSettings";
 import { CondBox, getActiveProfile, getProfileById } from "./profile";
 import { formatoDoBlob, formatoDoResumo } from "./formato";
+import { mesDaFolhaCinema, primeiroDiaPublicidade, segundaDaSemana } from "./novaFolha";
 
 /* ------------ Tipos internos ------------ */
 
@@ -242,16 +243,7 @@ function defaultDia(date: string): Dia {
 
 /* ------ Cinema: semana de trabalho (5 dias + 2 folgas) ------ */
 
-// Segunda-feira da semana em foco: a de hoje se o mês pedido for o corrente
-// (ou nenhum); senão a primeira segunda-feira desse mês.
-function mondayFor(mes?: number, ano?: number): dayjs.Dayjs {
-  const hoje = dayjs();
-  const corrente =
-    mes == null || ano == null || (mes === hoje.month() + 1 && ano === hoje.year());
-  if (corrente) return hoje.subtract((hoje.day() + 6) % 7, "day").startOf("day");
-  const first = dayjs(new Date(ano!, mes! - 1, 1));
-  return first.add((8 - first.day()) % 7, "day").startOf("day");
-}
+// A segunda-feira da semana de uma folha nova vem de segundaDaSemana (novaFolha.ts).
 
 // Dias de trabalho (horário base 08:00-19:00 = 11h, sem extras) + o resto da
 // semana como linhas de FOLGA sem horas: seg-sex + sáb/dom (5 dias) ou
@@ -536,9 +528,12 @@ export async function createProject(opts?: {
   formato?: FormatoFolha;
   /** Cinema: dias de trabalho na semana (5 = +2 folgas e 60h de descanso; 6 = +1 folga e 36h) */
   diasSemana?: 5 | 6;
+  /** Cinema: 0 = a semana do mês em foco (esta, no mês corrente), 1 = a seguinte */
+  semanas?: 0 | 1;
 }): Promise<string> {
   const id = String(Date.now());
-  const today = dayjs().format("YYYY-MM-DD");
+  // Publicidade: hoje no mês corrente; noutro mês, o dia 1 dele (ver novaFolha.ts)
+  const primeiroDia = primeiroDiaPublicidade(opts?.mes, opts?.ano);
 
   const active = await getActiveProfile();
   const perfil = active ? blankPerfil(active as any) : blankPerfil();
@@ -569,6 +564,8 @@ export async function createProject(opts?: {
     semana: "",
     mes: opts?.mes ?? dayjs().month() + 1,
     ano: opts?.ano ?? dayjs().year(),
+    // Cinema: a semana seguinte pode já ser do mês a seguir (ver novaFolha.ts)
+    ...(cinema ? mesDaFolhaCinema(opts?.mes, opts?.ano, opts?.semanas ?? 0) : {}),
   };
 
   const settings = await getSettings();
@@ -632,7 +629,7 @@ export async function createProject(opts?: {
       },
     } as Partial<Tabela>);
   }
-  const monday = mondayFor(opts?.mes, opts?.ano);
+  const monday = segundaDaSemana(opts?.mes, opts?.ano, opts?.semanas ?? 0);
   const regiaoPT = (settings.region ?? "pt") === "pt";
 
   const novo: ProjectState = {
@@ -659,7 +656,7 @@ export async function createProject(opts?: {
       // Segurança Social: só no cinema, vinda do perfil (editável na folha)
       ...(cinema && fxC.ssPercent != null ? { SS_percent: Number(fxC.ssPercent) || 0 } : {}),
     },
-    dias: cinema ? cinemaWeekDias(monday, regiaoPT, nDias) : [defaultDia(today)],
+    dias: cinema ? cinemaWeekDias(monday, regiaoPT, nDias) : [defaultDia(primeiroDia)],
     notas: "",
     condicoes: condicoesFromProfile,
     condTitulo: condTituloFromProfile,

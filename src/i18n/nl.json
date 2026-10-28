@@ -538,6 +538,7 @@
   "format_cinema": "Film",
   "format_cinema_hint": "Weekstaat: 5 dagen + 2 vrij, rust tussen weken, feestdagen dubbel.",
   "new_project_week_title": "Week van hoeveel dagen?",
+  "new_project_which_week": "Welke week?",
   "format_cinema_5days": "Film · 5-daagse week",
   "format_cinema_6days": "Film · 6-daagse week",
   "format_cinema_6_hint": "6 dagen + 1 vrije dag; 36 uur rust tussen weken.",
