@@ -44,21 +44,40 @@ function normalizePercent(v: any): number {
   return n >= 1 ? n / 100 : n;
 }
 
+type FiscalRegiao = { IRS_percent: number; IVA_percent: number };
+
 /**
- * Valor final (líquido / a receber) de UM projeto, com a MESMA regra fiscal do
- * Dashboard: o fiscal da própria folha e, se não houver, o efetivo da Região
- * Fiscal (eff). Usado na lista de projetos para mostrar o valor por linha.
+ * Cálculo de UM projeto com a regra fiscal do Dashboard: o fiscal da própria
+ * folha e, se não houver, o efetivo da Região Fiscal (eff). Ponto único do
+ * valor por linha, do resumo do mês e do do ano: o IRS/IVA do ano tem de bater
+ * com a soma dos 12 meses (é a referência para conferir com as faturas do ano), e isso
+ * só fica garantido se os três taxarem cada projeto pela mesma função.
  */
-export function projectFinalValue(
-  p: any,
-  eff: { IRS_percent: number; IVA_percent: number }
-): number {
+function calcComFiscal(p: any, eff: FiscalRegiao) {
   const rawFiscal: any = p.fiscal ?? {};
   const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? eff.IRS_percent) * 100;
   const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? eff.IVA_percent) * 100;
   // O motor (publicidade/cinema) é escolhido pelo próprio projeto; a Segurança
   // Social só existe no cinema e vem da folha (sem fallback regional).
-  const totals = calcProject(p, { irs: irsPct, iva: ivaPct, SS_percent: rawFiscal.SS_percent } as any).totais;
+  return calcProject(p, { irs: irsPct, iva: ivaPct, SS_percent: rawFiscal.SS_percent } as any);
+}
+
+/** Minutos de horas extra de um projeto calculado (A + B + recuperação). */
+function minutosExtra(pc: ReturnType<typeof calcProject>): number {
+  let total = 0;
+  for (const dc of pc.calc as any[]) {
+    total += (dc?.HEA_min ?? 0) + (dc?.HEB_min ?? 0) + (dc?.HR_min ?? 0);
+  }
+  return total;
+}
+
+/**
+ * Valor final (líquido / a receber) de UM projeto, com a MESMA regra fiscal do
+ * Dashboard (ver calcComFiscal). Usado na lista de projetos para mostrar o
+ * valor por linha.
+ */
+export function projectFinalValue(p: any, eff: FiscalRegiao): number {
+  const totals = calcComFiscal(p, eff).totais;
   return Math.round((totals.ValorFinal || 0) * 100) / 100;
 }
 
@@ -126,17 +145,10 @@ export async function getMonthSummary(mes: number, ano: number, profileId?: stri
     }
 
     // ✅ valores € (motor escolhido pelo formato do projeto; SS só no cinema)
-    const rawFiscal: any = p.fiscal ?? {};
-    const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? eff.IRS_percent) * 100;
-    const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? eff.IVA_percent) * 100;
-    const pc = calcProject(p, { irs: irsPct, iva: ivaPct, SS_percent: rawFiscal.SS_percent } as any);
-    const diasCalc = pc.calc;
+    const pc = calcComFiscal(p, eff);
 
     // horas extra (A + B + recuperação)
-    for (const dc of diasCalc as any[]) {
-      totalMinutosExtra +=
-        (dc?.HEA_min ?? 0) + (dc?.HEB_min ?? 0) + (dc?.HR_min ?? 0);
-    }
+    totalMinutosExtra += minutosExtra(pc);
 
     const totals = pc.totais;
 
@@ -191,6 +203,14 @@ export type YearSummary = {
   /** Por receber LÍQUIDO (depois de impostos) — o que o dashboard e a página inicial mostram. */
   totalReceberLiquido: number;
   totalPago: number;
+
+  // Impostos e horas extra do ano, com os mesmos nomes e a mesma regra do
+  // resumo do mês. São uma referência para conferir com as faturas do ano —
+  // não substituem o que está no Portal das Finanças.
+  totalIRS: number;
+  totalIVA: number;
+  /** Horas extra (A + B + recuperação) */
+  totalHorasExtra: number;
 };
 
 export async function getYearSummary(ano: number, profileId?: string): Promise<YearSummary> {
@@ -203,8 +223,11 @@ export async function getYearSummary(ano: number, profileId?: string): Promise<Y
   const eff = effectiveFiscalOf(await getSettings());
 
   let totalMinutos = 0;
+  let totalMinutosExtra = 0;
   let totalDiasTrabalho = 0;
   let totalValorBruto = 0;
+  let totalIRS = 0;
+  let totalIVA = 0;
   let totalValorFinal = 0;
   let totalReceber = 0;
   let totalReceberLiquido = 0;
@@ -217,12 +240,15 @@ export async function getYearSummary(ano: number, profileId?: string): Promise<Y
       totalMinutos += mins;
     }
 
-    const rawFiscal: any = p.fiscal ?? {};
-    const irsPct = normalizePercent(rawFiscal.IRS_percent ?? rawFiscal.irs ?? eff.IRS_percent) * 100;
-    const ivaPct = normalizePercent(rawFiscal.IVA_percent ?? rawFiscal.iva ?? eff.IVA_percent) * 100;
-    const totals = calcProject(p, { irs: irsPct, iva: ivaPct, SS_percent: rawFiscal.SS_percent } as any).totais;
+    const pc = calcComFiscal(p, eff);
+    totalMinutosExtra += minutosExtra(pc);
+    const totals = pc.totais;
 
+    // Cada projeto já vem arredondado ao cêntimo pelo motor, por isso somar o
+    // ano projeto a projeto dá o mesmo que somar os 12 meses.
     totalValorBruto += totals.ValorBruto;
+    totalIRS += totals.IRS_valor;
+    totalIVA += totals.IVA_valor;
     totalValorFinal += totals.ValorFinal;
     if (p.pago) totalPago += totals.ValorFinal;
     else { totalReceber += totals.ValorBruto; totalReceberLiquido += totals.ValorFinal; }
@@ -239,6 +265,11 @@ export async function getYearSummary(ano: number, profileId?: string): Promise<Y
     totalReceber: r2(totalReceber),
     totalReceberLiquido: r2(totalReceberLiquido),
     totalPago: r2(totalPago),
+    totalIRS: r2(totalIRS),
+    totalIVA: r2(totalIVA),
+    // Das horas somadas em MINUTOS, não dos meses já arredondados às
+    // centésimas: 20 min em março + 20 min em junho dá 0,67 h, não 0,66.
+    totalHorasExtra: r2(totalMinutosExtra / 60),
   };
 }
 

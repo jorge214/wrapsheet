@@ -38,9 +38,38 @@ import {
 } from "../../src/storage/projects";
 import { getSettings } from "../../src/storage/appSettings";
 import { getPreset } from "../../src/constants/countryPresets";
+import {
+  BASE_HE_PT,
+  BaseRegiaoHE,
+  FixasHE,
+  baseRegiaoHE,
+  comModoHE,
+  condComAcrescimo,
+  condParaModo,
+  heDesatualizado,
+  horaNormalPerfil,
+  modoHE,
+  multsPerfil,
+  paraHoraNormal,
+  pareceHoraNormal,
+  perfilParaEditar,
+  perfilParaGravar,
+  taxaAutoPerfil,
+} from "../../src/storage/horasExtraPerfil";
 import { getStrings } from "../../src/export/buildPdfHtml";
 import i18n from "../../src/i18n/i18n";
 import { useTheme } from "../../src/theme/ThemeProvider";
+
+// A região é lida NA HORA de gravar (e não do estado do ecrã, que chega
+// assíncrono): a taxa da hora normal tem de usar o mesmo horário base que o
+// createProject vai dar à folha nova.
+async function baseHEAtual(): Promise<BaseRegiaoHE> {
+  try {
+    return baseRegiaoHE(getPreset(((await getSettings()) as any)?.region));
+  } catch {
+    return BASE_HE_PT;
+  }
+}
 
 function ProfileField({
   label,
@@ -354,8 +383,11 @@ export default function ProfileEditScreen() {
   const [secao, setSecao] = useState<"publicidade" | "cinema">("publicidade");
   const [saving, setSaving] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
-  const [preset, setPreset] = useState<{ IRS_percent: number; IVA_percent: number; taxIncome: string; taxVat: string; sym: string }>({
-    IRS_percent: 0, IVA_percent: 0, taxIncome: "IRS", taxVat: "IVA", sym: "€",
+  // Taxa de HE GRAVADA que já não é a que a escolha "hora normal" daria hoje
+  // (ver heDesatualizado): o ecrã fica por guardar e diz porquê.
+  const [heVelho, setHeVelho] = useState<ReturnType<typeof heDesatualizado>>(null);
+  const [preset, setPreset] = useState<{ IRS_percent: number; IVA_percent: number; taxIncome: string; taxVat: string; sym: string; he: BaseRegiaoHE }>({
+    IRS_percent: 0, IVA_percent: 0, taxIncome: "IRS", taxVat: "IVA", sym: "€", he: BASE_HE_PT,
   });
 
   useEffect(() => {
@@ -370,6 +402,9 @@ export default function ProfileEditScreen() {
           taxIncome: pr?.taxLabels?.incomeTax ?? "IRS",
           taxVat: pr?.taxLabels?.vat ?? "IVA",
           sym: pr?.currencySymbol ?? "€",
+          // Horário base e multiplicadores que a região dá às folhas novas:
+          // é deles que saem os valores automáticos das horas extra
+          he: baseRegiaoHE(pr),
         });
       } catch {}
     })();
@@ -390,6 +425,14 @@ export default function ProfileEditScreen() {
       if (!Array.isArray(loaded.condBoxes) && (loaded.condicoes || "").trim()) {
         loaded = { ...loaded, condBoxes: [{ titulo: "", texto: loaded.condicoes || "" }] };
       }
+      // Antes de mais: a taxa GRAVADA (a que as folhas novas leem) ainda é a
+      // que a escolha "hora normal" daria hoje? A região pode ter mudado depois
+      // de gravar, ou uma versão antiga da app mudou o salário sem saber da
+      // escolha. Abrir não grava nada: fica por guardar, com o aviso no ecrã.
+      setHeVelho(heDesatualizado((loaded as Profile & { fixas?: FixasHE }).fixas, await baseHEAtual()));
+      // Taxas de HE que a escolha "hora normal" escreveu ao gravar voltam a
+      // automáticas (campo vazio): seguem o salário. Ver horasExtraPerfil.ts.
+      loaded = perfilParaEditar(loaded as Profile & { fixas?: FixasHE });
       setP(loaded);
       setOriginal(loaded);
     })();
@@ -408,10 +451,14 @@ export default function ProfileEditScreen() {
   useEffect(() => { pRef.current = p; }, [p]);
   useEffect(() => { originalRef.current = original; }, [original]);
   useEffect(() => { userRef.current = user; }, [user]);
+  const heVelhoRef = React.useRef(heVelho);
+  useEffect(() => { heVelhoRef.current = heVelho; }, [heVelho]);
 
+  // Por guardar: o que se mexeu no ecrã OU uma taxa de HE desatualizada (essa
+  // não se vê no formulário, mas é a gravada que as folhas novas leem).
   const isDirtyNow = () => {
     const cur = pRef.current;
-    return !!cur && JSON.stringify(cur) !== JSON.stringify(originalRef.current);
+    return !!cur && (heVelhoRef.current != null || JSON.stringify(cur) !== JSON.stringify(originalRef.current));
   };
 
   function handleCancel() {
@@ -453,10 +500,11 @@ export default function ProfileEditScreen() {
         if (skipAutosaveRef.current) { skipAutosaveRef.current = false; return; }
         const cur = pRef.current;
         if (!cur) return;
-        if (JSON.stringify(cur) === JSON.stringify(originalRef.current)) return;
+        if (!heVelhoRef.current && JSON.stringify(cur) === JSON.stringify(originalRef.current)) return;
         const nome = (cur.nome || "").trim();
         if (!nome) return; // sem nome válido não há gravação silenciosa
-        upsertProfile({ ...cur, nome })
+        baseHEAtual()
+          .then((base) => upsertProfile(perfilParaGravar({ ...cur, nome } as Profile & { fixas?: FixasHE }, base)))
           .then((saved) => {
             setActiveProfileId(saved.id).catch(() => {});
             if (userRef.current) syncProfileToCloud(userRef.current.id, saved);
@@ -484,10 +532,16 @@ export default function ProfileEditScreen() {
     setSaving(true);
     try {
       const updated = { ...p, nome };
-      await upsertProfile(updated);
+      // Grava-se (local e nuvem) a forma com as taxas da escolha "hora normal"
+      // já escritas — é por elas que a escolha chega às folhas novas; o ecrã
+      // fica com a forma de editar (taxas automáticas vazias).
+      const saved = await upsertProfile(perfilParaGravar(updated as Profile & { fixas?: FixasHE }, await baseHEAtual()));
       await setActiveProfileId(p.id);
-      if (user) syncProfileToCloud(user.id, updated);
+      // Vai o objeto CARIMBADO (como no autosave de saída): com o carimbo antigo
+      // os outros aparelhos achavam que não havia nada de novo.
+      if (user) syncProfileToCloud(user.id, saved);
       setOriginal(updated);
+      setHeVelho(null); // gravou-se com a região e o salário de agora
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 2400);
       return true;
@@ -559,6 +613,47 @@ export default function ProfileEditScreen() {
   const fixas = p.fixas ?? {};
   const setFixas = (patch: Partial<NonNullable<Profile["fixas"]>>) =>
     setP({ ...p, fixas: { ...fixas, ...patch } });
+  // Horas extra da publicidade: com acréscimo (× da região) ou ao valor da
+  // hora normal (× 1). Só HE-A e HE-B — as HR são recuperação por falta de
+  // descanso, não hora extra, e ficam sempre com o multiplicador da região.
+  // Os campos €/h continuam a ser overrides: vazios, a folha usa o valor a
+  // cinzento (o placeholder), que já reflete a escolha.
+  const fxHE = fixas as FixasHE;
+  const modoHe = modoHE(fxHE);
+  const multReg = (m: number) => String(m).replace(".", ",");
+  const dec = (v: number) => v.toFixed(2).replace(".", ",");
+  // Multiplicador que a folha nova usa quando não leva taxa: × 1 com a escolha
+  // "hora normal" (o createProject leva-o para a folha), senão o da região.
+  // As HR ficam sempre com o da região.
+  const multAuto = (qual: "HEA" | "HEB" | "HR") => {
+    const m = multsPerfil(fxHE, preset.he);
+    return qual === "HEA" ? m.multHEA : qual === "HEB" ? m.multHEB : m.multHR;
+  };
+  const horaNormal = horaNormalPerfil(fxHE, preset.he);
+  const phHE = (qual: "HEA" | "HEB" | "HR") => {
+    const v = taxaAutoPerfil(fxHE, preset.he, qual);
+    // Sem salário não há valor: a folha faz a conta com o salário que lá
+    // estiver × este multiplicador. Mostra essa regra, não um 0 que engana.
+    if (v == null) return `× ${multReg(multAuto(qual))}`;
+    return dec(v);
+  };
+  // Valores escritos à mão em HE-A/HE-B (os automáticos já chegam vazios):
+  // mandam sobre a escolha nos DOIS modos, e o ecrã tem de o dizer — senão
+  // "Com acréscimo" aparece escolhido com 27,27 escrito e paga × 1.
+  const maoA = fxHE.rateHEA;
+  const maoB = fxHE.rateHEB;
+  const ambasMao = maoA != null && maoB != null;
+  const maoLista = [maoA != null ? `HEA ${dec(maoA)} ${preset.sym}/h` : "", maoB != null ? `HEB ${dec(maoB)} ${preset.sym}/h` : ""]
+    .filter(Boolean)
+    .join(" · ");
+  // Quem já contornava à mão (HE-A = HE-B = hora normal): sugere a escolha
+  const sugereNormal = pareceHoraNormal(fxHE, preset.he);
+  const taxaTxt = (v: number | undefined, qual: "HEA" | "HEB") =>
+    v != null ? `${dec(v)} ${preset.sym}/h` : `× ${multReg(multAuto(qual))}`;
+  // Condições de trabalho (saem no PDF, ao lado da linha de valores) que
+  // contradizem a escolha. Só as frases do modelo se trocam com um toque.
+  const condContra = modoHe === "normal" && condComAcrescimo(p.condBoxes).length > 0;
+  const condTroca = condParaModo(p.condBoxes, modoHe);
   // Tarifas da folha de cinema (semanal)
   const fxC = p.fixasCinema ?? {};
   const setFxC = (patch: Partial<NonNullable<Profile["fixasCinema"]>>) =>
@@ -668,12 +763,108 @@ export default function ProfileEditScreen() {
                 {t("fixed_conditions", { defaultValue: "Publicidade · Folha diária" })}
               </Text>
               <Text style={s.fieldHint}>
-                {t("fixed_conditions_hint", { defaultValue: "Salários e valores de horas extra. Aplicam-se automaticamente a projetos novos. Tudo editável por projeto." })}
+                {/* Chave própria da publicidade: a antiga dizia que a hora normal
+                    é o dia a dividir pelas horas SEM a de refeição (a conta do
+                    cinema, 300/10) — aqui o motor divide pelo Horário Base. */}
+                {t("fixed_conditions_hint_ads", { defaultValue: "Salários e valores de horas extra. Aplicam-se automaticamente a projetos novos; os que já existem não mudam. A hora normal é o salário a dividir pelo Horário Base (regras abaixo). Tudo editável por projeto." })}
               </Text>
               <NumField label={gs.salary} unit={preset.sym} value={fixas.salarioDia} editing={editing} onChange={(n) => setFixas({ salarioDia: n })} COLORS={COLORS} styles={s} />
-              <NumField label={`HEA · ${gs.overtimeA} (${preset.sym}/h)`} value={fixas.rateHEA} editing={editing} onChange={(n) => setFixas({ rateHEA: n })} COLORS={COLORS} styles={s} />
-              <NumField label={`HEB · ${gs.overtimeB} (${preset.sym}/h)`} value={fixas.rateHEB} editing={editing} onChange={(n) => setFixas({ rateHEB: n })} COLORS={COLORS} styles={s} />
-              <NumField label={`HR · ${gs.recoveryHours} (${preset.sym}/h)`} value={fixas.rateHR} editing={editing} onChange={(n) => setFixas({ rateHR: n })} COLORS={COLORS} styles={s} />
+
+              {/* Como se paga a hora extra (utilizadora real, 02/11/2026: "eu
+                  não cobro percentual face à hora extra"). Antes já dava
+                  escrevendo à mão o valor da hora normal, mas ninguém o via. */}
+              <View style={s.fieldWrapper}>
+                <Text style={s.fieldLabel}>{t("he_mode_title", { defaultValue: "Horas extra (HE-A e HE-B)" })}</Text>
+                <View style={s.heRow}>
+                  {(["acrescimo", "normal"] as const).map((m) => {
+                    const on = modoHe === m;
+                    return (
+                      <Pressable
+                        key={m}
+                        onPress={() => setP({ ...p, fixas: comModoHE(fxHE, m) })}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: on }}
+                        style={({ pressed }) => [s.heBtn, on && s.heBtnOn, pressed && { opacity: 0.85 }]}
+                      >
+                        <Text style={[s.heBtnText, on && s.heBtnTextOn]}>
+                          {m === "acrescimo"
+                            ? t("he_mode_premium", { defaultValue: "Com acréscimo" })
+                            : t("he_mode_normal", { defaultValue: "Ao valor da hora normal" })}
+                        </Text>
+                        {/* Os multiplicadores numa linha própria: dentro do
+                            título partiam-se a meio ("(×1,5 / ×2)") no iPhone */}
+                        <Text style={[s.heBtnSub, on && s.heBtnTextOn]}>
+                          {m === "acrescimo" ? `×${multReg(preset.he.multHEA)} / ×${multReg(preset.he.multHEB)}` : "×1"}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {/* A frase do modo descreve o AUTOMÁTICO; com HE-A e HE-B as duas
+                    escritas à mão não se aplica a nenhuma — diz-se isso abaixo. */}
+                {ambasMao ? null : modoHe === "acrescimo" ? (
+                  <Text style={[s.fieldHint, { marginTop: 6 }]}>
+                    {t("he_mode_premium_hint", { mA: multReg(preset.he.multHEA), mB: multReg(preset.he.multHEB), defaultValue: "A hora extra paga mais do que a hora normal: HE-A × {{mA}}, HE-B × {{mB}}." })}
+                  </Text>
+                ) : (
+                  <Text style={[s.fieldHint, { marginTop: 6 }]}>
+                    {/* A folha nova leva o × 1, não um valor (ver heParaTabela):
+                        a conta segue o salário DA FOLHA, também sem salário
+                        aqui — já não é um aviso, é como funciona. */}
+                    {horaNormal != null
+                      ? t("he_mode_normal_hint_follows", { rate: `${dec(horaNormal)} ${preset.sym}`, defaultValue: "Cada hora extra paga o mesmo que uma hora normal: salário ÷ horário base = {{rate}}/h. Em cada folha, a conta segue o salário que lá estiver. As HR (recuperação) não mudam." })
+                      : t("he_mode_normal_sheet_salary", { defaultValue: "Sem salário no perfil: em cada folha, a hora extra vale o salário que lá escreveres ÷ horário base. As HR (recuperação) não mudam." })}
+                  </Text>
+                )}
+                {heVelho ? (
+                  <Text style={[s.fieldHint, s.heWarn]}>
+                    {/* Só as versões antigas da app leem a taxa gravada (ver
+                        horasExtraPerfil.ts); a de agora leva o × 1. */}
+                    {t("he_mode_stale_old_versions", { old: taxaTxt(heVelho.guardada, heVelho.qual), new: taxaTxt(heVelho.nova, heVelho.qual), defaultValue: "As versões antigas da app ainda usam {{old}} nas horas extra das folhas novas (agora dá {{new}}). Carrega em Guardar para corrigir." })}
+                  </Text>
+                ) : null}
+                {sugereNormal && horaNormal != null ? (
+                  <>
+                    <Text style={[s.fieldHint, s.heNote]}>
+                      {t("he_mode_looks_normal", { rate: `${dec(horaNormal)} ${preset.sym}/h`, defaultValue: "A HE-A e a HE-B estão escritas à mão com o valor da hora normal ({{rate}}). Com a escolha da hora normal dá o mesmo, e passa a acompanhar o salário." })}
+                    </Text>
+                    <Pressable
+                      onPress={() => setP({ ...p, fixas: paraHoraNormal(fxHE) })}
+                      accessibilityRole="button"
+                      style={({ pressed }) => [s.condAddBtn, s.heAcao, pressed && { opacity: 0.85 }]}
+                    >
+                      <Text style={s.condAddBtnText}>{t("he_mode_switch_normal", { defaultValue: "Passar para hora normal" })}</Text>
+                    </Pressable>
+                  </>
+                ) : maoLista ? (
+                  <Text style={[s.fieldHint, s.heNote]}>
+                    {t("he_mode_typed_any", { list: maoLista, defaultValue: "Escrito à mão: {{list}}. Um valor escrito à mão manda sobre esta escolha; apaga-o para usar o automático." })}
+                  </Text>
+                ) : null}
+                {condContra || condTroca ? (
+                  <>
+                    <Text style={[s.fieldHint, s.heNote]}>
+                      {t("he_mode_cond_warn", { from: modoHe === "normal" ? "×1,5 / ×2" : "×1", defaultValue: "As condições de trabalho (saem no PDF) ainda dizem horas extra {{from}}. Revê as caixas das horas extra, mais abaixo." })}
+                    </Text>
+                    {condTroca ? (
+                      <Pressable
+                        onPress={() => setP({ ...p, condBoxes: condTroca })}
+                        accessibilityRole="button"
+                        style={({ pressed }) => [s.condAddBtn, s.heAcao, pressed && { opacity: 0.85 }]}
+                      >
+                        <Text style={s.condAddBtnText}>{t("he_mode_cond_fix", { to: modoHe === "normal" ? "×1" : "×1,5 / ×2", defaultValue: "Trocar por {{to}} nas condições" })}</Text>
+                      </Pressable>
+                    ) : null}
+                  </>
+                ) : null}
+                <Text style={s.fieldHint}>
+                  {t("he_mode_override_hint", { defaultValue: "Campo vazio = automático (o valor a cinzento); um valor escrito à mão manda sempre." })}
+                </Text>
+              </View>
+
+              <NumField label={`HEA · ${gs.overtimeA} (${preset.sym}/h)`} value={fixas.rateHEA} editing={editing} placeholder={phHE("HEA")} onChange={(n) => setFixas({ rateHEA: n })} COLORS={COLORS} styles={s} />
+              <NumField label={`HEB · ${gs.overtimeB} (${preset.sym}/h)`} value={fixas.rateHEB} editing={editing} placeholder={phHE("HEB")} onChange={(n) => setFixas({ rateHEB: n })} COLORS={COLORS} styles={s} />
+              <NumField label={`HR · ${gs.recoveryHours} (${preset.sym}/h)`} value={fixas.rateHR} editing={editing} placeholder={phHE("HR")} onChange={(n) => setFixas({ rateHR: n })} COLORS={COLORS} styles={s} />
               <NumField label={`${gs.meal} (${preset.sym})`} value={fixas.refeicao} editing={editing} onChange={(n) => setFixas({ refeicao: n })} COLORS={COLORS} styles={s} />
               <NumField label={`${gs.telephone} (${preset.sym})`} value={fixas.telefone} editing={editing} onChange={(n) => setFixas({ telefone: n })} COLORS={COLORS} styles={s} />
               <NumField label={`${gs.vehicle} (${preset.sym})`} value={fixas.viatura} editing={editing} onChange={(n) => setFixas({ viatura: n })} COLORS={COLORS} styles={s} />
@@ -689,7 +880,9 @@ export default function ProfileEditScreen() {
               <Text style={s.fieldHint}>
                 {t("overtime_rules_hint", { defaultValue: "A partir de que hora se cobra horas extra e/ou de recuperação. A predefinição é igual ao PDF." })}
               </Text>
-              <NumField label={t("cond_base_hours", { defaultValue: "Horário Base" })} value={fixas.hDia} editing={editing} placeholder="11" onChange={(n) => setFixas({ hDia: n })} COLORS={COLORS} styles={s} />
+              {/* Vazio, a folha nova usa o horário base da REGIÃO (PT 11, IT 10,
+                  ES/DE 8) — o mesmo da conta da hora normal lá em cima. */}
+              <NumField label={t("cond_base_hours", { defaultValue: "Horário Base" })} value={fixas.hDia} editing={editing} placeholder={multReg(preset.he.H_dia)} onChange={(n) => setFixas({ hDia: n })} COLORS={COLORS} styles={s} />
               <NumField label={t("cond_hea_from_hour", { defaultValue: "HE-A a partir do início da hora" })} value={fixas.heaFromHour} editing={editing} placeholder="12" onChange={(n) => setFixas({ heaFromHour: n })} COLORS={COLORS} styles={s} />
               <NumField label={t("cond_heb_from_hour", { defaultValue: "HE-B a partir do início da hora" })} value={fixas.hebFromHour} editing={editing} placeholder="19" onChange={(n) => setFixas({ hebFromHour: n })} COLORS={COLORS} styles={s} />
               <NumField label={t("cond_hr_rest_below", { defaultValue: "HR — se descanso inferior a (h)" })} value={fixas.hrRestBelow} editing={editing} placeholder="10" onChange={(n) => setFixas({ hrRestBelow: n })} COLORS={COLORS} styles={s} />
@@ -861,6 +1054,32 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     secBtn: { flex: 1, borderRadius: 14, paddingVertical: 13, alignItems: "center" },
     secBtnOff: { opacity: 0.4 },
     secBtnText: { color: "#fff", fontWeight: "900", fontSize: 15, letterSpacing: 0.3 },
+    // Escolha das horas extra (com acréscimo / ao valor da hora normal): dois
+    // botões lado a lado, o escolhido cheio — como o Guardar do popup
+    heRow: { flexDirection: "row", gap: 8 },
+    heBtn: {
+      flex: 1,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0",
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      alignItems: "center",
+      justifyContent: "center",
+      ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+    },
+    heBtnOn: { backgroundColor: COLORS.text, borderColor: COLORS.text },
+    heBtnText: { color: COLORS.text, fontWeight: "800", fontSize: 13, textAlign: "center" },
+    heBtnSub: { color: COLORS.sub, fontWeight: "800", fontSize: 12, marginTop: 2, textAlign: "center" },
+    heBtnTextOn: { color: COLORS.bg, fontWeight: "900" },
+    // Avisos da escolha, fora do itálico cinzento para se verem: taxa gravada
+    // desatualizada (mexe no dinheiro) a vermelho; valor à mão a mandar, em azul
+    heWarn: { color: COLORS.danger, fontStyle: "normal", fontWeight: "700" },
+    heNote: { color: COLORS.accent, fontStyle: "normal", fontWeight: "700" },
+    // Botão de um toque por baixo de um aviso (passar para hora normal, trocar
+    // o multiplicador nas condições): o mesmo desenho do "Repor modelo (PDF)"
+    heAcao: { alignSelf: "flex-start", paddingVertical: 8, marginBottom: 8 },
     // Título principal das condições de trabalho, em barra cinzenta
     condMain: { backgroundColor: mode === "dark" ? COLORS.bg : "#E8EBF0", borderRadius: 10, paddingVertical: 9, paddingHorizontal: 12, marginBottom: 10 },
     condMainText: { color: COLORS.text, fontWeight: "900", fontSize: 13, letterSpacing: 0.4 },

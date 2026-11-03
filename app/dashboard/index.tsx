@@ -18,7 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CURRENCY } from "../../src/calc/engine";
-import { formatMoneyApp, formatNumber } from "../../src/format/money";
+import { formatNumber } from "../../src/format/money";
 import { getPreset } from "../../src/constants/countryPresets";
 import { effectiveFiscalOf, getSettings } from "../../src/storage/appSettings";
 import i18n from "../../src/i18n/i18n";
@@ -33,6 +33,8 @@ import {
 import { getActiveProfileId } from "../../src/storage/profile";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { MonthYearPicker } from "../../src/ui/MonthYearPicker";
+import { usePrivacy } from "../../src/ui/privacy";
+import { PrivacyToggle } from "../../src/ui/PrivacyToggle";
 
 type RecentItem = ProjectListItem & { status: "active" | "archived" };
 
@@ -54,10 +56,6 @@ function formatNumberPT(n: number, digits = 0) {
   return formatNumber(n ?? 0, digits);
 }
 
-function formatMoneyPT(n: number) {
-  return formatMoneyApp(n ?? 0, CURRENCY);
-}
-
 export default function DashboardScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -65,8 +63,20 @@ export default function DashboardScreen() {
   const isWide = useIsWide();
   const s = useMemo(() => createStyles(COLORS, mode), [COLORS, mode]);
 
+  // Modo privacidade (o mesmo da página inicial e da lista): todo o dinheiro
+  // deste ecrã passa pela máscara; horas e contagens ficam à vista.
+  const privacy = usePrivacy();
+  const formatMoneyPT = (n: number) => privacy.money(n ?? 0, CURRENCY);
+  const hiddenA11y = privacy.hidden
+    ? t("privacy_hidden_value", { defaultValue: "Valor oculto" })
+    : undefined;
+
   const [mes, setMes] = useState(() => new Date().getMonth() + 1); // 1..12
   const [ano, setAno] = useState(() => new Date().getFullYear());
+  // Vista do mês (a de sempre) ou do ANO inteiro. O resumo do ano já existia,
+  // mas vivia por baixo dos 12 cartões do mês, fora do ecrã de um telemóvel —
+  // houve quem não o encontrasse. O seletor no topo diz logo que existe.
+  const [vista, setVista] = useState<"mes" | "ano">("mes");
 
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [archived, setArchived] = useState<ProjectListItem[]>([]);
@@ -196,10 +206,18 @@ export default function DashboardScreen() {
     mediaHorasDia: dias > 0 ? horas / dias : 0,
     anoLabel: ano,
     horasAno: yearSummary?.totalHoras ?? 0,
+    diasTrabalhoAno: yearSummary?.totalDiasTrabalho ?? 0,
+    mediaHorasDiaAno:
+      (yearSummary?.totalDiasTrabalho ?? 0) > 0
+        ? (yearSummary!.totalHoras ?? 0) / yearSummary!.totalDiasTrabalho
+        : 0,
     valorBrutoAno: yearSummary?.totalValorBruto ?? 0,
     valorLiquidoAno: yearSummary?.totalValorFinal ?? 0,
     receberAno: yearSummary?.totalReceberLiquido ?? 0,
     pagoAno: yearSummary?.totalPago ?? 0,
+    irsAno: yearSummary?.totalIRS ?? 0,
+    ivaAno: yearSummary?.totalIVA ?? 0,
+    horasExtraAno: yearSummary?.totalHorasExtra ?? 0,
   };
 }, [projects, archived, monthSummary, yearSummary, ano, monthKey]);
 
@@ -224,15 +242,47 @@ export default function DashboardScreen() {
           {t("dashboard_title", { defaultValue: "Dashboard" })}
         </Text>
 
-        {!isWide && <View style={{ width: 84 }} />}
+        {/* Olho do modo privacidade no lugar do espaçador (que só servia para
+            centrar o título); na web larga fica à direita do título. */}
+        <View style={[s.headerSide, !isWide && { width: 84 }]}>
+          <PrivacyToggle color={COLORS.text} style={{ marginVertical: -10, marginRight: -10 }} />
+        </View>
       </View>
 
-      {/* MÊS com setas de navegação */}
+      {/* Vista: Mês | Ano — mesmas pílulas das pastas da lista de projetos */}
+      <View style={s.viewRow}>
+        {([
+          { key: "mes", label: t("month", { defaultValue: "Mês" }) },
+          { key: "ano", label: t("year", { defaultValue: "Ano" }) },
+        ] as const).map((v) => {
+          const on = vista === v.key;
+          return (
+            <Pressable
+              key={v.key}
+              onPress={() => setVista(v.key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              style={({ pressed }) => [s.viewTab, on && s.viewTabOn, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={[s.viewTabText, on && s.viewTabTextOn]} numberOfLines={1}>
+                {v.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* MÊS (ou ANO) com setas de navegação. Na vista do ano as setas andam de
+          ano em ano e o rótulo do meio não abre o seletor: ele escolhe um MÊS
+          (grelha de 12, "Selecionar mês") e tirava a pessoa da vista do ano —
+          quem tocava em "2026" para ver 2025 acabava em "Janeiro 2025". Para
+          descer a um mês há a pílula "Mês". */}
       <View style={s.monthNav}>
         <Pressable
           hitSlop={12}
           onPress={() => {
-            if (mes === 1) { setMes(12); setAno(ano - 1); }
+            if (vista === "ano") setAno(ano - 1);
+            else if (mes === 1) { setMes(12); setAno(ano - 1); }
             else setMes(mes - 1);
           }}
           style={({ pressed }) => [s.navArrow, pressed && { opacity: 0.5 }]}
@@ -240,15 +290,25 @@ export default function DashboardScreen() {
           <Text style={s.navArrowText}>‹</Text>
         </Pressable>
 
-        <Pressable onPress={() => setPickerVisible(true)} style={s.monthCenter}>
-          <Text style={s.monthLabel}>{labelMes}</Text>
-          <Text style={s.monthHint}>{t("tap_to_select_month", { defaultValue: "Toque para selecionar o mês" })}</Text>
-        </Pressable>
+        {vista === "ano" ? (
+          // Mesma altura das duas linhas do mês, para a grelha não saltar ao
+          // trocar de vista; a segunda linha diz o que se está a ver.
+          <View style={s.monthCenter}>
+            <Text style={s.monthLabel}>{String(ano)}</Text>
+            <Text style={s.monthHint}>{t("dash_year_section", { defaultValue: "Acumulado do ano" })}</Text>
+          </View>
+        ) : (
+          <Pressable onPress={() => setPickerVisible(true)} style={s.monthCenter}>
+            <Text style={s.monthLabel}>{labelMes}</Text>
+            <Text style={s.monthHint}>{t("tap_to_select_month", { defaultValue: "Toque para selecionar o mês" })}</Text>
+          </Pressable>
+        )}
 
         <Pressable
           hitSlop={12}
           onPress={() => {
-            if (mes === 12) { setMes(1); setAno(ano + 1); }
+            if (vista === "ano") setAno(ano + 1);
+            else if (mes === 12) { setMes(1); setAno(ano + 1); }
             else setMes(mes + 1);
           }}
           style={({ pressed }) => [s.navArrow, pressed && { opacity: 0.5 }]}
@@ -267,169 +327,239 @@ export default function DashboardScreen() {
           </View>
         ) : null}
 
-        {/* STATS GRID */}
-        <View style={s.statsGrid}>
-          <StatCard
-            s={s}
-            value={formatNumberPT(stats.totalProjetosMes, 0)}
-            label={t("dash_projects_month", { defaultValue: "Projetos (mês)" })}
-          />
-          <StatCard
-            s={s}
-            value={formatNumberPT(stats.totalArquivados, 0)}
-            label={t("dash_archived_total", { defaultValue: "Pagos (total)" })}
-          />
-          <StatCard
-            s={s}
-            value={formatNumberPT(stats.horasMes, 1)}
-            label={t("dash_hours_month", { defaultValue: "Horas (mês)" })}
-          />
-          <StatCard
-            s={s}
-            value={formatNumberPT(stats.diasTrabalhoMes, 0)}
-            label={t("dash_workdays_month", { defaultValue: "Dias trabalho (mês)" })}
-          />
-          <StatCard
-            s={s}
-            value={formatMoneyPT(stats.valorBrutoMes)}
-            label={t("dash_gross_month", { defaultValue: "Valor bruto (mês)" })}
-            isMoney
-          />
-          <StatCard
-            s={s}
-            value={formatMoneyPT(stats.valorLiquidoMes)}
-            label={t("dash_net_month", { defaultValue: "Valor líquido (mês)" })}
-            isMoney
-          />
-          <StatCard
-            s={s}
-            value={formatMoneyPT(stats.receberMes)}
-            label={t("dash_receive_month", { defaultValue: "A Receber (mês)" })}
-            isMoney
-          />
-          <StatCard
-            s={s}
-            value={formatMoneyPT(stats.pagoMes)}
-            label={t("dash_paid_month", { defaultValue: "Pago (mês)" })}
-            isMoney
-          />
-          <StatCard
-            s={s}
-            value={formatMoneyPT(stats.irsMes)}
-            label={t("dash_irs_month", { defaultValue: "{{tax}} retido (mês)", tax: taxLabels.incomeTax })}
-            isMoney
-          />
-          <StatCard
-            s={s}
-            value={formatMoneyPT(stats.ivaMes)}
-            label={t("dash_iva_month", { defaultValue: "{{tax}} (mês)", tax: taxLabels.vat })}
-            isMoney
-          />
-          <StatCard
-            s={s}
-            value={formatNumberPT(stats.horasExtraMes, 1)}
-            label={t("dash_overtime_month", { defaultValue: "Horas extra (mês)" })}
-          />
-          <StatCard
-            s={s}
-            value={formatNumberPT(stats.mediaHorasDia, 1)}
-            label={t("dash_avg_hours_day", { defaultValue: "Média horas/dia" })}
-          />
-        </View>
+        {vista === "mes" ? (
+          <>
+            {/* STATS GRID */}
+            <View style={s.statsGrid}>
+              <StatCard
+                s={s}
+                value={formatNumberPT(stats.totalProjetosMes, 0)}
+                label={t("dash_projects_month", { defaultValue: "Projetos (mês)" })}
+              />
+              <StatCard
+                s={s}
+                value={formatNumberPT(stats.totalArquivados, 0)}
+                label={t("dash_archived_total", { defaultValue: "Pagos (total)" })}
+              />
+              <StatCard
+                s={s}
+                value={formatNumberPT(stats.horasMes, 1)}
+                label={t("dash_hours_month", { defaultValue: "Horas (mês)" })}
+              />
+              <StatCard
+                s={s}
+                value={formatNumberPT(stats.diasTrabalhoMes, 0)}
+                label={t("dash_workdays_month", { defaultValue: "Dias trabalho (mês)" })}
+              />
+              <StatCard
+                s={s}
+                value={formatMoneyPT(stats.valorBrutoMes)}
+                label={t("dash_gross_month", { defaultValue: "Valor bruto (mês)" })}
+                isMoney
+              />
+              <StatCard
+                s={s}
+                value={formatMoneyPT(stats.valorLiquidoMes)}
+                label={t("dash_net_month", { defaultValue: "Valor líquido (mês)" })}
+                isMoney
+              />
+              <StatCard
+                s={s}
+                value={formatMoneyPT(stats.receberMes)}
+                label={t("dash_receive_month", { defaultValue: "A Receber (mês)" })}
+                isMoney
+              />
+              <StatCard
+                s={s}
+                value={formatMoneyPT(stats.pagoMes)}
+                label={t("dash_paid_month", { defaultValue: "Pago (mês)" })}
+                isMoney
+              />
+              <StatCard
+                s={s}
+                value={formatMoneyPT(stats.irsMes)}
+                label={t("dash_irs_month", { defaultValue: "{{tax}} retido (mês)", tax: taxLabels.incomeTax })}
+                isMoney
+              />
+              <StatCard
+                s={s}
+                value={formatMoneyPT(stats.ivaMes)}
+                label={t("dash_iva_month", { defaultValue: "{{tax}} (mês)", tax: taxLabels.vat })}
+                isMoney
+              />
+              <StatCard
+                s={s}
+                value={formatNumberPT(stats.horasExtraMes, 1)}
+                label={t("dash_overtime_month", { defaultValue: "Horas extra (mês)" })}
+              />
+              <StatCard
+                s={s}
+                value={formatNumberPT(stats.mediaHorasDia, 1)}
+                label={t("dash_avg_hours_day", { defaultValue: "Média horas/dia" })}
+              />
+            </View>
 
-        {/* ACUMULADO DO ANO */}
-        <Text style={s.sectionTitle}>
-          {t("dash_year_section", { defaultValue: "Acumulado do ano" })} {stats.anoLabel}
-        </Text>
-        <View style={s.statsGrid}>
-          <StatCard
-            s={s}
-            value={formatNumberPT(stats.horasAno, 1)}
-            label={t("dash_hours_year", { defaultValue: "Horas (ano)" })}
-          />
-          <StatCard
-            s={s}
-            value={formatMoneyPT(stats.valorBrutoAno)}
-            label={t("dash_gross_year", { defaultValue: "Valor bruto (ano)" })}
-            isMoney
-          />
-          <StatCard
-            s={s}
-            value={formatMoneyPT(stats.valorLiquidoAno)}
-            label={t("dash_net_year", { defaultValue: "Valor líquido (ano)" })}
-            isMoney
-          />
-          <StatCard
-            s={s}
-            value={formatMoneyPT(stats.receberAno)}
-            label={t("dash_receive_year", { defaultValue: "A Receber (ano)" })}
-            isMoney
-          />
-          <StatCard
-            s={s}
-            value={formatMoneyPT(stats.pagoAno)}
-            label={t("dash_paid_year", { defaultValue: "Pago (ano)" })}
-            isMoney
-          />
-        </View>
+            {/* ACUMULADO DO ANO */}
+            <Text style={s.sectionTitle}>
+              {t("dash_year_section", { defaultValue: "Acumulado do ano" })} {stats.anoLabel}
+            </Text>
+            <View style={s.statsGrid}>
+              <StatCard
+                s={s}
+                value={formatNumberPT(stats.horasAno, 1)}
+                label={t("dash_hours_year", { defaultValue: "Horas (ano)" })}
+              />
+              <StatCard
+                s={s}
+                value={formatMoneyPT(stats.valorBrutoAno)}
+                label={t("dash_gross_year", { defaultValue: "Valor bruto (ano)" })}
+                isMoney
+              />
+              <StatCard
+                s={s}
+                value={formatMoneyPT(stats.valorLiquidoAno)}
+                label={t("dash_net_year", { defaultValue: "Valor líquido (ano)" })}
+                isMoney
+              />
+              <StatCard
+                s={s}
+                value={formatMoneyPT(stats.receberAno)}
+                label={t("dash_receive_year", { defaultValue: "A Receber (ano)" })}
+                isMoney
+              />
+              <StatCard
+                s={s}
+                value={formatMoneyPT(stats.pagoAno)}
+                label={t("dash_paid_year", { defaultValue: "Pago (ano)" })}
+                isMoney
+              />
+            </View>
 
-        {/* RECENTES */}
-        <Text style={s.sectionTitle}>
-          {t("dash_recent_month", { defaultValue: "Recentes no mês" })}
-        </Text>
+            {/* RECENTES */}
+            <Text style={s.sectionTitle}>
+              {t("dash_recent_month", { defaultValue: "Recentes no mês" })}
+            </Text>
 
-        {recentItems.length === 0 ? (
-          <Text style={s.emptyText}>
-            {t("dash_no_recent", { defaultValue: "Sem projetos recentes neste mês." })}
-          </Text>
-        ) : (
-          <View style={{ gap: 10 }}>
-            {recentItems.map((p) => {
-              const updated =
-                p.updatedAt && dayjs(p.updatedAt).isValid()
-                  ? dayjs(p.updatedAt).format("DD/MM/YYYY HH:mm")
-                  : "--/--/---- --:--";
+            {recentItems.length === 0 ? (
+              <Text style={s.emptyText}>
+                {t("dash_no_recent", { defaultValue: "Sem projetos recentes neste mês." })}
+              </Text>
+            ) : (
+              <View style={{ gap: 10 }}>
+                {recentItems.map((p) => {
+                  const updated =
+                    p.updatedAt && dayjs(p.updatedAt).isValid()
+                      ? dayjs(p.updatedAt).format("DD/MM/YYYY HH:mm")
+                      : "--/--/---- --:--";
 
-              return (
-                <Pressable
-                  key={p.id}
-                  onPress={() => openProject(p.id)}
-                  style={({ pressed, hovered }: any) => [
-                    pressed && { opacity: 0.92 },
-                    Platform.OS === "web" && hovered && { opacity: 0.88 },
-                  ]}
-                >
-                  <View style={[s.recentCard, p.status === "archived" && s.recentCardPaid]}>
-                    <Text style={s.recentTitle} numberOfLines={2}>
-                      {p.nome || t("project_unnamed", { defaultValue: "Projeto sem nome" })}
-                    </Text>
-                    <Text style={s.recentSub} numberOfLines={1}>
-                      {(p.cliente || "—") + " · " + (p.mes || "--/----")}
-                    </Text>
+                  return (
+                    <Pressable
+                      key={p.id}
+                      onPress={() => openProject(p.id)}
+                      style={({ pressed, hovered }: any) => [
+                        pressed && { opacity: 0.92 },
+                        Platform.OS === "web" && hovered && { opacity: 0.88 },
+                      ]}
+                    >
+                      <View style={[s.recentCard, p.status === "archived" && s.recentCardPaid]}>
+                        <Text style={s.recentTitle} numberOfLines={2}>
+                          {p.nome || t("project_unnamed", { defaultValue: "Projeto sem nome" })}
+                        </Text>
+                        <Text style={s.recentSub} numberOfLines={1}>
+                          {(p.cliente || "—") + " · " + (p.mes || "--/----")}
+                        </Text>
 
-                    {/* Mesmo formato da lista de projetos: estado (a receber /
-                        ✓ pago em verde) + valor do trabalho na mesma linha */}
-                    <View style={s.recentStatusRow}>
-                      <View style={[s.payBtn, p.status === "archived" && s.payBtnOn]}>
-                        <Text style={[s.payBtnText, p.status === "archived" && s.payBtnTextOn]}>
-                          {p.status === "archived"
-                            ? "✓ " + t("paid", { defaultValue: "Pago" })
-                            : t("to_receive", { defaultValue: "A Receber" })}
+                        {/* Mesmo formato da lista de projetos: estado (a receber /
+                            ✓ pago em verde) + valor do trabalho na mesma linha */}
+                        <View style={s.recentStatusRow}>
+                          <View style={[s.payBtn, p.status === "archived" && s.payBtnOn]}>
+                            <Text style={[s.payBtnText, p.status === "archived" && s.payBtnTextOn]}>
+                              {p.status === "archived"
+                                ? "✓ " + t("paid", { defaultValue: "Pago" })
+                                : t("to_receive", { defaultValue: "A Receber" })}
+                            </Text>
+                          </View>
+                          <Text style={s.recentValue} numberOfLines={1} accessibilityLabel={hiddenA11y}>
+                            {formatMoneyPT(valores[p.id] ?? 0)}
+                          </Text>
+                        </View>
+
+                        <Text style={[s.recentSub, { marginTop: 8 }]} numberOfLines={1}>
+                          {t("updated_at", { defaultValue: "Atualizado:" })}{" "}
+                          <Text style={s.recentSubStrong}>{updated}</Text>
                         </Text>
                       </View>
-                      <Text style={s.recentValue} numberOfLines={1}>
-                        {formatMoneyApp(valores[p.id] ?? 0)}
-                      </Text>
-                    </View>
-
-                    <Text style={[s.recentSub, { marginTop: 8 }]} numberOfLines={1}>
-                      {t("updated_at", { defaultValue: "Atualizado:" })}{" "}
-                      <Text style={s.recentSubStrong}>{updated}</Text>
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        ) : (
+          // ANO INTEIRO: o mesmo resumo que já vinha em "Acumulado do ano",
+          // agora com a sua vista e com os dias de trabalho e a média — os
+          // números que o mês mostra e que o ano já calculava. Mesma ordem dos
+          // pares da grelha do mês (horas/dias, bruto/líquido, receber/pago,
+          // impostos, horas extra/média): 10 cartões, 5 linhas cheias.
+          // O imposto retido e o IVA do ano servem de referência para conferir
+          // com as faturas do ano; os nomes seguem a REGIÃO FISCAL, como no mês.
+          <View style={s.statsGrid}>
+            <StatCard
+              s={s}
+              value={formatNumberPT(stats.horasAno, 1)}
+              label={t("dash_hours_year", { defaultValue: "Horas (ano)" })}
+            />
+            <StatCard
+              s={s}
+              value={formatNumberPT(stats.diasTrabalhoAno, 0)}
+              label={t("dash_workdays_year", { defaultValue: "Dias trabalho (ano)" })}
+            />
+            <StatCard
+              s={s}
+              value={formatMoneyPT(stats.valorBrutoAno)}
+              label={t("dash_gross_year", { defaultValue: "Valor bruto (ano)" })}
+              isMoney
+            />
+            <StatCard
+              s={s}
+              value={formatMoneyPT(stats.valorLiquidoAno)}
+              label={t("dash_net_year", { defaultValue: "Valor líquido (ano)" })}
+              isMoney
+            />
+            <StatCard
+              s={s}
+              value={formatMoneyPT(stats.receberAno)}
+              label={t("dash_receive_year", { defaultValue: "A Receber (ano)" })}
+              isMoney
+            />
+            <StatCard
+              s={s}
+              value={formatMoneyPT(stats.pagoAno)}
+              label={t("dash_paid_year", { defaultValue: "Pago (ano)" })}
+              isMoney
+            />
+            <StatCard
+              s={s}
+              value={formatMoneyPT(stats.irsAno)}
+              label={t("dash_irs_year", { defaultValue: "{{tax}} retido (ano)", tax: taxLabels.incomeTax })}
+              isMoney
+            />
+            <StatCard
+              s={s}
+              value={formatMoneyPT(stats.ivaAno)}
+              label={t("dash_iva_year", { defaultValue: "{{tax}} (ano)", tax: taxLabels.vat })}
+              isMoney
+            />
+            <StatCard
+              s={s}
+              value={formatNumberPT(stats.horasExtraAno, 1)}
+              label={t("dash_overtime_year", { defaultValue: "Horas extra (ano)" })}
+            />
+            <StatCard
+              s={s}
+              value={formatNumberPT(stats.mediaHorasDiaAno, 1)}
+              label={t("dash_avg_hours_day", { defaultValue: "Média horas/dia" })}
+            />
           </View>
         )}
 
@@ -445,6 +575,7 @@ export default function DashboardScreen() {
         minYear={yearBounds.minY}
         maxYear={yearBounds.maxY}
         onClose={() => setPickerVisible(false)}
+        // Só abre na vista do mês (na do ano o rótulo não é botão)
         onSelect={(m, y) => { setMes(m); setAno(y); setPickerVisible(false); }}
       />
     </SafeAreaView>
@@ -462,9 +593,18 @@ function StatCard({
   label: string;
   isMoney?: boolean;
 }) {
+  // Com o modo privacidade, o leitor de ecrã diz "Valor oculto" em vez de
+  // soletrar os pontos da máscara.
+  const { t } = useTranslation();
+  const { hidden } = usePrivacy();
+  const masked = !!isMoney && hidden;
   return (
     <View style={s.statCard}>
-      <Text style={[s.statValue, isMoney && s.statValueMoney]} numberOfLines={1}>
+      <Text
+        style={[s.statValue, isMoney && s.statValueMoney]}
+        numberOfLines={1}
+        accessibilityLabel={masked ? t("privacy_hidden_value", { defaultValue: "Valor oculto" }) : undefined}
+      >
         {value}
       </Text>
       <Text style={s.statLabel} numberOfLines={2}>
@@ -496,6 +636,35 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       fontWeight: "900",
       letterSpacing: -0.2,
     },
+    headerSide: { alignItems: "flex-end", justifyContent: "center" },
+
+    // Vista Mês | Ano: as pílulas preenchidas das pastas da lista de projetos
+    // (escolha principal do ecrã, não um recorte discreto). Mais altas do que
+    // as pastas (11 em vez de 8 de padding, ~40 pt): são o controlo que faz
+    // encontrar a vista do ano. Crescem para baixo — o topo fica onde estava,
+    // logo abaixo da área de toque do olho do cabeçalho (sem hitSlop para
+    // cima, que chocava com ela).
+    viewRow: {
+      flexDirection: "row",
+      gap: 8,
+      paddingHorizontal: 16,
+      marginTop: -10,
+      marginBottom: 4,
+    },
+    viewTab: {
+      flex: 1,
+      paddingVertical: 11,
+      paddingHorizontal: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.card,
+      alignItems: "center",
+      ...(Platform.OS === "web" ? ({ cursor: "pointer", userSelect: "none" } as any) : {}),
+    },
+    viewTabOn: { backgroundColor: COLORS.text, borderColor: COLORS.text },
+    viewTabText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
+    viewTabTextOn: { color: COLORS.bg },
 
     monthNav: {
       flexDirection: "row",

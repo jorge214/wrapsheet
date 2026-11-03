@@ -17,8 +17,8 @@
 import { minutesToHM, ratesFor } from "../calc/engine";
 import type { CalcDia, Dia } from "../calc/types";
 import {
-  applyFontScale, CE, conditionsHtml, currencySymbol, edDate, edDi, edMi, edNum, edTi, edTime,
-  editorScript, escapeHtml, fmtMoney, fmtNum, formatDatePT, getMonthName, getStrings, safeStr, weekdayShort,
+  applyFontScale, CE, conditionsHtml, currencySymbol, DAY_BTNS_CSS, dayBarHtml, edDate, edDi, edMi, edNum, edTi, edTime,
+  editorScript, escapeHtml, fmtMoney, fmtNum, formatDatePT, getMonthName, getStrings, rowBtnsHtml, safeStr, weekdayShort,
   type PdfExtra, type PdfPerfil, type PdfProjeto, type PdfTabela, type PdfTotais,
 } from "./buildPdfHtml";
 
@@ -146,7 +146,8 @@ function intervaloSemana(dias: Dia[], sep: string): string {
 // ── Linhas da tabela de dias ─────────────────────────────────────────────────
 // Mesmas colunas da publicidade menos os PER DIEMS (20 colunas). As linhas de
 // FOLGA saem a vermelho; um feriado leva a marca ★. No editor cada linha tem
-// os botões duplicar/remover (⧉ ✕) e dois interruptores: Folga e Feriado.
+// o caixote para remover o dia (rowBtnsHtml, o mesmo da publicidade) e dois
+// interruptores: Folga e Feriado.
 function dayRowHtml(
   d: Dia, i: number, c: CalcDia | undefined, s: CStrings, fmt: (n: number) => string,
   salarioDiaBase: number, editable: boolean, locale: string
@@ -191,7 +192,7 @@ function dayRowHtml(
     `<span class="rtog${on ? " on" : ""}" data-act="${act}" data-i="${i}">${escapeHtml(label)}</span>`;
   return `
         <tr class="${cls}">
-          <td class="left">${star}${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span><span class="rowTogs">${tog("folga", !!d.folga, s.toggleDayOff)}${tog("feriado", !!d.feriado, s.toggleHoliday)}</span></td>
+          <td class="left">${star}${edDi(i, "descricao", d.descricao || "", "left")}${rowBtnsHtml(i, s)}<span class="rowTogs">${tog("folga", !!d.folga, s.toggleDayOff)}${tog("feriado", !!d.feriado, s.toggleHoliday)}</span></td>
           <td class="dateCell"><span class="wd" data-c="wd" data-i="${i}">${wd}</span>${edDate(i, formatDatePT(d.data))}</td>
           <td>${edNum(i, "salarioDia", "sal", fmt(eff))}</td>
           <td class="contCell">${edDi(i, "cont", (d as any).cont || "", "cmark")}</td>
@@ -552,16 +553,33 @@ function render(
         .days td.calc { white-space: nowrap; }
         .afterDays { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
         .afterDays .endTotals { margin-top: 8px; }
-        .addDayBar { margin-top: 10px; text-align: left; }
-        .addDayBar button { font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px; border: 2px solid #2b2b2b; border-radius: 999px; background: #f2f2f2; color: #111; cursor: pointer; margin-right: 8px; }
-        .addDayBar .delBtn { border-color: #c05050; color: #c05050; background: #fff; }
-        table.days .ei.left { display: block; width: 72px; white-space: normal; }
-        .rowBtns { display: block; white-space: nowrap; margin-top: 2px; }
-        .rbtn { cursor: pointer; user-select: none; -webkit-user-select: none; color: #9a9a9a; font-size: 12px; padding: 0 4px; }
-        .rbtn.rdel { color: #c05050; }
-        /* Interruptores Folga / Feriado por linha (só no editor; não saem no PDF) */
-        .rowTogs { display: block; white-space: nowrap; margin-top: 3px; }
+        /* Barra de dias, caixote por linha e dia em foco: o MESMO CSS da
+           folha de publicidade (DAY_BTNS_CSS, em buildPdfHtml.ts) */
+        ${DAY_BTNS_CSS}
+        /* Interruptores Folga / Feriado por linha (só no editor; não saem no PDF).
+           O :active NÃO é enfeite. No Chromium (WebView do Android, Chrome)
+           um elemento com estilo :active é "alvo de toque"; um toque num
+           elemento que não o é (nem tem ouvinte próprio) é desviado para o
+           alvo mais próximo. Sem este :active, tocar em "Folga" ia parar ao
+           botão logo acima — na 1.2.3 de teste, o duplicar, que acrescentava
+           um dia pago sem perguntar nada. Não tirar (há um teste a guardá-lo).
+           (No iOS quem decide é o cursor:pointer, que eles já têm.)
+           16px entre o caixote e os interruptores: com toques reais à escala
+           de um telemóvel com algum zoom (~0,6), com 8px um toque na borda de
+           baixo do caixote ainda ligava a Folga; com 16px nunca. À escala a
+           que a folha ABRE no telemóvel (~0,3) nenhum vão chega (o ajuste do
+           Chromium preferia o interruptor mesmo com o dedo em cima do
+           caixote): aí quem decide é o ponto real do dedo, no editorScript
+           ("Toque desviado", em buildPdfHtml.ts).
+           O vão é padding do .rowBtns (e não margem dos interruptores) para
+           ser uma zona MORTA: um dedo que cai no vão não liga nada, mesmo que
+           o ajuste do Chromium mande o toque para a Folga ou o Feriado — o
+           editorScript reconhece o .rowBtns fora do caixote. Com margem, o
+           vão não era de ninguém e esses toques ligavam a Folga/Feriado. */
+        .rowBtns { padding-bottom: 16px; }
+        .rowTogs { display: block; white-space: nowrap; }
         .rtog { display: inline-block; cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 9px; font-weight: 800; text-transform: uppercase; color: #9a9a9a; border: 1px solid #cfcfcf; border-radius: 999px; padding: 1px 6px; margin-right: 3px; }
+        .rtog:active { opacity: .7; }
         .rtog.on { color: #fff; background: #c00000; border-color: #c00000; }
         @media print { .addDayBar, .rowBtns, .rowTogs { display: none; } }
         ` : `
@@ -747,11 +765,7 @@ function render(
       </table>
 
       ${editable ? `<div class="afterDays">
-        <div class="addDayBar">
-          <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
-          <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
-          <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
-        </div>` : `<div class="totalsTopSpacer"></div>`}
+        ${dayBarHtml(s)}` : `<div class="totalsTopSpacer"></div>`}
         <table class="endTotals">
           <tr><th>${escapeHtml(s.vb)}</th><td${editable ? ` data-c="gross"` : ""}>${fmt(totais.ValorBruto)}</td></tr>
           <tr><th>${escapeHtml(s.irs)}</th><td${editable ? ` data-c="birs"` : ""}>${fmt(totais.IRS_valor)}</td></tr>
@@ -777,7 +791,8 @@ function render(
       ${editable ? `<script>
       (function(){
         // Interruptores Folga / Feriado por linha (classe própria .rtog para o
-        // handler dos ⧉/✕ da folha base — .rbtn — não os apanhar).
+        // handler do caixote da folha base — .rbtn — não os apanhar; esse
+        // handler sobe do alvo até ao .rbtn e um .rtog não tem nenhum).
         function post(m){ try{
           if(window.ReactNativeWebView){ window.ReactNativeWebView.postMessage(JSON.stringify(m)); }
           else if(window.parent && window.parent!==window){ window.parent.postMessage(m,'*'); }

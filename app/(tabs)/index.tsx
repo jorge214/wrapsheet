@@ -6,12 +6,13 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/auth/AuthContext";
-import { formatMoneyApp } from "../../src/format/money";
 import i18n from "../../src/i18n/i18n";
 import { getCurrentMonthSummary, MonthSummary } from "../../src/stats/monthSummary";
 import { belongsToProfile, getProject, listProjects } from "../../src/storage/projects";
 import { getActiveProfileId } from "../../src/storage/profile";
 import { useTheme } from "../../src/theme/ThemeProvider";
+import { usePrivacy } from "../../src/ui/privacy";
+import { PrivacyToggle } from "../../src/ui/PrivacyToggle";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import { WrapSheetLogo } from "../../src/ui/WrapSheetLogo";
 
@@ -20,6 +21,9 @@ export default function HomeHub() {
   const { t } = useTranslation();
   const { session, loading } = useAuth();
   const isWide = useIsWide();
+  // Modo privacidade: o número grande deste cartão é o que se vê primeiro ao
+  // abrir a app — foi por causa dele que o modo foi pedido.
+  const privacy = usePrivacy();
 
   // Resumo do mês atual (mesma fonte do Dashboard) + projeto ativo mais recente
   const [summary, setSummary] = useState<MonthSummary | null>(null);
@@ -117,27 +121,47 @@ export default function HomeHub() {
       {/* Menu */}
       <View style={s.list}>
         {/* Cartão-resumo do mês — o valor a receber é a informação que a pessoa
-            mais quer ver ao abrir a app. Toca para abrir o Dashboard. */}
-        <Pressable
-          onPress={() => router.push("/dashboard")}
-          style={({ pressed }) => [s.summaryCard, pressed && { opacity: 0.92 }]}
-        >
-          <Text style={s.summaryMonth}>{monthLabel}</Text>
-          {summary === null ? (
-            <Text style={s.summaryFigure}> </Text>
-          ) : hasData ? (
-            <>
-              <Text style={s.summaryFigure}>{formatMoneyApp(summary.totalReceberLiquido)}</Text>
-              <Text style={s.summarySub}>
-                {t("to_receive", { defaultValue: "A Receber" })} · {activeLabel}
+            mais quer ver ao abrir a app. Toca para abrir o Dashboard; o olho
+            (canto) esconde/mostra os valores sem sair daqui. */}
+        <View style={s.summaryWrap}>
+          <Pressable
+            onPress={() => router.push("/dashboard")}
+            style={({ pressed }) => [s.summaryCard, pressed && { opacity: 0.92 }]}
+          >
+            <Text style={s.summaryMonth}>{monthLabel}</Text>
+            {/* Com o modo ligado o valor nunca chega a ser escrito; enquanto o
+                estado guardado não foi lido fica o mesmo branco de quando o
+                resumo ainda está a carregar. */}
+            {summary === null ? (
+              <Text style={s.summaryFigure}> </Text>
+            ) : hasData ? (
+              <>
+                <Text
+                  style={s.summaryFigure}
+                  accessibilityLabel={
+                    privacy.hidden ? t("privacy_hidden_value", { defaultValue: "Valor oculto" }) : undefined
+                  }
+                >
+                  {privacy.money(summary.totalReceberLiquido)}
+                </Text>
+                <Text style={s.summarySub}>
+                  {t("to_receive", { defaultValue: "A Receber" })} · {activeLabel}
+                </Text>
+              </>
+            ) : (
+              <Text style={s.summaryEmpty}>
+                {t("no_projects_in_month", { defaultValue: "Sem projetos neste mês" })}
               </Text>
-            </>
-          ) : (
-            <Text style={s.summaryEmpty}>
-              {t("no_projects_in_month", { defaultValue: "Sem projetos neste mês" })}
-            </Text>
-          )}
-        </Pressable>
+            )}
+          </Pressable>
+          {/* O olho é IRMÃO do cartão, por cima dele no canto — não filho. O
+              Pressable do cartão é um elemento de acessibilidade, e no iOS isso
+              esconde do VoiceOver tudo o que tem dentro: lá dentro, o olho
+              deixava de ser um botão e o rótulo dele era lido como parte do
+              cartão, cujo toque abre o Dashboard. Fora, cada um é o seu botão
+              (e na web o clique no olho já não sobe até ao cartão). */}
+          <PrivacyToggle color="rgba(255,255,255,0.75)" size={20} style={s.summaryEye} />
+        </View>
 
         <Row
           icon="videocam-outline"
@@ -203,15 +227,21 @@ const s = StyleSheet.create({
   // Cartão-resumo: fundo preto sólido (como o ícone da app) para ser o foco
   // visual — o valor a receber lê-se primeiro. Mesmos cantos/padding/espaço dos
   // botões; só muda o preenchimento e as cores do texto.
+  summaryWrap: { marginBottom: 12 },
   summaryCard: {
     padding: 22,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: "#000",
-    marginBottom: 12,
     backgroundColor: "#000",
   },
-  summaryMonth: { fontSize: 13, fontWeight: "700", color: "rgba(255,255,255,0.55)" },
+  // Olho por cima do canto do cartão. Com os 10 de padding do botão, o ícone
+  // (20) fica a 22 do topo — centro a 32, o mesmo da linha do mês, que começa
+  // a 24 (2 de borda + 22) — e a 24 da direita, rente ao conteúdo do cartão.
+  // Não ocupa lugar no cartão, que fica com o desenho de antes.
+  summaryEye: { position: "absolute", top: 12, right: 14 },
+  // paddingRight: o mês nunca passa por baixo do olho
+  summaryMonth: { fontSize: 13, fontWeight: "700", color: "rgba(255,255,255,0.55)", paddingRight: 34 },
   summaryFigure: { fontSize: 34, fontWeight: "900", marginTop: 6, color: "#ffffff" },
   summarySub: { fontSize: 13, marginTop: 6, color: "rgba(255,255,255,0.6)" },
   summaryEmpty: { fontSize: 16, fontWeight: "700", marginTop: 8, color: "rgba(255,255,255,0.7)" },

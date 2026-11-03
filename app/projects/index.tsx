@@ -48,7 +48,11 @@ import {
 } from "../../src/storage/profile";
 import { effectiveFiscalOf, getSettings } from "../../src/storage/appSettings";
 import { projectFinalValue } from "../../src/stats/monthSummary";
-import { formatMoneyApp } from "../../src/format/money";
+import { usePrivacy } from "../../src/ui/privacy";
+import { PrivacyToggle } from "../../src/ui/PrivacyToggle";
+import { useDevicePref } from "../../src/ui/devicePref";
+import { projectsFormatPref, type FormatoFiltro } from "../../src/ui/projectsFormatPref";
+import { avisoFormato, naPasta, noFormato } from "../../src/format/formatFilter";
 
 type Row = Project & { archived?: boolean };
 import { useAuth } from "../../src/auth/AuthContext";
@@ -110,7 +114,13 @@ export default function ProjectsScreen() {
   const [showAll, setShowAll] = useState<boolean>(false);
   // Formato da folha em foco: todos, publicidade (ao dia) ou cinema (à semana).
   // Funciona como o mês — recorta a lista e manda no que o botão "+" cria.
-  const [formato, setFormato] = useState<"todos" | "publicidade" | "cinema">("todos");
+  // Lembrado por aparelho: quem trabalha só em cinema volta sempre a "Cinema".
+  // Enquanto o valor guardado não foi lido (milissegundos, e a lista ainda está
+  // vazia nesse instante) vale "Todos", o de sempre.
+  const formato: FormatoFiltro = useDevicePref(projectsFormatPref) ?? "todos";
+  const setFormato = (f: FormatoFiltro) => projectsFormatPref.set(f);
+  // Modo privacidade (o mesmo da página inicial e do Dashboard)
+  const privacy = usePrivacy();
   const [pickerVisible, setPickerVisible] = useState(false);
 
   // Multi-perfil: perfil ativo (para filtrar) + lista de perfis (para o
@@ -501,12 +511,9 @@ export default function ProjectsScreen() {
 
   // Recorte por FORMATO da folha. Fica DENTRO do mês: primeiro o mês, depois o
   // formato, depois a pasta (A Receber / Pagos). Folhas antigas não têm campo
-  // `formato` — são publicidade.
-  const formatScope = useMemo(() => {
-    if (formato === "cinema") return monthScope.filter((p) => p.formato === "cinema");
-    if (formato === "publicidade") return monthScope.filter((p) => p.formato !== "cinema");
-    return monthScope;
-  }, [monthScope, formato]);
+  // `formato` — são publicidade. As regras vivem em src/format/formatFilter.ts,
+  // as mesmas do aviso de projetos escondidos mais abaixo.
+  const formatScope = useMemo(() => noFormato(monthScope, formato), [monthScope, formato]);
 
   // Contagens do formato: sobre o MÊS (para se ver quantas há de cada, mesmo
   // com um formato selecionado).
@@ -528,11 +535,16 @@ export default function ProjectsScreen() {
     [formatScope]
   );
 
-  const filteredProjects = useMemo(() => {
-    if (tab === "areceber") return formatScope.filter((p) => !p.archived && !p.pago);
-    if (tab === "arquivados") return formatScope.filter((p) => p.archived);
-    return formatScope;
-  }, [formatScope, tab]);
+  const filteredProjects = useMemo(() => naPasta(formatScope, tab), [formatScope, tab]);
+
+  // O formato é lembrado de uma abertura para a outra: a lista pode abrir com
+  // 1 projeto num mês que tem 4 (e a página inicial a dizer "4 projetos
+  // ativos"). Quantos esconde, e o que mostra "Ver todos os formatos (n)".
+  const formatNotice = useMemo(() => avisoFormato(monthScope, formato, tab), [monthScope, formato, tab]);
+  function showAllFormats() {
+    if (formatNotice.repoePasta) setTab("todos");
+    setFormato("todos");
+  }
 
   // Lista a mostrar: com pesquisa preenchida, procura pelo NOME do projeto E
   // pelo nome da PRODUTORA (cliente), em TODOS os meses e pastas (ignora o
@@ -600,7 +612,12 @@ export default function ProjectsScreen() {
           {t("projects", { defaultValue: "Projetos" })}
         </Text>
 
-        {!isWide && <View style={{ width: 84 }} />}
+        {/* Olho do modo privacidade. No iPad/computador é ESTE o ecrã de
+            abertura (a página inicial salta para aqui), por isso o botão tem de
+            estar também aqui, não só no cartão-resumo do telemóvel. */}
+        <View style={[s.headerSide, !isWide && { width: 84 }]}>
+          <PrivacyToggle color={COLORS.text} style={{ marginVertical: -10, marginRight: -10 }} />
+        </View>
       </View>
 
       {/* PESQUISA por nome — procura em todos os meses/pastas */}
@@ -815,8 +832,14 @@ export default function ProjectsScreen() {
                     <Text style={s.payBtnText}>{t("to_receive", { defaultValue: "A Receber" })}</Text>
                   </Pressable>
                 )}
-                <Text style={s.cardValue} numberOfLines={1}>
-                  {formatMoneyApp(valores[p.id] ?? 0)}
+                <Text
+                  style={s.cardValue}
+                  numberOfLines={1}
+                  accessibilityLabel={
+                    privacy.hidden ? t("privacy_hidden_value", { defaultValue: "Valor oculto" }) : undefined
+                  }
+                >
+                  {privacy.money(valores[p.id] ?? 0)}
                 </Text>
               </View>
 
@@ -829,7 +852,66 @@ export default function ProjectsScreen() {
           );
         })}
 
-        {displayList.length === 0 ? (
+        {/* O formato esconde PARTE do que está nesta pasta: diz-se quantos e
+            de que formato, com a mesma saída do caso vazio. Fica logo a
+            seguir aos cartões — com poucos à vista (o caso que assusta), vê-se
+            sem fazer scroll. */}
+        {displayList.length > 0 && !searchQuery && formatNotice.escondidos > 0 ? (
+          <View style={s.formatHiddenBox}>
+            <Text style={s.emptySub}>
+              {t("filter_format_hidden", {
+                defaultValue: "+{{n}} de {{format}} fora do filtro",
+                n: formatNotice.escondidos,
+                // Só há dois formatos: o escondido é o outro
+                format:
+                  formato === "cinema"
+                    ? t("format_publicidade", { defaultValue: "Publicidade" })
+                    : t("format_cinema", { defaultValue: "Cinema" }),
+              })}
+            </Text>
+            <Pressable
+              onPress={showAllFormats}
+              accessibilityRole="button"
+              style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={s.closeBtnText}>
+                {t("filter_format_show_all", {
+                  defaultValue: "Ver todos os formatos ({{n}})",
+                  n: formatNotice.verTodosN,
+                })}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {displayList.length === 0 && !searchQuery && (formatNotice.escondeTudo || formatNotice.escondidos > 0) ? (
+          // O formato lembrado de outra vez esconde tudo o que esta pasta tinha:
+          // dizer "Sem projetos neste mês" seria mentira (há, noutro formato).
+          // Diz-se qual é o filtro e dá-se a saída num toque.
+          <View style={s.emptyBox}>
+            <Text style={s.emptyTitle}>
+              {t("filter_format_empty", {
+                defaultValue: "Sem projetos de {{format}}",
+                format:
+                  formato === "cinema"
+                    ? t("format_cinema", { defaultValue: "Cinema" })
+                    : t("format_publicidade", { defaultValue: "Publicidade" }),
+              })}
+            </Text>
+            <Pressable
+              onPress={showAllFormats}
+              accessibilityRole="button"
+              style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={s.closeBtnText}>
+                {t("filter_format_show_all", {
+                  defaultValue: "Ver todos os formatos ({{n}})",
+                  n: formatNotice.verTodosN,
+                })}
+              </Text>
+            </Pressable>
+          </View>
+        ) : displayList.length === 0 ? (
           <View style={s.emptyBox}>
             <Text style={s.emptyTitle}>
               {searchQuery
@@ -1151,6 +1233,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
       fontWeight: "900",
       letterSpacing: -0.2,
     },
+    headerSide: { alignItems: "flex-end", justifyContent: "center" },
 
     monthDisplay: { alignItems: "center", marginTop: 10, marginBottom: 6 },
     monthLabel: { fontSize: 18, fontWeight: "900", color: COLORS.text },
@@ -1357,6 +1440,7 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     toastText: { color: "#fff", fontWeight: "900", fontSize: 14 },
 
     emptyBox: { paddingTop: 20, alignItems: "center" },
+    formatHiddenBox: { paddingTop: 6, alignItems: "center" },
     emptyTitle: { color: COLORS.text, fontWeight: "900", fontSize: 16 },
     emptySub: {
       marginTop: 6,

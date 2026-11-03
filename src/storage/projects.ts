@@ -8,6 +8,7 @@ import { getPreset } from "../constants/countryPresets";
 import { effectiveFiscalOf, getSettings } from "./appSettings";
 import { CondBox, getActiveProfile, getProfileById } from "./profile";
 import { formatoDoBlob, formatoDoResumo } from "./formato";
+import { baseRegiaoHE, heParaTabela } from "./horasExtraPerfil";
 import { mesDaFolhaCinema, primeiroDiaPublicidade, segundaDaSemana } from "./novaFolha";
 
 /* ------------ Tipos internos ------------ */
@@ -576,8 +577,11 @@ export async function createProject(opts?: {
   const tabela: Tabela = {
     ...baseTabela,
     salarioDia: fixas.salarioDia ?? baseTabela.salarioDia,
-    rateHEA: fixas.rateHEA,
-    rateHEB: fixas.rateHEB,
+    // HE-A/HE-B: sem a escolha "hora normal" no perfil, a taxa do perfil (vazia
+    // = hora normal × multiplicador da região), como sempre. Com ela, × 1 e sem
+    // a taxa que o perfil materializa para as versões antigas: a conta segue o
+    // salário e o horário base DESTA folha. Ver horasExtraPerfil.ts.
+    ...heParaTabela(fixas, baseTabela),
     rateHR: fixas.rateHR,
     // Regras de horas extra (predefinição = como no PDF: HE-A 12ª h, HE-B 19ª h, HR < 10h)
     H_dia: fixas.hDia ?? baseTabela.H_dia,
@@ -875,6 +879,9 @@ export async function duplicateProjectToProfile(
   const original = await getProject(id);
   if (!original) throw new Error("Projeto não encontrado");
   const target = await getProfileById(targetProfileId);
+  // Publicidade: os multiplicadores que uma folha nova do perfil de destino
+  // levaria sem a escolha "hora normal" (os da região deste aparelho)
+  const regiaoHE = baseRegiaoHE(getPreset((await getSettings()).region));
 
   const newId = String(Date.now());
   const now = new Date().toISOString();
@@ -907,8 +914,13 @@ export async function duplicateProjectToProfile(
         }
       : {
           salarioDia: fixas.salarioDia ?? original.tabela.salarioDia,
-          rateHEA: fixas.rateHEA ?? original.tabela.rateHEA,
-          rateHEB: fixas.rateHEB ?? original.tabela.rateHEB,
+          // HE-A/HE-B: sem a escolha "hora normal" no perfil de destino, a taxa
+          // dele ou, vazia, a da folha original (uma taxa negociada para o
+          // trabalho passa a quem não tem a sua) — como sempre. Com a escolha,
+          // × 1 sem herdar a taxa do original (era a × 1,5 de outro salário).
+          // E um × 1 do original (escolha do perfil de ORIGEM) não passa a um
+          // perfil sem ela: volta ao da região. Ver heParaTabela.
+          ...heParaTabela(fixas, original.tabela, regiaoHE),
           rateHR: fixas.rateHR ?? original.tabela.rateHR,
         }),
     ajudas: {

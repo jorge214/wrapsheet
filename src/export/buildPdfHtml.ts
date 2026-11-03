@@ -108,6 +108,10 @@ const STRINGS = {
     removeDayConfirm: "Remover este dia?",
     dupDay: "Duplicar dia",
     removeDay: "Remover dia",
+    // Barra de dias com o dia em foco: {d} = data DD/MM desse dia
+    removeDayConfirmDate: "Remover o dia {d}?",
+    dupDayOn: "Duplicar {d}",
+    removeDayOn: "Remover {d}",
     year: "Ano",
     vb: "Valor Bruto",
     vf: "Valor Líquido",
@@ -172,6 +176,9 @@ const STRINGS = {
     removeDayConfirm: "Remove this day?",
     dupDay: "Duplicate day",
     removeDay: "Remove day",
+    removeDayConfirmDate: "Remove day {d}?",
+    dupDayOn: "Duplicate {d}",
+    removeDayOn: "Remove {d}",
     year: "Year",
     vb: "Gross",
     vf: "Net payable",
@@ -236,6 +243,9 @@ const STRINGS = {
     removeDayConfirm: "¿Eliminar este día?",
     dupDay: "Duplicar día",
     removeDay: "Eliminar día",
+    removeDayConfirmDate: "¿Eliminar el día {d}?",
+    dupDayOn: "Duplicar {d}",
+    removeDayOn: "Eliminar {d}",
     year: "Año",
     vb: "Importe bruto",
     vf: "Importe neto",
@@ -300,6 +310,9 @@ const STRINGS = {
     removeDayConfirm: "Supprimer ce jour ?",
     dupDay: "Dupliquer le jour",
     removeDay: "Supprimer le jour",
+    removeDayConfirmDate: "Supprimer le jour du {d} ?",
+    dupDayOn: "Dupliquer le {d}",
+    removeDayOn: "Supprimer le {d}",
     year: "Année",
     vb: "Brut",
     vf: "Montant net",
@@ -364,6 +377,9 @@ const STRINGS = {
     removeDayConfirm: "Diesen Tag entfernen?",
     dupDay: "Tag duplizieren",
     removeDay: "Tag entfernen",
+    removeDayConfirmDate: "Tag {d} entfernen?",
+    dupDayOn: "{d} duplizieren",
+    removeDayOn: "{d} entfernen",
     year: "Jahr",
     vb: "Brutto",
     vf: "Nettobetrag",
@@ -428,6 +444,9 @@ const STRINGS = {
     removeDayConfirm: "Rimuovere questo giorno?",
     dupDay: "Duplica giorno",
     removeDay: "Rimuovi giorno",
+    removeDayConfirmDate: "Rimuovere il giorno {d}?",
+    dupDayOn: "Duplica {d}",
+    removeDayOn: "Rimuovi {d}",
     year: "Anno",
     vb: "Lordo",
     vf: "Importo netto",
@@ -492,6 +511,9 @@ const STRINGS = {
     removeDayConfirm: "Deze dag verwijderen?",
     dupDay: "Dag dupliceren",
     removeDay: "Dag verwijderen",
+    removeDayConfirmDate: "Dag {d} verwijderen?",
+    dupDayOn: "{d} dupliceren",
+    removeDayOn: "{d} verwijderen",
     year: "Jaar",
     vb: "Bruto",
     vf: "Nettobedrag",
@@ -556,6 +578,9 @@ const STRINGS = {
     removeDayConfirm: "Usunąć ten dzień?",
     dupDay: "Duplikuj dzień",
     removeDay: "Usuń dzień",
+    removeDayConfirmDate: "Usunąć dzień {d}?",
+    dupDayOn: "Duplikuj {d}",
+    removeDayOn: "Usuń {d}",
     year: "Rok",
     vb: "Brutto",
     vf: "Kwota netto",
@@ -620,6 +645,9 @@ const STRINGS = {
     removeDayConfirm: "Remove this day?",
     dupDay: "Duplicate day",
     removeDay: "Remove day",
+    removeDayConfirmDate: "Remove day {d}?",
+    dupDayOn: "Duplicate {d}",
+    removeDayOn: "Remove {d}",
     year: "Year",
     vb: "Gross",
     vf: "Net payable",
@@ -1413,6 +1441,101 @@ export const edTime = (i: number, f: string, val: string) =>
 export const edDate = (i: number, val: string) =>
   `<input class="ei date" type="text" inputmode="numeric" autocomplete="off" size="10" data-k="dia" data-i="${i}" data-f="data" value="${escapeHtml(val || "")}">`;
 
+// ── Botões de dia (duplicar / remover), partilhados pelas DUAS folhas ──
+// Ícones em SVG inline e não ⧉/✕: esses caracteres dependiam da fonte de cada
+// sistema (no Android o ⧉ pode nem existir) e, a 12px, numa folha que o motor
+// ainda encolhe, quase ninguém os encontrava — a utilizadora que se enganou
+// num dia do meio apagou todos os dias até lá (feedback de 11/2026).
+// stroke="currentColor": o ícone herda a cor do botão (cinzento / vermelho).
+const svgIcon = (body: string) =>
+  `<svg class="ico" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
+export const ICON_DUP = svgIcon(
+  `<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4A1.5 1.5 0 0 0 9 2.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/>`
+);
+export const ICON_DEL = svgIcon(
+  `<path d="M2.5 4.5h11M6.5 4.5V3c0-.3.2-.5.5-.5h2c.3 0 .5.2.5.5v1.5M4 4.5l.7 8.6c0 .5.5.9 1 .9h4.6c.5 0 1-.4 1-.9l.7-8.6M6.8 7v4.5M9.2 7v4.5"/>`
+);
+/** Caixote (remover AQUELE dia) por baixo da descrição de cada dia (só no
+ *  editor). Só o caixote: duplicar vive na barra de baixo (ver DAY_BTNS_CSS). */
+export function rowBtnsHtml(i: number, s: any): string {
+  const del = escapeHtml(s?.removeDay || "Remover dia");
+  return `<span class="rowBtns"><span class="rbtn rdel" role="button" data-act="del" data-i="${i}" title="${del}" aria-label="${del}">${ICON_DEL}</span></span>`;
+}
+/** Barra por baixo da tabela. O texto de duplicar/remover vive num .dayLbl
+ *  que o script do editor reescreve com a data do dia a que se aplicam. */
+export function dayBarHtml(s: any): string {
+  return `<div class="addDayBar">
+          <button type="button" id="wsAddDay">＋ ${escapeHtml(s?.addDay || "Adicionar dia")}</button>
+          <button type="button" id="wsDupDay">${ICON_DUP}<span class="dayLbl">${escapeHtml(s?.dupDay || "Duplicar dia")}</span></button>
+          <button type="button" id="wsDelDay" class="delBtn">${ICON_DEL}<span class="dayLbl">${escapeHtml(s?.removeDay || "Remover dia")}</span></button>
+        </div>`;
+}
+/** CSS da barra de dias, do caixote por linha e do dia em foco — o mesmo nas
+ *  duas folhas (antes estava copiado em cada uma). Nada disto sai no print. */
+export const DAY_BTNS_CSS = `
+        .addDayBar { margin-top: 10px; text-align: left; }
+        .addDayBar button {
+          font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px;
+          border: 2px solid #2b2b2b; border-radius: 999px; background: #f2f2f2; color: #111; cursor: pointer;
+          margin-right: 8px; display: inline-flex; align-items: center; gap: 6px; vertical-align: middle;
+        }
+        .addDayBar .delBtn { border-color: #c05050; color: #c05050; background: #fff; }
+        .addDayBar button:disabled { opacity: .35; cursor: default; }
+        .addDayBar .ico { width: 15px; height: 15px; flex: none; pointer-events: none; }
+        /* Por linha há SÓ o caixote (remover aquele dia, com pergunta). O
+           duplicar por linha saiu: não pede confirmação e, colado ao caixote,
+           um toque ao lado metia em silêncio um dia pago a mais na folha.
+           Duplicar fica na barra de baixo, que atua sobre o dia em foco.
+           O caixote vai SEMPRE por baixo da descrição, numa pílula que enche
+           a coluna: a descrição tem largura FIXA de 72px (texto longo quebra
+           dentro dela) e o width:100% não entra na largura da tabela — enche
+           os 72px, ou mais quando o cabeçalho ou os interruptores do cinema
+           já alargaram a coluna. 72x36 px dá ~56x28 pt à escala a que o iPad
+           abre a folha (~0,78).
+           O :active não é só enfeite. No Chromium (WebView do Android,
+           Chrome) um elemento com estilo :active conta como "alvo de toque",
+           e um toque num sítio que não é alvo nenhum é desviado para o alvo
+           mais próximo. Por isso os interruptores Folga/Feriado do cinema,
+           logo por baixo, também têm :active. (Um ::after invisível para
+           alargar o toque dava o mesmo desvio: não voltar a pô-lo.) O
+           inverso — o ajuste a mandar para um interruptor um toque que caiu
+           EM CIMA do caixote — corrige-o o editorScript ("Toque desviado"). */
+        table.days .ei.left { display: block; width: 72px; white-space: normal; }
+        .rowBtns { display: block; margin-top: 6px; }
+        .rbtn { display: flex; align-items: center; justify-content: center;
+          width: 100%; height: 36px; box-sizing: border-box; border: 1.5px solid #c05050; border-radius: 999px;
+          background: #fff; color: #c05050; cursor: pointer; user-select: none; -webkit-user-select: none;
+          -webkit-tap-highlight-color: transparent; }
+        .rbtn .ico { width: 18px; height: 18px; pointer-events: none; }
+        .rbtn:active { background: #fde2e1; }
+        /* Folha com um só dia: não há o que remover (a app recusa), por isso o
+           caixote fica apagado e o toque não pergunta nada. Mantém o :active
+           (sem cor) para continuar a ser alvo de toque e não desviar toques. */
+        table.days.oneDay .rbtn { opacity: .35; cursor: default; }
+        table.days.oneDay .rbtn:active { background: #fff; }
+        /* Ecrãs tácteis: no iOS, tocar numa célula sem campo (horas
+           calculadas, dia da semana) só gera click se a célula for
+           "clicável" — o ouvinte no document não conta. É esse click que
+           escolhe o dia em foco. (Os campos voltam ao cursor de texto, para
+           quem usa rato/trackpad no iPad.) */
+        @media (any-pointer: coarse) {
+          table.days td { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+          table.days td .ei { cursor: text; }
+        }
+        /* Dia em foco (o alvo de "Duplicar"/"Remover" da barra): véu azul por
+           cima da cor própria de cada célula (background-image, para não
+           apagar o cinzento dos cálculos nem o amarelo do total) e um friso
+           à esquerda. */
+        table.days tr.curRow > td { background-image: linear-gradient(rgba(27,95,191,.08), rgba(27,95,191,.08)); }
+        table.days tr.curRow > td:first-child { box-shadow: inset 4px 0 0 #1b5fbf; }
+        @media print {
+          .addDayBar, .rowBtns { display: none; }
+          /* O :first-child tem de vir também: é mais específico e o friso
+             sobrevivia ao print (medido com media=print). */
+          table.days tr.curRow > td, table.days tr.curRow > td:first-child { background-image: none; box-shadow: none; }
+        }
+`;
+
 // Só as linhas <tr> da tabela de dias (editáveis). Usado pelo builder e pela
 // app para atualizar a tabela no sítio via window.__wsSetRows(html).
 export function buildEditableDayRowsHtml(
@@ -1430,6 +1553,8 @@ export function buildEditableDayRowsHtml(
   const valTel = Number(aj.telefone ?? 0);
   const valViat = Number(aj.viatura ?? 0);
   const valMat = Number(aj.material ?? 0);
+  // Só para o rótulo (title/aria) do caixote — não depende da região
+  const s = getStrings(locale);
 
   return dias
     .map((d, i) => {
@@ -1437,7 +1562,7 @@ export function buildEditableDayRowsHtml(
       const eff = (d as any).salarioDia ?? salarioDia;
       return `
         <tr>
-          <td class="left">${edDi(i, "descricao", d.descricao || "", "left")}<span class="rowBtns"><span class="rbtn" data-act="dup" data-i="${i}">⧉</span><span class="rbtn rdel" data-act="del" data-i="${i}">✕</span></span></td>
+          <td class="left">${edDi(i, "descricao", d.descricao || "", "left")}${rowBtnsHtml(i, s)}</td>
           <td class="dateCell"><span class="wd" data-c="wd" data-i="${i}">${escapeHtml(weekdayShort(d.data, locale))}</span>${edDate(i, formatDatePT(d.data))}</td>
           <td>${edNum(i, "salarioDia", "sal", fmt(eff))}</td>
           <td class="contCell">${edDi(i, "cont", (d as any).cont || "", "cmark")}</td>
@@ -1507,43 +1632,242 @@ export function editorScript(s: any): string {
           if(el.tagName === 'INPUT') return;
           post({ type:'ws:edit', k: el.getAttribute('data-k'), f: el.getAttribute('data-f'), i: di(el), value: el.textContent });
         }, true);
-        // Barra de dias: adicionar / duplicar último / remover último
-        function lastDayIndex(){
-          var t = document.querySelector('table.days');
-          return t ? Math.max(0, t.querySelectorAll('tr').length - 3) : 0;
-        }
+        // ── Barra de dias: adicionar / duplicar / remover ──
+        // Duplicar e remover atuam sobre o DIA EM FOCO: o último dia em que se
+        // tocou (num campo ou em qualquer célula da linha). Sem nenhum, sobre o
+        // último dia, como sempre foi. Antes era SEMPRE o último — quem se
+        // enganava num dia do meio apagava todos os dias até lá chegar. O
+        // rótulo diz a que dia se aplicam ("Remover 14/10") e a linha fica
+        // realçada (.curRow, não sai no print). Os textos vêm com o pt-PT por
+        // omissão (é o que já se fazia com o removeDayConfirm).
+        var L = ${JSON.stringify({
+          conf: (s as any).removeDayConfirm || "Remover este dia?",
+          confD: (s as any).removeDayConfirmDate || "Remover o dia {d}?",
+          dup: (s as any).dupDay || "Duplicar dia",
+          del: (s as any).removeDay || "Remover dia",
+          dupOn: (s as any).dupDayOn || "Duplicar {d}",
+          delOn: (s as any).removeDayOn || "Remover {d}",
+        })};
+        var curDay = null;  // índice do dia em foco; null = nenhum (vale o último)
+        var pend = null;    // última operação estrutural enviada: { act, i, n }
         var addBtn = document.getElementById('wsAddDay');
-        if(addBtn){ addBtn.addEventListener('click', function(){ flushEdit(); post({ type:'ws:addDay' }); }); }
         var dupBtn = document.getElementById('wsDupDay');
-        if(dupBtn){ dupBtn.addEventListener('click', function(){ flushEdit(); post({ type:'ws:dupDay', i: lastDayIndex() }); }); }
         var delBtn = document.getElementById('wsDelDay');
+        function dayTable(){ return document.querySelector('table.days'); }
+        // Linhas de dias = as <tr> com campos data-i (os dois cabeçalhos não têm).
+        function dayRows(){
+          var t = dayTable(), out = [];
+          if(!t) return out;
+          var rows = t.querySelectorAll('tr');
+          for(var k = 0; k < rows.length; k++){ if(rows[k].querySelector('[data-i]')) out.push(rows[k]); }
+          return out;
+        }
+        function targetDay(){
+          var n = dayRows().length;
+          return (curDay !== null && curDay < n) ? curDay : Math.max(0, n - 1);
+        }
+        // Data do dia i em DD/MM, tal como está no ecrã; '' se não tiver data.
+        // Sem regex de propósito: aqui dentro as barras teriam de ir duplicadas.
+        function dayDM(i){
+          var t = dayTable();
+          var el = t && t.querySelector('input.date[data-i="' + i + '"]');
+          var p = el ? String(el.value || '').split('/') : [];
+          return (p.length >= 2 && p[0].length === 2 && p[1].length === 2) ? p[0] + '/' + p[1] : '';
+        }
+        function markRow(){
+          var rows = dayRows();
+          for(var k = 0; k < rows.length; k++){
+            if(curDay !== null && k === curDay){ rows[k].classList.add('curRow'); }
+            else { rows[k].classList.remove('curRow'); }
+          }
+        }
+        function setLbl(btn, tpl, dflt, dm){
+          var sp = btn && btn.querySelector('.dayLbl');
+          if(sp){ sp.textContent = dm ? tpl.replace('{d}', dm) : dflt; }
+        }
+        // Com um só dia não há o que remover: a app recusa (um projeto precisa
+        // de pelo menos um dia) e não dizia nada — a pessoa confirmava e nada
+        // acontecia. O "Remover" da barra e o caixote da linha ficam desligados.
+        function canDel(){ return dayRows().length > 1; }
+        function updateLabels(){
+          var dm = dayDM(targetDay());
+          setLbl(dupBtn, L.dupOn, L.dup, dm);
+          setLbl(delBtn, L.delOn, L.del, dm);
+          var one = !canDel(), t = dayTable();
+          if(delBtn){ delBtn.disabled = one; }
+          if(t){ if(one){ t.classList.add('oneDay'); } else { t.classList.remove('oneDay'); } }
+        }
+        function setCur(i){
+          if(i === null || isNaN(i)) return;
+          curDay = i; markRow(); updateLabels();
+        }
+        // "Remover o dia 14/10?" — sem data, a pergunta de sempre.
+        function confirmDel(i){
+          var dm = dayDM(i);
+          return window.confirm(dm ? L.confD.replace('{d}', dm) : L.conf);
+        }
+        function sendDay(act, i){
+          pend = { act: act, i: i, n: dayRows().length };
+          if(act === 'add'){ post({ type:'ws:addDay' }); }
+          else { post({ type: act === 'dup' ? 'ws:dupDay' : 'ws:removeDay', i: i }); }
+        }
+        // Escolher o dia em foco: entrar num campo da linha (focusin) ou tocar
+        // em qualquer célula dela (click). Fica DEPOIS do blur — no telemóvel,
+        // tocar no botão de baixo tira o foco ao campo antes do click chegar.
+        function rowOf(el){
+          var t = dayTable();
+          while(el && el.nodeType === 1 && el !== t){
+            if(el.tagName === 'TR'){ return (t && t.contains(el)) ? el : null; }
+            el = el.parentNode;
+          }
+          return null;
+        }
+        // Entrar num campo FORA da tabela dos dias (cabeçalho, notas,
+        // condições) larga o dia em foco e a barra volta ao último dia, como
+        // sempre foi. Sem isto, "Duplicar" ficava preso a um dia do meio
+        // escolhido muito antes e metia lá uma cópia com a mesma data (os dias
+        // não se reordenam, e o descanso conta-se entre linhas seguidas). Só
+        // campos: os botões da barra também recebem foco (no Android) e não
+        // podem largar o dia a que se vão aplicar.
+        function isField(el){
+          return !!el && el.nodeType === 1 && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable || !!(el.classList && el.classList.contains('ei')));
+        }
+        function pickDay(e){
+          var tr = rowOf(e.target);
+          var x = tr && tr.querySelector('[data-i]');
+          if(x){ setCur(parseInt(x.getAttribute('data-i'), 10)); return; }
+          var t = dayTable();
+          if(e.type === 'focusin' && curDay !== null && isField(e.target) && !(t && t.contains(e.target))){
+            curDay = null; markRow(); updateLabels();
+          }
+        }
+        document.addEventListener('focusin', pickDay, true);
+        document.addEventListener('click', pickDay, true);
+        // iOS: tocar numa célula sem campo (horas calculadas, dia da semana)
+        // só gera click se ela — ou um antepassado abaixo do body — for
+        // "clicável"; o ouvinte no document não conta. Por isso o pickDay fica
+        // também na própria tabela (sobrevive ao __wsSetRows, que só troca as
+        // <tr>). Corre duas vezes no mesmo toque, o que não faz mal: escolhe o
+        // mesmo dia. (O de cima, no document, tem de ficar: é ele que realça a
+        // linha ANTES da pergunta do caixote.)
+        var dt0 = dayTable();
+        if(dt0){ dt0.addEventListener('click', pickDay, false); }
+        // O iOS só aplica o :active (o "afundar" do caixote e dos botões)
+        // quando há um ouvinte de touchstart. Sem ele, tocar não dava sinal
+        // nenhum até chegar a pergunta ou as linhas novas.
+        document.addEventListener('touchstart', function(){}, { passive: true });
+        if(addBtn){ addBtn.addEventListener('click', function(){ flushEdit(); sendDay('add'); }); }
+        if(dupBtn){ dupBtn.addEventListener('click', function(){ flushEdit(); sendDay('dup', targetDay()); }); }
         if(delBtn){ delBtn.addEventListener('click', function(){
           flushEdit();
-          if(window.confirm(${JSON.stringify((s as any).removeDayConfirm || "Remover este dia?")})){ post({ type:'ws:removeDay', i: lastDayIndex() }); }
+          if(!canDel()) return;
+          var i = targetDay();
+          if(confirmDel(i)){ sendDay('del', i); }
         }); }
-        // Duplicar (⧉) / remover (✕) um dia
+        // Caixote por linha: remover AQUELE dia, sempre com pergunta (o
+        // duplicar por linha já não existe — só na barra). O alvo do toque
+        // pode ser o <svg>/<path> do ícone — sobe-se até ao .rbtn.
         document.addEventListener('click', function(e){
           var el = e.target;
-          if(!el.classList || !el.classList.contains('rbtn')) return;
+          while(el && el.nodeType === 1 && !(el.classList && el.classList.contains('rbtn'))){ el = el.parentNode; }
+          if(!el || el.nodeType !== 1 || el.getAttribute('data-act') !== 'del') return;
           flushEdit();
           var i = parseInt(el.getAttribute('data-i'), 10);
-          if(el.getAttribute('data-act') === 'del'){
-            if(window.confirm(${JSON.stringify((s as any).removeDayConfirm || "Remover este dia?")})){ post({ type:'ws:removeDay', i:i }); }
-          } else {
-            post({ type:'ws:dupDay', i:i });
-          }
+          if(canDel() && confirmDel(i)){ sendDay('del', i); }
         }, true);
+        // ── Toque desviado: vale o ponto REAL do dedo ──
+        // O Chromium (WebView do Android, Chrome) "ajusta" o toque: o click —
+        // e até o alvo do touchstart — vai para o alvo de toque que a área do
+        // dedo mais cobre, não para o que está debaixo do ponto tocado. À
+        // escala a que a folha abre num telemóvel (~0,3) o caixote tem ~31x11
+        // px de ecrã e, no cinema, os interruptores Folga/Feriado (alvos de
+        // toque por causa do :active, que tem de ficar) estão logo abaixo:
+        // medido com toques reais, 23 em 75 toques EM CIMA do caixote ligavam a
+        // Folga ou o Feriado — do próprio dia ou do de cima — sem pergunta
+        // nenhuma, e isso paga o dia a dobrar. O clientX/Y do touchstart NÃO é
+        // ajustado, por isso o elementFromPoint nesse ponto diz onde o dedo
+        // estava mesmo. Quando o click cai num caixote ou num interruptor:
+        //   - o dedo estava noutro caixote/interruptor → conta esse;
+        //   - estava no vão entre o caixote e os interruptores (o padding do
+        //     .rowBtns, no cinema) → não conta: nem remove nem liga nada;
+        //   - estava num campo (p.ex. a descrição do dia) → foca-se o campo;
+        //   - não estava em nenhum (ao lado, na margem) → fica o que o browser
+        //     escolheu: um toque mesmo ao lado de um interruptor liga-o.
+        // Na window e em captura, para correr antes de todos os outros. Com
+        // rato não há touchstart, e nada muda.
+        var rawTouch = null;
+        window.addEventListener('touchstart', function(e){
+          var t = (e.touches && e.touches.length === 1) ? e.touches[0] : null;
+          rawTouch = t ? { x: t.clientX, y: t.clientY, at: Date.now() } : null;
+        }, { capture: true, passive: true });
+        function upTo(el, sel){ return (el && el.nodeType === 1 && el.closest) ? el.closest(sel) : null; }
+        window.addEventListener('click', function(e){
+          var raw = rawTouch; rawTouch = null;  // um toque vale para UM click
+          var tg = upTo(e.target, '.rbtn,.rtog');
+          if(!tg || !raw || Date.now() - raw.at > 1500 || !document.elementFromPoint) return;
+          var at = document.elementFromPoint(raw.x, raw.y);
+          if(!at || tg.contains(at)) return;
+          var real = upTo(at, '.rbtn,.rtog');
+          var gap = real ? null : upTo(at, '.rowBtns');
+          var field = (real || gap) ? null : upTo(at, '.ei,input,textarea,[contenteditable]');
+          if(!real && !gap && !field) return;
+          e.stopImmediatePropagation(); e.preventDefault();
+          if(real){ real.click(); } else if(field){ field.focus(); }
+        }, true);
+        // Depois de adicionar/duplicar/remover, a app manda as linhas todas de
+        // novo e os índices mudam. O dia em foco só é REAPONTADO quando se sabe
+        // exatamente o que aconteceu — foi esta folha que enviou a operação e o
+        // nº de linhas bate certo com ela:
+        //   adicionar (o dia novo entra no fim) → o dia NOVO, que é aquele em
+        //                que se vai trabalhar a seguir (mesmo sem dia em foco);
+        //   duplicar i (a cópia entra em i+1)  → depois de i, sobe um;
+        //   remover i  → se era o dia em foco, o dia que lhe ocupou o lugar (o
+        //                seguinte; se era o último, o anterior): está à vista,
+        //                fica realçado e o rótulo e a pergunta dizem a data.
+        //                Cair no ÚLTIMO dia, longe da vista, fazia com que um
+        //                segundo "Remover" com um OK por reflexo apagasse a
+        //                partir do fim — precisamente aquilo de que a
+        //                utilizadora se queixou. Depois de i, desce um.
+        // Mesmo nº de linhas (folga/feriado, recálculo) → o mesmo índice.
+        // Qualquer outra coisa (operação vinda da outra folha aberta, duas
+        // operações cruzadas, pedido recusado) → nenhum.
+        // Devolve [índice novo, índice ANTIGO do dia que lá tem de estar] (-1 =
+        // dia novo, sem data antiga) ou null. Em __wsSetRows confirma-se a
+        // data: se a linha apontada não tem a data que esse dia tinha, larga-se.
+        // Nunca fica a apontar para o dia errado.
+        function repoint(cur, before, after){
+          var p = pend;
+          if(after === before) return cur === null ? null : [cur, cur];
+          if(!p || p.n !== before) return null;
+          if(p.act === 'add' && after === before + 1) return [after - 1, -1];
+          if(cur === null) return null;
+          if(p.act === 'dup' && after === before + 1) return cur > p.i ? [cur + 1, cur] : [cur, cur];
+          if(p.act === 'del' && after === before - 1){
+            if(cur !== p.i) return cur > p.i ? [cur - 1, cur] : [cur, cur];
+            return p.i < after ? [p.i, p.i + 1] : [after - 1, p.i - 1];
+          }
+          return null;
+        }
         // Substitui só as linhas da tabela de dias (mantém scroll e estado da página)
         window.__wsSetRows = function(html){
-          var t = document.querySelector('table.days');
+          var t = dayTable();
           if(!t) return;
           flushEdit();
+          var before = dayRows().length;
+          var old = [];  // datas DD/MM de antes, para confirmar o reapontar
+          for(var j = 0; j < before; j++){ old.push(dayDM(j)); }
           var rows = t.querySelectorAll('tr');
           for(var k = rows.length - 1; k >= 2; k--){ rows[k].parentNode.removeChild(rows[k]); }
           var tb = (t.tBodies && t.tBodies[0]) ? t.tBodies[0] : t;
           tb.insertAdjacentHTML('beforeend', html);
+          var after = dayRows().length;
+          var r = repoint(curDay, before, after);
+          curDay = (r && r[0] >= 0 && r[0] < after && (r[1] < 0 || dayDM(r[0]) === old[r[1]])) ? r[0] : null;
+          pend = null;
+          markRow(); updateLabels();
           align();
         };
+        updateLabels();
         // Enter não cria nova linha em campos de uma linha
         document.addEventListener('keydown', function(e){
           var el = e.target;
@@ -1719,6 +2043,7 @@ export function editorScript(s: any): string {
           var out = fmtDate(dg);
           el.value = out;
           post({ type:'ws:edit', k:'dia', f:'data', i: di(el), value: out });
+          updateLabels(); // a data nova passa logo para o rótulo da barra
         }, true);
         function applyCalc(d){
           // Nunca reescrever a célula que está a ser editada (perdia-se o cursor
@@ -2111,21 +2436,8 @@ export function buildEditableSheetHtml(
         /* Faixa logo abaixo do último dia: botões à esquerda, totais à direita */
         .afterDays { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
         .afterDays .endTotals { margin-top: 8px; }
-        .addDayBar { margin-top: 10px; text-align: left; }
-        .addDayBar button {
-          font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px;
-          border: 2px solid #2b2b2b; border-radius: 999px; background: #f2f2f2; color: #111; cursor: pointer;
-          margin-right: 8px;
-        }
-        .addDayBar .delBtn { border-color: #c05050; color: #c05050; background: #fff; }
-        /* Botões por linha: duplicar (⧉) e remover (✕) o dia — não saem no print.
-           SEMPRE por baixo da descrição, e a coluna com largura FIXA (a célula
-           não estica/encolhe com o texto — texto longo quebra dentro dela). */
-        table.days .ei.left { display: block; width: 72px; white-space: normal; }
-        .rowBtns { display: block; white-space: nowrap; margin-top: 2px; }
-        .rbtn { cursor: pointer; user-select: none; -webkit-user-select: none; color: #9a9a9a; font-size: 12px; padding: 0 4px; }
-        .rbtn.rdel { color: #c05050; }
-        @media print { .addDayBar, .rowBtns { display: none; } }
+        /* Barra de dias, caixote por linha e dia em foco: CSS partilhado */
+        ${DAY_BTNS_CSS}
       </style>
     </head>
     <body>
@@ -2225,11 +2537,7 @@ export function buildEditableSheetHtml(
       </table>
 
       <div class="afterDays">
-        <div class="addDayBar">
-          <button type="button" id="wsAddDay">＋ ${escapeHtml(s.addDay)}</button>
-          <button type="button" id="wsDupDay">⧉ ${escapeHtml((s as any).dupDay || "Duplicar dia")}</button>
-          <button type="button" id="wsDelDay" class="delBtn">✕ ${escapeHtml((s as any).removeDay || "Remover dia")}</button>
-        </div>
+        ${dayBarHtml(s)}
         <table class="endTotals">
           <tr><th>${escapeHtml(s.vb)}</th><td data-c="gross">${fmt(totais.ValorBruto)}</td></tr>
           <tr><th>${escapeHtml(s.irs)}</th><td data-c="birs">${fmt(totais.IRS_valor)}</td></tr>

@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { aplicarEdicaoSobre, guardadoMaisRecente } from "../../src/storage/merge";
+import { semeiaTaxaHE } from "../../src/storage/horasExtraPerfil";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
@@ -751,8 +752,10 @@ export default function ProjectEditor() {
     const R0 = ratesFor(p0.tabela as any);
     const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
     const patch: any = {};
-    if (p0.tabela.rateHEA == null) patch.rateHEA = round2(R0.rateHEA);
-    if (p0.tabela.rateHEB == null) patch.rateHEB = round2(R0.rateHEB);
+    // HE-A/HE-B a × 1 (escolha "hora normal" do perfil) não se semeiam: ver
+    // semeiaTaxaHE — presas e arredondadas pagavam menos e não seguiam o salário.
+    if (semeiaTaxaHE(p0.tabela, "HEA")) patch.rateHEA = round2(R0.rateHEA);
+    if (semeiaTaxaHE(p0.tabela, "HEB")) patch.rateHEB = round2(R0.rateHEB);
     if (p0.tabela.rateHR == null) patch.rateHR = round2(R0.rateHR);
     let p = p0;
     if (Object.keys(patch).length) { p = { ...p0, tabela: { ...p0.tabela, ...patch } }; persist(p); }
