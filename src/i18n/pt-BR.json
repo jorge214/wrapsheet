@@ -583,5 +583,22 @@
   "he_mode_typed_any": "Digitado manualmente: {{list}}. Um valor digitado manualmente prevalece sobre esta opção; apague-o para usar o automático.",
   "privacy_hidden_value": "Valor oculto",
   "privacy_hide_values": "Ocultar valores",
-  "privacy_show_values": "Mostrar valores"
+  "privacy_show_values": "Mostrar valores",
+  "profile_not_synced_sandbox_msg": "Com uma compra de teste, os perfis extras ficam só neste dispositivo e não sobem para a sua conta.",
+  "profile_not_synced_pending_msg": "Por enquanto, este perfil está só neste dispositivo: a confirmação da sua assinatura ainda não chegou à conta. Ele sobe sozinho assim que chegar.",
+  "paywall_b4_android": "Sincroniza no celular, tablet e computador",
+  "plan_legal_android": "Assinatura com renovação automática, cobrada na sua conta do Google Play até você cancelar. Cancele quando quiser no app Play Store, em Pagamentos e assinaturas › Assinaturas.",
+  "paywall_legal_android": "Assinatura com renovação automática: {{price}}, cobrada na sua conta do Google Play até você cancelar. Cancele quando quiser no app Play Store, em Pagamentos e assinaturas › Assinaturas.",
+  "paywall_active_sandbox": "✓ Compra de teste: o plano fica ativo só neste dispositivo. Compras de teste não chegam à sua conta, então os perfis novos não sincronizam.",
+  "paywall_active_pending": "✓ Plano ativo neste dispositivo. A confirmação na sua conta está demorando: os perfis novos sincronizam assim que ela chegar.",
+  "paywall_payment_pending": "Pagamento pendente. O plano é ativado sozinho assim que o Google Play confirmar o pagamento.",
+  "paywall_already_owned": "Esta conta Google já tem a assinatura. Toque em “Restaurar compra” para recuperá-la.",
+  "paywall_in_use_other_account": "Esta assinatura do Google Play está vinculada a outra conta WrapSheet. Entre com essa conta para usá-la.",
+  "paywall_already_team": "Você já tem o plano Equipe nesta conta. Gerencie a assinatura em Configurações › Assinatura.",
+  "auth_delete_sub_note_play": "Excluir a conta não cancela a assinatura do Google Play. Cancele-a primeiro no app Play Store, em Pagamentos e assinaturas › Assinaturas.",
+  "auth_delete_sub_note": "Excluir a conta não cancela a assinatura. Cancele-a primeiro onde você a fez.",
+  "plan_manage_cta": "Gerenciar assinatura",
+  "plan_manage_note_play": "Gerencie ou cancele a assinatura no app Play Store, em Pagamentos e assinaturas › Assinaturas.",
+  "plan_manage_note_apple_device": "Você assinou no iPhone ou iPad: gerencie ou cancele a assinatura nos Ajustes da App Store desse dispositivo.",
+  "plan_manage_note_elsewhere": "Você assinou em outra plataforma: gerencie ou cancele a assinatura onde você a fez."
 }

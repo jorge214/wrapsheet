@@ -583,5 +583,22 @@
   "he_mode_typed_any": "Wpisane ręcznie: {{list}}. Wartość wpisana ręcznie ma pierwszeństwo przed tym wyborem; usuń ją, aby użyć automatycznej.",
   "privacy_hidden_value": "Kwota ukryta",
   "privacy_hide_values": "Ukryj kwoty",
-  "privacy_show_values": "Pokaż kwoty"
+  "privacy_show_values": "Pokaż kwoty",
+  "profile_not_synced_sandbox_msg": "Przy zakupie testowym dodatkowe profile zostają tylko na tym urządzeniu i nie trafiają na Twoje konto.",
+  "profile_not_synced_pending_msg": "Na razie ten profil jest tylko na tym urządzeniu: potwierdzenie subskrypcji jeszcze nie dotarło na Twoje konto. Zostanie przesłany automatycznie, gdy tylko dotrze.",
+  "paywall_b4_android": "Synchronizacja na telefonie, tablecie i komputerze",
+  "plan_legal_android": "Subskrypcja odnawiana automatycznie, obciążająca Twoje konto Google Play do czasu anulowania. Anuluj w dowolnej chwili w aplikacji Sklep Play, w sekcji Płatności i subskrypcje › Subskrypcje.",
+  "paywall_legal_android": "Subskrypcja odnawiana automatycznie: {{price}}, obciążająca Twoje konto Google Play do czasu anulowania. Anuluj w dowolnej chwili w aplikacji Sklep Play, w sekcji Płatności i subskrypcje › Subskrypcje.",
+  "paywall_active_sandbox": "✓ Zakup testowy: plan jest aktywny tylko na tym urządzeniu. Zakupy testowe nie trafiają na Twoje konto, więc nowe profile nie będą synchronizowane.",
+  "paywall_active_pending": "✓ Plan aktywny na tym urządzeniu. Potwierdzenie na Twoim koncie trochę trwa: nowe profile zsynchronizują się, gdy tylko dotrze.",
+  "paywall_payment_pending": "Płatność oczekuje. Plan aktywuje się automatycznie, gdy tylko Google Play potwierdzi płatność.",
+  "paywall_already_owned": "To konto Google ma już subskrypcję. Stuknij „Przywróć zakup”, aby ją odzyskać.",
+  "paywall_in_use_other_account": "Ta subskrypcja Google Play jest powiązana z innym kontem WrapSheet. Zaloguj się na to konto, aby z niej korzystać.",
+  "paywall_already_team": "Masz już plan Zespół na tym koncie. Zarządzaj subskrypcją w Ustawienia › Subskrypcja.",
+  "auth_delete_sub_note_play": "Usunięcie konta nie anuluje subskrypcji Google Play. Najpierw anuluj ją w aplikacji Sklep Play, w sekcji Płatności i subskrypcje › Subskrypcje.",
+  "auth_delete_sub_note": "Usunięcie konta nie anuluje subskrypcji. Najpierw anuluj ją tam, gdzie ją wykupiłeś.",
+  "plan_manage_cta": "Zarządzaj subskrypcją",
+  "plan_manage_note_play": "Zarządzaj subskrypcją lub ją anuluj w aplikacji Sklep Play, w sekcji Płatności i subskrypcje › Subskrypcje.",
+  "plan_manage_note_apple_device": "Subskrypcja została wykupiona na iPhonie lub iPadzie: zarządzaj nią lub ją anuluj w ustawieniach App Store na tym urządzeniu.",
+  "plan_manage_note_elsewhere": "Subskrypcja została wykupiona na innej platformie: zarządzaj nią lub ją anuluj tam, gdzie ją wykupiłeś."
 }

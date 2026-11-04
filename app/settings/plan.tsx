@@ -6,16 +6,18 @@
 import { router, useFocusEffect } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/auth/AuthContext";
 import { getMaxProfiles, UNLOCKED_MAX_PROFILES } from "../../src/lib/entitlements";
 import {
   configurePurchases,
+  getActiveEntitlement,
   getPlanPackages,
   isPurchasesAvailable,
   type PlanPkg,
 } from "../../src/lib/purchases";
+import { manageInfo, planLegal, storeAware, syncBullet, type RcEntitlement } from "../../src/lib/storeRules";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 export default function PlanScreen() {
@@ -26,6 +28,8 @@ export default function PlanScreen() {
 
   const [maxProfiles, setMaxProfiles] = React.useState(1);
   const [pkgs, setPkgs] = React.useState<PlanPkg[]>([]);
+  // Android: em que loja foi comprado o plano (nota e link de gestão)
+  const [ent, setEnt] = React.useState<RcEntitlement | null>(null);
 
   // Recarrega ao voltar (ex.: acabou de subscrever no paywall)
   useFocusEffect(
@@ -38,6 +42,10 @@ export default function PlanScreen() {
           await configurePurchases(user.id);
           const p = await getPlanPackages();
           if (alive) setPkgs(p);
+          if (storeAware(Platform.OS)) {
+            const e = await getActiveEntitlement();
+            if (alive) setEnt(e);
+          }
         }
       })();
       return () => {
@@ -47,6 +55,11 @@ export default function PlanScreen() {
   );
 
   const hasTeam = maxProfiles > 1;
+  // Textos e link por loja (storeRules.ts). iOS e web: os de sempre. No
+  // Android o único link é o do centro de subscrições da Google Play.
+  const canBuy = isPurchasesAvailable();
+  const manage = manageInfo(Platform.OS, canBuy, ent);
+  const legal = planLegal(Platform.OS, canBuy);
 
   // Preço real da loja (localizado). Sem SDK/loja, não inventamos valores: o
   // cartão mostra só o que o plano dá e o paywall trata do preço.
@@ -90,10 +103,32 @@ export default function PlanScreen() {
                 <Bullet text={t("plan_free_item2", { defaultValue: "Exports de PDF ilimitados" })} />
               </View>
               <Text style={s.highlight}>
-                {t("plan_manage_note", {
-                  defaultValue: "Gere ou cancela a subscrição nas Definições da App Store.",
-                })}
+                {manage.note === "google"
+                  ? t("plan_manage_note_play", {
+                      defaultValue:
+                        "Gere ou cancela a subscrição na app Play Store, em Pagamentos e subscrições › Subscrições.",
+                    })
+                  : manage.note === "apple_device"
+                  ? t("plan_manage_note_apple_device", {
+                      defaultValue:
+                        "Subscreveste no iPhone ou iPad: gere ou cancela a subscrição nas Definições da App Store desse dispositivo.",
+                    })
+                  : manage.note === "elsewhere"
+                  ? t("plan_manage_note_elsewhere", {
+                      defaultValue: "Subscreveste noutra plataforma: gere ou cancela a subscrição onde a fizeste.",
+                    })
+                  : t("plan_manage_note", {
+                      defaultValue: "Gere ou cancela a subscrição nas Definições da App Store.",
+                    })}
               </Text>
+              {!!manage.url && (
+                <Pressable
+                  style={({ pressed }) => [s.manageBtn, pressed && { opacity: 0.85 }]}
+                  onPress={() => Linking.openURL(manage.url as string).catch(() => {})}
+                >
+                  <Text style={s.manageBtnText}>{t("plan_manage_cta", { defaultValue: "Gerir subscrição" })}</Text>
+                </Pressable>
+              )}
             </>
           ) : (
             <>
@@ -128,7 +163,13 @@ export default function PlanScreen() {
               <Bullet text={t("paywall_b1", { defaultValue: "Até 10 perfis numa só conta" })} />
               <Bullet text={t("paywall_b2", { defaultValue: "Uma folha por técnico — o dinheiro de cada um não se mistura" })} />
               <Bullet text={t("paywall_b3", { defaultValue: "Duplica a mesma folha para toda a equipa, só mudam as tarifas" })} />
-              <Bullet text={t("paywall_b4", { defaultValue: "Sincroniza no iPhone, iPad e computador" })} />
+              <Bullet
+                text={
+                  syncBullet(Platform.OS) === "android"
+                    ? t("paywall_b4_android", { defaultValue: "Sincroniza no telemóvel, tablet e computador" })
+                    : t("paywall_b4", { defaultValue: "Sincroniza no iPhone, iPad e computador" })
+                }
+              />
             </View>
 
             <Pressable
@@ -138,12 +179,19 @@ export default function PlanScreen() {
               <Text style={s.ctaText}>{t("plan_team_cta", { defaultValue: "Ver planos" })}</Text>
             </Pressable>
 
-            <Text style={s.mutedInfo}>
-              {t("paywall_legal", {
-                defaultValue:
-                  "Subscrição que renova automaticamente. Cancela quando quiseres nas Definições da App Store.",
-              })}
-            </Text>
+            {legal && (
+              <Text style={s.mutedInfo}>
+                {legal === "google"
+                  ? t("plan_legal_android", {
+                      defaultValue:
+                        "Subscrição com renovação automática, cobrada na tua conta do Google Play até a cancelares. Cancela quando quiseres na app Play Store, em Pagamentos e subscrições › Subscrições.",
+                    })
+                  : t("paywall_legal", {
+                      defaultValue:
+                        "Subscrição que renova automaticamente. Cancela quando quiseres nas Definições da App Store.",
+                    })}
+              </Text>
+            )}
           </View>
         )}
       </ScrollView>
@@ -264,6 +312,15 @@ const createStyles = (COLORS: any) =>
       marginTop: 4,
     },
     ctaText: { color: COLORS.card, fontWeight: "900", fontSize: 15 },
+    manageBtn: {
+      borderWidth: 1.5,
+      borderColor: COLORS.text,
+      borderRadius: 12,
+      paddingVertical: 12,
+      alignItems: "center",
+      marginTop: 12,
+    },
+    manageBtnText: { color: COLORS.text, fontWeight: "800", fontSize: 14 },
     mutedInfo: {
       marginTop: 10,
       fontSize: 11.5,

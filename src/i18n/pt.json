@@ -585,5 +585,22 @@
   "he_mode_typed_any": "Escrito à mão: {{list}}. Um valor escrito à mão manda sobre esta escolha; apaga-o para usar o automático.",
   "privacy_hidden_value": "Valor oculto",
   "privacy_hide_values": "Ocultar valores",
-  "privacy_show_values": "Mostrar valores"
+  "privacy_show_values": "Mostrar valores",
+  "profile_not_synced_sandbox_msg": "Com uma compra de teste, os perfis extra ficam só neste dispositivo e não sobem para a tua conta.",
+  "profile_not_synced_pending_msg": "Este perfil está, para já, só neste dispositivo: a confirmação da tua subscrição ainda não chegou à conta. Sobe sozinho assim que chegar.",
+  "paywall_b4_android": "Sincroniza no telemóvel, tablet e computador",
+  "plan_legal_android": "Subscrição com renovação automática, cobrada na tua conta do Google Play até a cancelares. Cancela quando quiseres na app Play Store, em Pagamentos e subscrições › Subscrições.",
+  "paywall_legal_android": "Subscrição com renovação automática: {{price}}, cobrada na tua conta do Google Play até a cancelares. Cancela quando quiseres na app Play Store, em Pagamentos e subscrições › Subscrições.",
+  "paywall_active_sandbox": "✓ Compra de teste: o plano fica ativo só neste dispositivo. As compras de teste não chegam à tua conta, por isso os perfis novos não sincronizam.",
+  "paywall_active_pending": "✓ Plano ativo neste dispositivo. A confirmação na tua conta está a demorar: os perfis novos sincronizam assim que chegar.",
+  "paywall_payment_pending": "Pagamento pendente. O plano ativa-se sozinho assim que o Google Play confirmar o pagamento.",
+  "paywall_already_owned": "Esta conta Google já tem a subscrição. Toca em «Restaurar compra» para a recuperar.",
+  "paywall_in_use_other_account": "Esta subscrição do Google Play está associada a outra conta WrapSheet. Entra com essa conta para a usares.",
+  "paywall_already_team": "Já tens o plano Equipa nesta conta. Gere a subscrição em Definições › Subscrição.",
+  "auth_delete_sub_note_play": "Apagar a conta não cancela a subscrição do Google Play. Cancela-a primeiro na app Play Store, em Pagamentos e subscrições › Subscrições.",
+  "auth_delete_sub_note": "Apagar a conta não cancela a subscrição. Cancela-a primeiro onde a fizeste.",
+  "plan_manage_cta": "Gerir subscrição",
+  "plan_manage_note_play": "Gere ou cancela a subscrição na app Play Store, em Pagamentos e subscrições › Subscrições.",
+  "plan_manage_note_apple_device": "Subscreveste no iPhone ou iPad: gere ou cancela a subscrição nas Definições da App Store desse dispositivo.",
+  "plan_manage_note_elsewhere": "Subscreveste noutra plataforma: gere ou cancela a subscrição onde a fizeste."
 }

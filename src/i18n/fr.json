@@ -583,5 +583,22 @@
   "he_mode_typed_any": "Saisi à la main : {{list}}. Une valeur saisie à la main l'emporte sur ce choix ; effacez-la pour utiliser l'automatique.",
   "privacy_hidden_value": "Montant masqué",
   "privacy_hide_values": "Masquer les montants",
-  "privacy_show_values": "Afficher les montants"
+  "privacy_show_values": "Afficher les montants",
+  "profile_not_synced_sandbox_msg": "Avec un achat test, les profils supplémentaires restent uniquement sur cet appareil et ne sont pas envoyés vers votre compte.",
+  "profile_not_synced_pending_msg": "Pour l'instant, ce profil est uniquement sur cet appareil : la confirmation de votre abonnement n'est pas encore arrivée sur votre compte. Il sera envoyé automatiquement dès qu'elle arrivera.",
+  "paywall_b4_android": "Synchronisé sur téléphone, tablette et ordinateur",
+  "plan_legal_android": "Abonnement à renouvellement automatique, facturé sur votre compte Google Play jusqu'à résiliation. Résiliez à tout moment dans l'app Play Store, sous Paiements et abonnements › Abonnements.",
+  "paywall_legal_android": "Abonnement à renouvellement automatique : {{price}}, facturé sur votre compte Google Play jusqu'à résiliation. Résiliez à tout moment dans l'app Play Store, sous Paiements et abonnements › Abonnements.",
+  "paywall_active_sandbox": "✓ Achat test : le forfait est actif uniquement sur cet appareil. Les achats test n'arrivent pas sur votre compte, les nouveaux profils ne seront donc pas synchronisés.",
+  "paywall_active_pending": "✓ Forfait actif sur cet appareil. La confirmation sur votre compte prend un peu de temps : les nouveaux profils seront synchronisés dès qu'elle arrivera.",
+  "paywall_payment_pending": "Paiement en attente. Le forfait s'activera automatiquement dès que Google Play confirmera le paiement.",
+  "paywall_already_owned": "Ce compte Google a déjà l'abonnement. Appuyez sur « Restaurer l'achat » pour le récupérer.",
+  "paywall_in_use_other_account": "Cet abonnement Google Play est associé à un autre compte WrapSheet. Connectez-vous avec ce compte pour l'utiliser.",
+  "paywall_already_team": "Vous avez déjà le forfait Équipe sur ce compte. Gérez l'abonnement dans Paramètres › Abonnement.",
+  "auth_delete_sub_note_play": "Supprimer votre compte ne résilie pas l'abonnement Google Play. Résiliez-le d'abord dans l'app Play Store, sous Paiements et abonnements › Abonnements.",
+  "auth_delete_sub_note": "Supprimer votre compte ne résilie pas l'abonnement. Résiliez-le d'abord là où vous l'avez souscrit.",
+  "plan_manage_cta": "Gérer l'abonnement",
+  "plan_manage_note_play": "Gérez ou résiliez l'abonnement dans l'app Play Store, sous Paiements et abonnements › Abonnements.",
+  "plan_manage_note_apple_device": "Vous vous êtes abonné sur un iPhone ou un iPad : gérez ou résiliez l'abonnement dans les réglages de l'App Store de cet appareil.",
+  "plan_manage_note_elsewhere": "Vous vous êtes abonné sur une autre plateforme : gérez ou résiliez l'abonnement là où vous l'avez souscrit."
 }

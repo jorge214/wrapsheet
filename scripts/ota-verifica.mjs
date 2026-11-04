@@ -1,21 +1,26 @@
-// Pede o manifesto de produção (iOS, runtime 1.1.0) ao servidor de updates e
-// inspeciona o bundle que os iPhones vão receber.
-// Uso: node scripts/ota-verifica.mjs [id-do-update-iOS que o `eas update` imprimiu]
-// Corre-se DEPOIS de cada `eas update --channel production` (ver CLAUDE.md).
+// Pede o manifesto de produção (runtime 1.1.0) ao servidor de updates e
+// inspeciona o bundle que os aparelhos vão receber — iOS por omissão, ou Android.
+// Uso: node scripts/ota-verifica.mjs [id-do-update que o `eas update` imprimiu] [ios|android]
+//   (sem plataforma é o iOS, como sempre; a ordem dos dois argumentos é livre)
+// Corre-se DEPOIS de cada `eas update --channel production` (ver CLAUDE.md), uma
+// vez por plataforma publicada, cada uma com o id que o `eas update` lhe deu.
 //
-// O bundle iOS é BYTECODE HERMES, não JavaScript em texto: descarrega-se em
-// bytes (nunca .text(), que estraga tudo o que não é UTF-8 válido). Strings
-// só-ASCII estão em bytes simples; strings com acentos/€ estão em UTF-16LE.
+// Os bundles (iOS e Android) são BYTECODE HERMES, não JavaScript em texto:
+// descarregam-se em bytes (nunca .text(), que estraga tudo o que não é UTF-8
+// válido). Strings só-ASCII estão em bytes simples; com acentos/€, em UTF-16LE.
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const URL_MANIFESTO = "https://u.expo.dev/6add5ccd-c99b-4660-a1eb-84246ef113c0";
-const esperado = process.argv[2];
+const PLATAFORMAS = ["ios", "android"];
+const args = process.argv.slice(2);
+const plataforma = args.map((a) => a.toLowerCase()).find((a) => PLATAFORMAS.includes(a)) ?? "ios";
+const esperado = args.find((a) => !PLATAFORMAS.includes(a.toLowerCase()));
 
 const r = await fetch(URL_MANIFESTO, {
   headers: {
-    "expo-platform": "ios",
+    "expo-platform": plataforma,
     "expo-runtime-version": "1.1.0",
     "expo-channel-name": "production",
     "expo-protocol-version": "1",
@@ -39,14 +44,14 @@ for (const p of corpo.split("--" + b[1])) {
 const manifesto = JSON.parse(partes.manifest);
 const ext = partes.extensions ? JSON.parse(partes.extensions) : {};
 const cliente = manifesto.extra?.expoClient || {};
-console.log("update servido:", manifesto.id);
+console.log("update servido:", manifesto.id, "| plataforma:", plataforma);
 console.log("criado:", manifesto.createdAt, "| runtime:", manifesto.runtimeVersion, "| app.json version:", cliente.version);
 if (esperado) console.log(manifesto.id === esperado ? "✔ é o update acabado de publicar" : "✘ NÃO é o update esperado (" + esperado + ")");
 
 const la = manifesto.launchAsset;
 const cab = ext.assetRequestHeaders?.[la.key] || Object.values(ext.assetRequestHeaders || {})[0] || {};
 const bytes = Buffer.from(await (await fetch(la.url, { headers: cab })).arrayBuffer());
-const guardado = join(tmpdir(), "wrapsheet-ota-ios.bundle");
+const guardado = join(tmpdir(), `wrapsheet-ota-${plataforma}.bundle`);
 writeFileSync(guardado, bytes);
 // Magia do Hermes: 0x1F1903C103BCF1C6 em little-endian.
 const hermes = bytes.subarray(0, 8).toString("hex") === "c61fbc03c103191f";
@@ -57,7 +62,12 @@ const u16 = (s) => bytes.includes(Buffer.from(s, "utf16le"));
 const checks = [
   ["Supabase de PRODUÇÃO (joymgpqtbkobjmznqyzi)", ascii("joymgpqtbkobjmznqyzi")],
   ["sem Supabase de DEV (gfagdphminpevuoikhoh)", !ascii("gfagdphminpevuoikhoh")],
-  ["chave RevenueCat appl_ presente", /appl_[A-Za-z0-9]{10,}/.test(bytes.toString("latin1"))],
+  // A chave da loja DESTA plataforma (a outra pode nem estar: o Metro corta o
+  // ramo da outra plataforma). Sem ela as compras ficam desligadas sem erro
+  // nenhum (no Android, o paywall volta a "ainda não disponível").
+  plataforma === "android"
+    ? ["chave RevenueCat goog_ presente", /goog_[A-Za-z0-9]{10,}/.test(bytes.toString("latin1"))]
+    : ["chave RevenueCat appl_ presente", /appl_[A-Za-z0-9]{10,}/.test(bytes.toString("latin1"))],
   ["código novo — pt: \"usam os valores por hora aqui inseridos\"", u16("usam os valores por hora aqui inseridos")],
   ["código novo — en: \"use the per-hour values entered here\"", ascii("use the per-hour values entered here")],
   ["código novo — es: \"introducidos aquí, como en publicidad\"", u16("introducidos aquí, como en publicidad")],

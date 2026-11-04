@@ -583,5 +583,22 @@
   "he_mode_typed_any": "Von Hand eingetragen: {{list}}. Ein von Hand eingetragener Wert hat Vorrang vor dieser Auswahl; lösche ihn, um den automatischen zu verwenden.",
   "privacy_hidden_value": "Betrag ausgeblendet",
   "privacy_hide_values": "Beträge ausblenden",
-  "privacy_show_values": "Beträge anzeigen"
+  "privacy_show_values": "Beträge anzeigen",
+  "profile_not_synced_sandbox_msg": "Bei einem Testkauf bleiben zusätzliche Profile nur auf diesem Gerät und werden nicht in dein Konto hochgeladen.",
+  "profile_not_synced_pending_msg": "Dieses Profil ist vorerst nur auf diesem Gerät: Die Bestätigung deines Abos ist noch nicht in deinem Konto angekommen. Es wird automatisch hochgeladen, sobald sie da ist.",
+  "paywall_b4_android": "Synchronisiert auf Handy, Tablet und Computer",
+  "plan_legal_android": "Automatisch verlängertes Abo, abgerechnet über dein Google-Play-Konto, bis du kündigst. Kündige jederzeit in der Play Store-App unter Zahlungen und Abos › Abos.",
+  "paywall_legal_android": "Automatisch verlängertes Abo: {{price}}, abgerechnet über dein Google-Play-Konto, bis du kündigst. Kündige jederzeit in der Play Store-App unter Zahlungen und Abos › Abos.",
+  "paywall_active_sandbox": "✓ Testkauf: Der Plan ist nur auf diesem Gerät aktiv. Testkäufe erreichen dein Konto nicht, daher werden neue Profile nicht synchronisiert.",
+  "paywall_active_pending": "✓ Plan auf diesem Gerät aktiv. Die Bestätigung in deinem Konto dauert etwas: Neue Profile werden synchronisiert, sobald sie da ist.",
+  "paywall_payment_pending": "Zahlung ausstehend. Der Plan wird automatisch aktiviert, sobald Google Play die Zahlung bestätigt.",
+  "paywall_already_owned": "Dieses Google-Konto hat das Abo bereits. Tippe auf „Kauf wiederherstellen“, um es zurückzuholen.",
+  "paywall_in_use_other_account": "Dieses Google-Play-Abo ist mit einem anderen WrapSheet-Konto verknüpft. Melde dich mit diesem Konto an, um es zu nutzen.",
+  "paywall_already_team": "Du hast den Team-Plan bereits in diesem Konto. Verwalte das Abo unter Einstellungen › Abonnement.",
+  "auth_delete_sub_note_play": "Das Löschen deines Kontos kündigt das Google-Play-Abo nicht. Kündige es zuerst in der Play Store-App unter Zahlungen und Abos › Abos.",
+  "auth_delete_sub_note": "Das Löschen deines Kontos kündigt das Abo nicht. Kündige es zuerst dort, wo du es abgeschlossen hast.",
+  "plan_manage_cta": "Abo verwalten",
+  "plan_manage_note_play": "Verwalte oder kündige das Abo in der Play Store-App unter Zahlungen und Abos › Abos.",
+  "plan_manage_note_apple_device": "Du hast auf einem iPhone oder iPad abonniert: Verwalte oder kündige das Abo in den App-Store-Einstellungen dieses Geräts.",
+  "plan_manage_note_elsewhere": "Du hast auf einer anderen Plattform abonniert: Verwalte oder kündige das Abo dort, wo du es abgeschlossen hast."
 }

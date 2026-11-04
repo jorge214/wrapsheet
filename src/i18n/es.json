@@ -583,5 +583,22 @@
   "he_mode_typed_any": "Escrito a mano: {{list}}. Un valor escrito a mano manda sobre esta opción; bórralo para usar el automático.",
   "privacy_hidden_value": "Importe oculto",
   "privacy_hide_values": "Ocultar importes",
-  "privacy_show_values": "Mostrar importes"
+  "privacy_show_values": "Mostrar importes",
+  "profile_not_synced_sandbox_msg": "Con una compra de prueba, los perfiles adicionales se quedan solo en este dispositivo y no se suben a tu cuenta.",
+  "profile_not_synced_pending_msg": "Por ahora este perfil está solo en este dispositivo: la confirmación de tu suscripción aún no ha llegado a tu cuenta. Se subirá solo en cuanto llegue.",
+  "paywall_b4_android": "Se sincroniza en el móvil, la tablet y el ordenador",
+  "plan_legal_android": "Suscripción con renovación automática, cobrada en tu cuenta de Google Play hasta que la canceles. Cancélala cuando quieras en la app Play Store, en Pagos y suscripciones › Suscripciones.",
+  "paywall_legal_android": "Suscripción con renovación automática: {{price}}, cobrada en tu cuenta de Google Play hasta que la canceles. Cancélala cuando quieras en la app Play Store, en Pagos y suscripciones › Suscripciones.",
+  "paywall_active_sandbox": "✓ Compra de prueba: el plan queda activo solo en este dispositivo. Las compras de prueba no llegan a tu cuenta, así que los perfiles nuevos no se sincronizan.",
+  "paywall_active_pending": "✓ Plan activo en este dispositivo. La confirmación en tu cuenta está tardando: los perfiles nuevos se sincronizarán en cuanto llegue.",
+  "paywall_payment_pending": "Pago pendiente. El plan se activará solo en cuanto Google Play confirme el pago.",
+  "paywall_already_owned": "Esta cuenta de Google ya tiene la suscripción. Toca «Restaurar compra» para recuperarla.",
+  "paywall_in_use_other_account": "Esta suscripción de Google Play está vinculada a otra cuenta de WrapSheet. Inicia sesión con esa cuenta para usarla.",
+  "paywall_already_team": "Ya tienes el plan Equipo en esta cuenta. Gestiona la suscripción en Configuración › Suscripción.",
+  "auth_delete_sub_note_play": "Eliminar la cuenta no cancela la suscripción de Google Play. Cancélala primero en la app Play Store, en Pagos y suscripciones › Suscripciones.",
+  "auth_delete_sub_note": "Eliminar la cuenta no cancela la suscripción. Cancélala primero donde la contrataste.",
+  "plan_manage_cta": "Gestionar suscripción",
+  "plan_manage_note_play": "Gestiona o cancela la suscripción en la app Play Store, en Pagos y suscripciones › Suscripciones.",
+  "plan_manage_note_apple_device": "Te suscribiste en un iPhone o iPad: gestiona o cancela la suscripción en los ajustes de la App Store de ese dispositivo.",
+  "plan_manage_note_elsewhere": "Te suscribiste en otra plataforma: gestiona o cancela la suscripción donde la contrataste."
 }

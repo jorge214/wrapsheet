@@ -585,5 +585,22 @@
   "he_mode_typed_any": "Typed by hand: {{list}}. A value typed by hand overrides this choice; delete it to use the automatic one.",
   "privacy_hidden_value": "Amount hidden",
   "privacy_hide_values": "Hide amounts",
-  "privacy_show_values": "Show amounts"
+  "privacy_show_values": "Show amounts",
+  "profile_not_synced_sandbox_msg": "With a test purchase, extra profiles stay on this device only and aren't uploaded to your account.",
+  "profile_not_synced_pending_msg": "For now this profile is only on this device: your subscription confirmation hasn't reached your account yet. It will upload on its own as soon as it does.",
+  "paywall_b4_android": "Syncs across phone, tablet and computer",
+  "plan_legal_android": "Auto-renewing subscription, charged to your Google Play account until you cancel. Cancel anytime in the Play Store app under Payments & subscriptions › Subscriptions.",
+  "paywall_legal_android": "Auto-renewing subscription: {{price}}, charged to your Google Play account until you cancel. Cancel anytime in the Play Store app under Payments & subscriptions › Subscriptions.",
+  "paywall_active_sandbox": "✓ Test purchase: the plan is active on this device only. Test purchases don't reach your account, so new profiles won't sync.",
+  "paywall_active_pending": "✓ Plan active on this device. Confirmation on your account is taking a while: new profiles will sync as soon as it arrives.",
+  "paywall_payment_pending": "Payment pending. The plan will activate on its own as soon as Google Play confirms the payment.",
+  "paywall_already_owned": "This Google account already has the subscription. Tap “Restore purchase” to get it back.",
+  "paywall_in_use_other_account": "This Google Play subscription is linked to another WrapSheet account. Sign in with that account to use it.",
+  "paywall_already_team": "You already have the Team plan on this account. Manage the subscription in Settings › Subscription.",
+  "auth_delete_sub_note_play": "Deleting your account doesn't cancel the Google Play subscription. Cancel it first in the Play Store app under Payments & subscriptions › Subscriptions.",
+  "auth_delete_sub_note": "Deleting your account doesn't cancel the subscription. Cancel it first where you subscribed.",
+  "plan_manage_cta": "Manage subscription",
+  "plan_manage_note_play": "Manage or cancel the subscription in the Play Store app under Payments & subscriptions › Subscriptions.",
+  "plan_manage_note_apple_device": "You subscribed on an iPhone or iPad: manage or cancel the subscription in the App Store settings on that device.",
+  "plan_manage_note_elsewhere": "You subscribed on another platform: manage or cancel the subscription where you subscribed."
 }

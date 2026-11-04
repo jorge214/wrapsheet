@@ -125,9 +125,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Liga as compras (RevenueCat) ao utilizador logado. No-op fora do iOS/build
-  // EAS (Expo Go, web, sem chave) — nunca rebenta. O appUserID = user_id do
-  // Supabase, para o webhook casar a compra com a conta certa.
+  // Liga as compras (RevenueCat) ao utilizador logado. No-op fora de uma build
+  // EAS com chave (Expo Go, web, Android sem a `goog_…`) — nunca rebenta. O
+  // appUserID = user_id do Supabase, para o webhook casar a compra com a conta
+  // certa, venha ela da App Store ou da Google Play.
   useEffect(() => {
     const uid = session?.user?.id;
     if (uid) configurePurchases(uid).catch(() => {});

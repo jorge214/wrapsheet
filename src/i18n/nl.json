@@ -583,5 +583,22 @@
   "he_mode_typed_any": "Met de hand ingevuld: {{list}}. Een met de hand ingevulde waarde gaat voor deze keuze; wis hem om de automatische te gebruiken.",
   "privacy_hidden_value": "Bedrag verborgen",
   "privacy_hide_values": "Bedragen verbergen",
-  "privacy_show_values": "Bedragen tonen"
+  "privacy_show_values": "Bedragen tonen",
+  "profile_not_synced_sandbox_msg": "Bij een testaankoop blijven extra profielen alleen op dit apparaat en worden ze niet naar je account geüpload.",
+  "profile_not_synced_pending_msg": "Dit profiel staat voorlopig alleen op dit apparaat: de bevestiging van je abonnement is nog niet in je account aangekomen. Het wordt vanzelf geüpload zodra die er is.",
+  "paywall_b4_android": "Synchroniseert op telefoon, tablet en computer",
+  "plan_legal_android": "Automatisch verlengend abonnement, in rekening gebracht op je Google Play-account tot je opzegt. Zeg op wanneer je wilt in de Play Store-app, onder Betalingen en abonnementen › Abonnementen.",
+  "paywall_legal_android": "Automatisch verlengend abonnement: {{price}}, in rekening gebracht op je Google Play-account tot je opzegt. Zeg op wanneer je wilt in de Play Store-app, onder Betalingen en abonnementen › Abonnementen.",
+  "paywall_active_sandbox": "✓ Testaankoop: het abonnement is alleen op dit apparaat actief. Testaankopen komen niet in je account terecht, dus nieuwe profielen worden niet gesynchroniseerd.",
+  "paywall_active_pending": "✓ Abonnement actief op dit apparaat. De bevestiging in je account duurt even: nieuwe profielen worden gesynchroniseerd zodra die er is.",
+  "paywall_payment_pending": "Betaling in behandeling. Het abonnement wordt vanzelf geactiveerd zodra Google Play de betaling bevestigt.",
+  "paywall_already_owned": "Dit Google-account heeft het abonnement al. Tik op ‘Aankoop herstellen’ om het terug te krijgen.",
+  "paywall_in_use_other_account": "Dit Google Play-abonnement is gekoppeld aan een ander WrapSheet-account. Log in met dat account om het te gebruiken.",
+  "paywall_already_team": "Je hebt het Team-abonnement al op dit account. Beheer het abonnement via Instellingen › Abonnement.",
+  "auth_delete_sub_note_play": "Je account verwijderen zegt het Google Play-abonnement niet op. Zeg het eerst op in de Play Store-app, onder Betalingen en abonnementen › Abonnementen.",
+  "auth_delete_sub_note": "Je account verwijderen zegt het abonnement niet op. Zeg het eerst op waar je het hebt afgesloten.",
+  "plan_manage_cta": "Abonnement beheren",
+  "plan_manage_note_play": "Beheer of zeg het abonnement op in de Play Store-app, onder Betalingen en abonnementen › Abonnementen.",
+  "plan_manage_note_apple_device": "Je hebt op een iPhone of iPad een abonnement genomen: beheer of zeg het op via de App Store-instellingen op dat apparaat.",
+  "plan_manage_note_elsewhere": "Je hebt via een ander platform een abonnement genomen: beheer of zeg het op waar je het hebt afgesloten."
 }

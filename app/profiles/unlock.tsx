@@ -14,7 +14,17 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../src/auth/AuthContext";
-import { waitForServerEntitlement } from "../../src/lib/entitlements";
+import { getMaxProfiles, readServerEntitlement, waitForServerEntitlement } from "../../src/lib/entitlements";
+import {
+  hasPlanOrRenewal,
+  isPlayBilling,
+  paywallLegal,
+  purchaseErrorKind,
+  purchaseOutcome,
+  syncBullet,
+  type PurchaseErrorKind,
+  type PurchaseOutcome,
+} from "../../src/lib/storeRules";
 import { isWebCheckoutAvailable, startWebCheckout, type WebPlan } from "../../src/lib/webCheckout";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import {
@@ -38,22 +48,34 @@ function openLegal(path: string) {
   else Linking.openURL(url).catch(() => {});
 }
 
-// Paywall dos perfis de equipa: até 10 perfis. No iOS (build EAS) compra via
-// IAP/RevenueCat (mensal ou anual, à escolha); noutras plataformas encaminha
-// para a app iOS. Ambos os planos dão o mesmo entitlement (profiles_10).
+// Paywall dos perfis de equipa: até 10 perfis. Nas apps (build EAS) compra pela
+// loja do aparelho via RevenueCat — IAP da Apple no iOS, Google Play no Android
+// (só com a chave `goog_…`) —, mensal ou anual, à escolha; na web pela Stripe.
+// Ambos os planos dão o mesmo entitlement (profiles_10).
 export default function ProfilePaywallScreen() {
   const { COLORS, mode } = useTheme();
   const { t } = useTranslation();
   const { user } = useAuth();
   const s = styles(COLORS, mode);
 
-  // Duas formas de comprar, mutuamente exclusivas:
-  //   • iOS  -> IAP da Apple (obrigatório dentro da app; ver purchases.ts)
-  //   • web  -> Stripe (a Apple não permite vender fora da app no iOS)
-  // Ambas acabam na mesma tabela `entitlements`, por isso o resto da app não
-  // precisa de saber por onde foi pago.
+  // Formas de comprar, mutuamente exclusivas:
+  //   • iOS     -> IAP da Apple (obrigatório dentro da app; ver purchases.ts)
+  //   • Android -> faturação do Google Play (idem), só com a chave `goog_…`
+  //   • web     -> Stripe (nenhuma das lojas deixa vender fora da app)
+  // Todas acabam na mesma tabela `entitlements`, por isso o resto da app não
+  // precisa de saber por onde foi pago. O que muda de loja para loja está em
+  // storeRules.ts; o iOS e a web seguem exatamente como dantes.
   const canBuy = isPurchasesAvailable();
   const webBuy = !canBuy && isWebCheckoutAvailable();
+  const play = isPlayBilling(Platform.OS, canBuy);
+  const legal = paywallLegal(Platform.OS, canBuy);
+  // Android: já tem o plano (ou uma renovação a caminho)? Então não se vende
+  // outra vez — uma subscrição da Play por cima de uma da App Store ou da
+  // Stripe era cobrar duas vezes. null = ainda a verificar.
+  const [hasPlan, setHasPlan] = useState<boolean | null>(play ? null : false);
+  // Android: depois de pagar, a parte de comprar some — tocar no outro plano
+  // durante a espera pelo servidor comprava uma 2.ª subscrição.
+  const [done, setDone] = useState(false);
   const [packages, setPackages] = useState<PlanPkg[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadingPkgs, setLoadingPkgs] = useState(false);
@@ -88,11 +110,30 @@ export default function ProfilePaywallScreen() {
     loadPackages();
   }, [loadPackages]);
 
+  useEffect(() => {
+    if (!play) return;
+    if (!user?.id) {
+      setHasPlan(false);
+      return;
+    }
+    let alive = true;
+    (async () => {
+      await configurePurchases(user.id);
+      const [max, row] = await Promise.all([getMaxProfiles(user as any), readServerEntitlement(user.id)]);
+      if (alive) setHasPlan(hasPlanOrRenewal(max, row));
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [play, user?.id]);
+
   const bullets: string[] = [
     t("paywall_b1", { defaultValue: "Até 10 perfis numa só conta" }),
     t("paywall_b2", { defaultValue: "Uma folha por técnico — o dinheiro de cada um não se mistura" }),
     t("paywall_b3", { defaultValue: "Duplica a mesma folha para toda a equipa, só mudam as tarifas" }),
-    t("paywall_b4", { defaultValue: "Sincroniza no iPhone, iPad e computador" }),
+    syncBullet(Platform.OS) === "android"
+      ? t("paywall_b4_android", { defaultValue: "Sincroniza no telemóvel, tablet e computador" })
+      : t("paywall_b4", { defaultValue: "Sincroniza no iPhone, iPad e computador" }),
   ];
 
   const monthly = packages.find((p) => p.periodMonths === 1);
@@ -123,6 +164,64 @@ export default function ProfilePaywallScreen() {
     }
   }
 
+  // Google Play: preço e período do plano escolhido, renovação automática e
+  // onde se cancela — à vista, por baixo do botão.
+  function playLegalText(): string {
+    const sel = packages.find((p) => p.id === selectedId);
+    if (!sel) {
+      return t("plan_legal_android", {
+        defaultValue:
+          "Subscrição com renovação automática, cobrada na tua conta do Google Play até a cancelares. Cancela quando quiseres na app Play Store, em Pagamentos e subscrições › Subscrições.",
+      });
+    }
+    return t("paywall_legal_android", {
+      price: `${sel.priceString}${periodSuffix(sel)}`,
+      defaultValue:
+        "Subscrição com renovação automática: {{price}}, cobrada na tua conta do Google Play até a cancelares. Cancela quando quiseres na app Play Store, em Pagamentos e subscrições › Subscrições.",
+    });
+  }
+
+  // Depois de pagar/restaurar, com o direito já ativo no aparelho
+  function outcomeMsg(o: PurchaseOutcome, restored: boolean): string {
+    if (o === "sandbox") {
+      return t("paywall_active_sandbox", {
+        defaultValue:
+          "✓ Compra de teste: o plano fica ativo só neste dispositivo. As compras de teste não chegam à tua conta, por isso os perfis novos não sincronizam.",
+      });
+    }
+    if (o === "pending_server") {
+      return t("paywall_active_pending", {
+        defaultValue:
+          "✓ Plano ativo neste dispositivo. A confirmação na tua conta está a demorar: os perfis novos sincronizam assim que chegar.",
+      });
+    }
+    return restored
+      ? t("paywall_restored", { defaultValue: "✓ Compra restaurada." })
+      : t("paywall_active", { defaultValue: "✓ Plano ativo! Já podes criar mais perfis." });
+  }
+
+  function errorMsg(k: PurchaseErrorKind, restoring: boolean): string {
+    if (k === "pending") {
+      return t("paywall_payment_pending", {
+        defaultValue: "Pagamento pendente. O plano ativa-se sozinho assim que o Google Play confirmar o pagamento.",
+      });
+    }
+    if (k === "already_owned") {
+      return t("paywall_already_owned", {
+        defaultValue: "Esta conta Google já tem a subscrição. Toca em «Restaurar compra» para a recuperar.",
+      });
+    }
+    if (k === "in_use") {
+      return t("paywall_in_use_other_account", {
+        defaultValue:
+          "Esta subscrição do Google Play está associada a outra conta WrapSheet. Entra com essa conta para a usares.",
+      });
+    }
+    return restoring
+      ? t("paywall_nothing_restore", { defaultValue: "Não encontrámos nenhuma compra para restaurar." })
+      : t("paywall_error", { defaultValue: "Não foi possível concluir a compra. Tenta novamente." });
+  }
+
   async function onBuy() {
     if (!selectedId) return;
 
@@ -141,20 +240,30 @@ export default function ProfilePaywallScreen() {
     setBusy("buy");
     setMsg(null);
     const r = await buyPackageById(selectedId);
-    setBusy(null);
+    // iOS: o botão volta logo, como sempre. Android: fica ocupado até ao fim.
+    if (!play) setBusy(null);
     if (r.ok) {
+      if (play) setDone(true);
       // A compra passou, mas o direito só é utilizável quando o webhook do
       // RevenueCat escrever na BD — é o que o trigger do servidor verifica.
       // Esperar aqui evita criar perfis nesse intervalo, que ficariam presos
       // no dispositivo sem nunca sincronizar.
       setMsg(t("paywall_activating", { defaultValue: "A ativar o plano…" }));
-      if (user?.id) await waitForServerEntitlement(user.id);
-      setMsg(t("paywall_active", { defaultValue: "✓ Plano ativo! Já podes criar mais perfis." }));
-      setTimeout(() => router.back(), 1400);
-    } else if (r.cancelled) {
-      // silêncio: o utilizador cancelou
+      const onServer = user?.id ? await waitForServerEntitlement(user.id) : false;
+      setBusy(null);
+      // Android: se a BD não confirmou (webhook atrasado, ou compra de teste
+      // que nunca lá chega) diz-se a verdade — o plano já funciona neste
+      // aparelho na mesma (ponte do RevenueCat), e fica-se aqui a ler.
+      const o = purchaseOutcome(Platform.OS, onServer, !!r.sandbox);
+      setMsg(outcomeMsg(o, false));
+      if (o === "active") setTimeout(() => router.back(), 1400);
     } else {
-      setMsg(t("paywall_error", { defaultValue: "Não foi possível concluir a compra. Tenta novamente." }));
+      setBusy(null);
+      if (r.cancelled) return; // silêncio: o utilizador cancelou
+      const k = purchaseErrorKind(Platform.OS, r.code);
+      // Pagamento pendente: a Google ainda o pode cobrar — não se vende outra vez
+      if (k === "pending") setDone(true);
+      setMsg(errorMsg(k, false));
     }
   }
 
@@ -163,14 +272,16 @@ export default function ProfilePaywallScreen() {
     setMsg(null);
     const r = await restorePurchases();
     // Tal como na compra: o direito só serve depois de chegar à BD.
-    if (r.ok && user?.id) await waitForServerEntitlement(user.id);
+    const onServer = r.ok && user?.id ? await waitForServerEntitlement(user.id) : false;
     setBusy(null);
-    setMsg(
-      r.ok
-        ? t("paywall_restored", { defaultValue: "✓ Compra restaurada." })
-        : t("paywall_nothing_restore", { defaultValue: "Não encontrámos nenhuma compra para restaurar." })
-    );
-    if (r.ok) setTimeout(() => router.back(), 1400);
+    if (!r.ok) {
+      setMsg(errorMsg(purchaseErrorKind(Platform.OS, r.code), true));
+      return;
+    }
+    if (play) setDone(true);
+    const o = purchaseOutcome(Platform.OS, onServer, !!r.sandbox);
+    setMsg(outcomeMsg(o, true));
+    if (o === "active") setTimeout(() => router.back(), 1400);
   }
 
   return (
@@ -207,8 +318,19 @@ export default function ProfilePaywallScreen() {
 
         {(canBuy || webBuy) ? (
           <View style={s.section}>
-            {loadingPkgs ? (
+            {loadingPkgs || hasPlan === null ? (
               <ActivityIndicator color={COLORS.text} style={{ paddingVertical: 20 }} />
+            ) : hasPlan ? (
+              <Text style={s.body}>
+                {t("paywall_already_team", {
+                  defaultValue: "Já tens o plano Equipa nesta conta. Gere a subscrição em Definições › Subscrição.",
+                })}
+              </Text>
+            ) : done ? (
+              <>
+                {!!busy && <ActivityIndicator color={COLORS.text} style={{ paddingTop: 6 }} />}
+                {msg && <Text style={s.msg}>{msg}</Text>}
+              </>
             ) : packages.length === 0 ? (
               <>
                 <Text style={s.body}>
@@ -278,9 +400,9 @@ export default function ProfilePaywallScreen() {
                     <Text style={s.btnText}>{t("paywall_cta", { defaultValue: "Subscrever" })}</Text>
                   )}
                 </Pressable>
-                {/* Restaurar é próprio do IAP da Apple: recupera uma compra
-                    feita noutro dispositivo com o mesmo Apple ID. No Stripe não
-                    existe nem faz falta — o direito está preso à conta. */}
+                {/* Restaurar é próprio das lojas: recupera uma compra feita
+                    noutro dispositivo com o mesmo Apple ID ou conta Google. No
+                    Stripe não existe nem faz falta — o direito está preso à conta. */}
                 {canBuy && (
                   <Pressable onPress={onRestore} disabled={!!busy} style={{ marginTop: 12, alignSelf: "center", padding: 6 }}>
                     <Text style={s.restore}>
@@ -291,7 +413,9 @@ export default function ProfilePaywallScreen() {
                   </Pressable>
                 )}
                 <Text style={s.legal}>
-                  {canBuy
+                  {legal === "google"
+                    ? playLegalText()
+                    : legal === "apple"
                     ? t("paywall_legal", {
                         defaultValue:
                           "Subscrição que renova automaticamente. Cancela quando quiseres nas Definições da App Store.",

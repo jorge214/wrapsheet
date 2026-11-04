@@ -30,8 +30,15 @@ import {
 } from "../../src/storage/projects";
 import { useAuth } from "../../src/auth/AuthContext";
 import { getMaxProfiles, HARD_MAX_PROFILES, waitForServerEntitlement } from "../../src/lib/entitlements";
+import { getActiveEntitlement } from "../../src/lib/purchases";
+import { rejectedProfileNotice, storeAware } from "../../src/lib/storeRules";
 import { consumeProfileRejected, deleteProfileFromCloud } from "../../src/sync/syncService";
 import { useTheme } from "../../src/theme/ThemeProvider";
+
+// Android: o aviso de perfil recusado a quem JÁ pagou mostra-se uma vez por
+// sessão — o servidor volta a recusar a cada sincronização até a linha chegar
+// (ou nunca, numa compra de teste), e repetir o aviso era um ciclo de erros.
+let paidNoticeShown = false;
 
 export default function ProfilesListScreen() {
   const { COLORS, mode } = useTheme();
@@ -80,13 +87,31 @@ export default function ProfilesListScreen() {
     // O servidor recusou algum perfil (acima do plano)? Sem isto, o perfil
     // ficava a funcionar só neste aparelho e o utilizador não percebia porquê.
     if (consumeProfileRejected()) {
-      const title = t("profile_not_synced_title", { defaultValue: "Perfil não sincronizado" });
-      const msg = t("profile_not_synced_msg", {
-        defaultValue:
-          "Um perfil ficou só neste dispositivo porque o teu plano não o permite. Subscreve para o guardar na tua conta e o veres nos outros dispositivos.",
-      });
-      if (Platform.OS === "web") (window as any).alert(`${title}\n${msg}`);
-      else Alert.alert(title, msg);
+      // Já pagou (RevenueCat ativo no aparelho) e a BD ainda não confirmou?
+      // Então não se manda subscrever outra vez (ver storeRules.ts).
+      const ent = storeAware(Platform.OS) ? await getActiveEntitlement() : null;
+      const kind = rejectedProfileNotice(Platform.OS, ent);
+      if (kind === "subscribe" || !paidNoticeShown) {
+        if (kind !== "subscribe") paidNoticeShown = true;
+        const title = t("profile_not_synced_title", { defaultValue: "Perfil não sincronizado" });
+        const msg =
+          kind === "sandbox"
+            ? t("profile_not_synced_sandbox_msg", {
+                defaultValue:
+                  "Com uma compra de teste, os perfis extra ficam só neste dispositivo e não sobem para a tua conta.",
+              })
+            : kind === "pending_server"
+            ? t("profile_not_synced_pending_msg", {
+                defaultValue:
+                  "Este perfil está, para já, só neste dispositivo: a confirmação da tua subscrição ainda não chegou à conta. Sobe sozinho assim que chegar.",
+              })
+            : t("profile_not_synced_msg", {
+                defaultValue:
+                  "Um perfil ficou só neste dispositivo porque o teu plano não o permite. Subscreve para o guardar na tua conta e o veres nos outros dispositivos.",
+              });
+        if (Platform.OS === "web") (window as any).alert(`${title}\n${msg}`);
+        else Alert.alert(title, msg);
+      }
     }
   }
 

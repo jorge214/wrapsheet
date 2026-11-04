@@ -6,15 +6,18 @@
 //
 // Ordem de decisão (fica com o valor MAIS ALTO de qualquer sinal, teto 10):
 //   1) linha em `entitlements` válida (active e não expirada) -> max_profiles
-//   2) iOS: direito ativo no RevenueCat no próprio device -> 10 (imediato pós-compra)
+//   2) iOS/Android: direito ativo no RevenueCat no próprio device -> 10 (imediato pós-compra)
 //   3) compatibilidade: app_metadata.profiles_unlocked === true -> 10
 //   4) caso contrário -> 1 (plano gratuito)
 // O passo 2 é a ponte imediata: a seguir a comprar, o RevenueCat no device já
 // dá o direito antes de o webhook escrever no `entitlements` (fonte partilhada).
+// Igual no iOS e no Android — e é também o que deixa usar o plano neste aparelho
+// numa compra de teste, cujo evento nunca chega à BD de produção.
 // Se a tabela ainda não existir (ex.: produção antes da migração 0002) ou a
 // rede falhar, cai nos outros passos — nunca rebenta nem bloqueia o utilizador.
 import { supabase } from "./supabase";
 import { hasActiveEntitlement } from "./purchases";
+import type { EntitlementRow } from "./storeRules";
 
 export const FREE_MAX_PROFILES = 1;
 export const UNLOCKED_MAX_PROFILES = 10;
@@ -61,6 +64,25 @@ export async function waitForServerEntitlement(
   return false;
 }
 
+/**
+ * A linha do utilizador em `entitlements`, tal como está — null se não houver
+ * (ou sem rede). O paywall do Android usa-a para não vender por cima de uma
+ * renovação a caminho (linha ativa cujo expires_at acabou de passar).
+ */
+export async function readServerEntitlement(userId: string): Promise<EntitlementRow | null> {
+  if (!userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from("entitlements")
+      .select("max_profiles, active, expires_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    return error || !data ? null : (data as EntitlementRow);
+  } catch {
+    return null;
+  }
+}
+
 export async function getMaxProfiles(user: UserLike): Promise<number> {
   if (!user?.id) return FREE_MAX_PROFILES;
 
@@ -86,7 +108,7 @@ export async function getMaxProfiles(user: UserLike): Promise<number> {
     // offline / tabela inexistente -> segue para os outros sinais
   }
 
-  // 2) Ponte imediata no iOS: direito ativo no RevenueCat no próprio device.
+  // 2) Ponte imediata (iOS e Android): direito ativo no RevenueCat no próprio device.
   //    Cobre o intervalo entre a compra e o webhook escrever no entitlements.
   if (best < UNLOCKED_MAX_PROFILES) {
     try {

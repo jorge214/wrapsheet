@@ -583,5 +583,22 @@
   "he_mode_typed_any": "Scritto a mano: {{list}}. Un valore scritto a mano prevale su questa scelta; cancellalo per usare quello automatico.",
   "privacy_hidden_value": "Importo nascosto",
   "privacy_hide_values": "Nascondi importi",
-  "privacy_show_values": "Mostra importi"
+  "privacy_show_values": "Mostra importi",
+  "profile_not_synced_sandbox_msg": "Con un acquisto di prova, i profili extra restano solo su questo dispositivo e non vengono caricati sul tuo account.",
+  "profile_not_synced_pending_msg": "Per ora questo profilo è solo su questo dispositivo: la conferma del tuo abbonamento non è ancora arrivata al tuo account. Verrà caricato da solo appena arriva.",
+  "paywall_b4_android": "Si sincronizza su telefono, tablet e computer",
+  "plan_legal_android": "Abbonamento con rinnovo automatico, addebitato sul tuo account Google Play finché non lo annulli. Annullalo quando vuoi nell'app Play Store, in Pagamenti e abbonamenti › Abbonamenti.",
+  "paywall_legal_android": "Abbonamento con rinnovo automatico: {{price}}, addebitato sul tuo account Google Play finché non lo annulli. Annullalo quando vuoi nell'app Play Store, in Pagamenti e abbonamenti › Abbonamenti.",
+  "paywall_active_sandbox": "✓ Acquisto di prova: il piano è attivo solo su questo dispositivo. Gli acquisti di prova non arrivano al tuo account, quindi i nuovi profili non si sincronizzano.",
+  "paywall_active_pending": "✓ Piano attivo su questo dispositivo. La conferma sul tuo account sta tardando: i nuovi profili si sincronizzeranno appena arriva.",
+  "paywall_payment_pending": "Pagamento in sospeso. Il piano si attiverà da solo appena Google Play confermerà il pagamento.",
+  "paywall_already_owned": "Questo account Google ha già l'abbonamento. Tocca «Ripristina acquisto» per recuperarlo.",
+  "paywall_in_use_other_account": "Questo abbonamento Google Play è associato a un altro account WrapSheet. Accedi con quell'account per usarlo.",
+  "paywall_already_team": "Hai già il piano Squadra su questo account. Gestisci l'abbonamento in Impostazioni › Abbonamento.",
+  "auth_delete_sub_note_play": "Eliminare l'account non annulla l'abbonamento Google Play. Annullalo prima nell'app Play Store, in Pagamenti e abbonamenti › Abbonamenti.",
+  "auth_delete_sub_note": "Eliminare l'account non annulla l'abbonamento. Annullalo prima dove l'hai sottoscritto.",
+  "plan_manage_cta": "Gestisci abbonamento",
+  "plan_manage_note_play": "Gestisci o annulla l'abbonamento nell'app Play Store, in Pagamenti e abbonamenti › Abbonamenti.",
+  "plan_manage_note_apple_device": "Ti sei abbonato su iPhone o iPad: gestisci o annulla l'abbonamento nelle impostazioni dell'App Store di quel dispositivo.",
+  "plan_manage_note_elsewhere": "Ti sei abbonato su un'altra piattaforma: gestisci o annulla l'abbonamento dove l'hai sottoscritto."
 }

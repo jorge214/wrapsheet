@@ -1,7 +1,8 @@
 // src/lib/webCheckout.ts
 // Compra pelo COMPUTADOR (Stripe). A Apple não deixa vender fora da app no
-// iOS, por isso isto só corre na web — no iPhone/iPad a compra é sempre pelo
-// IAP (ver src/lib/purchases.ts).
+// iOS, nem a Google Play no Android (política de pagamentos), por isso isto só
+// corre na web — nas apps a compra é sempre a da loja do aparelho (ver
+// src/lib/purchases.ts) e a Stripe nunca aparece nem é mencionada lá.
 //
 // O direito acaba na MESMA tabela `entitlements`, com source='stripe'. Para o
 // resto da app é indiferente por onde foi pago: quem tem direito tem 10 perfis
@@ -11,7 +12,7 @@ import { supabase } from "./supabase";
 
 export type WebPlan = "monthly" | "yearly";
 
-/** Dá para comprar aqui? (só na web — no iOS a compra é pelo IAP da Apple) */
+/** Dá para comprar aqui? (só na web — nas apps a compra é a da loja do aparelho) */
 export function isWebCheckoutAvailable(): boolean {
   return Platform.OS === "web";
 }

@@ -127,11 +127,14 @@ deixa de chegar às builds antigas, que só se atualizam pela loja.
 
 **Publicar uma OTA de produção** tem três armadilhas: `.env.local` aponta à
 Supabase de DEV (pô-lo de lado e `EXPO_NO_DOTENV=1`), a cache do Metro guarda
-o URL inlinado (`--clear-cache`) e a chave `EXPO_PUBLIC_REVENUECAT_IOS_KEY` do
-`eas.json` NÃO entra num `eas update` (exportá-la no comando). Depois de
-publicar, `node scripts/ota-verifica.mjs <id-do-update-iOS>` pede o manifesto
-de produção e prova o bundle que os iPhones vão receber (Supabase de produção,
-sem dev, chave `appl_`, código novo). O bundle iOS é bytecode Hermes: strings
+o URL inlinado (`--clear-cache`) e as chaves `EXPO_PUBLIC_REVENUECAT_IOS_KEY` e
+`EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` do `eas.json` NÃO entram num `eas update`
+(exportar AS DUAS no comando — sem a `goog_`, o Android volta em silêncio a
+"subscrição ainda não disponível"). Depois de publicar,
+`node scripts/ota-verifica.mjs <id-do-update> [ios|android]` (uma vez por
+plataforma, iOS por omissão) pede o manifesto de produção e prova o bundle que
+os aparelhos vão receber (Supabase de produção, sem dev, a chave da loja dessa
+plataforma — `appl_` ou `goog_` —, código novo). O bundle iOS é bytecode Hermes: strings
 com acentos estão em UTF-16, o `grep` diz "Binary file" e mente.
 
 ## Antes de dizer que está feito

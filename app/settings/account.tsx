@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -12,10 +13,20 @@ import {
   Text,
   TextInput,
   View,
+  type AlertButton,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../src/auth/AuthContext";
+import { getMaxProfiles } from "../../src/lib/entitlements";
+import { getActiveEntitlement } from "../../src/lib/purchases";
+import {
+  deleteAccountNote,
+  playManageUrl,
+  showsTeamPlan,
+  storeAware,
+  type RcEntitlement,
+} from "../../src/lib/storeRules";
 import { supabase } from "../../src/lib/supabase";
 import { clearLocalUserData, forgetLastUser } from "../../src/storage/clearLocal";
 import { useTheme } from "../../src/theme/ThemeProvider";
@@ -32,6 +43,27 @@ export default function AccountScreen() {
   const [signingOut, setSigningOut] = useState(false);
 
   const s = styles(COLORS, mode);
+
+  // Android: o plano real (e a loja onde foi comprado) — para a secção
+  // Subscrição e para o aviso ao apagar a conta. iOS e web ficam como estavam.
+  const [maxProfiles, setMaxProfiles] = useState(1);
+  const [ent, setEnt] = useState<RcEntitlement | null>(null);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!storeAware(Platform.OS) || !user?.id) return;
+      let alive = true;
+      (async () => {
+        const [max, e] = await Promise.all([getMaxProfiles(user as any), getActiveEntitlement()]);
+        if (!alive) return;
+        setMaxProfiles(max);
+        setEnt(e);
+      })();
+      return () => {
+        alive = false;
+      };
+    }, [user?.id])
+  );
+  const team = showsTeamPlan(Platform.OS, maxProfiles);
 
   async function handleChangePassword() {
     if (!newPassword || newPassword.length < 6) {
@@ -80,10 +112,37 @@ export default function AccountScreen() {
       setConfirmDeleteOpen(true);
       return;
     }
-    Alert.alert(t("auth_delete_account"), t("auth_delete_account_confirm"), [
+    // Android: apagar a conta não cancela a subscrição na loja (a Google
+    // continuava a cobrar) — avisa e, com a Google Play, dá logo o caminho.
+    const note = deleteAccountNote(Platform.OS, maxProfiles, ent);
+    const extra =
+      note === "google"
+        ? t("auth_delete_sub_note_play", {
+            defaultValue:
+              "Apagar a conta não cancela a subscrição do Google Play. Cancela-a primeiro na app Play Store, em Pagamentos e subscrições › Subscrições.",
+          })
+        : note === "elsewhere"
+        ? t("auth_delete_sub_note", {
+            defaultValue: "Apagar a conta não cancela a subscrição. Cancela-a primeiro onde a fizeste.",
+          })
+        : null;
+    const buttons: AlertButton[] = [
       { text: t("cancel"), style: "cancel" },
       { text: t("delete"), style: "destructive", onPress: doDeleteAccount },
-    ]);
+    ];
+    if (note === "google") {
+      buttons.unshift({
+        text: t("plan_manage_cta", { defaultValue: "Gerir subscrição" }),
+        onPress: () => {
+          Linking.openURL(playManageUrl(ent?.productId)).catch(() => {});
+        },
+      });
+    }
+    Alert.alert(
+      t("auth_delete_account"),
+      extra ? `${t("auth_delete_account_confirm")}\n\n${extra}` : t("auth_delete_account_confirm"),
+      buttons
+    );
   }
 
   async function doDeleteAccount() {
@@ -135,8 +194,17 @@ export default function AccountScreen() {
           <View style={s.row}>
             <Ionicons name="star-outline" size={20} color={COLORS.sub} style={{ marginRight: 10 }} />
             <View style={{ flex: 1 }}>
-              <Text style={s.rowTitle}>{t("account_free_plan")}</Text>
-              <Text style={s.rowSub}>{t("account_pro_soon")}</Text>
+              <Text style={s.rowTitle}>
+                {team ? t("plan_team_name", { defaultValue: "Equipa" }) : t("account_free_plan")}
+              </Text>
+              <Text style={s.rowSub}>
+                {team
+                  ? t("plan_team_active_desc", {
+                      n: maxProfiles,
+                      defaultValue: "Podes ter até {{n}} perfis nesta conta.",
+                    })
+                  : t("account_pro_soon")}
+              </Text>
             </View>
             <Pressable
               onPress={() => router.push("/settings/plan")}

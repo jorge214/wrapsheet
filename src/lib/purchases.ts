@@ -5,25 +5,32 @@
 // TUDO é lazy: o SDK nativo `react-native-purchases` NÃO existe no Expo Go nem
 // na web. Por isso nunca se importa no topo — carrega-se com require() dentro de
 // try, e qualquer chamada degrada em silêncio se não estiver disponível. Assim o
-// Expo Go/web continuam a correr; o paywall real só funciona numa build EAS iOS.
+// Expo Go/web continuam a correr; o paywall real só funciona numa build EAS (iOS,
+// e Android assim que a chave `goog_…` entrar no bundle).
 //
 // Há DOIS produtos (mensal e anual) mas UM só entitlement (`profiles_10` -> 10
 // perfis). O paywall lê os pacotes da offering "current" e deixa o utilizador
 // escolher; ambos concedem o mesmo direito.
 //
-// Fluxo: compra -> a Apple confirma -> RevenueCat -> webhook (Edge Function)
-// escreve max_profiles=10 no `entitlements` do Supabase -> o cliente
-// (getMaxProfiles) lê de lá em todas as plataformas. O entitlement do RevenueCat
-// é a fonte imediata no iOS; o Supabase é a fonte partilhada (web/android).
+// Fluxo: compra -> a loja (Apple / Google Play) confirma -> RevenueCat -> webhook
+// (Edge Function) escreve max_profiles=10 no `entitlements` do Supabase -> o
+// cliente (getMaxProfiles) lê de lá em todas as plataformas. O entitlement do
+// RevenueCat é a fonte imediata no próprio aparelho (iOS e Android); o Supabase
+// é a fonte partilhada. O que muda de loja para loja (textos, links, mensagens)
+// vive em storeRules.ts.
 import { Platform } from "react-native";
+import { nativeStore, rcKeyFor, type RcEntitlement } from "./storeRules";
 
 // Chaves PÚBLICAS do RevenueCat — seguras no cliente, vêm de env. Enquanto a
 // do Android não existir (produtos ainda por criar na Play Console), as compras
 // ficam desligadas nessa plataforma sem partir nada: isPurchasesAvailable()
-// devolve falso e o paywall mostra a alternativa, tal como já fazia.
+// devolve falso e o paywall mostra a alternativa, tal como já fazia. Num `eas
+// update` nenhuma das duas vem do eas.json: exportam-se no comando (CLAUDE.md).
 const RC_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || "";
 const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || "";
-// IDs definidos na App Store Connect / RevenueCat
+// Entitlement do RevenueCat (o mesmo nas duas lojas) e IDs dos produtos na App
+// Store Connect. Os da Google Play ("subscrição:plano-base") não precisam de
+// estar aqui: a app compra pelos pacotes da offering.
 export const RC_ENTITLEMENT_ID = "profiles_10";
 export const IAP_MONTHLY_ID = "wrapsheet_profiles10_monthly";
 export const IAP_YEARLY_ID = "wrapsheet_profiles10_yearly";
@@ -32,13 +39,11 @@ let configuredFor: string | null = null;
 
 /** Chave da loja desta plataforma ("" desliga as compras aqui). */
 function storeKey(): string {
-  if (Platform.OS === "ios") return RC_IOS_KEY;
-  if (Platform.OS === "android") return RC_ANDROID_KEY;
-  return ""; // web: a compra é pela Stripe (ver src/lib/webCheckout.ts)
+  return rcKeyFor(Platform.OS, { ios: RC_IOS_KEY, android: RC_ANDROID_KEY });
 }
 
 function getSDK(): any | null {
-  if (Platform.OS !== "ios" && Platform.OS !== "android") return null;
+  if (!nativeStore(Platform.OS)) return null; // web: a compra é pela Stripe
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require("react-native-purchases").default;
@@ -76,6 +81,24 @@ export async function hasActiveEntitlement(): Promise<boolean> {
     return !!info?.entitlements?.active?.[RC_ENTITLEMENT_ID];
   } catch {
     return false;
+  }
+}
+
+/**
+ * O direito ativo segundo o RevenueCat: em que loja foi comprado, que produto e
+ * se é compra de teste (sandbox). null se não houver, ou sem SDK/chave. Serve
+ * para os textos e o link de gestão dependerem da loja (ver storeRules.ts).
+ */
+export async function getActiveEntitlement(): Promise<RcEntitlement | null> {
+  const P = getSDK();
+  if (!P) return null;
+  try {
+    const info = await P.getCustomerInfo();
+    const e = info?.entitlements?.active?.[RC_ENTITLEMENT_ID];
+    if (!e) return null;
+    return { store: String(e.store ?? ""), productId: String(e.productIdentifier ?? ""), sandbox: !!e.isSandbox };
+  } catch {
+    return null;
   }
 }
 
@@ -140,7 +163,13 @@ export async function getPlanPackages(): Promise<PlanPkg[]> {
   }
 }
 
-type BuyResult = { ok: boolean; cancelled?: boolean; error?: string };
+// code = código do erro do RevenueCat (Purchases.PURCHASES_ERROR_CODE, em
+// texto: "20" = pagamento pendente…); sandbox = compra de teste.
+type BuyResult = { ok: boolean; cancelled?: boolean; error?: string; code?: string; sandbox?: boolean };
+
+function errorResult(e: any): BuyResult {
+  return { ok: false, error: String(e?.message ?? e), code: e?.code != null ? String(e.code) : undefined };
+}
 
 /** Compra o package escolhido (por identificador). ok=true se ficou com o direito. */
 export async function buyPackageById(id: string): Promise<BuyResult> {
@@ -152,21 +181,24 @@ export async function buyPackageById(id: string): Promise<BuyResult> {
     const pkg = pkgs.find((p) => p.identifier === id) ?? pkgs[0];
     if (!pkg) return { ok: false, error: "no_offering" };
     const { customerInfo } = await P.purchasePackage(pkg);
-    return { ok: !!customerInfo?.entitlements?.active?.[RC_ENTITLEMENT_ID] };
+    const ent = customerInfo?.entitlements?.active?.[RC_ENTITLEMENT_ID];
+    return { ok: !!ent, sandbox: !!ent?.isSandbox };
   } catch (e: any) {
     if (e?.userCancelled) return { ok: false, cancelled: true };
-    return { ok: false, error: String(e?.message ?? e) };
+    return errorResult(e);
   }
 }
 
-/** Restaurar compras (obrigatório pela Apple). */
+/** Restaurar compras (obrigatório pela Apple; no Android recupera a compra
+ *  feita com a mesma conta Google). */
 export async function restorePurchases(): Promise<BuyResult> {
   const P = getSDK();
   if (!P) return { ok: false, error: "unavailable" };
   try {
     const info = await P.restorePurchases();
-    return { ok: !!info?.entitlements?.active?.[RC_ENTITLEMENT_ID] };
+    const ent = info?.entitlements?.active?.[RC_ENTITLEMENT_ID];
+    return { ok: !!ent, sandbox: !!ent?.isSandbox };
   } catch (e: any) {
-    return { ok: false, error: String(e?.message ?? e) };
+    return errorResult(e);
   }
 }

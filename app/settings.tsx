@@ -6,6 +6,9 @@ import { useTranslation } from "react-i18next";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../src/theme/ThemeProvider";
+import { useAuth } from "../src/auth/AuthContext";
+import { getMaxProfiles } from "../src/lib/entitlements";
+import { showsTeamPlan, storeAware } from "../src/lib/storeRules";
 import { getPreset } from "../src/constants/countryPresets";
 import { getSettings } from "../src/storage/appSettings";
 import { canInstall, detectBrowser, isStandalone, promptInstall } from "../src/ui/pwaInstall";
@@ -14,13 +17,29 @@ export default function SettingsScreen() {
   const { COLORS } = useTheme();
   const { t } = useTranslation();
   const isWide = useIsWide();
+  const { user } = useAuth();
 
   const [regionCode, setRegionCode] = React.useState<string>("pt");
+  const [maxProfiles, setMaxProfiles] = React.useState(1);
 
   useFocusEffect(
     React.useCallback(() => {
       getSettings().then((s) => setRegionCode(s.region ?? "pt"));
     }, [])
+  );
+
+  // Android: o plano real em vez de "Plano gratuito" (iOS e web como estavam)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!storeAware(Platform.OS) || !user?.id) return;
+      let alive = true;
+      getMaxProfiles(user as any).then((m) => {
+        if (alive) setMaxProfiles(m);
+      });
+      return () => {
+        alive = false;
+      };
+    }, [user?.id])
   );
 
   const preset = getPreset(regionCode);
@@ -135,7 +154,9 @@ export default function SettingsScreen() {
                 {t("settings_current_plan", { defaultValue: "Plano atual" })}
               </Text>
               <Text style={[ss.rowSub, { color: COLORS.sub }]}>
-                {t("settings_plan_free", { defaultValue: "Experimental gratuito" })}
+                {showsTeamPlan(Platform.OS, maxProfiles)
+                  ? t("plan_team_name", { defaultValue: "Equipa" })
+                  : t("settings_plan_free", { defaultValue: "Experimental gratuito" })}
               </Text>
             </View>
 
