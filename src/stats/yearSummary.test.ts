@@ -253,4 +253,33 @@ describe("resumo do ano: impostos e horas extra", () => {
     // → IRS 57,50 cada → 115,00 no ano
     expect(y.totalIRS).toBe(115);
   });
+// Decisão do Jorge (06/11/2026): a recuperação ENTRE SEMANAS do cinema é
+  // dinheiro a receber (entra no bruto), mas NÃO são horas extra — nem no mês
+  // nem no ano. Só a recuperação diária (< 11h entre dois dias seguidos) conta.
+  it("cinema: a recuperação entre semanas entra nos euros, não nas horas extra", async () => {
+    mem.clear();
+    // Semana 1000 € ÷ 5 dias = 200 €/dia; ÷ 10h = 20 €/h (hora-base).
+    // Recuperação: hora-base × 3 (multHR por omissão) = 60 €/h, a DOBRAR (×2,
+    // como as folgas) = 120 €/h — a regra de cinema.test.ts (rateHR_folga).
+    // Sex 05/06 13:00–23:00 = 10h → 200 €, sem HE.
+    // Descanso até seg 08/06 07:00: 1h + 24h + 24h + 7h = 56h < 60h
+    //   → défice 4h de recuperação a 120 €/h = 480 €. Bruto 200 + 480 = 680 €.
+    guarda({
+      id: "c1", profileId: "A", formato: "cinema", perfil: {},
+      projeto: { titulo: "Semana 23", mes: 6, ano: 2026 },
+      tabela: { salarioDia: 0, salarioSemana: 1000, diasSemana: 5, horasBase: 10, H_dia: 11, descanso_min: 11, multFolga: 2 },
+      fiscal: { IRS_percent: 25, IVA_percent: 23, SS_percent: 11 },
+      cinema: { proximaSemana: { data: "2026-06-08", inicio: "07:00" } },
+      notas: "", condicoes: "", condTitulo: "", pago: false,
+      dias: [dia("2026-06-05", "13:00", "23:00")],
+      updatedAt: "2026-11-01T10:00:00.000Z",
+    });
+    const m = await getMonthSummary(6, 2026, "A");
+    expect(m.totalValorBruto).toBe(680);
+    expect(m.totalHorasExtra).toBe(0);
+    const y = await getYearSummary(2026, "A");
+    expect(y.totalHorasExtra).toBe(0);
+    // IRS 25% sobre os 680 € (a recuperação é rendimento): 170 €
+    expect(y.totalIRS).toBe(170);
+  });
 });

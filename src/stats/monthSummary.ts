@@ -62,7 +62,10 @@ function calcComFiscal(p: any, eff: FiscalRegiao) {
   return calcProject(p, { irs: irsPct, iva: ivaPct, SS_percent: rawFiscal.SS_percent } as any);
 }
 
-/** Minutos de horas extra de um projeto calculado (A + B + recuperação). */
+/** Minutos de horas extra de um projeto calculado (A + B + recuperação DIÁRIA).
+ *  A recuperação ENTRE SEMANAS do cinema (pc.semana.HR_h) fica de fora de
+ *  propósito: é dinheiro (entra no bruto), não horas extra — decisão do Jorge,
+ *  06/11/2026; fixada em yearSummary.test.ts. */
 function minutosExtra(pc: ReturnType<typeof calcProject>): number {
   let total = 0;
   for (const dc of pc.calc as any[]) {
