@@ -1486,12 +1486,16 @@ export const DAY_BTNS_CSS = `
            duplicar por linha saiu: não pede confirmação e, colado ao caixote,
            um toque ao lado metia em silêncio um dia pago a mais na folha.
            Duplicar fica na barra de baixo, que atua sobre o dia em foco.
-           O caixote vai SEMPRE por baixo da descrição, numa pílula que enche
-           a coluna: a descrição tem largura FIXA de 72px (texto longo quebra
-           dentro dela) e o width:100% não entra na largura da tabela — enche
-           os 72px, ou mais quando o cabeçalho ou os interruptores do cinema
-           já alargaram a coluna. 72x36 px dá ~56x28 pt à escala a que o iPad
-           abre a folha (~0,78).
+           O caixote vai SEMPRE por baixo da descrição, num botão PEQUENO
+           (36x24 px), encostado à esquerda; a descrição tem largura FIXA de
+           72px (texto longo quebra dentro dela). Era uma pílula de 72x36 que
+           enchia a coluna e deixava cada linha com mais do dobro da altura —
+           grande demais (Jorge, 08/11/2026). O alvo grande para remover é o
+           "Remover dd/mm" da barra de baixo. Cantos de 7px e não de pílula:
+           a 36x24 os cantos de uma pílula ficam fora da forma e um toque lá
+           não fazia nada (30/45 toques reais); com 7px, 45/45 no telemóvel e
+           43/45 no iPad (os 2 são um dedo largo na borda de cima, que foca a
+           descrição). Folga/Feriado 45/45 em todos.
            O :active não é só enfeite. No Chromium (WebView do Android,
            Chrome) um elemento com estilo :active conta como "alvo de toque",
            e um toque num sítio que não é alvo nenhum é desviado para o alvo
@@ -1501,12 +1505,12 @@ export const DAY_BTNS_CSS = `
            inverso — o ajuste a mandar para um interruptor um toque que caiu
            EM CIMA do caixote — corrige-o o editorScript ("Toque desviado"). */
         table.days .ei.left { display: block; width: 72px; white-space: normal; }
-        .rowBtns { display: block; margin-top: 6px; }
+        .rowBtns { display: block; margin-top: 4px; }
         .rbtn { display: flex; align-items: center; justify-content: center;
-          width: 100%; height: 36px; box-sizing: border-box; border: 1.5px solid #c05050; border-radius: 999px;
+          width: 36px; height: 24px; box-sizing: border-box; border: 1px solid #c05050; border-radius: 7px;
           background: #fff; color: #c05050; cursor: pointer; user-select: none; -webkit-user-select: none;
           -webkit-tap-highlight-color: transparent; }
-        .rbtn .ico { width: 18px; height: 18px; pointer-events: none; }
+        .rbtn .ico { width: 14px; height: 14px; pointer-events: none; }
         .rbtn:active { background: #fde2e1; }
         /* Folha com um só dia: não há o que remover (a app recusa), por isso o
            caixote fica apagado e o toque não pergunta nada. Mantém o :active

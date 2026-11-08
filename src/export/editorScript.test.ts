@@ -260,13 +260,15 @@ describe("correções da revisão", () => {
     expect(DAY_BTNS_CSS).toMatch(/@media \(any-pointer: coarse\) \{\s*table\.days td \{ cursor: pointer;/);
   });
 
-  it("caixote: enche a coluna da descrição (>= 72px) e tem >= 34px de altura", () => {
-    // A descrição tem largura fixa de 72px; o caixote enche a coluna toda
-    // (width:100% não alarga a tabela) e é alto o bastante para o dedo.
+  it("caixote: pílula pequena (36x24) por baixo da descrição, que não estica a linha", () => {
+    // Era 72x36 a encher a coluna: cada linha ficava com mais do dobro da
+    // altura e o Jorge achou-o grande demais (08/11/2026). O alvo grande para
+    // remover é o "Remover dd/mm" da barra; os toques reais (CDP) no telemóvel
+    // e no iPad foram medidos com este tamanho.
     const m = /\.rbtn \{[^}]*?width: ([^;]+); height: (\d+)px/.exec(DAY_BTNS_CSS)!;
     expect(DAY_BTNS_CSS).toContain("table.days .ei.left { display: block; width: 72px;");
-    expect(m[1]).toBe("100%");
-    expect(Number(m[2])).toBeGreaterThanOrEqual(34);
+    expect(m[1]).toBe("36px");
+    expect(Number(m[2])).toBe(24);
     // Nada de ::after a alargar o toque (desviava toques dos vizinhos)
     expect(DAY_BTNS_CSS).not.toMatch(/\.rbtn[^{]*::?after/);
     // O :active fica: é ele que torna o caixote alvo de toque no Chromium
