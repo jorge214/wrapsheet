@@ -54,6 +54,9 @@ import { useDevicePref } from "../../src/ui/devicePref";
 import { projectsFormatPref, type FormatoFiltro } from "../../src/ui/projectsFormatPref";
 import { avisoFormato, naPasta, noFormato } from "../../src/format/formatFilter";
 
+// As cores de cada formato nos botões do perfil (app/profiles/[id].tsx)
+const FORMAT_COLOR = { publicidade: "#c00000", cinema: "#2e75b6" } as const;
+
 type Row = Project & { archived?: boolean };
 import { useAuth } from "../../src/auth/AuthContext";
 import { deleteProjectFromCloud, syncProjectToCloud } from "../../src/sync/syncService";
@@ -669,7 +672,9 @@ export default function ProjectsScreen() {
       </View>
 
       {/* Formato da folha: Todos / Publicidade / Cinema. Recorta a lista como o
-          mês, e o botão "+" cria já no formato que estiver escolhido. */}
+          mês, e o botão "+" cria já no formato que estiver escolhido.
+          Publicidade a vermelho e Cinema a azul, as mesmas cores dos botões
+          do perfil (Jorge, 09/11/2026); o escolhido cheio, os outros esbatidos. */}
       <View style={s.formatRow}>
         {([
           { key: "todos", label: t("format_all", { defaultValue: "Todos" }), n: formatCounts.todos },
@@ -677,14 +682,20 @@ export default function ProjectsScreen() {
           { key: "cinema", label: t("format_cinema", { defaultValue: "Cinema" }), n: formatCounts.cinema },
         ] as const).map((f) => {
           const on = formato === f.key;
+          const cor = FORMAT_COLOR[f.key as keyof typeof FORMAT_COLOR];
           return (
             <Pressable
               key={f.key}
               onPress={() => setFormato(f.key)}
-              style={({ pressed }) => [s.formatTab, on && s.formatTabOn, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [
+                s.formatTab,
+                cor ? { backgroundColor: cor, borderColor: cor } : on && s.formatTabOn,
+                cor && !on && s.formatTabOff,
+                pressed && { opacity: 0.85 },
+              ]}
             >
               <Text
-                style={[s.formatTabText, on && s.formatTabTextOn]}
+                style={[s.formatTabText, cor ? s.formatTabTextCor : on && s.formatTabTextOn]}
                 numberOfLines={1}
                 adjustsFontSizeToFit={Platform.OS !== "web"}
                 minimumFontScale={0.7}
@@ -1295,6 +1306,8 @@ const createStyles = (COLORS: any, mode: "light" | "dark") =>
     formatTabOn: { borderColor: COLORS.text, borderWidth: 1.5, backgroundColor: COLORS.card },
     formatTabText: { color: COLORS.sub, fontWeight: "800", fontSize: 12 },
     formatTabTextOn: { color: COLORS.text, fontWeight: "900" },
+    formatTabOff: { opacity: 0.4 },
+    formatTabTextCor: { color: "#fff", fontWeight: "900" },
 
     folderRow: {
       flexDirection: "row",
