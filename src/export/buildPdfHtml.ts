@@ -102,6 +102,7 @@ const STRINGS = {
     productionNif: "NIF:",
     totalDays: "Total Dias",
     issuedOn: "Emitido a",
+    madeWith: "Feito com",
     month: "Mês",
     week: "Semana",
     addDay: "Adicionar dia",
@@ -170,6 +171,7 @@ const STRINGS = {
     productionNif: "TAX ID:",
     totalDays: "Total Days",
     issuedOn: "Issued on",
+    madeWith: "Made with",
     month: "Month",
     week: "Week",
     addDay: "Add day",
@@ -237,6 +239,7 @@ const STRINGS = {
     productionNif: "NIF:",
     totalDays: "Total Días",
     issuedOn: "Emitido el",
+    madeWith: "Hecho con",
     month: "Mes",
     week: "Semana",
     addDay: "Añadir día",
@@ -304,6 +307,7 @@ const STRINGS = {
     productionNif: "SIRET :",
     totalDays: "Total Jours",
     issuedOn: "Émis le",
+    madeWith: "Réalisé avec",
     month: "Mois",
     week: "Semaine",
     addDay: "Ajouter un jour",
@@ -371,6 +375,7 @@ const STRINGS = {
     productionNif: "STEUERNR.:",
     totalDays: "Gesamttage",
     issuedOn: "Ausgestellt am",
+    madeWith: "Erstellt mit",
     month: "Monat",
     week: "Woche",
     addDay: "Tag hinzufügen",
@@ -438,6 +443,7 @@ const STRINGS = {
     productionNif: "P. IVA:",
     totalDays: "Totale giorni",
     issuedOn: "Emesso il",
+    madeWith: "Creato con",
     month: "Mese",
     week: "Settimana",
     addDay: "Aggiungi giorno",
@@ -505,6 +511,7 @@ const STRINGS = {
     productionNif: "BTW-NR:",
     totalDays: "Totaal dagen",
     issuedOn: "Uitgegeven op",
+    madeWith: "Gemaakt met",
     month: "Maand",
     week: "Week",
     addDay: "Dag toevoegen",
@@ -572,6 +579,7 @@ const STRINGS = {
     productionNif: "NIP:",
     totalDays: "Łącznie dni",
     issuedOn: "Wystawiono",
+    madeWith: "Utworzono w",
     month: "Miesiąc",
     week: "Tydzień",
     addDay: "Dodaj dzień",
@@ -639,6 +647,7 @@ const STRINGS = {
     productionNif: "VAT No.:",
     totalDays: "Total Days",
     issuedOn: "Issued on",
+    madeWith: "Made with",
     month: "Month",
     week: "Week",
     addDay: "Add day",
@@ -726,6 +735,24 @@ export function getStrings(locale: string, region?: string) {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
+
+/**
+ * Marca da app no PDF (só no PDF, nunca no editor): uma linha pequena e
+ * cinzenta, "Feito com WrapSheet · wrapsheet-app.com", com link. Cada folha vai
+ * parar a uma produção e é vista por quem ainda não conhece a app (Jorge,
+ * 17/11/2026). Discreta de propósito: a folha é do técnico, não nossa.
+ *
+ * Vive no espaço VAZIO à esquerda dos totais finais, em posição absoluta: não
+ * ocupa altura nenhuma e vai sempre na mesma página que os totais (que nunca
+ * partem). Como linha solta no fim da folha, empurrava para uma página nova
+ * as folhas que acabam rentes ao fundo (A3 com 25 dias e condições: 2 → 3
+ * páginas) — e com altura 0 o que transborda também abre página no Chromium.
+ */
+export function withBrand(totaisHtml: string, s: { madeWith: string }): string {
+  return `<div class="wsBrandWrap" style="position:relative;">${totaisHtml}` +
+    `<div class="wsBrand" style="position:absolute;left:0;bottom:1px;font-size:8.5px;line-height:1.2;color:#9a9a9a;white-space:nowrap;">` +
+    `${escapeHtml(s.madeWith)} <a href="https://wrapsheet-app.com" style="color:inherit;text-decoration:none;"><b style="color:#7a7a7a;">WrapSheet</b> · wrapsheet-app.com</a></div></div>`;
+}
 
 export function escapeHtml(s: string) {
   return String(s ?? "")
@@ -1386,12 +1413,12 @@ export function buildPdfHtml(
       </table>
 
       <div class="totalsTopSpacer"></div>
-      <table class="endTotals">
+      ${withBrand(`<table class="endTotals">
         <tr><th>${escapeHtml(s.vb)}</th><td>${fmt(totais.ValorBruto)}</td></tr>
         <tr><th>${escapeHtml(s.irs)}</th><td>${fmt(totais.IRS_valor)}</td></tr>
         <tr><th>${escapeHtml(s.iva)}</th><td>${fmt(totais.IVA_valor)}</td></tr>
         <tr class="net"><th>${escapeHtml(s.vf)}</th><td>${fmt(totais.ValorFinal)}</td></tr>
-      </table>
+      </table>`, s)}
 
       ${(() => {
         const ch = conditionsHtml(s, safeStr(perfil.nome), condicoes, extra);
@@ -1401,6 +1428,7 @@ export function buildPdfHtml(
       ${notas && notas.trim() ? `<div class="notesWrap"><div class="notesTitle">${escapeHtml(s.notes)}</div><div class="notesArea">${escapeHtml(notas)}</div></div>` : ""}
 
       ${taxDisclaimer ? `<div style="margin-top:8px;font-size:9px;color:#999;">${escapeHtml(taxDisclaimer)}</div>` : ""}
+
     </body>
   </html>
   `, extra?.fontScale);

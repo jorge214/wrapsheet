@@ -18,7 +18,7 @@ import { minutesToHM, ratesFor } from "../calc/engine";
 import type { CalcDia, Dia } from "../calc/types";
 import {
   applyFontScale, CE, conditionsHtml, currencySymbol, DAY_BTNS_CSS, dayBarHtml, edDate, edDi, edMi, edNum, edTi, edTime,
-  editorScript, escapeHtml, fmtMoney, fmtNum, formatDatePT, getMonthName, getStrings, rowBtnsHtml, safeStr, weekdayShort,
+  editorScript, escapeHtml, withBrand, fmtMoney, fmtNum, formatDatePT, getMonthName, getStrings, rowBtnsHtml, safeStr, weekdayShort,
   type PdfExtra, type PdfPerfil, type PdfProjeto, type PdfTabela, type PdfTotais,
 } from "./buildPdfHtml";
 
@@ -766,13 +766,13 @@ function render(
 
       ${editable ? `<div class="afterDays">
         ${dayBarHtml(s)}` : `<div class="totalsTopSpacer"></div>`}
-        <table class="endTotals">
+        ${((t: string) => (editable ? t : withBrand(t, s)))(`<table class="endTotals">
           <tr><th>${escapeHtml(s.vb)}</th><td${editable ? ` data-c="gross"` : ""}>${fmt(totais.ValorBruto)}</td></tr>
           <tr><th>${escapeHtml(s.irs)}</th><td${editable ? ` data-c="birs"` : ""}>${fmt(totais.IRS_valor)}</td></tr>
           <tr><th>${escapeHtml(s.iva)}</th><td${editable ? ` data-c="biva"` : ""}>${fmt(totais.IVA_valor)}</td></tr>
           <tr><th>${escapeHtml(s.ss)}</th><td${editable ? ` data-c="bss"` : ""}>${fmt(totais.SS_valor ?? 0)}</td></tr>
           <tr class="net"><th>${escapeHtml(s.vf)}</th><td${editable ? ` data-c="net"` : ""}>${fmt(totais.ValorFinal)}</td></tr>
-        </table>
+        </table>`)}
       ${editable ? `</div>` : ``}
 
       ${editable
