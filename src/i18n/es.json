@@ -1,4 +1,8 @@
 {
+  "pdf_brand_title": "Marca en el PDF",
+  "pdf_brand_show": "Mostrar",
+  "pdf_brand_hide": "Ocultar",
+  "pdf_brand_hint": "Una pequeña línea junto a los totales: «Hecho con WrapSheet · wrapsheet-app.com». Ayuda a otros técnicos a conocer la app.",
   "home": {
     "title": "Informe de Horas",
     "projects": "Proyectos",

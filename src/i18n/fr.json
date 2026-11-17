@@ -1,4 +1,8 @@
 {
+  "pdf_brand_title": "Mention sur le PDF",
+  "pdf_brand_show": "Afficher",
+  "pdf_brand_hide": "Masquer",
+  "pdf_brand_hint": "Une petite ligne à côté des totaux : « Réalisé avec WrapSheet · wrapsheet-app.com ». Elle aide d'autres techniciens à découvrir l'app.",
   "home": {
     "title": "Rapport d'Heures",
     "projects": "Projets",

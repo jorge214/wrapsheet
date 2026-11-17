@@ -737,6 +737,39 @@ export default function ProfileEditScreen() {
           <ProfileField label={t("swift", { defaultValue: "SWIFT / BIC" })} value={p.swift} editing={editing} onChangeText={(v) => setP({ ...p, swift: v })} placeholder={t("swift_placeholder")} autoCapitalize="characters" COLORS={COLORS} styles={s} />
         </View>
 
+        {/* Marca no PDF: a linha "Feito com WrapSheet" ao lado dos totais.
+            Ligada de origem (pdfMarca ausente); grátis para desligar — quem
+            precisa de uma folha "limpa" para um cliente não fica preso
+            (Jorge, 17/11/2026). Mesmo par de botões da escolha das horas extra. */}
+        <View style={s.card}>
+          <View style={s.fieldWrapper}>
+            <Text style={s.fieldLabel}>{t("pdf_brand_title", { defaultValue: "Marca no PDF" })}</Text>
+            <Text style={s.fieldHint}>
+              {t("pdf_brand_hint", { defaultValue: "Uma linha pequena ao lado dos totais: «Feito com WrapSheet · wrapsheet-app.com». Ajuda outros técnicos a conhecer a app." })}
+            </Text>
+            <View style={s.heRow}>
+              {([true, false] as const).map((mostrar) => {
+                const on = (p.pdfMarca !== false) === mostrar;
+                return (
+                  <Pressable
+                    key={String(mostrar)}
+                    onPress={() => setP({ ...p, pdfMarca: mostrar ? undefined : false })}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    style={({ pressed }) => [s.heBtn, on && s.heBtnOn, pressed && { opacity: 0.85 }]}
+                  >
+                    <Text style={[s.heBtnText, on && s.heBtnTextOn]}>
+                      {mostrar
+                        ? t("pdf_brand_show", { defaultValue: "Mostrar" })
+                        : t("pdf_brand_hide", { defaultValue: "Não mostrar" })}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
         {/* Publicidade (vermelho) / Cinema (azul): cada secção junta TUDO do
             seu formato — valores, regras de horas extra e condições de
             trabalho — num bloco único (notas do pai do Jorge, 16/09). */}

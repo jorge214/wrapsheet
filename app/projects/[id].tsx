@@ -47,6 +47,7 @@ import { exportPDF } from "../../src/export/pdf";
 import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
 import { getEffectiveFiscal, getSettings } from "../../src/storage/appSettings";
+import { getActiveProfile, getProfileById } from "../../src/storage/profile";
 import {
   deleteArchivedProject,
   deleteProject,
@@ -1047,6 +1048,12 @@ export default function ProjectEditor() {
 
     try {
       const rPreset = getPreset(regionCode);
+      // Marca no PDF: a escolha do perfil DONO da folha (projetos antigos sem
+      // perfil → o ativo). Se não se conseguir ler, fica ligada, como de origem.
+      // (o ProjectState deste ecrã é o de models/, que não declara o profileId)
+      const donoId = (p as { profileId?: string }).profileId;
+      const dono = await (donoId ? getProfileById(donoId) : getActiveProfile()).catch(() => null);
+      const semMarca = dono?.pdfMarca === false;
       await exportPDF(
         p.perfil,
         p.projeto,
@@ -1067,6 +1074,7 @@ export default function ProjectEditor() {
           condBoxes: p.condBoxes,
           orientation: opts?.orientation ?? "landscape",
           fontScale: opts?.fontScale ?? 1,
+          semMarca,
           ...cinemaExtra(p, pcLocal),
         }
       );

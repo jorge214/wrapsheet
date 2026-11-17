@@ -1,4 +1,8 @@
 {
+  "pdf_brand_title": "Marchio nel PDF",
+  "pdf_brand_show": "Mostra",
+  "pdf_brand_hide": "Nascondi",
+  "pdf_brand_hint": "Una piccola riga accanto ai totali: «Creato con WrapSheet · wrapsheet-app.com». Aiuta altri tecnici a scoprire l'app.",
   "home": {
     "title": "Report Ore",
     "projects": "Progetti",

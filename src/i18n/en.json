@@ -1,4 +1,8 @@
 {
+  "pdf_brand_title": "Branding on the PDF",
+  "pdf_brand_show": "Show",
+  "pdf_brand_hide": "Hide",
+  "pdf_brand_hint": "A small line next to the totals: “Made with WrapSheet · wrapsheet-app.com”. It helps other crew discover the app.",
   "home": {
     "title": "Work Hours Report",
     "projects": "Projects",

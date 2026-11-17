@@ -1,4 +1,8 @@
 {
+  "pdf_brand_title": "Vermelding in de pdf",
+  "pdf_brand_show": "Tonen",
+  "pdf_brand_hide": "Verbergen",
+  "pdf_brand_hint": "Een kleine regel naast de totalen: „Gemaakt met WrapSheet · wrapsheet-app.com”. Zo leren andere crewleden de app kennen.",
   "home": {
     "title": "Urenrapport",
     "projects": "Projecten",

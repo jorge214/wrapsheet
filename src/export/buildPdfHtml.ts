@@ -747,8 +747,11 @@ export function getStrings(locale: string, region?: string) {
  * partem). Como linha solta no fim da folha, empurrava para uma página nova
  * as folhas que acabam rentes ao fundo (A3 com 25 dias e condições: 2 → 3
  * páginas) — e com altura 0 o que transborda também abre página no Chromium.
+ *
+ * Quem não a quiser desliga-a no perfil ("Marca no PDF"); de origem está ligada.
  */
-export function withBrand(totaisHtml: string, s: { madeWith: string }): string {
+export function withBrand(totaisHtml: string, s: { madeWith: string }, mostrar = true): string {
+  if (!mostrar) return totaisHtml; // o técnico desligou-a no perfil
   return `<div class="wsBrandWrap" style="position:relative;">${totaisHtml}` +
     `<div class="wsBrand" style="position:absolute;left:0;bottom:1px;font-size:8.5px;line-height:1.2;color:#9a9a9a;white-space:nowrap;">` +
     `${escapeHtml(s.madeWith)} <a href="https://wrapsheet-app.com" style="color:inherit;text-decoration:none;"><b style="color:#7a7a7a;">WrapSheet</b> · wrapsheet-app.com</a></div></div>`;
@@ -853,6 +856,8 @@ function headerRow(label: string, value: string) {
 
 // Extras opcionais da folha (percentagens fiscais + condições em caixas)
 export type PdfExtra = {
+  /** Sem a linha "Feito com WrapSheet" (o perfil tem pdfMarca === false) */
+  semMarca?: boolean;
   fiscal?: { IRS_percent?: number; IVA_percent?: number; SS_percent?: number };
   /** Presente = folha de cinema (semanal) */
   cinema?: CinemaSheetExtra;
@@ -1418,7 +1423,7 @@ export function buildPdfHtml(
         <tr><th>${escapeHtml(s.irs)}</th><td>${fmt(totais.IRS_valor)}</td></tr>
         <tr><th>${escapeHtml(s.iva)}</th><td>${fmt(totais.IVA_valor)}</td></tr>
         <tr class="net"><th>${escapeHtml(s.vf)}</th><td>${fmt(totais.ValorFinal)}</td></tr>
-      </table>`, s)}
+      </table>`, s, !extra?.semMarca)}
 
       ${(() => {
         const ch = conditionsHtml(s, safeStr(perfil.nome), condicoes, extra);

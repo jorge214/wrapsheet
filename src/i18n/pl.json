@@ -1,4 +1,8 @@
 {
+  "pdf_brand_title": "Znak w PDF",
+  "pdf_brand_show": "Pokaż",
+  "pdf_brand_hide": "Ukryj",
+  "pdf_brand_hint": "Mała linijka obok sum: „Utworzono w WrapSheet · wrapsheet-app.com”. Pomaga innym członkom ekipy poznać aplikację.",
   "home": {
     "title": "Raport godzin pracy",
     "projects": "Projekty",

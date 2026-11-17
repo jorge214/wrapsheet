@@ -1,4 +1,8 @@
 {
+  "pdf_brand_title": "Hinweis im PDF",
+  "pdf_brand_show": "Anzeigen",
+  "pdf_brand_hide": "Ausblenden",
+  "pdf_brand_hint": "Eine kleine Zeile neben den Summen: „Erstellt mit WrapSheet · wrapsheet-app.com“. So lernen andere Crew-Mitglieder die App kennen.",
   "home": {
     "title": "Stundenbericht",
     "projects": "Projekte",

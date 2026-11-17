@@ -67,6 +67,17 @@ describe("rodapé da marca no PDF", () => {
     expect(html).toContain('class="wsBrand"');
   });
 
+  it("desliga-se com semMarca (o perfil escolheu 'Não mostrar'), nas duas folhas", () => {
+    const a = pub();
+    const pdf = buildPdfHtml(a.p.perfil as any, a.p.projeto as any, a.p.dias, a.pc.calc, a.pc.totais as any, a.p.tabela as any, "", "pt", "pt", "EUR", "", "", { fiscal: a.p.fiscal, semMarca: true } as any);
+    expect(pdf).not.toContain("wsBrand");
+    expect(pdf).toContain('class="endTotals"'); // os totais continuam lá
+    const c = cin();
+    const pdfC = buildCinemaPdfHtml(c.p.perfil as any, c.p.projeto as any, c.p.dias, c.pc.calc, c.pc.totais as any, c.p.tabela as any, "", "pt", "pt", "EUR", "", "", { ...c.extra, semMarca: true } as any);
+    expect(pdfC).not.toContain("wsBrand");
+    expect(pdfC).toContain('class="endTotals"');
+  });
+
   it("nunca aparece nos editores", () => {
     const a = pub();
     const ed = buildEditableSheetHtml(a.p.perfil as any, a.p.projeto as any, a.p.dias, a.pc.calc, a.pc.totais as any, a.p.tabela as any, "", "pt", "pt", "EUR", "", "", { fiscal: a.p.fiscal } as any);

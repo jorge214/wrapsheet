@@ -766,7 +766,7 @@ function render(
 
       ${editable ? `<div class="afterDays">
         ${dayBarHtml(s)}` : `<div class="totalsTopSpacer"></div>`}
-        ${((t: string) => (editable ? t : withBrand(t, s)))(`<table class="endTotals">
+        ${((t: string) => (editable ? t : withBrand(t, s, !extra?.semMarca)))(`<table class="endTotals">
           <tr><th>${escapeHtml(s.vb)}</th><td${editable ? ` data-c="gross"` : ""}>${fmt(totais.ValorBruto)}</td></tr>
           <tr><th>${escapeHtml(s.irs)}</th><td${editable ? ` data-c="birs"` : ""}>${fmt(totais.IRS_valor)}</td></tr>
           <tr><th>${escapeHtml(s.iva)}</th><td${editable ? ` data-c="biva"` : ""}>${fmt(totais.IVA_valor)}</td></tr>

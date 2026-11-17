@@ -109,6 +109,9 @@ export type Profile = {
     hebFromHour?: number;
     hrRestBelow?: number;
   };
+  /** Linha "Feito com WrapSheet · wrapsheet-app.com" no PDF. Ausente = ligada;
+   *  só false a desliga (17/11/2026). Vive no blob, migração aditiva. */
+  pdfMarca?: boolean;
   /** Carimbo da última edição — o sync usa-o para decidir quem ganha */
   updatedAt?: string;
 };
