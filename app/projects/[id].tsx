@@ -536,6 +536,13 @@ export default function ProjectEditor() {
 
   async function persist(next: ProjectState) {
     const anterior = projectRef.current;
+    // A edição veio da própria folha (tecla)? Se a gravação abaixo tiver de
+    // juntar, essa junção também é "da folha": a folha inline não pode
+    // recarregar a meio da escrita. Com teclas rápidas, a gravação seguinte
+    // lia a que a anterior acabara de gravar antes de o carimbo do ecrã mudar,
+    // tomava-a por uma versão mais recente e juntava — e a folha recarregava
+    // 600 ms depois, a meio do número ("220" ficava 0,22).
+    const daFolha = sheetSelfEdit.current;
     setProject(next);
     projectRef.current = next;
     setSaveStatus("saving");
@@ -544,6 +551,7 @@ export default function ProjectEditor() {
       const guardado: any = await getProject(next.id);
       if (anterior && guardado && guardadoMaisRecente({ updatedAt: baseStampRef.current ?? anterior.updatedAt }, guardado)) {
         next = aplicarEdicaoSobre(anterior, next, guardado as ProjectState);
+        if (daFolha) sheetSelfEdit.current = true;
         setProject(next);
         projectRef.current = next;
         // A fotografia dos zeros semeados era da cópia velha: refaz-se sobre o
