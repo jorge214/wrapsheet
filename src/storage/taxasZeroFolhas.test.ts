@@ -107,6 +107,22 @@ describe("cópias de uma folha com o \"Está certo assim\"", () => {
     expect(avisoTaxasZero(comDias(copia))).toBeNull();
   });
 
+  it("\"Duplicar para outro perfil\" de uma folha ANTIGA com zeros da semente: não passam — com 220 €/dia dá 650 €", async () => {
+    gravaPerfis([{ id: "chefe", fixas: {} }, { id: "ana", fixas: {} }], "chefe");
+    const id = await createProject({ mes: 11, ano: 2026 });
+    const f = (await getProject(id))!;
+    // a folha de uma versão anterior: sem salário, as três taxas semeadas a 0, sem a marca
+    const { semSemente: _marca, ...tab } = f.tabela as any;
+    await saveProject({ ...f, dias: DIAS, tabela: { ...tab, salarioDia: 0, rateHEA: 0, rateHEB: 0, rateHR: 0 } });
+    await espera();
+    const copia = (await getProject(await duplicateProjectToProfile(id, "ana")))!;
+    expect(copia.tabela.rateHEA).toBeUndefined();
+    expect(copia.tabela.rateHEB).toBeUndefined();
+    expect(copia.tabela.rateHR).toBeUndefined();
+    // Com o salário escrito (220): (220 + 3 × 30) + 220 + 2 × 60 = 650 €
+    expect(calcProject(comDias({ ...copia, tabela: { ...copia.tabela, salarioDia: 220 } })).totais.ValorBruto).toBe(650);
+  });
+
   it("\"Duplicar para outro perfil\" NÃO leva a resposta: o técnico é perguntado (2 h × 68,18 € = 136,36 €)", async () => {
     const id = await folhaConfirmada();
     const copia = (await getProject(await duplicateProjectToProfile(id, "tecnico")))!;

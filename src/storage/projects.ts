@@ -11,6 +11,7 @@ import { formatoDoBlob, formatoDoResumo } from "./formato";
 import { baseRegiaoHE, heParaTabela } from "./horasExtraPerfil";
 import { mesDaFolhaCinema, primeiroDiaPublicidade, segundaDaSemana } from "./novaFolha";
 import { semExemplo } from "./exemploMarca";
+import { zerosSemeados } from "./taxasZero";
 
 /* ------------ Tipos internos ------------ */
 
@@ -950,10 +951,15 @@ export async function duplicateProjectToProfile(
   };
 
   // Condições do perfil de destino, também do formato desta folha
-  // As taxas da cópia vêm do perfil de destino ou da folha de origem: um 0 aqui
-  // é escolha de alguém, nunca a semente antiga (ver storage/taxasZero.ts)
-  if (!ehCinema && (["rateHEA", "rateHEB", "rateHR"] as const).some((k) => tabela[k] === 0)) {
-    (tabela as Tabela & { semSemente?: boolean }).semSemente = true;
+  // Taxas a 0 na cópia. As que a folha de origem tinha da semente antiga do
+  // editor (sem salário e sem a marca — zerosSemeados) não passam, a não ser
+  // que o perfil de destino tenha esse 0 escrito; os outros zeros são escolha
+  // de alguém e a cópia fica marcada (ver storage/taxasZero.ts).
+  if (!ehCinema) {
+    for (const k of zerosSemeados(original.tabela as any)) if (tabela[k] === 0 && fixas?.[k] !== 0) delete tabela[k];
+    if ((["rateHEA", "rateHEB", "rateHR"] as const).some((k) => tabela[k] === 0)) {
+      (tabela as Tabela & { semSemente?: boolean }).semSemente = true;
+    }
   }
 
   const tCondTitulo = ehCinema ? (target as any)?.condTituloCinema : (target as any)?.condTitulo;

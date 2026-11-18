@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calcProject } from "../calc/project";
 import type { Dia, Tabela } from "../calc/types";
-import { avisoTaxasZero, confirmarZeros, editarSalario, sementeTaxas, zerosConfirmados, zerosSemeados, type ChaveTaxa } from "./taxasZero";
+import { avisoTaxasZero, confirmarZeros, editarSalario, escreverTaxa, sementeTaxas, zerosConfirmados, zerosSemeados, type ChaveTaxa } from "./taxasZero";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Taxas €/h gravadas a 0 numa folha de publicidade (storage/taxasZero.ts).
@@ -334,6 +334,37 @@ describe("o salário escrito na folha", () => {
     // (contas em "folha COM salário e a HR a 0 por confirmar": 340 + 250 + 0)
     expect(bruto(r2.tabela, DOIS_DIAS)).toBe(590);
     expect(avisoTaxasZero(folha(r2.tabela, DOIS_DIAS))!.diferenca).toBe(204.54);
+  });
+
+  it("uma tecla que não muda o salário (\"250,0\" = 250) não grava nada — nem a marca", () => {
+    const t0 = tabela({ salarioDia: 250 });
+    expect(editarSalario(t0, 250, []).tabela).toEqual(t0);
+  });
+
+  it("uma taxa escrita numa folha antiga com zeros da semente: marca-se e os OUTROS zeros saem já — reabrir e escrever 220 dá 710 €", () => {
+    const t0 = tabela({ salarioDia: 0, ...ZEROS });
+    const r = escreverTaxa(t0, "rateHR", 60, zerosSemeados(t0));
+    expect(r.tabela.rateHR).toBe(60);
+    expect("rateHEA" in r.tabela).toBe(false);
+    expect("rateHEB" in r.tabela).toBe(false);
+    expect(r.semeados).toEqual([]);
+    expect(zerosSemeados(r.tabela)).toEqual([]); // reabrir: nada a separar
+    const { tabela: t } = teclas(r.tabela, ["2", "22", "220"]);
+    // Dia 1 (14 h): 220 + 3 h × 30 = 310 €; dia 2: 220 €; HR escrita: 3 h × 60 = 180 € → 710 €
+    expect(bruto(t, DOIS_DIAS)).toBe(710);
+  });
+
+  it("um 0 escrito numa taxa é escolha: fica, mesmo depois de reabrir e escrever o salário", () => {
+    const t0 = tabela({ salarioDia: 0 });
+    const r = escreverTaxa(t0, "rateHR", 0, zerosSemeados(t0));
+    expect(r.tabela.rateHR).toBe(0);
+    expect(zerosSemeados(r.tabela)).toEqual([]);
+    expect(teclas(r.tabela, ["2", "22", "220"]).tabela.rateHR).toBe(0);
+  });
+
+  it("escrever numa taxa o valor que ela já tinha não muda nada (nem marca)", () => {
+    const t0 = tabela({ rateHEA: 30 });
+    expect(escreverTaxa(t0, "rateHEA", 30, []).tabela).toEqual(t0);
   });
 
   it("uma folha com a marca semSemente (nova desta versão) não tem zeros a tirar", () => {

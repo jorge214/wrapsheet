@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { aplicarEdicaoSobre, guardadoMaisRecente } from "../../src/storage/merge";
 import { eExemplo, semExemplo, temMarcaExemplo } from "../../src/storage/exemploMarca";
-import { avisoTaxasZero, confirmarZeros, editarSalario, sementeTaxas, zerosSemeados, type ChaveTaxa } from "../../src/storage/taxasZero";
+import { avisoTaxasZero, confirmarZeros, editarSalario, escreverTaxa, sementeTaxas, zerosSemeados, type ChaveTaxa } from "../../src/storage/taxasZero";
 import { AvisoTaxasZero } from "../../src/ui/AvisoTaxasZero";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -890,8 +890,22 @@ export default function ProjectEditor() {
     );
   }
 
-  function openEditHtml() {
-    const p0 = projectRef.current;
+  async function openEditHtml() {
+    let p0 = projectRef.current;
+    if (!p0) return;
+    // Ecrã com a cópia velha (o sync trouxe uma versão mais recente de outro
+    // aparelho): a semente e o editor partem da versão atual. Semear a cópia
+    // velha gravava-a por cima da nova, com taxas do salário antigo.
+    try {
+      const guardado: any = await getProject(p0.id);
+      if (guardado && guardadoMaisRecente({ updatedAt: baseStampRef.current ?? p0.updatedAt }, guardado)) {
+        await loadProject();
+        p0 = projectRef.current;
+        if (!p0) return;
+      }
+    } catch {
+      /* segue com o que o ecrã tem */
+    }
     if (!p0) return;
     // Semeia as taxas HE se ainda não existirem, para o input e o cálculo
     // coincidirem (e mudar o salário depois já não as altera).
@@ -1107,11 +1121,12 @@ export default function ProjectEditor() {
           tabela = r.tabela;
         }
         // Uma taxa escrita aqui (também um 0) é escolha de quem a escreveu: a
-        // tabela fica marcada, e uma próxima fotografia não a toma por semente
-        // (um 0 escrito antes do salário, numa sessão anterior, saía depois)
-        if (taxa && !isCinema(p) && tabela[d.f] !== (p.tabela as any)[d.f]) {
-          tabela.semSemente = true;
-          zerosSemeadosRef.current = zerosSemeadosRef.current.filter((k) => k !== d.f);
+        // tabela fica marcada e os outros zeros da semente antiga saem já (ver
+        // escreverTaxa) — um 0 escrito antes do salário já não sai depois
+        if (taxa && !isCinema(p)) {
+          const r = escreverTaxa(p.tabela as any, d.f, numOpt(d.value), zerosSemeadosRef.current);
+          zerosSemeadosRef.current = r.semeados;
+          tabela = r.tabela;
         }
         next = { ...p, tabela };
         break;
