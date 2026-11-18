@@ -82,24 +82,31 @@ export async function lerMarcasRapido(uid: string, ms = 300): Promise<Marcas> {
 }
 
 /* ---------- Folhas onde a pessoa já confirmou os dados no diálogo ---------- */
+// Por folha: o que o PERFIL tinha quando a pessoa confirmou. O diálogo só
+// volta a aparecer nessa folha se o perfil ganhar algo novo para um campo que
+// a folha tem vazio (ver novoParaOferecer). Fica neste aparelho.
 
 const chaveConfirmadas = (uid: string) => `passos:dados-confirmados:v1:${uid}`;
+type Confirmacao = Partial<Record<string, string>>;
 
-export async function dadosConfirmados(uid: string): Promise<Set<string>> {
+export async function confirmacaoDeDados(uid: string): Promise<Map<string, Confirmacao>> {
   try {
-    const v = JSON.parse((await AsyncStorage.getItem(chaveConfirmadas(uid))) || "[]");
-    return new Set(Array.isArray(v) ? v.map(String) : []);
+    const v = JSON.parse((await AsyncStorage.getItem(chaveConfirmadas(uid))) || "{}");
+    if (Array.isArray(v)) return new Map(v.map((id: unknown) => [String(id), {}])); // formato antigo
+    return new Map(Object.entries(v && typeof v === "object" ? (v as Record<string, Confirmacao>) : {}));
   } catch {
-    return new Set();
+    return new Map();
   }
 }
 
-export async function marcarDadosConfirmados(uid: string | undefined, folhaId: string): Promise<void> {
+export async function marcarDadosConfirmados(uid: string | undefined, folhaId: string, perfilNaAltura: Confirmacao): Promise<void> {
   if (!uid) return;
   try {
-    const ids = [...(await dadosConfirmados(uid))].filter((x) => x !== folhaId);
-    ids.push(folhaId);
-    await AsyncStorage.setItem(chaveConfirmadas(uid), JSON.stringify(ids.slice(-500)));
+    const mapa = await confirmacaoDeDados(uid);
+    mapa.delete(folhaId);
+    mapa.set(folhaId, perfilNaAltura);
+    const ultimas = [...mapa.entries()].slice(-500);
+    await AsyncStorage.setItem(chaveConfirmadas(uid), JSON.stringify(Object.fromEntries(ultimas)));
   } catch {
     /* sem armazenamento: o diálogo pode voltar a aparecer nesta folha */
   }

@@ -84,6 +84,34 @@ describe("dados do diálogo de exportação", () => {
     expect(mem.has(PENDENTE)).toBe(false);
   });
 
+  it("o pendente fica gravado ANTES de tentar a rede (a app pode ser fechada a meio)", async () => {
+    const p = await upsertProfile({ id: "P1", nome: "", email: "", telefone: "", departamento: "", funcao: "", fixas: {} } as any);
+    await setActiveProfileId(p.id);
+    online = false;
+    const promessa = guardarDadosOuAdiar("U", "P1", dados, null, { formato: "publicidade" });
+    // logo a seguir a chamar, antes de a rede responder
+    expect(mem.has(PENDENTE)).toBe(true);
+    await promessa;
+    expect(mem.has(PENDENTE)).toBe(true); // sem rede, continua lá
+  });
+
+  it("reposição tardia: uma correção feita no perfil DEPOIS do diálogo não é desfeita", async () => {
+    await upsertProfile({ id: "P1", nome: "", email: "", telefone: "", departamento: "", funcao: "", fixas: {} } as any);
+    await setActiveProfileId("P1");
+    online = false;
+    // no décor, sem rede: escreve um IBAN com uma gralha
+    await guardarDadosOuAdiar("U", "P1", { ...dados, iban: "PT50 GRALHA" }, { nome: "", email: "", telefone: "", nif: "", iban: "" }, { formato: "publicidade" });
+    // depois, corrige o IBAN no perfil (noutro aparelho ou aqui)
+    await new Promise((r) => setTimeout(r, 5));
+    const atual = (await getActiveProfile())!;
+    await upsertProfile({ ...atual, iban: "PT50 CERTO" });
+    online = true;
+    await aplicarDadosPendentes("U");
+    const perfil = (await getActiveProfile())!;
+    expect(perfil.iban).toBe("PT50 CERTO"); // a correção ganha
+    expect(perfil.nome).toBe("Ana Ribeiro"); // os campos vazios preenchem-se na mesma
+  });
+
   it("sem perfil nenhum: o primeiro nasce com os dados (e a função), sem o valor da folha", async () => {
     await guardarDadosOuAdiar("U", undefined, dados, null, { formato: "publicidade", perfil: { funcao: "Anotadora" } });
     const perfis = await listProfiles();
@@ -112,6 +140,20 @@ describe("primeira entrada com uma folha já criada pelo \"+\"", () => {
     expect(f.tabela.salarioDia).toBe(250);
     expect(f.perfil.funcao).toBe("1.º Assistente de Câmara");
     expect(await listProfiles()).toHaveLength(1);
+  });
+
+  it("ao preencher o salário de uma folha a 0, as taxas de horas extra semeadas a 0 saem (seguem o salário)", async () => {
+    const id = await createProject();
+    const f0 = (await getProject(id))!;
+    const { saveProject } = await import("./projects");
+    // o que o editor do telemóvel semeava numa folha sem salário
+    await saveProject({ ...f0, tabela: { ...f0.tabela, salarioDia: 0, rateHEA: 0, rateHEB: 0, rateHR: 0 } });
+    await concluirPrimeiraEntrada("U", { formato: "publicidade", funcao: "", valor: 250 });
+    const t = (await getProject(id))!.tabela;
+    expect(t.salarioDia).toBe(250);
+    expect(t.rateHEA).toBeUndefined();
+    expect(t.rateHEB).toBeUndefined();
+    expect(t.rateHR).toBeUndefined();
   });
 
   it("uma folha que já tem valor não é mexida", async () => {

@@ -50,12 +50,15 @@ import { ProjectState } from "../../src/models/project";
 import { getEffectiveFiscal, getSettings } from "../../src/storage/appSettings";
 import { getActiveProfile, getProfileById } from "../../src/storage/profile";
 import { registarExportacaoPdf } from "../../src/lib/eventos";
-import { guardarDadosOuAdiar } from "../../src/storage/primeiraEntrada";
-import { dadosConfirmados, lerMarcasRapido, marcarDadosConfirmados, marcarPasso } from "../../src/storage/primeirosPassos";
+import { guardarDadosOuAdiar, lerDadosPendentes } from "../../src/storage/primeiraEntrada";
+import { confirmacaoDeDados, lerMarcasRapido, marcarDadosConfirmados, marcarPasso } from "../../src/storage/primeirosPassos";
+import { editarCampoDia } from "../../src/storage/diaEdicao";
 import {
   CAMPOS_DADOS,
   dadosIniciais,
+  novoParaOferecer,
   pedirDadosNaExportacao,
+  perfilComPendentes,
   perfilFolhaComDados,
   type DadosFolha,
 } from "../../src/storage/passosRegras";
@@ -249,6 +252,8 @@ export default function ProjectEditor() {
   const toqueNoFundo = useRef(false);
   // Um toque de cada vez no "Exportar PDF" enquanto se decide o que mostrar
   const aAbrirExport = useRef(false);
+  // O perfil tal como estava ao abrir o diálogo (para a confirmação desta folha)
+  const donoNoDialogoRef = useRef<Partial<DadosFolha> | null>(null);
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
   const editIframeRef = useRef<any>(null);
@@ -471,7 +476,7 @@ export default function ProjectEditor() {
     // e grava-se na próxima sincronização (ver primeiraEntrada.ts).
     const uid = userRef.current?.id;
     if (uid) {
-      marcarDadosConfirmados(uid, p.id).catch(() => {});
+      marcarDadosConfirmados(uid, p.id, donoNoDialogoRef.current ?? {}).catch(() => {});
       guardarDadosOuAdiar(uid, (p as { profileId?: string }).profileId, dados, dadosIniciaisRef.current, p as any).catch(() => {});
     }
   }
@@ -488,14 +493,22 @@ export default function ProjectEditor() {
     const p = projectRef.current;
     let dados: DadosFolha | null = null;
     try {
-      // A folha de exemplo nunca leva os dados de ninguém; numa folha onde a
-      // pessoa já confirmou os dados no diálogo, não se volta a oferecer
-      // (senão um campo apagado de propósito voltava a cada exportação)
-      if (p && user && !eExemplo(p) && !(await dadosConfirmados(user.id)).has(p.id)) {
+      // A folha de exemplo nunca leva os dados de ninguém
+      if (p && user && !eExemplo(p)) {
         const donoId = (p as { profileId?: string }).profileId;
-        const dono = (donoId ? await getProfileById(donoId) : null) ?? (await getActiveProfile().catch(() => null));
-        if (pedirDadosNaExportacao(p.perfil as any, await lerMarcasRapido(user.id), dono as any)) {
-          dados = dadosIniciais(p.perfil as any, dono as any, user.email ?? undefined);
+        const perfilDono = (donoId ? await getProfileById(donoId) : null) ?? (await getActiveProfile().catch(() => null));
+        // Os dados escritos numa exportação SEM REDE ainda não chegaram ao
+        // perfil (ficaram pendentes): contam como se já lá estivessem — senão
+        // a folha seguinte, feita no mesmo décor sem rede, saía sem NIF/IBAN
+        const dono = perfilComPendentes(perfilDono as any, await lerDadosPendentes(user.id), donoId);
+        donoNoDialogoRef.current = dono;
+        // Numa folha onde a pessoa já confirmou os dados, só se volta a
+        // perguntar se o perfil tiver algo NOVO para um campo vazio da folha
+        // (senão um campo apagado de propósito voltava a cada exportação)
+        const confirmacao = (await confirmacaoDeDados(user.id)).get(p.id);
+        const outraVez = !confirmacao || novoParaOferecer(p.perfil as any, dono, confirmacao);
+        if (outraVez && pedirDadosNaExportacao(p.perfil as any, await lerMarcasRapido(user.id), dono)) {
+          dados = dadosIniciais(p.perfil as any, dono, user.email ?? undefined);
         }
       }
     } catch {
@@ -838,9 +851,15 @@ export default function ProjectEditor() {
     const patch: any = {};
     // HE-A/HE-B a × 1 (escolha "hora normal" do perfil) não se semeiam: ver
     // semeiaTaxaHE — presas e arredondadas pagavam menos e não seguiam o salário.
-    if (semeiaTaxaHE(p0.tabela, "HEA")) patch.rateHEA = round2(R0.rateHEA);
-    if (semeiaTaxaHE(p0.tabela, "HEB")) patch.rateHEB = round2(R0.rateHEB);
-    if (p0.tabela.rateHR == null) patch.rateHR = round2(R0.rateHR);
+    // Sem salário (folha acabada de criar, perfil sem valor) não se semeia
+    // nada: as taxas ficavam gravadas a 0,00 € e, na publicidade, um 0
+    // gravado paga 0 — escrever o salário depois já não as mudava e as horas
+    // extra saíam a 0 € no PDF. Vazias, seguem o salário quando for escrito.
+    if (R0.horaBase > 0) {
+      if (semeiaTaxaHE(p0.tabela, "HEA")) patch.rateHEA = round2(R0.rateHEA);
+      if (semeiaTaxaHE(p0.tabela, "HEB")) patch.rateHEB = round2(R0.rateHEB);
+      if (p0.tabela.rateHR == null) patch.rateHR = round2(R0.rateHR);
+    }
     let p = p0;
     if (Object.keys(patch).length) { p = { ...p0, tabela: { ...p0.tabela, ...patch } }; persist(p); }
 
@@ -1053,13 +1072,9 @@ export default function ProjectEditor() {
         }
         next = {
           ...p,
-          dias: p.dias.map((x, ix) => {
-            if (ix !== d.i) return x;
-            const y: any = { ...x, [d.f]: val };
-            // Cinema (região PT): mudar a data re-avalia o feriado
-            if (d.f === "data" && isCinema(p) && regionCode === "pt" && !y.folga) y.feriado = isFeriadoPT(val) ? true : undefined;
-            return y;
-          }),
+          // Cinema (região PT): mudar a data re-avalia o feriado — só se a
+          // data mudar mesmo (ver storage/diaEdicao.ts)
+          dias: p.dias.map((x, ix) => (ix !== d.i ? x : editarCampoDia(x, d.f, val, isCinema(p) && regionCode === "pt"))),
         };
         break;
       }

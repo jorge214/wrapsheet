@@ -130,8 +130,15 @@ export async function concluirPrimeiraEntrada(uid: string, d: DadosPrimeiraEntra
     const cinema = f.formato === "cinema";
     const valor = d.valor && d.valor > 0 && cinema === (d.formato === "cinema") ? d.valor : undefined;
     const tabela = { ...f.tabela };
-    if (valor && cinema && !(Number(tabela.salarioSemana) > 0)) tabela.salarioSemana = valor;
-    if (valor && !cinema && !(Number(tabela.salarioDia) > 0)) tabela.salarioDia = valor;
+    const salarioVazio = cinema ? !(Number(tabela.salarioSemana) > 0) : !(Number(tabela.salarioDia) > 0);
+    if (valor && salarioVazio) {
+      if (cinema) tabela.salarioSemana = valor;
+      else tabela.salarioDia = valor;
+      // Taxas de horas extra gravadas a 0 numa folha sem salário só podem ser
+      // as que o editor semeava a 0: com elas, as horas extra pagavam 0 €.
+      // Sem elas, seguem o salário agora preenchido.
+      for (const k of ["rateHEA", "rateHEB", "rateHR"] as const) if (tabela[k] === 0) delete tabela[k];
+    }
     const funcao = String(f.perfil?.funcao ?? "").trim() ? f.perfil.funcao : perfil.funcao;
     const mudou = JSON.stringify(tabela) !== JSON.stringify(f.tabela) || funcao !== f.perfil?.funcao;
     if (mudou) {
@@ -164,7 +171,8 @@ export async function adiarPrimeiraEntrada(user: { id: string; user_metadata?: R
 /* ---------- Os dados do diálogo de exportação, no perfil ---------- */
 
 type FolhaDados = { formato?: string; perfil?: { funcao?: string } };
-type Pendente = { perfilId?: string; dados: DadosFolha; iniciais: DadosFolha | null; folha: FolhaDados };
+/** `em`: quando o diálogo foi confirmado; `id`: para não apagar um pendente mais novo */
+type Pendente = { perfilId?: string; dados: DadosFolha; iniciais: DadosFolha | null; folha: FolhaDados; em?: number; id?: string };
 
 const chavePendente = (uid: string) => `passos:dados-pendentes:v1:${uid}`;
 
@@ -182,12 +190,29 @@ const chavePendente = (uid: string) => `passos:dados-pendentes:v1:${uid}`;
  *     o confirmou aqui (podia ser o da folha de exemplo, ou o de uma semana
  *     de 6 dias, que no perfil passava a valer para as de 5).
  */
-export async function guardarDadosNoPerfil(
+export function guardarDadosNoPerfil(
   uid: string,
   perfilId: string | undefined,
   dados: DadosFolha,
   iniciais: DadosFolha | null,
-  folha: FolhaDados
+  folha: FolhaDados,
+  desde?: number
+): Promise<boolean> {
+  // Uma gravação de cada vez: a do diálogo e a reposição do sync, em
+  // paralelo, podiam criar DOIS primeiros perfis
+  const vez = filaGravacoes.then(() => guardarAgora(uid, perfilId, dados, iniciais, folha, desde));
+  filaGravacoes = vez.catch(() => false);
+  return vez;
+}
+let filaGravacoes: Promise<unknown> = Promise.resolve();
+
+async function guardarAgora(
+  uid: string,
+  perfilId: string | undefined,
+  dados: DadosFolha,
+  iniciais: DadosFolha | null,
+  folha: FolhaDados,
+  desde?: number
 ): Promise<boolean> {
   try {
     // Sem profileId (folhas antigas) a folha é do perfil ativo (belongsToProfile)
@@ -217,7 +242,11 @@ export async function guardarDadosNoPerfil(
       remoto && !(remoto as any).deleted && ts(remoto.updatedAt ?? data?.updated_at) > ts(local.updatedAt)
         ? { ...remoto, id: local.id }
         : local;
-    const patch = patchPerfilDono(base, dados, iniciais);
+    // Reposição de um pendente: se o perfil mudou DEPOIS do diálogo (corrigiu
+    // o IBAN no computador, por exemplo), só se preenchem os campos vazios —
+    // o "mudado no diálogo" já não vale contra uma correção mais recente.
+    const ini = desde != null && ts(base.updatedAt) > desde ? null : iniciais;
+    const patch = patchPerfilDono(base, dados, ini);
     if (!Object.keys(patch).length) return true;
     const gravado = await upsertProfile({ ...base, ...patch });
     syncProfileToCloud(uid, gravado).catch(() => {});
@@ -239,15 +268,46 @@ export async function guardarDadosOuAdiar(
   iniciais: DadosFolha | null,
   folha: FolhaDados
 ): Promise<void> {
-  const ok = await guardarDadosNoPerfil(uid, perfilId, dados, iniciais, folha);
+  // O pendente fica gravado ANTES de tentar a rede: sem rede, a tentativa
+  // pode demorar ~25-50 s (o Supabase tenta renovar o token) e, se a app for
+  // fechada entretanto, os dados perdiam-se. Sai só se a gravação resultar.
+  const em = Date.now();
+  const pendente: Pendente = {
+    perfilId,
+    dados,
+    iniciais,
+    folha: { formato: folha.formato, perfil: { funcao: folha.perfil?.funcao } },
+    em,
+    id: `${em}-${Math.random().toString(36).slice(2, 8)}`,
+  };
   try {
-    if (ok) await AsyncStorage.removeItem(chavePendente(uid));
-    else {
-      const pendente: Pendente = { perfilId, dados, iniciais, folha: { formato: folha.formato, perfil: { funcao: folha.perfil?.funcao } } };
-      await AsyncStorage.setItem(chavePendente(uid), JSON.stringify(pendente));
-    }
+    await AsyncStorage.setItem(chavePendente(uid), JSON.stringify(pendente));
   } catch {
-    /* sem armazenamento: perde-se o pendente, nunca o PDF */
+    /* sem armazenamento: tenta-se só agora */
+  }
+  if (await guardarDadosNoPerfil(uid, perfilId, dados, iniciais, folha)) await tirarPendente(uid, pendente.id);
+}
+
+/** Apaga o pendente só se ainda for o mesmo (não um de um diálogo mais novo). */
+async function tirarPendente(uid: string, id: string | undefined): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(chavePendente(uid));
+    if (!raw) return;
+    const atual = JSON.parse(raw) as Pendente;
+    if (!id || atual?.id === id) await AsyncStorage.removeItem(chavePendente(uid));
+  } catch {
+    /* fica para a próxima */
+  }
+}
+
+/** O pendente desta conta, sem rede (para o diálogo da exportação seguinte). */
+export async function lerDadosPendentes(uid: string): Promise<Pendente | null> {
+  try {
+    const raw = await AsyncStorage.getItem(chavePendente(uid));
+    const p = raw ? (JSON.parse(raw) as Pendente) : null;
+    return p?.dados ? p : null;
+  } catch {
+    return null;
   }
 }
 
@@ -261,8 +321,9 @@ export async function aplicarDadosPendentes(uid: string): Promise<void> {
       await AsyncStorage.removeItem(chavePendente(uid));
       return;
     }
-    if (await guardarDadosNoPerfil(uid, p.perfilId, p.dados, p.iniciais ?? null, p.folha ?? {})) {
-      await AsyncStorage.removeItem(chavePendente(uid));
+    // `desde`: o que se mudou no perfil DEPOIS do diálogo ganha ao "mudado no diálogo"
+    if (await guardarDadosNoPerfil(uid, p.perfilId, p.dados, p.iniciais ?? null, p.folha ?? {}, p.em ?? 0)) {
+      await tirarPendente(uid, p.id);
     }
   } catch {
     /* fica para a próxima */

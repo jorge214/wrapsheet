@@ -150,6 +150,40 @@ export function pedirDadosNaExportacao(perfilFolha: ParcialDados, m: Marcas, per
   return CAMPOS_DADOS.some((k) => vazio(perfilFolha[k]) && !vazio(perfilDono?.[k]));
 }
 
+/**
+ * O perfil dono com os dados que ficaram PENDENTES (escritos numa exportação
+ * sem rede, ainda por gravar no perfil) por cima dos campos VAZIOS — só se o
+ * pendente for deste perfil (ou de "nenhum perfil"). Assim a folha seguinte,
+ * no mesmo décor sem rede, ainda é oferecida com eles.
+ */
+export function perfilComPendentes(
+  dono: ParcialDados | null | undefined,
+  pendente: { perfilId?: string; dados?: Partial<DadosFolha> } | null | undefined,
+  donoId?: string
+): ParcialDados | null {
+  const deste = !!pendente?.dados && (pendente.perfilId == null || pendente.perfilId === donoId);
+  if (!deste) return dono ?? null;
+  const out: ParcialDados = { ...(dono ?? {}) };
+  for (const k of CAMPOS_DADOS) {
+    const p = umaLinha(pendente!.dados![k]);
+    if (p && vazio(out[k])) out[k] = p;
+  }
+  return out;
+}
+
+/**
+ * Numa folha onde a pessoa já confirmou os dados no diálogo: o perfil tem
+ * agora algo NOVO para um campo que está vazio na folha (diferente do que
+ * havia quando confirmou)? Só então se volta a perguntar — um campo deixado
+ * vazio de propósito não volta a cada exportação, mas o IBAN acrescentado
+ * depois ao perfil é oferecido.
+ */
+export function novoParaOferecer(perfilFolha: ParcialDados, dono: ParcialDados | null | undefined, confirmacao: ParcialDados): boolean {
+  return CAMPOS_DADOS.some(
+    (k) => vazio(perfilFolha[k]) && !vazio(dono?.[k]) && umaLinha(dono?.[k]) !== umaLinha(confirmacao[k])
+  );
+}
+
 /** O formulário começa com o que já existe: a folha, depois o perfil, e o email da conta. */
 export function dadosIniciais(perfilFolha: ParcialDados, perfilDono: ParcialDados | null | undefined, emailConta?: string): DadosFolha {
   const out = {} as DadosFolha;

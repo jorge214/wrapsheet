@@ -11,6 +11,8 @@ import { fullSync } from "./syncService";
 import { backfillProfileIds } from "../storage/projects";
 import { criarExemploSePreciso } from "../storage/exemplo";
 import { aplicarDadosPendentes, verificarPrimeiraEntrada } from "../storage/primeiraEntrada";
+import { MARCA_PRIMEIRA_ENTRADA } from "../storage/passosRegras";
+import { lerMarcas } from "../storage/primeirosPassos";
 
 type SyncCtx = {
   /** A conta é nova e a primeira entrada (src/ui/PrimeiraEntrada.tsx) deve aparecer */
@@ -38,6 +40,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   // Aberta pelo cartão dos passos (a quem disse "Agora não"): a sincronização
   // seguinte não a fecha por si — a conta já estava marcada como "adiada".
   const abertaAMao = useRef(false);
+  // As perguntas estão abertas agora? (para o sync não as fechar a meio)
+  const abertaRef = useRef(false);
+  abertaRef.current = primeiraEntrada;
 
   async function runSync() {
     if (!user) return;
@@ -69,12 +74,24 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     // perguntas e a folha da semana criada). Só DEPOIS do download: antes dele
     // uma conta antiga num aparelho novo parecia vazia. A folha de exemplo
     // espera pela resposta ("Agora não" cria-a — ver primeiraEntrada.ts).
+    // Com as perguntas ABERTAS não se volta a decidir: quem foi ao WhatsApp
+    // ver quanto ganha e voltou não pode perder o que escreveu (nem a conta
+    // ficar "nao_aplica" por uma folha criada com o "+" entretanto). Só se
+    // fecham se a conta já respondeu (noutro aparelho).
+    if (abertaRef.current) {
+      const m = await lerMarcas(uid);
+      if (uidRef.current === uid && m[MARCA_PRIMEIRA_ENTRADA]) {
+        abertaAMao.current = false;
+        setPrimeiraEntrada(false);
+      }
+      return;
+    }
     const precisa = await verificarPrimeiraEntrada(uid);
     if (uidRef.current !== uid) return; // entretanto saiu da conta ou trocou
-    // Também FECHA: se a conta respondeu noutro aparelho, os dados chegaram
-    // e as perguntas abertas aqui já não fazem sentido.
-    if (precisa || !abertaAMao.current) setPrimeiraEntrada(precisa);
-    if (precisa) return;
+    if (precisa) {
+      setPrimeiraEntrada(true);
+      return;
+    }
     // Quem ainda não tem nenhuma folha (local E na nuvem) recebe uma de exemplo,
     // uma vez por conta. Depois do download, para não a criar a quem só está
     // num aparelho novo.

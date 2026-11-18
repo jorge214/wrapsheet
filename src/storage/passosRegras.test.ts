@@ -4,6 +4,8 @@ import {
   estadoPassos,
   juntarMarcas,
   lerValor,
+  novoParaOferecer,
+  perfilComPendentes,
   MARCA_PASSO_DIA,
   MARCA_PASSO_PDF,
   MARCA_PASSOS_FECHADOS,
@@ -158,6 +160,21 @@ describe("dados pedidos na primeira exportação", () => {
     const perfil = { nome: "Ana", nif: "123" };
     const iniciais = { nome: "Ana", email: "", telefone: "", nif: "123", iban: "" };
     expect(patchPerfilDono(perfil, { ...iniciais, nif: "" }, iniciais)).toEqual({});
+  });
+  it("dados pendentes (exportação sem rede) contam como do perfil, só nos campos vazios e só se forem deste perfil", () => {
+    const pendente = { perfilId: "P1", dados: { nome: "Ana", email: "", telefone: "", nif: "123", iban: "PT50" } };
+    expect(perfilComPendentes({ nome: "", nif: "999" }, pendente, "P1")).toMatchObject({ nome: "Ana", nif: "999", iban: "PT50" });
+    expect(perfilComPendentes({ nome: "" }, pendente, "P2")).toEqual({ nome: "" }); // de outro perfil
+    expect(perfilComPendentes(null, { dados: pendente.dados }, undefined)).toMatchObject({ nome: "Ana", iban: "PT50" }); // sem perfil
+    expect(perfilComPendentes({ nome: "Ana" }, null, "P1")).toEqual({ nome: "Ana" });
+  });
+  it("folha já confirmada: só se volta a perguntar com algo NOVO no perfil para um campo vazio da folha", () => {
+    const folha = { nome: "Ana", telefone: "", iban: "" };
+    const naAltura = { nome: "Ana", telefone: "912", iban: "" };
+    // o telefone deixado vazio de propósito não volta
+    expect(novoParaOferecer(folha, { nome: "Ana", telefone: "912", iban: "" }, naAltura)).toBe(false);
+    // o IBAN acrescentado depois ao perfil é oferecido
+    expect(novoParaOferecer(folha, { nome: "Ana", telefone: "912", iban: "PT50" }, naAltura)).toBe(true);
   });
   it("depois do 1.º PDF (conta nova): pede-se outra vez só se o PERFIL tiver o que falta à folha", () => {
     const m = { ...nova, [MARCA_PASSO_PDF]: true };
