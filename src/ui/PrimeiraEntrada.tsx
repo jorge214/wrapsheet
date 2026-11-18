@@ -109,7 +109,8 @@ export function PrimeiraEntrada({ visible, onClose }: { visible: boolean; onClos
 
   return (
     <View
-      accessibilityViewIsModal
+      role="dialog"
+      aria-modal
       style={{
         position: "absolute",
         top: 0,

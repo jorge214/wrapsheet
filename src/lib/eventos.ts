@@ -1,14 +1,15 @@
-// Registo das exportações de PDF (tabela pdf_exports — migração 0004).
+// Registo das exportações de PDF (tabela pdf_exports — migrações 0004 e 0006).
 //
-// Serve só para medir a ativação: o relatório semanal (migração 0005) conta
-// quantas contas novas exportam o 1.º PDF nos primeiros 7 dias. Nunca pode
-// atrapalhar a exportação: corre em silêncio e nada aqui lança.
+// Serve só para medir a ativação: o relatório semanal conta quantas contas
+// novas exportam o 1.º PDF nos primeiros 7 dias. Nunca pode atrapalhar a
+// exportação: corre em silêncio, em segundo plano, e nada aqui lança.
 //
 // Sem rede (o PDF faz-se offline no telemóvel) o evento fica numa fila no
 // aparelho e segue na exportação seguinte ou na próxima sincronização. A fila
-// guarda a conta de cada evento: o servidor regista sempre a conta da SESSÃO
-// (o cliente nem pode escrever o user_id), por isso um evento da conta A só
-// sai quando a A estiver outra vez com sessão neste aparelho.
+// guarda a conta de cada evento e só o envia com a sessão DESSA conta: o
+// servidor regista sempre a conta da sessão (o cliente nem pode escrever o
+// user_id), por isso um evento da conta A enviado com a sessão de B ficava em
+// nome de B — e sem sessão ia como anónimo e era recusado.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { supabase } from "./supabase";
@@ -55,12 +56,25 @@ export function atrasoSegundos(em: number | undefined, agora: number): number | 
 }
 
 /**
- * Falha de rede (vale a pena tentar outra vez) ou recusa do servidor (não
- * vale)? Os erros do PostgREST trazem sempre um `code`; um pedido que nem
- * chegou ao servidor não.
+ * Vale a pena tentar outra vez? Sim se o pedido nem chegou ao servidor (sem
+ * `code`), se a sessão foi recusada (401: token a expirar, sessão perdida) ou
+ * se o servidor falhou (5xx). Uma recusa definitiva (dados inválidos, 400)
+ * não se repete.
  */
-export function eFalhaDeRede(error: { code?: string | null } | null | undefined): boolean {
-  return !!error && !error.code;
+export function valeRepetir(error: { code?: string | null } | null | undefined, status?: number): boolean {
+  if (!error) return false;
+  if (!error.code) return true;
+  return !status || status === 401 || status >= 500;
+}
+
+/** A sessão guardada é desta conta? (sem ela o pedido iria como anónimo) */
+async function sessaoDe(uid: string): Promise<boolean> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user?.id === uid;
+  } catch {
+    return false;
+  }
 }
 
 async function lerFila(): Promise<Pendente[]> {
@@ -82,16 +96,18 @@ async function gravarFila(fila: Pendente[]): Promise<void> {
   }
 }
 
-/** Regista uma exportação. Sem rede, fica na fila. */
+/** Regista uma exportação. Sem rede (ou sem a sessão desta conta), fica na fila. */
 export async function registarExportacaoPdf(uid: string | undefined, e: ExportacaoPdf): Promise<void> {
   if (!uid) return;
   try {
-    const { error } = await supabase.from("pdf_exports").insert(linhaExportacao(e));
-    if (!error) {
-      await enviarFilaPdf(uid);
-      return;
+    if (await sessaoDe(uid)) {
+      const { error, status } = await supabase.from("pdf_exports").insert(linhaExportacao(e));
+      if (!error) {
+        await enviarFilaPdf(uid);
+        return;
+      }
+      if (!valeRepetir(error, status)) return; // recusado de vez: não adianta repetir
     }
-    if (!eFalhaDeRede(error)) return; // recusado pelo servidor: não adianta repetir
   } catch {
     /* sem rede: vai para a fila */
   }
@@ -110,13 +126,14 @@ export async function enviarFilaPdf(uid: string | undefined): Promise<void> {
     const fila = await lerFila();
     const minhas = fila.filter((x) => x.uid === uid);
     if (!minhas.length) return;
+    // Só com a sessão desta conta (ver o cabeçalho); senão espera
+    if (!(await sessaoDe(uid))) return;
     const agora = Date.now();
-    const { error } = await supabase
+    const { error, status } = await supabase
       .from("pdf_exports")
       .insert(minhas.map((x) => linhaExportacao(x, atrasoSegundos(x.em, agora))));
-    // Enviados, ou recusados pelo servidor (repetir não muda nada): saem da fila.
-    // Os de outras contas ficam à espera delas.
-    if (!error || !eFalhaDeRede(error)) await gravarFila(fila.filter((x) => x.uid !== uid));
+    // Enviados, ou recusados de vez: saem da fila. Os de outras contas ficam.
+    if (!error || !valeRepetir(error, status)) await gravarFila(fila.filter((x) => x.uid !== uid));
   } catch {
     /* sem rede: fica para a próxima */
   } finally {

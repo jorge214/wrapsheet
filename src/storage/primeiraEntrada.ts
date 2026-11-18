@@ -11,6 +11,7 @@
 // grátis) e folhas presas a esse perfil, invisíveis nos outros aparelhos. Na
 // dúvida (sem rede, erro na contagem, sessão que já não é desta conta), não
 // aparece — e não se cria perfil nenhum.
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
 import { syncProfileToCloud, syncProjectToCloud } from "../sync/syncService";
 import { criarExemploSePreciso } from "./exemplo";
@@ -25,7 +26,7 @@ import {
 } from "./passosRegras";
 import { lerMarcas, marcarConta, marcarLocal } from "./primeirosPassos";
 import { getActiveProfile, getProfileById, listProfiles, setActiveProfileId, upsertProfile, type Profile } from "./profile";
-import { createProject, getProject, listAllProjectsFull } from "./projects";
+import { createProject, getProject, listAllProjectsFull, saveProject } from "./projects";
 
 /**
  * Perfis e folhas suas (vivas, sem a de exemplo) na nuvem. `null` = não se
@@ -99,27 +100,53 @@ async function criarPrimeiroPerfil(uid: string, perfil: Profile): Promise<Profil
 }
 
 /**
- * Cria o perfil e a folha desta semana. Devolve o id da folha, ou `null` se
- * entretanto apareceram dados (aqui ou noutro aparelho) — aí não cria nada.
- * Sem saber o que há na nuvem LANÇA, para o ecrã dizer "tenta outra vez".
+ * Cria o perfil e a folha desta semana. Devolve o id da folha, ou `null` se a
+ * conta já tem um perfil (aqui ou na nuvem) ou folhas noutro aparelho — aí
+ * não cria nada. Sem saber o que há na nuvem LANÇA, para o ecrã dizer "tenta
+ * outra vez".
+ *
+ * Se a pessoa já criou uma folha com o "+" antes de as perguntas aparecerem
+ * (o 1.º sync pode demorar), as respostas não se perdem: cria-se o perfil e
+ * essa folha ganha a função e o valor que estivessem por preencher.
  */
 export async function concluirPrimeiraEntrada(uid: string, d: DadosPrimeiraEntrada): Promise<string | null> {
   const nuvem = await contarNaNuvem(uid);
   if (!nuvem) throw new Error("sem_nuvem");
-  const folhasLocais = (await listAllProjectsFull()).filter((p) => !eExemplo(p)).length;
-  if (nuvem.perfis > 0 || nuvem.folhas > 0 || folhasLocais > 0 || (await listProfiles()).length > 0) {
+  const proprias = (await listAllProjectsFull()).filter((p) => !eExemplo(p));
+  const semDados = nuvem.perfis === 0 && (await listProfiles()).length === 0;
+  // Folhas na nuvem que ainda não chegaram aqui = a conta já é usada noutro aparelho
+  if (!semDados || (nuvem.folhas > 0 && !proprias.length)) {
     await marcarConta(uid, { [MARCA_PRIMEIRA_ENTRADA]: "nao_aplica" });
     return null;
   }
   const perfil = await criarPrimeiroPerfil(uid, perfilInicial(String(Date.now()), d));
   if (!perfil) throw new Error("sem_nuvem");
-  // Publicidade: um dia, hoje. Cinema: a semana desta segunda a domingo.
-  const id = await createProject(d.formato === "cinema" ? { formato: "cinema", diasSemana: 5 } : {});
-  // A marca logo a seguir: se a app fechar a meio, a primeira entrada não volta.
+
+  let id: string;
+  if (proprias.length) {
+    // A folha que já criou (a mais recente): função e valor, se faltarem
+    proprias.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+    const f = proprias[0];
+    const cinema = f.formato === "cinema";
+    const valor = d.valor && d.valor > 0 && cinema === (d.formato === "cinema") ? d.valor : undefined;
+    const tabela = { ...f.tabela };
+    if (valor && cinema && !(Number(tabela.salarioSemana) > 0)) tabela.salarioSemana = valor;
+    if (valor && !cinema && !(Number(tabela.salarioDia) > 0)) tabela.salarioDia = valor;
+    const funcao = String(f.perfil?.funcao ?? "").trim() ? f.perfil.funcao : perfil.funcao;
+    const mudou = JSON.stringify(tabela) !== JSON.stringify(f.tabela) || funcao !== f.perfil?.funcao;
+    if (mudou) {
+      const gravada = await saveProject({ ...f, tabela, perfil: { ...f.perfil, funcao }, profileId: perfil.id });
+      syncProjectToCloud(uid, gravada as any).catch(() => {});
+    }
+    id = f.id;
+  } else {
+    // Publicidade: um dia, hoje. Cinema: a semana desta segunda a domingo.
+    id = await createProject(d.formato === "cinema" ? { formato: "cinema", diasSemana: 5 } : {});
+    const folha = await getProject(id);
+    if (folha) syncProjectToCloud(uid, folha).catch(() => {});
+  }
   // exemplo_v1: a conta já tem a sua folha, não precisa da de exemplo.
   await marcarConta(uid, { [MARCA_PRIMEIRA_ENTRADA]: "feita", exemplo_v1: true });
-  const folha = await getProject(id);
-  if (folha) syncProjectToCloud(uid, folha).catch(() => {});
   return id;
 }
 
@@ -134,39 +161,45 @@ export async function adiarPrimeiraEntrada(user: { id: string; user_metadata?: R
   await criarExemploSePreciso(user);
 }
 
+/* ---------- Os dados do diálogo de exportação, no perfil ---------- */
+
+type FolhaDados = { formato?: string; perfil?: { funcao?: string } };
+type Pendente = { perfilId?: string; dados: DadosFolha; iniciais: DadosFolha | null; folha: FolhaDados };
+
+const chavePendente = (uid: string) => `passos:dados-pendentes:v1:${uid}`;
+
 /**
  * Os dados escritos no diálogo da exportação (nome, email, telefone, NIF,
- * IBAN) chegam ao perfil dono da folha:
+ * IBAN) chegam ao perfil dono da folha. Devolve se ficaram gravados (ou se não
+ * havia nada a gravar); `false` = fica para depois (ver guardarDadosOuAdiar).
  *   • com perfil: aplica-se o que falta (ou o que a pessoa mudou no diálogo)
  *     por cima da cópia MAIS RECENTE — a local ou a da nuvem. Gravar a local
  *     às cegas, com carimbo novo, desfazia uma mudança feita noutro aparelho
- *     (o salário, por exemplo). Sem rede, não se mexe no perfil: a folha já
- *     leva os dados no PDF, e o diálogo volta a oferecê-los noutra folha.
+ *     (o salário, por exemplo).
  *   • sem perfil nenhum (quem respondeu "Agora não"): cria-se o primeiro, com
- *     os dados, a função e o valor da folha — mas só com a certeza de que a
- *     conta não tem perfil na nuvem. Senão os dados perdiam-se e as folhas
- *     seguintes nasciam vazias.
+ *     os dados e a função da folha — só com a certeza de que a conta não tem
+ *     perfil na nuvem. O valor da folha NÃO passa para o perfil: a pessoa não
+ *     o confirmou aqui (podia ser o da folha de exemplo, ou o de uma semana
+ *     de 6 dias, que no perfil passava a valer para as de 5).
  */
 export async function guardarDadosNoPerfil(
   uid: string,
   perfilId: string | undefined,
   dados: DadosFolha,
   iniciais: DadosFolha | null,
-  folha: { formato?: string; perfil?: { funcao?: string }; tabela?: { salarioDia?: number; salarioSemana?: number } }
-): Promise<void> {
+  folha: FolhaDados
+): Promise<boolean> {
   try {
     // Sem profileId (folhas antigas) a folha é do perfil ativo (belongsToProfile)
     const local = (perfilId ? await getProfileById(perfilId) : null) ?? (await getActiveProfile());
     if (!local) {
-      // Sem perfil: o primeiro, com os dados do diálogo
-      const cinema = folha.formato === "cinema";
       const base = perfilInicial(String(Date.now()), {
-        formato: cinema ? "cinema" : "publicidade",
+        formato: folha.formato === "cinema" ? "cinema" : "publicidade",
         funcao: folha.perfil?.funcao ?? "",
-        valor: Number(cinema ? folha.tabela?.salarioSemana : folha.tabela?.salarioDia) || undefined,
       });
-      await criarPrimeiroPerfil(uid, { ...base, ...patchPerfilDono(null, dados) });
-      return;
+      // null = sem rede, ou já há perfil na nuvem (chega no próximo sync e o
+      // pendente aplica-se então por cima dele)
+      return !!(await criarPrimeiroPerfil(uid, { ...base, ...patchPerfilDono(null, dados) }));
     }
     const { data, error } = await supabase
       .from("profiles")
@@ -174,7 +207,7 @@ export async function guardarDadosNoPerfil(
       .eq("user_id", uid)
       .eq("id", local.id)
       .maybeSingle();
-    if (error) return; // sem rede: fica para outra vez
+    if (error) return false; // sem rede: fica pendente
     const remoto = data?.data as Profile | undefined;
     const ts = (v: unknown) => {
       const n = Date.parse(String(v ?? ""));
@@ -185,10 +218,53 @@ export async function guardarDadosNoPerfil(
         ? { ...remoto, id: local.id }
         : local;
     const patch = patchPerfilDono(base, dados, iniciais);
-    if (!Object.keys(patch).length) return;
+    if (!Object.keys(patch).length) return true;
     const gravado = await upsertProfile({ ...base, ...patch });
     syncProfileToCloud(uid, gravado).catch(() => {});
+    return true;
   } catch {
-    /* o PDF já saiu com os dados; o perfil fica para outra vez */
+    return false;
+  }
+}
+
+/**
+ * Grava os dados no perfil; se não der agora (sem rede no décor — o PDF faz-se
+ * sem rede), ficam PENDENTES e aplicam-se na próxima sincronização. Sem isto
+ * perdiam-se: a folha seguinte nascia vazia e o diálogo já não perguntava.
+ */
+export async function guardarDadosOuAdiar(
+  uid: string,
+  perfilId: string | undefined,
+  dados: DadosFolha,
+  iniciais: DadosFolha | null,
+  folha: FolhaDados
+): Promise<void> {
+  const ok = await guardarDadosNoPerfil(uid, perfilId, dados, iniciais, folha);
+  try {
+    if (ok) await AsyncStorage.removeItem(chavePendente(uid));
+    else {
+      const pendente: Pendente = { perfilId, dados, iniciais, folha: { formato: folha.formato, perfil: { funcao: folha.perfil?.funcao } } };
+      await AsyncStorage.setItem(chavePendente(uid), JSON.stringify(pendente));
+    }
+  } catch {
+    /* sem armazenamento: perde-se o pendente, nunca o PDF */
+  }
+}
+
+/** Chamado pelo SyncProvider depois de cada sincronização. */
+export async function aplicarDadosPendentes(uid: string): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(chavePendente(uid));
+    if (!raw) return;
+    const p = JSON.parse(raw) as Pendente;
+    if (!p?.dados) {
+      await AsyncStorage.removeItem(chavePendente(uid));
+      return;
+    }
+    if (await guardarDadosNoPerfil(uid, p.perfilId, p.dados, p.iniciais ?? null, p.folha ?? {})) {
+      await AsyncStorage.removeItem(chavePendente(uid));
+    }
+  } catch {
+    /* fica para a próxima */
   }
 }

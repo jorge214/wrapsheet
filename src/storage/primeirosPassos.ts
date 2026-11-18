@@ -69,6 +69,42 @@ export async function lerMarcas(uid: string): Promise<Marcas> {
   return juntarMarcas(meta, local);
 }
 
+/**
+ * As marcas SEM esperar pela rede, para o que está no caminho de um toque (o
+ * botão de exportar): sem rede e com o token expirado, o getSession tenta
+ * renovar durante ~25 s. Passado `ms`, valem as marcas locais.
+ */
+export async function lerMarcasRapido(uid: string, ms = 300): Promise<Marcas> {
+  const local = lerLocal(uid);
+  const prazo = new Promise<null>((r) => setTimeout(() => r(null), ms));
+  const todas = await Promise.race([lerMarcas(uid).catch(() => null), prazo]);
+  return todas ?? juntarMarcas({}, await local);
+}
+
+/* ---------- Folhas onde a pessoa já confirmou os dados no diálogo ---------- */
+
+const chaveConfirmadas = (uid: string) => `passos:dados-confirmados:v1:${uid}`;
+
+export async function dadosConfirmados(uid: string): Promise<Set<string>> {
+  try {
+    const v = JSON.parse((await AsyncStorage.getItem(chaveConfirmadas(uid))) || "[]");
+    return new Set(Array.isArray(v) ? v.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export async function marcarDadosConfirmados(uid: string | undefined, folhaId: string): Promise<void> {
+  if (!uid) return;
+  try {
+    const ids = [...(await dadosConfirmados(uid))].filter((x) => x !== folhaId);
+    ids.push(folhaId);
+    await AsyncStorage.setItem(chaveConfirmadas(uid), JSON.stringify(ids.slice(-500)));
+  } catch {
+    /* sem armazenamento: o diálogo pode voltar a aparecer nesta folha */
+  }
+}
+
 /** Grava só a cópia local (sem rede, imediato) — para o ecrã mudar já. */
 export async function marcarLocal(uid: string | undefined, marcas: Marcas): Promise<void> {
   if (!uid) return;

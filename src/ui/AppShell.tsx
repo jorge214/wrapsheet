@@ -113,6 +113,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [zoom]);
 
+  // Primeira entrada aberta: a app por baixo fica fora do alcance do teclado
+  // (web: inert) e dos leitores de ecrã (aria-hidden / importantForAccessibility)
+  // — sem isto o TalkBack e o Tab chegavam à lista e ao "+" por baixo dela.
+  const peVisivel = primeiraEntrada && !!session && !isAuthScreen && pathname !== "/onboarding";
+  const conteudoRef = useRef<any>(null);
+  const sidebarRef = useRef<any>(null);
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    for (const r of [conteudoRef, sidebarRef]) {
+      const el = r.current as any;
+      if (el && "inert" in el) el.inert = peVisivel;
+    }
+  }, [peVisivel, isWide]);
+
   // (depois de TODOS os hooks — regra dos hooks)
   // 1º arranque sem sessão → introdução (slides); só depois o login.
   if (
@@ -134,8 +148,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // folha abria e fechava logo ao forçar landscape).
   return (
     <View style={[styles.root, Platform.OS === "web" ? { height } : { flex: 1 }]}>
-      {isWide && !isAuthScreen && <Sidebar />}
-      <View style={styles.content}>
+      {isWide && !isAuthScreen && <Sidebar raizRef={sidebarRef} escondida={peVisivel} />}
+      <View ref={conteudoRef} style={styles.content} {...escondidoDosLeitores(peVisivel)}>
         <View style={isWide ? innerStyle : styles.contentInnerWide}>
           {children}
         </View>
@@ -144,10 +158,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {Platform.OS === "web" && !isAuthScreen && <InstallPrompt />}
       {/* Contas novas: três perguntas e a primeira folha criada (por cima de
           qualquer ecrã; quem decide quando é o SyncProvider) */}
-      <PrimeiraEntrada
-        visible={primeiraEntrada && !!session && !isAuthScreen && pathname !== "/onboarding"}
-        onClose={fecharPrimeiraEntrada}
-      />
+      <PrimeiraEntrada visible={peVisivel} onClose={fecharPrimeiraEntrada} />
       {showPreviewPanel && (
         <View style={styles.previewPane}>
           {/* @ts-ignore — iframe is web-only */}
@@ -170,7 +181,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
-function Sidebar() {
+// Escondido dos leitores de ecrã (Android: importantForAccessibility; iOS e
+// web: aria-hidden) enquanto a primeira entrada está aberta por cima
+function escondidoDosLeitores(escondido: boolean) {
+  return escondido ? ({ importantForAccessibility: "no-hide-descendants", "aria-hidden": true } as const) : {};
+}
+
+function Sidebar({ raizRef, escondida = false }: { raizRef?: React.Ref<any>; escondida?: boolean }) {
   const { COLORS, mode } = useTheme();
   const { t } = useTranslation();
   const pathname = usePathname();
@@ -209,6 +226,8 @@ function Sidebar() {
 
   return (
     <View
+      ref={raizRef}
+      {...escondidoDosLeitores(escondida)}
       style={[
         styles.sidebar,
         {

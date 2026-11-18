@@ -50,8 +50,8 @@ import { ProjectState } from "../../src/models/project";
 import { getEffectiveFiscal, getSettings } from "../../src/storage/appSettings";
 import { getActiveProfile, getProfileById } from "../../src/storage/profile";
 import { registarExportacaoPdf } from "../../src/lib/eventos";
-import { guardarDadosNoPerfil } from "../../src/storage/primeiraEntrada";
-import { lerMarcas, marcarPasso } from "../../src/storage/primeirosPassos";
+import { guardarDadosOuAdiar } from "../../src/storage/primeiraEntrada";
+import { dadosConfirmados, lerMarcasRapido, marcarDadosConfirmados, marcarPasso } from "../../src/storage/primeirosPassos";
 import {
   CAMPOS_DADOS,
   dadosIniciais,
@@ -247,6 +247,8 @@ export default function ProjectEditor() {
   // selecionar texto num campo e largar o rato fora do cartão fechava-o e
   // perdia-se o que se tinha escrito.
   const toqueNoFundo = useRef(false);
+  // Um toque de cada vez no "Exportar PDF" enquanto se decide o que mostrar
+  const aAbrirExport = useRef(false);
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
   const editIframeRef = useRef<any>(null);
@@ -465,30 +467,41 @@ export default function ProjectEditor() {
     // persist muda o projectRef já (antes de qualquer await): o export lê-o
     if (JSON.stringify(perfil) !== JSON.stringify(p.perfil)) persist({ ...p, perfil });
     // O perfil: o que faltava e o que se mudou aqui, sobre a cópia mais
-    // recente; sem perfil nenhum, cria-se o primeiro (ver primeiraEntrada.ts)
+    // recente; sem perfil nenhum, cria-se o primeiro. Sem rede fica PENDENTE
+    // e grava-se na próxima sincronização (ver primeiraEntrada.ts).
     const uid = userRef.current?.id;
     if (uid) {
-      guardarDadosNoPerfil(uid, (p as { profileId?: string }).profileId, dados, dadosIniciaisRef.current, p as any).catch(() => {});
+      marcarDadosConfirmados(uid, p.id).catch(() => {});
+      guardarDadosOuAdiar(uid, (p as { profileId?: string }).profileId, dados, dadosIniciaisRef.current, p as any).catch(() => {});
     }
   }
 
   // Decide ANTES de abrir se o diálogo pede os dados: abrir e decidir depois
   // fazia o diálogo crescer a meio da animação, mostrava por instantes o
   // formulário da vez anterior, e um toque rápido exportava sem perguntar.
+  // Nada aqui espera pela rede: sem rede e com o token expirado, o
+  // getSession do Supabase tenta renovar durante ~25 s e o botão parecia
+  // morto no décor (o PDF em si faz-se sem rede). Ver lerMarcasRapido.
   async function abrirExportacao() {
+    if (aAbrirExport.current) return;
+    aAbrirExport.current = true;
     const p = projectRef.current;
     let dados: DadosFolha | null = null;
     try {
-      // A folha de exemplo nunca leva os dados de ninguém
-      if (p && user && !eExemplo(p)) {
+      // A folha de exemplo nunca leva os dados de ninguém; numa folha onde a
+      // pessoa já confirmou os dados no diálogo, não se volta a oferecer
+      // (senão um campo apagado de propósito voltava a cada exportação)
+      if (p && user && !eExemplo(p) && !(await dadosConfirmados(user.id)).has(p.id)) {
         const donoId = (p as { profileId?: string }).profileId;
         const dono = (donoId ? await getProfileById(donoId) : null) ?? (await getActiveProfile().catch(() => null));
-        if (pedirDadosNaExportacao(p.perfil as any, await lerMarcas(user.id), dono as any)) {
+        if (pedirDadosNaExportacao(p.perfil as any, await lerMarcasRapido(user.id), dono as any)) {
           dados = dadosIniciais(p.perfil as any, dono as any, user.email ?? undefined);
         }
       }
     } catch {
       dados = null;
+    } finally {
+      aAbrirExport.current = false;
     }
     dadosIniciaisRef.current = dados;
     setDadosExp(dados);
@@ -849,17 +862,18 @@ export default function ProjectEditor() {
       const minhas = [editIframeRef.current?.contentWindow, inlineSheetRef.current?.contentWindow].filter(Boolean);
       if (!src || !minhas.includes(src)) return;
     }
-    let p = projectRef.current;
+    const p = projectRef.current;
     if (!p) return;
     if (d.type === "ws:ready") { postEditCalc(p); return; }
     // Saiu de uma célula: re-push dos valores formatados (a célula já não está
     // focada, o ws:calc pode reescrevê-la — "12" → "12,00 €", vazio → automático)
     if (d.type === "ws:blur") { postEditCalc(p); return; }
 
-    // Qualquer edição na folha de exemplo faz dela uma folha a sério: as horas
-    // e os valores escritos por cima dela têm de contar nos totais (com a
-    // marca, ficavam de fora — dinheiro a menos à vista). Ver exemploMarca.ts.
-    if (temMarcaExemplo(p)) p = semExemplo(p);
+    // Uma mudança A SÉRIO na folha de exemplo faz dela uma folha a sério (as
+    // horas e os valores escritos por cima têm de contar nos totais — ver
+    // exemploMarca.ts): cada ramo que muda a folha passa por semExemplo. Só
+    // entrar e sair de uma célula (a folha manda a hora/data ao sair, mesmo
+    // sem mudança) não pode: o exemplo passava a contar 750 € inventados.
 
     // Tudo o que segue vem da própria folha e persiste o projeto — marca para
     // o efeito da folha inline NÃO a recarregar (perdia o foco/scroll)
@@ -904,10 +918,10 @@ export default function ProjectEditor() {
       } as Dia;
       // Cinema (região PT): feriado obrigatório nasce marcado a dobrar
       if (isCinema(p) && regionCode === "pt" && isFeriadoPT(nextDate)) (novo as any).feriado = true;
-      const next = { ...p, dias: [...p.dias, novo] };
+      const next = semExemplo({ ...p, dias: [...p.dias, novo] });
       persist(next);
       pushRows(next);
-      marcarDia(p);
+      marcarDia(next);
       return;
     }
     if (d.type === "ws:toggleFolga" || d.type === "ws:toggleFeriado") {
@@ -927,7 +941,7 @@ export default function ProjectEditor() {
         if (on && (!cur || cur === defDesc)) patch.descricao = folgaDesc;
         if (!on && cur === folgaDesc) patch.descricao = defDesc;
       }
-      const next = { ...p, dias: p.dias.map((x, ix) => (ix === i ? { ...x, ...patch } : x)) };
+      const next = semExemplo({ ...p, dias: p.dias.map((x, ix) => (ix === i ? { ...x, ...patch } : x)) });
       persist(next);
       pushRows(next);
       return;
@@ -938,16 +952,16 @@ export default function ProjectEditor() {
       if (!src) return;
       const clone: Dia = { ...src, pago: false } as Dia;
       const dias = [...p.dias.slice(0, i + 1), clone, ...p.dias.slice(i + 1)];
-      const next = { ...p, dias };
+      const next = semExemplo({ ...p, dias });
       persist(next);
       pushRows(next);
-      marcarDia(p);
+      marcarDia(next);
       return;
     }
     if (d.type === "ws:removeDay") {
       const i = Number(d.i);
       if (p.dias.length <= 1 || !p.dias[i]) return; // um projeto precisa de ≥1 dia
-      const next = { ...p, dias: p.dias.filter((_, ix) => ix !== i) };
+      const next = semExemplo({ ...p, dias: p.dias.filter((_, ix) => ix !== i) });
       persist(next);
       pushRows(next);
       return;
@@ -1061,10 +1075,18 @@ export default function ProjectEditor() {
       }
       default: return;
     }
+    // Nada mudou (a folha manda a hora/data ao sair da célula mesmo sem
+    // alteração): não se grava nada — e a folha de exemplo continua exemplo.
+    if (JSON.stringify(next) === JSON.stringify(p)) {
+      sheetSelfEdit.current = false; // não houve gravação: a próxima recarga conta
+      postEditCalc(p);
+      return;
+    }
+    next = semExemplo(next);
     persist(next);
     postEditCalc(next);
     // Uma linha de dia (com índice; sem ele é a linha B do cinema)
-    if (d.k === "dia" && d.i != null && !Number.isNaN(Number(d.i))) marcarDia(p);
+    if (d.k === "dia" && d.i != null && !Number.isNaN(Number(d.i))) marcarDia(next);
   }
 
   // ✅ Export robusto: usa SEMPRE o estado atual em memória (ref)

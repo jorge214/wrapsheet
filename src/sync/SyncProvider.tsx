@@ -10,7 +10,7 @@ import {
 import { fullSync } from "./syncService";
 import { backfillProfileIds } from "../storage/projects";
 import { criarExemploSePreciso } from "../storage/exemplo";
-import { verificarPrimeiraEntrada } from "../storage/primeiraEntrada";
+import { aplicarDadosPendentes, verificarPrimeiraEntrada } from "../storage/primeiraEntrada";
 
 type SyncCtx = {
   /** A conta é nova e a primeira entrada (src/ui/PrimeiraEntrada.tsx) deve aparecer */
@@ -61,8 +61,10 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     // Multi-perfil: carimba os projetos legados (sem profileId) com o perfil
     // ativo — depois do download, para carimbar já com os dados mais recentes.
     await backfillProfileIds();
-    // Exportações de PDF registadas sem rede (ver lib/eventos.ts)
+    // Exportações de PDF registadas sem rede (ver lib/eventos.ts) e os dados
+    // do diálogo de exportação que não chegaram ao perfil por falta de rede
     await enviarFilaPdf(uid);
+    await aplicarDadosPendentes(uid);
     // Conta sem perfil e sem folhas, aqui e na nuvem → primeira entrada (três
     // perguntas e a folha da semana criada). Só DEPOIS do download: antes dele
     // uma conta antiga num aparelho novo parecia vazia. A folha de exemplo

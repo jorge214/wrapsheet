@@ -22,6 +22,7 @@
       "destination": "/terms.html"
     }
   ],
+  "regions": ["dub1"],
   "functions": {
     "api/pdf.js": {
       "maxDuration": 60,
