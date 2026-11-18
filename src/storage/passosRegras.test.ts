@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   dadosIniciais,
   estadoPassos,
+  fecharPerguntasAbertas,
   juntarMarcas,
   lerValor,
   novoParaOferecer,
@@ -22,6 +23,20 @@ import {
 // exportação (18/11/2026). O ponto mais delicado é a primeira entrada NUNCA
 // aparecer a uma conta que já tem dados (criaria um 2.º perfil que o servidor
 // recusa) — e na dúvida, não aparece.
+
+describe("primeira entrada aberta: quando o sync a fecha", () => {
+  it("abertas pelo sync: fecham com qualquer resposta noutro aparelho", () => {
+    expect(fecharPerguntasAbertas(undefined, false)).toBe(false);
+    expect(fecharPerguntasAbertas("adiada", false)).toBe(true);
+    expect(fecharPerguntasAbertas("feita", false)).toBe(true);
+    expect(fecharPerguntasAbertas("nao_aplica", false)).toBe(true);
+  });
+  it("abertas à mão pelo cartão (a conta já estava \"adiada\"): o \"adiada\" não as fecha; uma resposta a sério sim", () => {
+    expect(fecharPerguntasAbertas("adiada", true)).toBe(false);
+    expect(fecharPerguntasAbertas("feita", true)).toBe(true);
+    expect(fecharPerguntasAbertas("nao_aplica", true)).toBe(true);
+  });
+});
 
 describe("primeira entrada: quando aparece", () => {
   const base = { marcado: false, perfisLocais: 0, folhasLocais: 0, perfisNuvem: 0, folhasNuvem: 0 };

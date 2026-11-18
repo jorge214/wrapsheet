@@ -11,7 +11,6 @@ import { formatoDoBlob, formatoDoResumo } from "./formato";
 import { baseRegiaoHE, heParaTabela } from "./horasExtraPerfil";
 import { mesDaFolhaCinema, primeiroDiaPublicidade, segundaDaSemana } from "./novaFolha";
 import { semExemplo } from "./exemploMarca";
-import { zerosDoPerfil } from "./taxasZero";
 
 /* ------------ Tipos internos ------------ */
 
@@ -638,10 +637,6 @@ export async function createProject(opts?: {
       },
     } as Partial<Tabela>);
   }
-  // Um 0 nas taxas €/h do PERFIL só lá está se alguém o escreveu (campo vazio
-  // = sem valor): a folha nasce com ele confirmado, para o aviso das "horas
-  // pagas a 0 €" não perguntar em cada folha nova. Ver storage/taxasZero.ts.
-  if (!cinema) Object.assign(tabela, zerosDoPerfil(tabela as any));
   const monday = segundaDaSemana(opts?.mes, opts?.ano, opts?.semanas ?? 0);
   const regiaoPT = (settings.region ?? "pt") === "pt";
 
@@ -906,8 +901,13 @@ export async function duplicateProjectToProfile(
       ? { ...((target as any)?.fixasCinema || {}), ...semVazios((target as any)?.fixasCinema6) }
       : (target as any)?.fixasCinema || {}
     : (target as any)?.fixas || {};
+  // O "Está certo assim" das taxas a 0 (tabela.zeroOk) foi a resposta de quem
+  // fez a folha de origem, sobre essa folha: a cópia para OUTRA pessoa não o
+  // leva. Se uma taxa a 0 passar para ela e custar dinheiro, o aviso das
+  // "horas pagas a 0 €" pergunta-lhe a ela (ver storage/taxasZero.ts).
+  const { zeroOk: _respostaDeOutro, ...tabelaDeOrigem } = original.tabela as Tabela & { zeroOk?: unknown };
   const tabela: Tabela = {
-    ...original.tabela,
+    ...tabelaDeOrigem,
     ...(ehCinema
       ? {
           salarioSemana: fixas.salarioSemana ?? original.tabela.salarioSemana,

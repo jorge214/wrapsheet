@@ -39,6 +39,17 @@ export function precisaPrimeiraEntrada(o: {
 }
 
 /**
+ * Com as três perguntas ABERTAS, a sincronização seguinte fecha-as? Só se a
+ * conta já respondeu (noutro aparelho). Abertas à mão pelo cartão dos passos,
+ * a conta já estava "adiada" — esse "adiada" não conta, senão fechavam-se a
+ * meio do preenchimento a quem foi ao WhatsApp e voltou (revisão de 18/11).
+ */
+export function fecharPerguntasAbertas(marca: unknown, abertaAMao: boolean): boolean {
+  if (!marca) return false;
+  return !(abertaAMao && marca === "adiada");
+}
+
+/**
  * O perfil que a primeira entrada cria. O valor vai para o sítio que cada
  * formato lê ao criar folhas: o salário ao DIA da publicidade, ou o salário à
  * SEMANA do cinema (a folha de cinema divide-o pelos dias da semana). Pedir

@@ -54,6 +54,17 @@ async function contarNaNuvem(uid: string): Promise<{ perfis: number; folhas: num
 }
 
 /**
+ * A contagem na nuvem com prazo: no décor, com a rede em "buraco negro", o
+ * fetch do Android não tem limite e o do iOS só desiste aos 60 s (com novas
+ * tentativas, ~4 min) — e o "Criar" ficava preso sem saída. Passado o prazo
+ * vale "não se sabe" (null): não se cria nada e o ecrã diz "tenta outra vez".
+ * O resultado que chegar depois é ignorado.
+ */
+function contarComPrazo(uid: string, ms = 10_000): Promise<{ perfis: number; folhas: number } | null> {
+  return Promise.race([contarNaNuvem(uid), new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+}
+
+/**
  * Chamado pelo SyncProvider depois de cada sincronização. Quem já tem perfil
  * ou folhas fica marcado ("nao_aplica") para não se voltar a contar.
  */
@@ -90,7 +101,7 @@ export async function verificarPrimeiraEntrada(uid: string): Promise<boolean> {
  * (aqui e na nuvem). Devolve-o, ou `null` se não era seguro criar.
  */
 async function criarPrimeiroPerfil(uid: string, perfil: Profile): Promise<Profile | null> {
-  const nuvem = await contarNaNuvem(uid);
+  const nuvem = await contarComPrazo(uid);
   if (!nuvem || nuvem.perfis > 0) return null;
   if ((await listProfiles()).length > 0) return null;
   const gravado = await upsertProfile(perfil);
@@ -110,13 +121,15 @@ async function criarPrimeiroPerfil(uid: string, perfil: Profile): Promise<Profil
  * essa folha ganha a função e o valor que estivessem por preencher.
  */
 export async function concluirPrimeiraEntrada(uid: string, d: DadosPrimeiraEntrada): Promise<string | null> {
-  const nuvem = await contarNaNuvem(uid);
+  const nuvem = await contarComPrazo(uid);
   if (!nuvem) throw new Error("sem_nuvem");
   const proprias = (await listAllProjectsFull()).filter((p) => !eExemplo(p));
   const semDados = nuvem.perfis === 0 && (await listProfiles()).length === 0;
   // Folhas na nuvem que ainda não chegaram aqui = a conta já é usada noutro aparelho
   if (!semDados || (nuvem.folhas > 0 && !proprias.length)) {
-    await marcarConta(uid, { [MARCA_PRIMEIRA_ENTRADA]: "nao_aplica" });
+    // A marca local já; a subida para a conta sem esperar (ver o fim)
+    await marcarLocal(uid, { [MARCA_PRIMEIRA_ENTRADA]: "nao_aplica" });
+    marcarConta(uid, { [MARCA_PRIMEIRA_ENTRADA]: "nao_aplica" }).catch(() => {});
     return null;
   }
   const perfil = await criarPrimeiroPerfil(uid, perfilInicial(String(Date.now()), d));
@@ -153,7 +166,12 @@ export async function concluirPrimeiraEntrada(uid: string, d: DadosPrimeiraEntra
     if (folha) syncProjectToCloud(uid, folha).catch(() => {});
   }
   // exemplo_v1: a conta já tem a sua folha, não precisa da de exemplo.
-  await marcarConta(uid, { [MARCA_PRIMEIRA_ENTRADA]: "feita", exemplo_v1: true });
+  // A marca local já (o perfil e a folha também já estão gravados); a subida
+  // para a conta vai sem esperar: com a rede presa, o "Criar" ficava a rodar
+  // e sem saída depois de tudo feito. Sem rede sobe numa próxima vez.
+  const feita = { [MARCA_PRIMEIRA_ENTRADA]: "feita" as const, exemplo_v1: true };
+  await marcarLocal(uid, feita);
+  marcarConta(uid, feita).catch(() => {});
   return id;
 }
 
@@ -215,6 +233,13 @@ async function guardarAgora(
   desde?: number
 ): Promise<boolean> {
   try {
+    // Só com a sessão DESTA conta. Sem ela (sessão morta, ou já de outra conta
+    // depois de uma troca com um sync a meio), o pedido abaixo ia como anónimo
+    // e as regras devolviam 0 linhas SEM erro: parecia não haver cópia na
+    // nuvem, a local velha ia por cima de uma correção mais recente, ou os
+    // dados desta conta iam para o perfil da outra. Fica pendente.
+    const { data: s } = await supabase.auth.getSession();
+    if (s.session?.user?.id !== uid) return false;
     // Sem profileId (folhas antigas) a folha é do perfil ativo (belongsToProfile)
     const local = (perfilId ? await getProfileById(perfilId) : null) ?? (await getActiveProfile());
     if (!local) {

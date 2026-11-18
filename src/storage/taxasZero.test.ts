@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calcProject } from "../calc/project";
 import type { Dia, Tabela } from "../calc/types";
-import { aoEscreverSalario, avisoTaxasZero, confirmarZeros, sementeTaxas, zerosConfirmados, zerosDoPerfil } from "./taxasZero";
+import { avisoTaxasZero, confirmarZeros, editarSalario, sementeTaxas, zerosConfirmados, zerosSemeados, type ChaveTaxa } from "./taxasZero";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Taxas €/h gravadas a 0 numa folha de publicidade (storage/taxasZero.ts).
@@ -250,62 +250,112 @@ describe("\"Está certo assim\"", () => {
   });
 });
 
-describe("o salário escrito pela primeira vez", () => {
-  it("tira as taxas que a semente antiga deixou a 0", () => {
-    const antes = tabela({ salarioDia: 0, ...ZEROS });
-    const depois = aoEscreverSalario(antes, { ...antes, salarioDia: 220 });
-    expect(depois.salarioDia).toBe(220);
-    expect("rateHEA" in depois).toBe(false);
-    expect("rateHEB" in depois).toBe(false);
-    expect("rateHR" in depois).toBe(false);
-    // e a folha passa a pagar as horas extra: 12 h → 220 + 30 = 250 €
-    expect(bruto(depois, [dia({ fim: "20:00" })])).toBe(250);
+// ─────────────────────────────────────────────────────────────────────────────
+// O salário escrito na folha. O editor manda o texto da célula a CADA tecla
+// (buildPdfHtml.ts, ouvinte 'input'), e o ecrã grava cada uma (num("") = 0).
+// Estas sequências são as que a revisão de 18/11 apanhou com teclas reais no
+// editor: tocar na célula seleciona "220"; ⌫ e depois 2, 5, 0 manda
+// "", "2", "25", "250"; escrever por cima da seleção manda "2", "25", "250".
+// `teclas` faz o mesmo que o case "tabela" de app/projects/[id].tsx: fotografa
+// os zeros ao abrir (zerosSemeados) e passa cada tecla por editarSalario.
+// ─────────────────────────────────────────────────────────────────────────────
+const num = (v: string) => Number(String(v).replace(",", ".")) || 0;
+function teclas(t0: Tabela, sequencia: string[], semeados0?: ChaveTaxa[]) {
+  let t = t0;
+  let semeados = semeados0 ?? zerosSemeados(t0);
+  for (const v of sequencia) ({ tabela: t, semeados } = editarSalario(t, num(v), semeados));
+  return { tabela: t, semeados };
+}
+// 01/07 das 08:00 às 22:00 (14 h → 3 h de HE-A) e 02/07 das 06:00 às 16:00:
+// descanso 22:00→06:00 = 8 h; faltam 3 h para as 11 → 3 h de HR.
+const DOIS_DIAS = [dia({ fim: "22:00" }), dia({ data: "2026-07-02", inicio: "06:00", fim: "16:00" })];
+
+describe("o salário escrito na folha", () => {
+  it("folha que ABRIU sem salário: escrever 220 tira os zeros que a semente antiga lá deixou", () => {
+    const { tabela: t, semeados } = teclas(tabela({ salarioDia: 0, ...ZEROS }), ["2", "22", "220"]);
+    expect(t.salarioDia).toBe(220);
+    expect("rateHEA" in t).toBe(false);
+    expect("rateHEB" in t).toBe(false);
+    expect("rateHR" in t).toBe(false);
+    expect(semeados).toEqual([]); // não há mais nada a tirar
+    // e a folha passa a pagar as horas extra: 12 h → 220 + 1 h × 30 = 250 €
+    expect(bruto(t, [dia({ fim: "20:00" })])).toBe(250);
   });
 
-  it("uma taxa com valor fica", () => {
-    const antes = tabela({ salarioDia: 0, rateHEA: 25, rateHEB: 0, rateHR: 0 });
-    const depois = aoEscreverSalario(antes, { ...antes, salarioDia: 220 });
-    expect(depois.rateHEA).toBe(25);
-    expect("rateHEB" in depois).toBe(false);
+  it("uma taxa com valor fica (só saem os zeros)", () => {
+    const { tabela: t } = teclas(tabela({ salarioDia: 0, rateHEA: 25, rateHEB: 0, rateHR: 0 }), ["2", "22", "220"]);
+    expect(t.rateHEA).toBe(25);
+    expect("rateHEB" in t).toBe(false);
+    expect("rateHR" in t).toBe(false);
   });
 
-  it("se a folha JÁ tinha salário, mudar o valor não tira nada (aí pergunta o aviso)", () => {
-    const antes = tabela({ salarioDia: 200, ...ZEROS });
-    const depois = { ...antes, salarioDia: 220 };
-    expect(aoEscreverSalario(antes, depois)).toBe(depois);
+  it("folha COM salário e a HR a 0 por confirmar: apagar e reescrever (\"\", \"2\", \"25\", \"250\") não tira o 0 — 590 € e o aviso continua a perguntar", () => {
+    // HE-A e HE-B já semeadas (30 e 40, do salário de 220); a HR a 0, sem resposta.
+    const t0 = tabela({ rateHEA: 30, rateHEB: 40, rateHR: 0 });
+    expect(zerosSemeados(t0)).toEqual([]); // abriu com salário: nada a tirar
+    const { tabela: t } = teclas(t0, ["", "2", "25", "250"]);
+    expect(t.salarioDia).toBe(250);
+    expect(t.rateHR).toBe(0);
+    expect(t.rateHEA).toBe(30); // gravada: não segue o salário
+    // Dia 1: 250 + 3 h × 30 = 340 €; dia 2: 250 €; HR 3 h × 0 = 0 → 590 €
+    expect(bruto(t, DOIS_DIAS)).toBe(590);
+    // O aviso pergunta: HR automática = 250 ÷ 11 × 3 = 68,1818… → 68,18 €/h; 3 h × 68,18 = 204,54 €
+    const a = avisoTaxasZero(folha(t, DOIS_DIAS))!;
+    expect(a.chaves).toEqual(["rateHR"]);
+    expect(a.diferenca).toBe(204.54);
   });
 
-  it("um 0 confirmado (\"Está certo assim\") fica", () => {
-    const antes = confirmarZeros(tabela({ salarioDia: 0, ...ZEROS }), ["rateHR"]);
-    const depois = aoEscreverSalario(antes, { ...antes, salarioDia: 220 });
-    expect(depois.rateHR).toBe(0);
-    expect("rateHEA" in depois).toBe(false);
+  it("escrever por cima da seleção dá o MESMO resultado que apagar primeiro", () => {
+    const t0 = tabela({ rateHEA: 30, rateHEB: 40, rateHR: 0 });
+    expect(teclas(t0, ["2", "25", "250"]).tabela).toEqual(teclas(t0, ["", "2", "25", "250"]).tabela);
   });
 
-  it("apagar o salário (volta a 0) não mexe em nada", () => {
-    const antes = tabela(ZEROS);
-    const depois = { ...antes, salarioDia: 0 };
-    expect(aoEscreverSalario(antes, depois)).toBe(depois);
+  it("apagar dígito a dígito e reescrever (\"22\", \"2\", \"\", \"2\", \"25\", \"250\") também não tira o 0", () => {
+    const { tabela: t } = teclas(tabela({ rateHEA: 30, rateHEB: 40, rateHR: 0 }), ["22", "2", "", "2", "25", "250"]);
+    expect(t.rateHR).toBe(0);
+    expect(bruto(t, DOIS_DIAS)).toBe(590);
   });
 
-  it("cinema não é mexido", () => {
-    const antes = tabela({ salarioDia: undefined, salarioSemana: 0, diasSemana: 5, ...ZEROS });
-    const depois = { ...antes, salarioSemana: 1250, salarioDia: 250 };
-    expect(aoEscreverSalario(antes, depois)).toBe(depois);
-  });
-});
-
-describe("folha nova a partir do perfil", () => {
-  it("um 0 que vem do perfil nasce confirmado (só lá está se alguém o escreveu)", () => {
-    const t = zerosDoPerfil(tabela({ rateHR: 0 }));
-    expect(zerosConfirmados(t)).toEqual(["rateHR"]);
-    // 8 h de descanso: a HR fica a 0 e ninguém pergunta
-    const dias = [dia({ fim: "22:00" }), dia({ data: "2026-07-02", inicio: "06:00", fim: "16:00" })];
-    expect(avisoTaxasZero(folha(t, dias))).toBeNull();
+  it("reescrever o MESMO salário (220 → \"\" → 220) não mexe num 0 de propósito", () => {
+    const t0 = tabela({ rateHEA: 0 });
+    const { tabela: t } = teclas(t0, ["", "2", "22", "220"]);
+    expect(t).toEqual(t0);
   });
 
-  it("sem zeros, a tabela fica igual (sem campo novo)", () => {
-    const t = tabela();
-    expect(zerosDoPerfil(t)).toBe(t);
+  it("depois da 1.ª vez, um 0 posto à mão sobrevive a apagar e reescrever o salário", () => {
+    // Abriu sem salário (zeros da semente antiga); escreveu 220 → saem.
+    let r = teclas(tabela({ salarioDia: 0, ...ZEROS }), ["2", "22", "220"]);
+    // Depois pôs a HR a 0 de propósito, e mais tarde mudou o salário para 300.
+    r = teclas({ ...r.tabela, rateHR: 0 }, ["", "3", "30", "300"], r.semeados);
+    expect(r.tabela.salarioDia).toBe(300);
+    expect(r.tabela.rateHR).toBe(0);
+  });
+
+  it("um 0 posto ANTES de escrever o salário, numa folha que abriu sem zeros, fica", () => {
+    const t0 = tabela({ salarioDia: 0 });
+    const semeados = zerosSemeados(t0); // [] — não havia zeros ao abrir
+    const { tabela: t } = teclas({ ...t0, rateHR: 0 }, ["2", "22", "220"], semeados);
+    expect(t.rateHR).toBe(0);
+  });
+
+  it("um 0 confirmado (\"Está certo assim\") fica; os outros saem", () => {
+    const t0 = confirmarZeros(tabela({ salarioDia: 0, ...ZEROS }), ["rateHR"]);
+    expect(zerosSemeados(t0)).toEqual(["rateHEA", "rateHEB"]);
+    const { tabela: t } = teclas(t0, ["2", "22", "220"]);
+    expect(t.rateHR).toBe(0);
+    expect("rateHEA" in t).toBe(false);
+    expect("rateHEB" in t).toBe(false);
+  });
+
+  it("apagar o salário (fica a 0) não mexe em nada", () => {
+    const { tabela: t } = teclas(tabela(ZEROS), [""]);
+    expect(t.salarioDia).toBe(0);
+    expect(t).toMatchObject(ZEROS);
+  });
+
+  it("cinema: nada a tirar (o motor já ignora o 0)", () => {
+    const cinema = tabela({ salarioDia: undefined, salarioSemana: 0, diasSemana: 5, ...ZEROS });
+    expect(zerosSemeados(cinema)).toEqual([]);
+    expect(zerosSemeados(null)).toEqual([]);
   });
 });

@@ -18,12 +18,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
 import { eExemplo } from "./exemploMarca";
 import {
+  CAMPOS_DADOS,
   estadoPassos,
   juntarMarcas,
   MARCA_PASSO_DIA,
   MARCA_PASSO_PDF,
   MARCA_PASSOS_FECHADOS,
   MARCA_PRIMEIRA_ENTRADA,
+  umaLinha,
   type EstadoPassos,
   type Marcas,
 } from "./passosRegras";
@@ -104,7 +106,10 @@ export async function marcarDadosConfirmados(uid: string | undefined, folhaId: s
   try {
     const mapa = await confirmacaoDeDados(uid);
     mapa.delete(folhaId);
-    mapa.set(folhaId, perfilNaAltura);
+    // Só os campos que o diálogo compara (novoParaOferecer), já numa linha:
+    // guardar o perfil inteiro deixava no aparelho uma cópia do salário, das
+    // condições e do SWIFT fora dos dados do perfil (revisão de 18/11).
+    mapa.set(folhaId, Object.fromEntries(CAMPOS_DADOS.map((k) => [k, umaLinha(perfilNaAltura?.[k])])));
     const ultimas = [...mapa.entries()].slice(-500);
     await AsyncStorage.setItem(chaveConfirmadas(uid), JSON.stringify(Object.fromEntries(ultimas)));
   } catch {
@@ -136,6 +141,15 @@ export async function marcarLocal(uid: string | undefined, marcas: Marcas): Prom
 export async function marcarConta(uid: string | undefined, marcas: Marcas): Promise<void> {
   if (!uid) return;
   try {
+    // Só com a sessão DESTA conta. Com a de outra (troca de conta com um sync
+    // a meio) o updateUser escrevia estas marcas nos metadados dela; sem
+    // sessão nenhuma não sobe nada. Ficam locais e sobem numa próxima vez.
+    const { data: s } = await supabase.auth.getSession();
+    const sessao = s.session;
+    if (sessao?.user?.id !== uid) {
+      await marcarLocal(uid, marcas);
+      return;
+    }
     let pedidas = { ...marcas };
     // "nao_aplica" só se escreve se o servidor CONFIRMAR que a conta ainda não
     // respondeu à primeira entrada (a sessão guardada pode estar velha).
@@ -153,7 +167,7 @@ export async function marcarConta(uid: string | undefined, marcas: Marcas): Prom
     }
     await marcarLocal(uid, pedidas);
     const local = await lerLocal(uid);
-    const meta = await lerMetadados();
+    const meta = (sessao.user.user_metadata ?? {}) as Marcas;
     const subir: Marcas = {};
     // As pedidas agora (se diferentes) e as locais que nunca chegaram a subir
     for (const [k, v] of Object.entries(pedidas)) if (meta[k] !== v) subir[k] = v;

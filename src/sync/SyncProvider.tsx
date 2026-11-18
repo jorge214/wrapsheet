@@ -11,7 +11,7 @@ import { fullSync } from "./syncService";
 import { backfillProfileIds } from "../storage/projects";
 import { criarExemploSePreciso } from "../storage/exemplo";
 import { aplicarDadosPendentes, verificarPrimeiraEntrada } from "../storage/primeiraEntrada";
-import { MARCA_PRIMEIRA_ENTRADA } from "../storage/passosRegras";
+import { fecharPerguntasAbertas, MARCA_PRIMEIRA_ENTRADA } from "../storage/passosRegras";
 import { lerMarcas } from "../storage/primeirosPassos";
 
 type SyncCtx = {
@@ -63,6 +63,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     if (!switched && now - lastSyncRef.current < 30_000) return;
     lastSyncRef.current = now;
     await fullSync(uid);
+    // Entretanto saiu da conta ou entrou outra: nada desta corrida pode tocar
+    // nos dados (ou na sessão) da seguinte
+    if (uidRef.current !== uid) return;
     // Multi-perfil: carimba os projetos legados (sem profileId) com o perfil
     // ativo — depois do download, para carimbar já com os dados mais recentes.
     await backfillProfileIds();
@@ -80,7 +83,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     // fecham se a conta já respondeu (noutro aparelho).
     if (abertaRef.current) {
       const m = await lerMarcas(uid);
-      if (uidRef.current === uid && m[MARCA_PRIMEIRA_ENTRADA]) {
+      // Abertas pelo cartão dos passos, o "adiada" que já lá estava não as fecha
+      if (uidRef.current === uid && fecharPerguntasAbertas(m[MARCA_PRIMEIRA_ENTRADA], abertaAMao.current)) {
         abertaAMao.current = false;
         setPrimeiraEntrada(false);
       }

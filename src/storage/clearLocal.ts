@@ -19,13 +19,16 @@ export async function forgetLastUser(): Promise<void> {
 }
 
 // Apaga TODOS os dados de utilizador locais (projetos ativos e arquivados,
-// perfis e perfil ativo). Preferências do aparelho (língua, tema) ficam.
+// perfis e perfil ativo, e os dados pessoais do diálogo de exportação —
+// `passos:dados-*`: o que se confirmou por folha e o que ficou pendente sem
+// rede). Preferências do aparelho (língua, tema) ficam, e as marcas dos
+// primeiros passos (`passos:v1:*`, sem dados pessoais) também.
 // Varre por prefixo em vez de seguir os índices — apanha também itens órfãos.
 export async function clearLocalUserData(): Promise<void> {
   try {
     const all = await AsyncStorage.getAllKeys();
     const doomed = all.filter(
-      (k) => k.startsWith("projects:") || k.startsWith("profiles:")
+      (k) => k.startsWith("projects:") || k.startsWith("profiles:") || k.startsWith("passos:dados-")
     );
     if (doomed.length) await AsyncStorage.multiRemove([...doomed]);
   } catch (e) {

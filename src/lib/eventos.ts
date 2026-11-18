@@ -19,7 +19,6 @@ export type ExportacaoPdf = {
   orientacao: "landscape" | "portrait";
   /** Era a folha de exemplo? (não conta para a ativação) */
   exemplo: boolean;
-  folhaId?: string;
 };
 
 /** Na fila: a conta e a hora (relógio do aparelho) em que o PDF foi feito */
@@ -44,7 +43,9 @@ export function linhaExportacao(e: ExportacaoPdf, atrasoS?: number) {
     orientacao: e.orientacao,
     plataforma: plataforma(),
     exemplo: !!e.exemplo,
-    folha_id: e.folhaId ? String(e.folhaId).slice(0, 64) : null,
+    // Sem o identificador da folha (a coluna folha_id fica vazia): o relatório
+    // não o usa e ligava cada exportação à folha e ao que ela tem. A política
+    // de privacidade diz "a data, o formato e a plataforma" — e é só isso.
     ...(atrasoS != null ? { atraso_s: atrasoS } : {}),
   };
 }

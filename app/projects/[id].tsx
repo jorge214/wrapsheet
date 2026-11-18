@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { aplicarEdicaoSobre, guardadoMaisRecente } from "../../src/storage/merge";
 import { eExemplo, semExemplo, temMarcaExemplo } from "../../src/storage/exemploMarca";
-import { aoEscreverSalario, avisoTaxasZero, confirmarZeros, sementeTaxas } from "../../src/storage/taxasZero";
+import { avisoTaxasZero, confirmarZeros, editarSalario, sementeTaxas, zerosSemeados, type ChaveTaxa } from "../../src/storage/taxasZero";
 import { AvisoTaxasZero } from "../../src/ui/AvisoTaxasZero";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -178,6 +178,9 @@ export default function ProjectEditor() {
 
   const [project, setProject] = useState<ProjectState | null>(null);
   const projectRef = useRef<ProjectState | null>(null);
+  // Taxas a 0 que a folha já tinha ao ABRIR sem salário (as da semente antiga
+  // do editor): só essas saem quando o salário é escrito — ver taxasZero.ts.
+  const zerosSemeadosRef = useRef<ChaveTaxa[]>([]);
   const [regionCode, setRegionCode] = useState<string>("pt");
 
   // "Guardado ✓" indicator
@@ -257,6 +260,9 @@ export default function ProjectEditor() {
   const donoNoDialogoRef = useRef<Partial<DadosFolha> | null>(null);
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
+  // Outro Modal aberto neste momento (ver o fim de abrirExportacao)
+  const outroModalRef = useRef(false);
+  outroModalRef.current = menuOpen || monthPickerOpen || editHtml || showPreview || fsPreview || editForm;
   const editIframeRef = useRef<any>(null);
   const editWebViewRef = useRef<any>(null);
 
@@ -318,6 +324,7 @@ export default function ProjectEditor() {
     setProject(normalized);
     projectRef.current = normalized;
     baseStampRef.current = normalized.updatedAt;
+    zerosSemeadosRef.current = zerosSemeados(normalized.tabela as any);
   }, [id]);
 
   useEffect(() => {
@@ -517,6 +524,11 @@ export default function ProjectEditor() {
     } finally {
       aAbrirExport.current = false;
     }
+    // Nativo: se entretanto se abriu outro Modal (o "⋯" mesmo ao lado, o mês,
+    // o editor…), o diálogo não pode ser apresentado — no iOS o UIKit recusa
+    // e o botão ficava morto até sair da folha. Não abre; o toque seguinte
+    // abre normalmente. (Na web os modais empilham-se.) Revisão de 18/11.
+    if (Platform.OS !== "web" && outroModalRef.current) return;
     dadosIniciaisRef.current = dados;
     setDadosExp(dados);
     setExportOpen(true);
@@ -548,22 +560,37 @@ export default function ProjectEditor() {
 
   // As duas respostas ao aviso das "horas pagas a 0 €". Leem o estado ATUAL
   // (ref) e refazem a conta: entre o aviso aparecer e o toque, a folha pode
-  // ter mudado.
-  function usarTaxaAutomatica() {
-    const p = projectRef.current;
-    const a = avisoTaxasZero(p as any);
-    if (!p || !a) return;
-    // Mexe em dinheiro: uma folha de exemplo passa a ser uma folha a sério
-    const next = semExemplo({ ...p, tabela: a.tabela as any });
-    persist(next);
-    postEditCalc(next); // a folha aberta (editor ou inline) mostra já as taxas novas
+  // ter mudado. E se o armazenamento já tiver uma versão MAIS RECENTE (o sync
+  // trouxe-a de outro aparelho com este ecrã aberto), não se responde sobre a
+  // cópia velha: a tabela inteira dela ia por cima da nova (o persist funde só
+  // por chave de topo) — desfazia um salário novo e repunha um 0 já corrigido,
+  // calado para sempre pelo "Está certo assim". Recarrega-se o ecrã: se o
+  // aviso ainda valer, volta a aparecer com as contas certas. Revisão de 18/11.
+  const aResponderAviso = useRef(false);
+  async function responderAviso(resposta: (p: ProjectState, a: NonNullable<ReturnType<typeof avisoTaxasZero>>) => ProjectState) {
+    if (aResponderAviso.current) return;
+    aResponderAviso.current = true;
+    try {
+      const atual = projectRef.current;
+      if (!atual) return;
+      const guardado: any = await getProject(atual.id).catch(() => null);
+      if (guardado && guardadoMaisRecente({ updatedAt: baseStampRef.current ?? atual.updatedAt }, guardado)) {
+        await loadProject();
+        return;
+      }
+      const p = projectRef.current;
+      const a = avisoTaxasZero(p as any);
+      if (!p || !a) return;
+      const next = resposta(p, a);
+      persist(next);
+      postEditCalc(next); // a folha aberta (editor ou inline) mostra já as taxas novas
+    } finally {
+      aResponderAviso.current = false;
+    }
   }
-  function manterTaxasZero() {
-    const p = projectRef.current;
-    const a = avisoTaxasZero(p as any);
-    if (!p || !a) return;
-    persist({ ...p, tabela: confirmarZeros(p.tabela as any, a.chaves) as any });
-  }
+  // Mexe em dinheiro: uma folha de exemplo passa a ser uma folha a sério
+  const usarTaxaAutomatica = () => responderAviso((p, a) => semExemplo({ ...p, tabela: a.tabela as any }));
+  const manterTaxasZero = () => responderAviso((p, a) => ({ ...p, tabela: confirmarZeros(p.tabela as any, a.chaves) as any }));
 
   function setP<K extends keyof ProjectState>(key: K, value: ProjectState[K]) {
     if (!projectRef.current) return;
@@ -1067,9 +1094,15 @@ export default function ProjectEditor() {
         // × 2 / × 3). Antes ficava 0 gravado e pagava 0 € por cada hora extra.
         const taxa = d.f === "rateHEA" || d.f === "rateHEB" || d.f === "rateHR";
         let tabela: any = { ...p.tabela, [d.f]: taxa ? numOpt(d.value) : num(d.value) };
-        // O salário escrito pela 1.ª vez (estava vazio ou a 0) tira as taxas que
-        // a semente antiga do editor deixou gravadas a 0 — storage/taxasZero.ts
-        if (d.f === "salarioDia") tabela = aoEscreverSalario(p.tabela as any, tabela);
+        // O salário: os zeros que a folha tinha ao ABRIR sem salário (a semente
+        // antiga do editor) saem quando ele é escrito — só esses, e uma vez.
+        // Não se decide pela tecla anterior: a folha manda cada tecla, e apagar
+        // para reescrever passava por 0 e tirava um 0 posto de propósito.
+        if (d.f === "salarioDia") {
+          const r = editarSalario(p.tabela as any, num(d.value), zerosSemeadosRef.current);
+          zerosSemeadosRef.current = r.semeados;
+          tabela = r.tabela;
+        }
         next = { ...p, tabela };
         break;
       }
@@ -1223,7 +1256,6 @@ export default function ProjectEditor() {
         formato: pcLocal.formato === "cinema" ? "cinema" : "publicidade",
         orientacao: opts?.orientation ?? "landscape",
         exemplo: exemploFolha,
-        folhaId: p.id,
       }).catch(() => {});
       if (!exemploFolha) marcarPasso(userRef.current?.id, "pdf").catch(() => {});
     } catch (e) {

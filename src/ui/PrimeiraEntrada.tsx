@@ -249,7 +249,15 @@ export function PrimeiraEntrada({ visible, onClose }: { visible: boolean; onClos
                 </Text>
               )}
             </Pressable>
-            <Pressable onPress={agoraNao} hitSlop={8} style={({ pressed }) => [{ alignItems: "center", paddingVertical: 12, marginTop: 4 }, pressed && { opacity: 0.7 }]}>
+            {/* Enquanto cria, "Agora não" não faz nada (a criação não se cancela a
+                meio): fica esbatido em vez de parecer ativo. A espera tem prazo
+                (contarComPrazo) — com a rede presa aparece o "tenta outra vez". */}
+            <Pressable
+              onPress={agoraNao}
+              disabled={aCriar}
+              hitSlop={8}
+              style={({ pressed }) => [{ alignItems: "center", paddingVertical: 12, marginTop: 4 }, aCriar && { opacity: 0.35 }, pressed && { opacity: 0.7 }]}
+            >
               <Text style={{ color: COLORS.sub, fontWeight: "800", fontSize: 14 }}>
                 {t("pe_later", { defaultValue: "Agora não" })}
               </Text>

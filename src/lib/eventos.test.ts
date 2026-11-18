@@ -34,7 +34,7 @@ vi.mock("./supabase", () => ({
 const { atrasoSegundos, enviarFilaPdf, linhaExportacao, registarExportacaoPdf, valeRepetir } = await import("./eventos");
 const FILA = "eventos:pdf:fila:v1";
 const fila = () => JSON.parse(mem.get(FILA) ?? "[]");
-const ev = { formato: "cinema" as const, orientacao: "portrait" as const, exemplo: false, folhaId: "f1" };
+const ev = { formato: "cinema" as const, orientacao: "portrait" as const, exemplo: false };
 const REDE = { error: { message: "TypeError: Failed to fetch", code: "" }, status: 0 };
 
 beforeEach(() => {
@@ -46,7 +46,9 @@ beforeEach(() => {
 
 describe("registo das exportações de PDF", () => {
   it("a linha leva só as colunas que o cliente pode escrever (nunca o user_id)", () => {
-    expect(linhaExportacao(ev)).toEqual({ formato: "cinema", orientacao: "portrait", plataforma: "ios", exemplo: false, folha_id: "f1" });
+    // Nada que identifique a folha: só a data (do servidor), o formato e a plataforma
+    expect(linhaExportacao(ev)).toEqual({ formato: "cinema", orientacao: "portrait", plataforma: "ios", exemplo: false });
+    expect("folha_id" in linhaExportacao({ ...ev, folhaId: "f1" } as any)).toBe(false);
   });
 
   it("com rede: vai direto, nada fica na fila", async () => {
@@ -111,10 +113,10 @@ describe("registo das exportações de PDF", () => {
     resposta = REDE;
     await registarExportacaoPdf("A", ev);
     sessao = "B";
-    await registarExportacaoPdf("B", { ...ev, folhaId: "f2" });
+    await registarExportacaoPdf("B", { ...ev, formato: "publicidade" });
     resposta = { error: null, status: 201 };
     await enviarFilaPdf("B");
-    expect(enviados.map((l) => l.folha_id)).toEqual(["f2"]);
+    expect(enviados.map((l) => l.formato)).toEqual(["publicidade"]);
     expect(fila().map((x: any) => x.uid)).toEqual(["A"]);
   });
 

@@ -14,13 +14,18 @@
 //
 // Três peças:
 //   1. `sementeTaxas` — a semente do editor, que deixou de semear sem salário;
-//   2. `aoEscreverSalario` — o salário escrito pela 1.ª vez tira os zeros que
-//      a semente antiga lá deixou;
+//   2. `zerosSemeados` + `editarSalario` — os zeros que uma folha SEM salário
+//      já tinha ao abrir (os da semente antiga) saem quando o salário é
+//      escrito; um 0 posto depois, ou numa folha que já tinha salário, fica;
 //   3. `avisoTaxasZero` — para as folhas que já têm salário E horas a 0 €: a
 //      app não adivinha se o 0 é de propósito, PERGUNTA ("Usar a taxa
 //      automática" / "Está certo assim"). A resposta "está certo" fica na
-//      própria tabela (`zeroOk`), por isso segue a folha entre aparelhos e
-//      passa para as cópias ("Duplicar"), que levam a tabela inteira.
+//      própria tabela (`zeroOk`): segue a folha entre aparelhos e passa para
+//      as cópias da MESMA pessoa ("Duplicar"). "Duplicar para outro perfil"
+//      não a leva: a resposta era de outra pessoa (projects.ts).
+//   Uma folha nova nunca nasce com zeros confirmados, nem os que vêm do
+//   perfil: o campo do perfil grava 0 também quando o texto não é um número
+//   ("34,09 €"), e confirmá-lo calava o aviso precisamente aí.
 //
 // O `zeroOk` é um campo NOVO dentro do blob (aditivo): o motor ignora-o e o
 // código antigo conserva-o (a leitura faz `{...defaultTabela(), ...raw.tabela}`).
@@ -107,33 +112,43 @@ export function avisoTaxasZero(p: ProjectLike | null | undefined): AvisoTaxasZer
 }
 
 /** "Está certo assim": estas taxas ficam a 0 e o aviso não volta a perguntar
- *  por elas (nem nas cópias desta folha). */
+ *  por elas (nem nas cópias desta folha feitas pela mesma pessoa). */
 export function confirmarZeros(tabela: Tabela, chaves: readonly ChaveTaxa[]): Tabela {
   const ja = zerosConfirmados(tabela);
   return { ...tabela, zeroOk: CHAVES_TAXA.filter((k) => ja.includes(k) || chaves.includes(k)) } as Tabela;
 }
 
 /**
- * O salário de uma folha de publicidade acabou de ser escrito PELA PRIMEIRA
- * VEZ (estava vazio ou a 0): as taxas gravadas a 0 saem. Numa folha sem
- * salário só podem ser as que o editor antigo semeava a 0,00 € — ficando,
- * cada hora extra pagava 0 €. Vazias, seguem o salário agora escrito.
- * Um 0 já confirmado ("Está certo assim") ou vindo do perfil fica.
+ * Os zeros que a semente antiga do editor pode ter deixado: as taxas a 0 (não
+ * confirmadas) de uma folha de publicidade que ABRE sem salário. Fotografam-se
+ * quando a folha abre no ecrã, e só esses saem quando o salário é escrito.
+ * Uma folha que abre JÁ com salário não tem nada a tirar: lá um 0 é escolha de
+ * alguém, e o aviso pergunta se custar dinheiro.
  */
-export function aoEscreverSalario(antes: Tabela, depois: Tabela): Tabela {
-  if (tabelaDeCinema(depois)) return depois;
-  if (Number(antes.salarioDia) > 0 || !(Number(depois.salarioDia) > 0)) return depois;
-  const confirmadas = zerosConfirmados(depois);
-  const t: Tabela = { ...depois };
-  for (const k of CHAVES_TAXA) if (t[k] === 0 && !confirmadas.includes(k)) delete t[k];
-  return t;
+export function zerosSemeados(tabela: Tabela | null | undefined): ChaveTaxa[] {
+  if (!tabela || tabelaDeCinema(tabela) || Number(tabela.salarioDia) > 0) return [];
+  const confirmadas = zerosConfirmados(tabela);
+  return CHAVES_TAXA.filter((k) => tabela[k] === 0 && !confirmadas.includes(k));
 }
 
-/** Folha NOVA feita a partir do perfil: um 0 que vem das taxas do perfil só lá
- *  está se alguém o escreveu (campo vazio = sem valor), por isso nasce já
- *  confirmado — o aviso não pergunta em cada folha nova. */
-export function zerosDoPerfil(tabela: Tabela): Tabela {
-  if (tabelaDeCinema(tabela)) return tabela;
-  const z = CHAVES_TAXA.filter((k) => tabela[k] === 0);
-  return z.length ? confirmarZeros(tabela, z) : tabela;
+/**
+ * Uma tecla na célula do salário. O editor manda o texto da célula a CADA
+ * tecla, e apagar para reescrever passa por "" (= salário 0): por isso não se
+ * decide pela tecla anterior, mas pelos zeros fotografados ao abrir
+ * (`zerosSemeados`). Quando o salário deixa de ser 0, saem os que ainda lá
+ * estiverem a 0 — ficando, cada hora extra pagava 0 €; vazias, seguem o
+ * salário — e não há mais nada a tirar (`semeados` volta vazio). Assim, apagar
+ * e reescrever o salário nunca mexe num 0 posto de propósito (revisão de
+ * 18/11: a sequência "", "2", "25", "250" apagava-o e cobrava horas a mais).
+ */
+export function editarSalario(
+  tabela: Tabela,
+  salario: number,
+  semeados: readonly ChaveTaxa[]
+): { tabela: Tabela; semeados: ChaveTaxa[] } {
+  const t: Tabela = { ...tabela, salarioDia: salario };
+  if (!semeados.length || tabelaDeCinema(t) || !(Number(salario) > 0)) return { tabela: t, semeados: [...semeados] };
+  const confirmadas = zerosConfirmados(t);
+  for (const k of semeados) if (t[k] === 0 && !confirmadas.includes(k)) delete t[k];
+  return { tabela: t, semeados: [] };
 }

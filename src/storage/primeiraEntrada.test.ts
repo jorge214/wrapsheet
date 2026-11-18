@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Primeira entrada e dados do diálogo de exportação (storage/primeiraEntrada.ts),
 // com o Supabase simulado:
@@ -17,6 +17,7 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
     setItem: async (k: string, v: string) => { mem.set(k, v); },
     removeItem: async (k: string) => { mem.delete(k); },
     multiGet: async (ks: string[]) => ks.map((k) => [k, mem.has(k) ? mem.get(k)! : null]),
+    multiRemove: async (ks: string[]) => { for (const k of ks) mem.delete(k); },
     getAllKeys: async () => [...mem.keys()],
   },
 }));
@@ -24,8 +25,13 @@ vi.mock("../i18n/i18n", () => ({ default: { t: (k: string, o?: any) => o?.defaul
 vi.mock("../sync/syncService", () => ({ syncProfileToCloud: async () => {}, syncProjectToCloud: async () => {} }));
 vi.mock("./exemplo", () => ({ criarExemploSePreciso: async () => {} }));
 
-// O "servidor": rede ligada/desligada e o que está na nuvem
+// O "servidor": rede ligada/desligada e o que está na nuvem; a conta com
+// sessão (null = sessão morta); a rede "presa" (o pedido nunca responde)
 let online = true;
+let pendurar = false;
+let pendurarUpdate = false;
+let sessaoUid: string | null = "U";
+const updates: any[] = [];
 let nuvem = { perfis: [] as any[], folhas: [] as any[] };
 const ERRO = { message: "Failed to fetch", code: "" };
 function consulta(tabela: string) {
@@ -36,6 +42,7 @@ function consulta(tabela: string) {
     limit: () => q,
     maybeSingle: () => { q._maybe = true; return q; },
     then: (ok: any, ko: any) => {
+      if (pendurar) return new Promise(() => {});
       let r: any;
       if (!online) r = { data: null, error: ERRO };
       else if (tabela === "profiles") r = q._maybe ? { data: nuvem.perfis[0] ?? null, error: null } : { data: nuvem.perfis, error: null };
@@ -48,9 +55,14 @@ function consulta(tabela: string) {
 vi.mock("../lib/supabase", () => ({
   supabase: {
     auth: {
-      getSession: async () => ({ data: { session: { user: { id: "U", user_metadata: {} } } } }),
-      getUser: async () => ({ data: { user: { id: "U", user_metadata: {} } }, error: null }),
-      updateUser: async () => ({ data: {}, error: null }),
+      getSession: async () => ({ data: { session: sessaoUid ? { user: { id: sessaoUid, user_metadata: {} } } : null } }),
+      getUser: async () =>
+        sessaoUid ? { data: { user: { id: sessaoUid, user_metadata: {} } }, error: null } : { data: { user: null }, error: { message: "sem sessão" } },
+      updateUser: async (x: any) => {
+        updates.push({ sessao: sessaoUid, ...x });
+        if (pendurarUpdate) await new Promise(() => {});
+        return { data: {}, error: null };
+      },
     },
     from: (t: string) => consulta(t),
   },
@@ -59,6 +71,8 @@ vi.mock("../lib/supabase", () => ({
 const { aplicarDadosPendentes, concluirPrimeiraEntrada, guardarDadosOuAdiar } = await import("./primeiraEntrada");
 const { getActiveProfile, listProfiles, setActiveProfileId, upsertProfile } = await import("./profile");
 const { createProject, getProject, listAllProjectsFull } = await import("./projects");
+const { confirmacaoDeDados, marcarConta, marcarDadosConfirmados } = await import("./primeirosPassos");
+const { clearLocalUserData } = await import("./clearLocal");
 
 const dados = { nome: "Ana Ribeiro", email: "ana@x.pt", telefone: "", nif: "245678910", iban: "PT50000000001234567890135" };
 const PENDENTE = "passos:dados-pendentes:v1:U";
@@ -66,8 +80,13 @@ const PENDENTE = "passos:dados-pendentes:v1:U";
 beforeEach(() => {
   mem.clear();
   online = true;
+  pendurar = false;
+  pendurarUpdate = false;
+  sessaoUid = "U";
+  updates.length = 0;
   nuvem = { perfis: [], folhas: [] };
 });
+afterEach(() => vi.useRealTimers());
 
 describe("dados do diálogo de exportação", () => {
   it("sem rede ficam pendentes e chegam ao perfil na sincronização seguinte", async () => {
@@ -175,5 +194,83 @@ describe("primeira entrada com uma folha já criada pelo \"+\"", () => {
     online = false;
     await expect(concluirPrimeiraEntrada("U", { formato: "publicidade", funcao: "x", valor: 250 })).rejects.toThrow();
     expect(await listProfiles()).toHaveLength(0);
+  });
+});
+
+describe("só com a sessão DESTA conta (revisão de 18/11)", () => {
+  it("sessão morta: os dados pendentes NÃO vão para o perfil (a cópia local velha não pisa uma correção) — ficam para depois", async () => {
+    await upsertProfile({ id: "P1", nome: "", email: "", telefone: "", departamento: "", funcao: "", fixas: {} } as any);
+    await setActiveProfileId("P1");
+    online = false;
+    await guardarDadosOuAdiar("U", "P1", dados, null, { formato: "publicidade" });
+    // Volta a rede, mas a sessão morreu (terminou sessão noutro aparelho)
+    online = true;
+    sessaoUid = null;
+    await aplicarDadosPendentes("U");
+    expect((await getActiveProfile())!.nome).toBe("");
+    expect(mem.has(PENDENTE)).toBe(true);
+    // Com a sessão de volta, aplicam-se
+    sessaoUid = "U";
+    await aplicarDadosPendentes("U");
+    expect((await getActiveProfile())!.nif).toBe("245678910");
+    expect(mem.has(PENDENTE)).toBe(false);
+  });
+
+  it("sessão de OUTRA conta: os dados de U não vão para o perfil da outra", async () => {
+    await upsertProfile({ id: "PB", nome: "Bruno", email: "b@x.pt", telefone: "", departamento: "", funcao: "", fixas: {} } as any);
+    await setActiveProfileId("PB");
+    sessaoUid = "B";
+    await guardarDadosOuAdiar("U", undefined, dados, null, { formato: "publicidade" });
+    const pb = (await getActiveProfile())!;
+    expect(pb).toMatchObject({ nome: "Bruno", email: "b@x.pt" });
+    expect(pb.nif ?? "").toBe(""); // o NIF de U não chegou ao perfil de B
+    expect(mem.has(PENDENTE)).toBe(true);
+  });
+
+  it("as marcas de U nunca sobem com a sessão de outra conta (ficam locais)", async () => {
+    sessaoUid = "B";
+    await marcarConta("U", { passo_pdf_v1: true });
+    expect(updates).toHaveLength(0);
+    expect(JSON.parse(mem.get("passos:v1:U")!)).toMatchObject({ passo_pdf_v1: true });
+    sessaoUid = "U";
+    await marcarConta("U", { passo_dia_v1: true });
+    // Sobem a de agora e a que tinha ficado local
+    expect(updates).toEqual([{ sessao: "U", data: { passo_dia_v1: true, passo_pdf_v1: true } }]);
+  });
+});
+
+describe("\"Criar\" nunca fica preso (revisão de 18/11)", () => {
+  it("com a rede presa, desiste ao fim de 10 s sem criar nada", async () => {
+    vi.useFakeTimers();
+    pendurar = true;
+    const r = concluirPrimeiraEntrada("U", { formato: "publicidade", funcao: "x", valor: 250 }).catch((e) => e);
+    await vi.advanceTimersByTimeAsync(10_001);
+    expect(await r).toBeInstanceOf(Error);
+    expect(await listProfiles()).toHaveLength(0);
+    expect(await listAllProjectsFull()).toHaveLength(0);
+  });
+
+  it("não espera pela subida das marcas: com o updateUser preso, a folha abre na mesma (marca local \"feita\")", async () => {
+    pendurarUpdate = true;
+    const id = await concluirPrimeiraEntrada("U", { formato: "publicidade", funcao: "Grip", valor: 250 });
+    expect(id).toBeTruthy();
+    expect(JSON.parse(mem.get("passos:v1:U")!)).toMatchObject({ primeira_entrada_v1: "feita", exemplo_v1: true });
+  });
+});
+
+describe("dados pessoais no aparelho (revisão de 18/11)", () => {
+  it("a confirmação por folha guarda só os 5 campos do diálogo, nunca o perfil inteiro", async () => {
+    const perfil = { id: "P1", nome: "Ana", email: "ana@x.pt", telefone: "", nif: "245678910", iban: "PT50 1", swift: "BCOMPTPL", fixas: { salarioDia: 250 } };
+    await marcarDadosConfirmados("U", "F1", perfil as any);
+    expect((await confirmacaoDeDados("U")).get("F1")).toEqual({ nome: "Ana", email: "ana@x.pt", telefone: "", nif: "245678910", iban: "PT50 1" });
+  });
+
+  it("terminar sessão / eliminar a conta apaga os dados do diálogo (confirmados e pendentes); as marcas dos passos ficam", async () => {
+    mem.set("passos:dados-confirmados:v1:U", JSON.stringify({ F1: { nif: "245678910" } }));
+    mem.set(PENDENTE, JSON.stringify({ dados }));
+    mem.set("passos:v1:U", JSON.stringify({ primeira_entrada_v1: "feita" }));
+    mem.set("app-settings", "{}");
+    await clearLocalUserData();
+    expect([...mem.keys()].sort()).toEqual(["app-settings", "passos:v1:U"]);
   });
 });
