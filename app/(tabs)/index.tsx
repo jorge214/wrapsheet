@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Redirect, router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/auth/AuthContext";
 import i18n from "../../src/i18n/i18n";
@@ -12,6 +12,7 @@ import { belongsToProfile, getProject, listProjects } from "../../src/storage/pr
 import { getActiveProfileId } from "../../src/storage/profile";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { usePrivacy } from "../../src/ui/privacy";
+import { PrimeirosPassos } from "../../src/ui/PrimeirosPassos";
 import { PrivacyToggle } from "../../src/ui/PrivacyToggle";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import { WrapSheetLogo } from "../../src/ui/WrapSheetLogo";
@@ -118,8 +119,9 @@ export default function HomeHub() {
         </Pressable>
       </View>
 
-      {/* Menu */}
-      <View style={s.list}>
+      {/* Menu (com scroll: o cartão dos primeiros passos não cabia num
+          telemóvel pequeno por cima dos três botões) */}
+      <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
         {/* Cartão-resumo do mês — o valor a receber é a informação que a pessoa
             mais quer ver ao abrir a app. Toca para abrir o Dashboard; o olho
             (canto) esconde/mostra os valores sem sair daqui. */}
@@ -163,6 +165,9 @@ export default function HomeHub() {
           <PrivacyToggle color="rgba(255,255,255,0.75)" size={20} style={s.summaryEye} />
         </View>
 
+        {/* Contas novas: registar um dia, exportar o PDF, completar o perfil */}
+        <PrimeirosPassos />
+
         <Row
           icon="videocam-outline"
           title={t("home_projects", { defaultValue: "Projetos" })}
@@ -185,7 +190,7 @@ export default function HomeHub() {
           })}
           onPress={() => router.push("/profile")}
         />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -222,7 +227,7 @@ const s = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 12,
   },
-  list: { paddingHorizontal: 16, paddingTop: 16 },
+  list: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 },
 
   // Cartão-resumo: fundo preto sólido (como o ícone da app) para ser o foco
   // visual — o valor a receber lê-se primeiro. Mesmos cantos/padding/espaço dos

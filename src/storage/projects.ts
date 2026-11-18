@@ -10,6 +10,7 @@ import { CondBox, getActiveProfile, getProfileById } from "./profile";
 import { formatoDoBlob, formatoDoResumo } from "./formato";
 import { baseRegiaoHE, heParaTabela } from "./horasExtraPerfil";
 import { mesDaFolhaCinema, primeiroDiaPublicidade, segundaDaSemana } from "./novaFolha";
+import { semExemplo } from "./exemploMarca";
 
 /* ------------ Tipos internos ------------ */
 
@@ -706,7 +707,7 @@ export async function duplicateProject(id: string): Promise<string> {
   const now = new Date().toISOString();
 
   const clone: ProjectState = {
-    ...original,
+    ...semExemplo(original), // a cópia da folha de exemplo já é trabalho a sério
     id: newId,
     projeto: {
       ...original.projeto,
@@ -751,7 +752,7 @@ export async function duplicateProjectToMonth(
   const now = new Date().toISOString();
 
   const clone: ProjectState = {
-    ...original,
+    ...semExemplo(original), // a cópia da folha de exemplo já é trabalho a sério
     id: newId,
     projeto: {
       ...original.projeto,
@@ -818,7 +819,7 @@ export async function duplicateProjectNextWeek(id: string): Promise<string> {
   const semanaLabel = /^\d+$/.test(semAtual) ? String(Number(semAtual) + 1) : original.projeto.semana;
 
   const clone: ProjectState = {
-    ...original,
+    ...semExemplo(original), // a cópia da folha de exemplo já é trabalho a sério
     id: newId,
     dias,
     pago: false,
@@ -938,7 +939,7 @@ export async function duplicateProjectToProfile(
   const tCondBoxes = ehCinema ? (target as any)?.condBoxesCinema : (target as any)?.condBoxes;
 
   const clone: ProjectState = {
-    ...original,
+    ...semExemplo(original), // a cópia da folha de exemplo já é trabalho a sério
     id: newId,
     profileId: targetProfileId,
     perfil: target ? blankPerfil(target as any) : original.perfil,
@@ -1075,7 +1076,7 @@ export async function clearProjectData(
   const p = await getProject(id);
   if (!p) return null;
   const empty: ProjectState = {
-    ...p,
+    ...semExemplo(p), // limpar a folha de exemplo é começar uma a sério
     perfil: {
       nome: "", email: "", telefone: "", departamento: "",
       funcao: "", empresa: "", nif: "", iban: "", swift: "",
@@ -1120,7 +1121,7 @@ export async function renameProject(id: string, newName: string): Promise<void> 
   if (!project) throw new Error("Projeto não encontrado");
 
   const updated: ProjectState = {
-    ...project,
+    ...semExemplo(project), // dar nome à folha de exemplo faz dela uma a sério
     projeto: {
       ...project.projeto,
       // "titulo" é o nome do projeto na app (lista, cabeçalho, barra da folha).

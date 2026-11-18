@@ -1,6 +1,7 @@
 // src/stats/monthSummary.ts
 import { calcProject } from "../calc/project";
 import { effectiveFiscalOf, getSettings } from "../storage/appSettings";
+import { eExemplo } from "../storage/exemploMarca";
 import { belongsToProfile, Dia, listAllProjectsFull } from "../storage/projects";
 
 /**
@@ -115,7 +116,10 @@ export type MonthSummary = {
  * Devolve o resumo de um mês específico (mes = 1..12, ano = 2025, etc).
  */
 export async function getMonthSummary(mes: number, ano: number, profileId?: string): Promise<MonthSummary> {
-  const allRaw = await listAllProjectsFull();
+  // A folha de exemplo não é trabalho de ninguém: fica fora dos totais (o
+  // cartão da página inicial mostrava "A receber 750 €" a quem nunca tinha
+  // trabalhado). Ver storage/exemploMarca.ts.
+  const allRaw = (await listAllProjectsFull()).filter((p) => !eExemplo(p));
   // Multi-perfil: se vier um profileId, conta só os projetos desse perfil
   // (legados sem profileId contam como do perfil ativo — ver belongsToProfile).
   const all = profileId ? allRaw.filter((p) => belongsToProfile(p, profileId)) : allRaw;
@@ -218,8 +222,9 @@ export type YearSummary = {
 
 export async function getYearSummary(ano: number, profileId?: string): Promise<YearSummary> {
   const all = await listAllProjectsFull();
+  // Sem a folha de exemplo, como no resumo do mês (o ano é a soma dos meses)
   const inYear = all.filter(
-    (p: any) => p?.projeto?.ano === ano && (!profileId || belongsToProfile(p, profileId))
+    (p: any) => p?.projeto?.ano === ano && (!profileId || belongsToProfile(p, profileId)) && !eExemplo(p)
   );
 
   // Mesmo critério do resumo mensal: cada projeto com o fiscal da sua folha

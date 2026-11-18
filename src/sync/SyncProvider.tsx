@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { useAuth } from "../auth/AuthContext";
+import { enviarFilaPdf } from "../lib/eventos";
 import {
   clearLocalUserData,
   getLastUserId,
@@ -9,10 +10,21 @@ import {
 import { fullSync } from "./syncService";
 import { backfillProfileIds } from "../storage/projects";
 import { criarExemploSePreciso } from "../storage/exemplo";
+import { verificarPrimeiraEntrada } from "../storage/primeiraEntrada";
+
+type SyncCtx = {
+  /** A conta é nova e a primeira entrada (src/ui/PrimeiraEntrada.tsx) deve aparecer */
+  primeiraEntrada: boolean;
+  fecharPrimeiraEntrada: () => void;
+};
+
+const SyncContext = createContext<SyncCtx>({ primeiraEntrada: false, fecharPrimeiraEntrada: () => {} });
+export const useSync = () => useContext(SyncContext);
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const lastSyncRef = useRef<number>(0);
+  const [primeiraEntrada, setPrimeiraEntrada] = useState(false);
 
   async function runSync() {
     if (!user) return;
@@ -35,15 +47,26 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     // Multi-perfil: carimba os projetos legados (sem profileId) com o perfil
     // ativo — depois do download, para carimbar já com os dados mais recentes.
     await backfillProfileIds();
+    // Exportações de PDF registadas sem rede (ver lib/eventos.ts)
+    await enviarFilaPdf(user.id);
+    // Conta sem perfil e sem folhas, aqui e na nuvem → primeira entrada (três
+    // perguntas e a folha da semana criada). Só DEPOIS do download: antes dele
+    // uma conta antiga num aparelho novo parecia vazia. A folha de exemplo
+    // espera pela resposta ("Agora não" cria-a — ver primeiraEntrada.ts).
+    if (await verificarPrimeiraEntrada(user.id)) {
+      setPrimeiraEntrada(true);
+      return;
+    }
     // Quem ainda não tem nenhuma folha (local E na nuvem) recebe uma de exemplo,
     // uma vez por conta. Depois do download, para não a criar a quem só está
     // num aparelho novo.
     await criarExemploSePreciso(user as any);
   }
 
-  // Sync on login
+  // Sync on login (e, ao sair da conta, a primeira entrada fecha-se)
   useEffect(() => {
     if (user) runSync();
+    else setPrimeiraEntrada(false);
   }, [user?.id]);
 
   // Sync on app foreground
@@ -54,5 +77,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [user?.id]);
 
-  return <>{children}</>;
+  return (
+    <SyncContext.Provider value={{ primeiraEntrada, fecharPrimeiraEntrada: () => setPrimeiraEntrada(false) }}>
+      {children}
+    </SyncContext.Provider>
+  );
 }

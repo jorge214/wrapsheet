@@ -63,6 +63,7 @@ import { deleteProjectFromCloud, syncProjectToCloud } from "../../src/sync/syncS
 import { FREE_PROJECT_LIMIT } from "../../src/storage/freeTier";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { MonthYearPicker } from "../../src/ui/MonthYearPicker";
+import { PrimeirosPassos } from "../../src/ui/PrimeirosPassos";
 
 function fmtMonthLabel(m: number, y: number, locale: string = "pt") {
   const date = new Date(y, m - 1, 1);
@@ -740,6 +741,9 @@ export default function ProjectsScreen() {
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
       >
+        {/* Contas novas, ecrã largo (no telemóvel o cartão está na página
+            inicial, que aqui não existe: o "/" abre já esta lista) */}
+        {isWide && <PrimeirosPassos />}
         {displayList.map((p) => {
           const updatedLabel = p.updatedAt
             ? dayjs(p.updatedAt).isValid()

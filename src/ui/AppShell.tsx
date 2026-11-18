@@ -25,7 +25,9 @@ import { useAuth } from "../auth/AuthContext";
 import { useLivePreview } from "../contexts/LivePreviewContext";
 import { getSettings } from "../storage/appSettings";
 import { useTheme } from "../theme/ThemeProvider";
+import { useSync } from "../sync/SyncProvider";
 import { InstallPrompt } from "./InstallPrompt";
+import { PrimeiraEntrada } from "./PrimeiraEntrada";
 import { runNavGuard } from "./navGuard";
 import {
   SIDEBAR_WIDTH,
@@ -52,6 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { previewHtml, zoom, setActualZoom, clearPreview } = useLivePreview();
   const pathname = usePathname();
   const { session, loading } = useAuth();
+  const { primeiraEntrada, fecharPrimeiraEntrada } = useSync();
   const isProjectEditor = /^\/projects\/[^/]+$/.test(pathname);
   const showPreviewPanel = isWide && Platform.OS === "web" && !!previewHtml;
   const iframeRef = useRef<any>(null);
@@ -139,6 +142,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </View>
       {/* Convite para instalar a app (web, fora dos ecrãs de auth) */}
       {Platform.OS === "web" && !isAuthScreen && <InstallPrompt />}
+      {/* Contas novas: três perguntas e a primeira folha criada (por cima de
+          qualquer ecrã; quem decide quando é o SyncProvider) */}
+      <PrimeiraEntrada
+        visible={primeiraEntrada && !!session && !isAuthScreen && pathname !== "/onboarding"}
+        onClose={fecharPrimeiraEntrada}
+      />
       {showPreviewPanel && (
         <View style={styles.previewPane}>
           {/* @ts-ignore — iframe is web-only */}

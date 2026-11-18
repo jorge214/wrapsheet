@@ -3,11 +3,12 @@ import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { aplicarEdicaoSobre, guardadoMaisRecente } from "../../src/storage/merge";
+import { CAMPOS_QUE_TORNAM_REAL, eExemplo, semExemplo } from "../../src/storage/exemploMarca";
 import { semeiaTaxaHE } from "../../src/storage/horasExtraPerfil";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
-import { deleteProjectFromCloud, syncProjectToCloud } from "../../src/sync/syncService";
+import { deleteProjectFromCloud, syncProfileToCloud, syncProjectToCloud } from "../../src/sync/syncService";
 import { useTranslation } from "react-i18next";
 import i18n from "../../src/i18n/i18n";
 import {
@@ -47,7 +48,17 @@ import { exportPDF } from "../../src/export/pdf";
 import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
 import { getEffectiveFiscal, getSettings } from "../../src/storage/appSettings";
-import { getActiveProfile, getProfileById } from "../../src/storage/profile";
+import { getActiveProfile, getProfileById, upsertProfile } from "../../src/storage/profile";
+import { registarExportacaoPdf } from "../../src/lib/eventos";
+import { lerMarcas, marcarPasso } from "../../src/storage/primeirosPassos";
+import {
+  CAMPOS_DADOS,
+  dadosIniciais,
+  patchPerfilDono,
+  pedirDadosNaExportacao,
+  perfilFolhaComDados,
+  type DadosFolha,
+} from "../../src/storage/passosRegras";
 import {
   deleteArchivedProject,
   deleteProject,
@@ -190,7 +201,9 @@ export default function ProjectEditor() {
     if (!p) return;
     const nome = renameVal.trim();
     if (!nome || nome === (p.projeto.titulo || p.projeto.filme || "")) return;
-    // titulo é o que aparece na lista e na barra vermelha da folha
+    // titulo é o que aparece na lista e na barra vermelha da folha. Dar nome à
+    // folha de exemplo faz dela uma folha a sério (ver exemploMarca.ts).
+    if (eExemplo(p)) { persist({ ...semExemplo(p), projeto: { ...p.projeto, titulo: nome } }); return; }
     setP("projeto", { ...p.projeto, titulo: nome });
   }
 
@@ -223,6 +236,33 @@ export default function ProjectEditor() {
   // No nativo o export só existe na página do projeto (sem modais empilhados).
   const pendingExportRef = useRef<null | { orientation: "landscape" | "portrait" }>(null);
   const [expOrientation, setExpOrientation] = useState<"landscape" | "portrait">("landscape");
+  // Primeira exportação de uma conta nova: os dados que saem no PDF (nome,
+  // NIF, IBAN…) pedem-se aqui, no próprio diálogo — a primeira entrada só
+  // perguntou a função e o valor. Num diálogo à parte, abrir um Modal logo a
+  // seguir a fechar outro crashava o iOS. null = não se pede (passosRegras.ts).
+  const [dadosExp, setDadosExp] = useState<DadosFolha | null>(null);
+  useEffect(() => {
+    if (!exportOpen) return;
+    let vivo = true;
+    (async () => {
+      const p = projectRef.current;
+      try {
+        // A folha de exemplo nunca leva os dados de ninguém
+        if (!p || !user || eExemplo(p) || !pedirDadosNaExportacao(p.perfil as any, await lerMarcas(user.id))) {
+          if (vivo) setDadosExp(null);
+          return;
+        }
+        const donoId = (p as { profileId?: string }).profileId;
+        const dono = await (donoId ? getProfileById(donoId) : getActiveProfile()).catch(() => null);
+        if (vivo) setDadosExp(dadosIniciais(p.perfil as any, dono as any, user.email ?? undefined));
+      } catch {
+        if (vivo) setDadosExp(null);
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [exportOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
   const editIframeRef = useRef<any>(null);
@@ -424,6 +464,32 @@ export default function ProjectEditor() {
     uploadTimer.current = setTimeout(flushUpload, 800);
   }
   useEffect(() => () => flushUpload(), []);
+
+  // Primeiros passos: o 1.º dia registado numa folha SUA (não na de exemplo).
+  // Só a primeira vez faz alguma coisa (ver storage/primeirosPassos.ts).
+  const marcarDia = (p: ProjectState) => {
+    if (!eExemplo(p)) marcarPasso(userRef.current?.id, "dia").catch(() => {});
+  };
+
+  // Os dados do diálogo de exportação vão para a folha já (é ela que sai no
+  // PDF) e para o perfil dono — só para os campos que lá estão VAZIOS, nunca
+  // se troca o que existe. As folhas seguintes nascem com eles.
+  function aplicarDadosExp(dados: DadosFolha) {
+    const p = projectRef.current;
+    if (!p) return;
+    const perfil = perfilFolhaComDados(p.perfil as any, dados);
+    // persist muda o projectRef já (antes de qualquer await): o export lê-o
+    if (JSON.stringify(perfil) !== JSON.stringify(p.perfil)) persist({ ...p, perfil });
+    const donoId = (p as { profileId?: string }).profileId;
+    (async () => {
+      const dono = await (donoId ? getProfileById(donoId) : getActiveProfile()).catch(() => null);
+      if (!dono) return;
+      const patch = patchPerfilDono(dono as any, dados);
+      if (!Object.keys(patch).length) return;
+      const gravado = await upsertProfile({ ...dono, ...patch });
+      if (userRef.current) syncProfileToCloud(userRef.current.id, gravado).catch(() => {});
+    })().catch(() => {});
+  }
 
   async function persist(next: ProjectState) {
     const anterior = projectRef.current;
@@ -832,6 +898,7 @@ export default function ProjectEditor() {
       const next = { ...p, dias: [...p.dias, novo] };
       persist(next);
       pushRows(next);
+      marcarDia(p);
       return;
     }
     if (d.type === "ws:toggleFolga" || d.type === "ws:toggleFeriado") {
@@ -865,6 +932,7 @@ export default function ProjectEditor() {
       const next = { ...p, dias };
       persist(next);
       pushRows(next);
+      marcarDia(p);
       return;
     }
     if (d.type === "ws:removeDay") {
@@ -925,6 +993,8 @@ export default function ProjectEditor() {
       case "projeto": {
         const val = d.f === "totalDias" ? numOpt(d.value) : oneLine(d.value);
         next = { ...p, projeto: { ...p.projeto, [d.f]: val } };
+        // Nome ou produção na folha de exemplo = passou a ser trabalho a sério
+        if (eExemplo(p) && CAMPOS_QUE_TORNAM_REAL.has(String(d.f))) next = semExemplo(next);
         break;
       }
       case "fiscal": next = { ...p, fiscal: { ...p.fiscal, [d.f]: num(d.value) } }; break;
@@ -986,6 +1056,8 @@ export default function ProjectEditor() {
     }
     persist(next);
     postEditCalc(next);
+    // Uma linha de dia (com índice; sem ele é a linha B do cinema)
+    if (d.k === "dia" && d.i != null && !Number.isNaN(Number(d.i))) marcarDia(p);
   }
 
   // ✅ Export robusto: usa SEMPRE o estado atual em memória (ref)
@@ -1078,6 +1150,16 @@ export default function ProjectEditor() {
           ...cinemaExtra(p, pcLocal),
         }
       );
+      // Medir a ativação (lib/eventos.ts) e o passo "Exportar o PDF" (só uma
+      // folha a sério conta). Em silêncio: nunca atrasa nem estraga o export.
+      const exemploFolha = eExemplo(p);
+      registarExportacaoPdf(userRef.current?.id, {
+        formato: pcLocal.formato === "cinema" ? "cinema" : "publicidade",
+        orientacao: opts?.orientation ?? "landscape",
+        exemplo: exemploFolha,
+        folhaId: p.id,
+      }).catch(() => {});
+      if (!exemploFolha) marcarPasso(userRef.current?.id, "pdf").catch(() => {});
     } catch (e) {
       console.error(e);
       Alert.alert(t("error"), t("pdf_error"));
@@ -1261,7 +1343,7 @@ export default function ProjectEditor() {
       async () => {
           const today = dayjs().format("YYYY-MM-DD");
           const empty: ProjectState = {
-            ...p,
+            ...semExemplo(p), // limpar a folha de exemplo é começar uma a sério
             perfil: {
               nome: "",
               email: "",
@@ -1339,12 +1421,49 @@ export default function ProjectEditor() {
         onPress={() => setExportOpen(false)}
       >
         <Pressable
-          style={{ width: "100%", maxWidth: 460, backgroundColor: COLORS.card, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: COLORS.border }}
+          style={{ width: "100%", maxWidth: 460, backgroundColor: COLORS.card, borderRadius: 18, borderWidth: 1, borderColor: COLORS.border, overflow: "hidden" }}
           onPress={() => {}}
         >
+          {/* Com scroll: com os dados da 1.ª exportação e o teclado aberto, o
+              diálogo não cabia num telemóvel */}
+          <ScrollView style={{ maxHeight: winH * 0.88 }} contentContainerStyle={{ padding: 18 }} keyboardShouldPersistTaps="handled" bounces={false}>
           <Text style={{ fontSize: 17, fontWeight: "900", color: COLORS.text, textAlign: "center", marginBottom: 14 }}>
             {t("export_pdf", { defaultValue: "Exportar PDF" })}
           </Text>
+
+          {dadosExp && (
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 15, fontWeight: "900", color: COLORS.text }}>
+                {t("exp_data_title", { defaultValue: "Os teus dados na folha" })}
+              </Text>
+              <Text style={{ fontSize: 12, color: COLORS.sub, marginTop: 2, marginBottom: 10, lineHeight: 17 }}>
+                {t("exp_data_hint", { defaultValue: "Saem no PDF e ficam no teu perfil para as próximas folhas." })}
+              </Text>
+              {CAMPOS_DADOS.map((k) => (
+                <View key={k} style={{ marginBottom: 8 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "800", color: COLORS.sub, marginBottom: 4 }}>
+                    {k === "nome"
+                      ? t("name", { defaultValue: "Nome" })
+                      : k === "email"
+                      ? t("email", { defaultValue: "Email" })
+                      : k === "telefone"
+                      ? t("phone", { defaultValue: "Telefone" })
+                      : k === "nif"
+                      ? t("nif", { defaultValue: "NIF" })
+                      : t("iban", { defaultValue: "IBAN" })}
+                  </Text>
+                  <TextInput
+                    value={dadosExp[k]}
+                    onChangeText={(v) => setDadosExp((d) => (d ? { ...d, [k]: v } : d))}
+                    autoCapitalize={k === "nome" ? "words" : k === "iban" ? "characters" : "none"}
+                    autoCorrect={false}
+                    keyboardType={k === "email" ? "email-address" : k === "telefone" ? "phone-pad" : k === "nif" ? "number-pad" : "default"}
+                    style={{ backgroundColor: "#E8EBF0", borderRadius: 10, paddingHorizontal: 12, paddingVertical: Platform.OS === "web" ? 9 : 8, fontSize: 15, color: COLORS.text }}
+                  />
+                </View>
+              ))}
+            </View>
+          )}
 
           {/* Orientação com pré-visualização real de ambas. Larguras 2:1 —
               com os rácios A4 (√2 e 1/√2) as duas miniaturas ficam com a
@@ -1396,6 +1515,8 @@ export default function ProjectEditor() {
 
           <Pressable
             onPress={() => {
+              // Os dados escritos aqui entram na folha ANTES do PDF sair
+              if (dadosExp) aplicarDadosExp(dadosExp);
               if (Platform.OS === "web") {
                 setExportOpen(false);
                 handleExportPDF({ orientation: expOrientation });
@@ -1414,6 +1535,7 @@ export default function ProjectEditor() {
           <Pressable onPress={() => setExportOpen(false)} style={({ pressed }) => [{ alignItems: "center", paddingVertical: 10, marginTop: 4 }, pressed && { opacity: 0.7 }]}>
             <Text style={{ color: COLORS.sub, fontWeight: "800", fontSize: 13 }}>{t("cancel", { defaultValue: "Cancelar" })}</Text>
           </Pressable>
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
