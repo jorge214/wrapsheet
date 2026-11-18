@@ -319,7 +319,27 @@ describe("o salário escrito na folha", () => {
   it("reescrever o MESMO salário (220 → \"\" → 220) não mexe num 0 de propósito", () => {
     const t0 = tabela({ rateHEA: 0 });
     const { tabela: t } = teclas(t0, ["", "2", "22", "220"]);
-    expect(t).toEqual(t0);
+    // igual, mais a marca de que esta folha já teve salário (semSemente)
+    expect(t).toEqual({ ...t0, semSemente: true });
+  });
+
+  it("apagar o salário, SAIR e voltar (fotografia nova), reescrever 250: o 0 fica — 590 € e o aviso pergunta", () => {
+    // Sessão 1: a folha tinha 220 e a HR a 0 de propósito; apaga-se a célula (fica 0) e sai-se.
+    const r1 = teclas(tabela({ rateHEA: 30, rateHEB: 40, rateHR: 0 }), [""]);
+    expect(r1.tabela.salarioDia).toBe(0);
+    // Sessão 2: a folha reabre sem salário — mas já teve, por isso o 0 não é semente
+    expect(zerosSemeados(r1.tabela)).toEqual([]);
+    const r2 = teclas(r1.tabela, ["2", "25", "250"]);
+    expect(r2.tabela.rateHR).toBe(0);
+    // (contas em "folha COM salário e a HR a 0 por confirmar": 340 + 250 + 0)
+    expect(bruto(r2.tabela, DOIS_DIAS)).toBe(590);
+    expect(avisoTaxasZero(folha(r2.tabela, DOIS_DIAS))!.diferenca).toBe(204.54);
+  });
+
+  it("uma folha com a marca semSemente (nova desta versão) não tem zeros a tirar", () => {
+    const t0 = { ...tabela({ salarioDia: 0, rateHR: 0 }), semSemente: true } as Tabela;
+    expect(zerosSemeados(t0)).toEqual([]);
+    expect(teclas(t0, ["2", "22", "220"]).tabela.rateHR).toBe(0);
   });
 
   it("depois da 1.ª vez, um 0 posto à mão sobrevive a apagar e reescrever o salário", () => {

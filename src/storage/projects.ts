@@ -637,6 +637,13 @@ export async function createProject(opts?: {
       },
     } as Partial<Tabela>);
   }
+  // Uma taxa a 0 que venha do PERFIL foi escrita lá: não é a semente antiga do
+  // editor, e escrever o salário na folha não a pode tirar (se custar dinheiro,
+  // o aviso pergunta). Só nesse caso a tabela leva a marca — sem zeros, a folha
+  // nova fica exatamente igual à de sempre. Ver storage/taxasZero.ts.
+  if (!cinema && (["rateHEA", "rateHEB", "rateHR"] as const).some((k) => tabela[k] === 0)) {
+    (tabela as Tabela & { semSemente?: boolean }).semSemente = true;
+  }
   const monday = segundaDaSemana(opts?.mes, opts?.ano, opts?.semanas ?? 0);
   const regiaoPT = (settings.region ?? "pt") === "pt";
 
@@ -943,6 +950,12 @@ export async function duplicateProjectToProfile(
   };
 
   // Condições do perfil de destino, também do formato desta folha
+  // As taxas da cópia vêm do perfil de destino ou da folha de origem: um 0 aqui
+  // é escolha de alguém, nunca a semente antiga (ver storage/taxasZero.ts)
+  if (!ehCinema && (["rateHEA", "rateHEB", "rateHR"] as const).some((k) => tabela[k] === 0)) {
+    (tabela as Tabela & { semSemente?: boolean }).semSemente = true;
+  }
+
   const tCondTitulo = ehCinema ? (target as any)?.condTituloCinema : (target as any)?.condTitulo;
   const tCondBoxes = ehCinema ? (target as any)?.condBoxesCinema : (target as any)?.condBoxes;
 

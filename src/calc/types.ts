@@ -84,6 +84,9 @@ export type Tabela = {
    *  aviso das "horas pagas a 0 €" não volta a perguntar por elas. O motor
    *  não lê isto. Ver storage/taxasZero.ts. */
   zeroOk?: string[];
+  /** Sem zeros da semente antiga do editor: qualquer 0 aqui é escolha de
+   *  alguém (ver storage/taxasZero.ts). O motor não lê isto. */
+  semSemente?: boolean;
 
   H_dia: number;            // horas contratuais do dia (default 11)
   limiar_A?: number;        // início das HE-A em horas acumuladas (default 11 => 12.ª hora)

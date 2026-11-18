@@ -119,14 +119,24 @@ export function confirmarZeros(tabela: Tabela, chaves: readonly ChaveTaxa[]): Ta
 }
 
 /**
+ * Marca da tabela `semSemente`: aqui já não há zeros da semente antiga —
+ * qualquer 0 é escolha de alguém. Fica nas folhas novas desta versão (a semente
+ * antiga já não existe; um 0 que venha do perfil foi escrito lá) e em qualquer
+ * folha que tenha tido salário na folha, mesmo que ele volte a ficar vazio e a
+ * folha seja reaberta. Aditiva: o motor e o código antigo ignoram-na.
+ */
+export const marcaSemSemente = (t: Tabela | null | undefined): boolean =>
+  (t as { semSemente?: unknown } | null | undefined)?.semSemente === true;
+
+/**
  * Os zeros que a semente antiga do editor pode ter deixado: as taxas a 0 (não
- * confirmadas) de uma folha de publicidade que ABRE sem salário. Fotografam-se
- * quando a folha abre no ecrã, e só esses saem quando o salário é escrito.
- * Uma folha que abre JÁ com salário não tem nada a tirar: lá um 0 é escolha de
- * alguém, e o aviso pergunta se custar dinheiro.
+ * confirmadas) de uma folha de publicidade que ABRE sem salário e sem a marca
+ * `semSemente`. Fotografam-se quando a folha abre no ecrã, e só esses saem
+ * quando o salário é escrito. Fora disso não há nada a tirar: um 0 é escolha
+ * de alguém, e o aviso pergunta se custar dinheiro.
  */
 export function zerosSemeados(tabela: Tabela | null | undefined): ChaveTaxa[] {
-  if (!tabela || tabelaDeCinema(tabela) || Number(tabela.salarioDia) > 0) return [];
+  if (!tabela || tabelaDeCinema(tabela) || Number(tabela.salarioDia) > 0 || marcaSemSemente(tabela)) return [];
   const confirmadas = zerosConfirmados(tabela);
   return CHAVES_TAXA.filter((k) => tabela[k] === 0 && !confirmadas.includes(k));
 }
@@ -147,6 +157,10 @@ export function editarSalario(
   semeados: readonly ChaveTaxa[]
 ): { tabela: Tabela; semeados: ChaveTaxa[] } {
   const t: Tabela = { ...tabela, salarioDia: salario };
+  // A folha teve, ou passa a ter, salário: daqui em diante um 0 é escolha de
+  // alguém — também depois de apagar o salário, sair e voltar (a fotografia
+  // seguinte já não o confunde com a semente).
+  if (!tabelaDeCinema(t) && (Number(tabela.salarioDia) > 0 || Number(salario) > 0)) t.semSemente = true;
   if (!semeados.length || tabelaDeCinema(t) || !(Number(salario) > 0)) return { tabela: t, semeados: [...semeados] };
   const confirmadas = zerosConfirmados(t);
   for (const k of semeados) if (t[k] === 0 && !confirmadas.includes(k)) delete t[k];

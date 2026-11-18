@@ -24,6 +24,29 @@ export function guardadoMaisRecente(carregado: Carimbado, guardado: Carimbado | 
   return !!guardado && ts(guardado.updatedAt) > ts(carregado.updatedAt);
 }
 
+const objeto = (v: unknown): v is Record<string, any> => !!v && typeof v === "object" && !Array.isArray(v);
+
+/**
+ * Um bloco (a tabela, o projeto, o perfil da folha…) junta-se CAMPO A CAMPO:
+ * só os campos que mudaram agora vão por cima do guardado. Antes ia o bloco
+ * inteiro da cópia velha — mudar a refeição num ecrã velho desfazia o salário
+ * e as taxas que o outro aparelho tinha escrito (revisão de 18/11). Recursivo
+ * (tabela.ajudas, cinema.proximaSemana). Um campo apagado agora (ou posto a
+ * undefined, que a gravação deita fora) sai também do guardado.
+ */
+function juntarBloco(a: Record<string, any>, e: Record<string, any>, g: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = { ...g };
+  for (const k of new Set([...Object.keys(a), ...Object.keys(e)])) {
+    if (JSON.stringify(a[k]) === JSON.stringify(e[k])) continue;
+    if (e[k] === undefined) {
+      delete out[k];
+      continue;
+    }
+    out[k] = objeto(a[k]) && objeto(e[k]) && objeto(g[k]) ? juntarBloco(a[k], e[k], g[k]) : e[k];
+  }
+  return out;
+}
+
 /**
  * `anterior` = o que o ecrã tinha; `editado` = o mesmo com a edição de agora;
  * `guardado` = o que está no armazenamento (mais recente). Devolve `guardado`
@@ -43,6 +66,10 @@ export function aplicarEdicaoSobre<T extends Record<string, any>>(anterior: T, e
     const a = anterior[k], e = editado[k], g = guardado[k];
     if (k === "dias" && Array.isArray(a) && Array.isArray(e) && Array.isArray(g) && a.length === e.length && g.length === e.length) {
       out[k] = e.map((row: any, i: number) => (JSON.stringify(a[i]) !== JSON.stringify(row) ? row : g[i]));
+      continue;
+    }
+    if (objeto(a) && objeto(e) && objeto(g)) {
+      out[k] = juntarBloco(a, e, g);
       continue;
     }
     out[k] = editado[k];

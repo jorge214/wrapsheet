@@ -26,6 +26,7 @@ import {
 } from "./passosRegras";
 import { lerMarcas, marcarConta, marcarLocal } from "./primeirosPassos";
 import { getActiveProfile, getProfileById, listProfiles, setActiveProfileId, upsertProfile, type Profile } from "./profile";
+import { zerosSemeados } from "./taxasZero";
 import { createProject, getProject, listAllProjectsFull, saveProject } from "./projects";
 
 /**
@@ -147,10 +148,11 @@ export async function concluirPrimeiraEntrada(uid: string, d: DadosPrimeiraEntra
     if (valor && salarioVazio) {
       if (cinema) tabela.salarioSemana = valor;
       else tabela.salarioDia = valor;
-      // Taxas de horas extra gravadas a 0 numa folha sem salário só podem ser
-      // as que o editor semeava a 0: com elas, as horas extra pagavam 0 €.
-      // Sem elas, seguem o salário agora preenchido.
-      for (const k of ["rateHEA", "rateHEB", "rateHR"] as const) if (tabela[k] === 0) delete tabela[k];
+      // Taxas gravadas a 0 pela semente antiga do editor numa folha sem
+      // salário: com elas as horas extra pagavam 0 €; sem elas seguem o
+      // salário agora preenchido. Só essas (zerosSemeados): um 0 escolhido fica.
+      for (const k of zerosSemeados(f.tabela as any)) delete (tabela as any)[k];
+      if (!cinema) (tabela as any).semSemente = true;
     }
     const funcao = String(f.perfil?.funcao ?? "").trim() ? f.perfil.funcao : perfil.funcao;
     const mudou = JSON.stringify(tabela) !== JSON.stringify(f.tabela) || funcao !== f.perfil?.funcao;

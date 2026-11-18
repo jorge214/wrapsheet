@@ -31,6 +31,8 @@ let online = true;
 let pendurar = false;
 let pendurarUpdate = false;
 let sessaoUid: string | null = "U";
+let pendurarSessao = false;
+let pedidosSessao = 0;
 const updates: any[] = [];
 let nuvem = { perfis: [] as any[], folhas: [] as any[] };
 const ERRO = { message: "Failed to fetch", code: "" };
@@ -55,7 +57,11 @@ function consulta(tabela: string) {
 vi.mock("../lib/supabase", () => ({
   supabase: {
     auth: {
-      getSession: async () => ({ data: { session: sessaoUid ? { user: { id: sessaoUid, user_metadata: {} } } : null } }),
+      getSession: async () => {
+        pedidosSessao++;
+        if (pendurarSessao) await new Promise(() => {}); // sem rede, token expirado: a renovação não acaba
+        return { data: { session: sessaoUid ? { user: { id: sessaoUid, user_metadata: {} } } : null } };
+      },
       getUser: async () =>
         sessaoUid ? { data: { user: { id: sessaoUid, user_metadata: {} } }, error: null } : { data: { user: null }, error: { message: "sem sessão" } },
       updateUser: async (x: any) => {
@@ -71,7 +77,7 @@ vi.mock("../lib/supabase", () => ({
 const { aplicarDadosPendentes, concluirPrimeiraEntrada, guardarDadosOuAdiar } = await import("./primeiraEntrada");
 const { getActiveProfile, listProfiles, setActiveProfileId, upsertProfile } = await import("./profile");
 const { createProject, getProject, listAllProjectsFull } = await import("./projects");
-const { confirmacaoDeDados, marcarConta, marcarDadosConfirmados } = await import("./primeirosPassos");
+const { confirmacaoDeDados, fecharPassos, marcarConta, marcarDadosConfirmados, marcarPasso } = await import("./primeirosPassos");
 const { clearLocalUserData } = await import("./clearLocal");
 
 const dados = { nome: "Ana Ribeiro", email: "ana@x.pt", telefone: "", nif: "245678910", iban: "PT50000000001234567890135" };
@@ -83,6 +89,8 @@ beforeEach(() => {
   pendurar = false;
   pendurarUpdate = false;
   sessaoUid = "U";
+  pendurarSessao = false;
+  pedidosSessao = 0;
   updates.length = 0;
   nuvem = { perfis: [], folhas: [] };
 });
@@ -165,8 +173,10 @@ describe("primeira entrada com uma folha já criada pelo \"+\"", () => {
     const id = await createProject();
     const f0 = (await getProject(id))!;
     const { saveProject } = await import("./projects");
-    // o que o editor do telemóvel semeava numa folha sem salário
-    await saveProject({ ...f0, tabela: { ...f0.tabela, salarioDia: 0, rateHEA: 0, rateHEB: 0, rateHR: 0 } });
+    // o que o editor do telemóvel semeava numa folha sem salário — numa folha
+    // feita por uma versão ANTERIOR (sem a marca semSemente das folhas novas)
+    const { semSemente: _nova, ...tabelaAntiga } = f0.tabela as any;
+    await saveProject({ ...f0, tabela: { ...tabelaAntiga, salarioDia: 0, rateHEA: 0, rateHEB: 0, rateHR: 0 } });
     await concluirPrimeiraEntrada("U", { formato: "publicidade", funcao: "", valor: 250 });
     const t = (await getProject(id))!.tabela;
     expect(t.salarioDia).toBe(250);
@@ -236,6 +246,19 @@ describe("só com a sessão DESTA conta (revisão de 18/11)", () => {
     await marcarConta("U", { passo_dia_v1: true });
     // Sobem a de agora e a que tinha ficado local
     expect(updates).toEqual([{ sessao: "U", data: { passo_dia_v1: true, passo_pdf_v1: true } }]);
+  });
+});
+
+describe("as marcas dos passos ficam no aparelho JÁ, antes de qualquer pedido (revisão de 18/11)", () => {
+  it("sem rede e com o token expirado: o passo fica feito logo, e as teclas seguintes não voltam a pedir a sessão", async () => {
+    pendurarSessao = true;
+    marcarPasso("U", "dia"); // não se espera: o getSession fica preso
+    fecharPassos("U");
+    await new Promise((r) => setTimeout(r, 20));
+    expect(JSON.parse(mem.get("passos:v1:U")!)).toMatchObject({ passo_dia_v1: true, passos_fechados_v1: true });
+    const antes = pedidosSessao;
+    await marcarPasso("U", "dia"); // a tecla seguinte do mesmo dia
+    expect(pedidosSessao).toBe(antes);
   });
 });
 

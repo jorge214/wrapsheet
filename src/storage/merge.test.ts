@@ -66,6 +66,30 @@ describe("edição sobre uma versão que ficou velha", () => {
     expect(aplicarEdicaoSobre(velho, editado, guardadoPC).dias).toHaveLength(2);
   });
 
+  it("a tabela junta-se CAMPO A CAMPO: mudar a refeição no ecrã velho não desfaz o salário nem o \"Está certo assim\" do outro aparelho", () => {
+    const velho = { id: "1", updatedAt: "2026-11-18T08:00:00.000Z", tabela: { salarioDia: 0, rateHR: 0, ajudas: { refeicao: 0, viatura: 0 } } };
+    const guardadoPC = {
+      id: "1", updatedAt: "2026-11-18T09:00:00.000Z",
+      tabela: { salarioDia: 220, rateHR: 0, zeroOk: ["rateHR"], semSemente: true, ajudas: { refeicao: 0, viatura: 5 } },
+    };
+    const editado = { ...velho, tabela: { ...velho.tabela, ajudas: { ...velho.tabela.ajudas, refeicao: 10 } } };
+    expect(aplicarEdicaoSobre(velho, editado, guardadoPC).tabela).toEqual({
+      salarioDia: 220, rateHR: 0, zeroOk: ["rateHR"], semSemente: true, ajudas: { refeicao: 10, viatura: 5 },
+    });
+  });
+
+  it("o projeto também: mudar a produtora no Mac não apaga o título escrito no iPhone", () => {
+    const editado = { ...carregado, projeto: { ...carregado.projeto, produtora: "Ministério" } };
+    expect(aplicarEdicaoSobre(carregado, editado, guardado).projeto).toEqual({ titulo: "ALFA ROMEO", mes: 10, ano: 2026, produtora: "Ministério" });
+  });
+
+  it("um campo apagado AGORA (taxa vazia = automática) sai da versão guardada; o resto dela fica", () => {
+    const velho = { id: "1", updatedAt: "2026-11-18T08:00:00.000Z", tabela: { salarioDia: 220, rateHEA: 0 } as { salarioDia: number; rateHEA?: number } };
+    const guardadoPC = { id: "1", updatedAt: "2026-11-18T09:00:00.000Z", tabela: { salarioDia: 300, rateHEA: 0 } };
+    const editado = { ...velho, tabela: { ...velho.tabela, rateHEA: undefined } };
+    expect(aplicarEdicaoSobre(velho, editado, guardadoPC).tabela).toEqual({ salarioDia: 300 });
+  });
+
   it("sem diferenças, devolve a versão guardada tal e qual", () => {
     expect(aplicarEdicaoSobre(carregado, { ...carregado }, guardado)).toEqual(guardado);
   });

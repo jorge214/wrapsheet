@@ -546,6 +546,9 @@ export default function ProjectEditor() {
         next = aplicarEdicaoSobre(anterior, next, guardado as ProjectState);
         setProject(next);
         projectRef.current = next;
+        // A fotografia dos zeros semeados era da cópia velha: refaz-se sobre o
+        // que ficou (a versão do outro aparelho já pode ter salário)
+        zerosSemeadosRef.current = zerosSemeados(next.tabela as any);
       }
       const gravado: any = await saveProject(next as any);
       baseStampRef.current = gravado.updatedAt;
@@ -1102,6 +1105,13 @@ export default function ProjectEditor() {
           const r = editarSalario(p.tabela as any, num(d.value), zerosSemeadosRef.current);
           zerosSemeadosRef.current = r.semeados;
           tabela = r.tabela;
+        }
+        // Uma taxa escrita aqui (também um 0) é escolha de quem a escreveu: a
+        // tabela fica marcada, e uma próxima fotografia não a toma por semente
+        // (um 0 escrito antes do salário, numa sessão anterior, saía depois)
+        if (taxa && !isCinema(p) && tabela[d.f] !== (p.tabela as any)[d.f]) {
+          tabela.semSemente = true;
+          zerosSemeadosRef.current = zerosSemeadosRef.current.filter((k) => k !== d.f);
         }
         next = { ...p, tabela };
         break;

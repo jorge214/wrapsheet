@@ -117,8 +117,20 @@ export async function marcarDadosConfirmados(uid: string | undefined, folhaId: s
   }
 }
 
-/** Grava só a cópia local (sem rede, imediato) — para o ecrã mudar já. */
-export async function marcarLocal(uid: string | undefined, marcas: Marcas): Promise<void> {
+/**
+ * Grava só a cópia local (sem rede, imediato) — para o ecrã mudar já. Uma
+ * escrita de cada vez: é ler-mudar-gravar, e duas ao mesmo tempo ("Esconder"
+ * e a edição de um dia, sem rede) liam a mesma cópia e a segunda apagava a
+ * marca da primeira.
+ */
+export function marcarLocal(uid: string | undefined, marcas: Marcas): Promise<void> {
+  const vez = filaLocal.then(() => marcarLocalAgora(uid, marcas));
+  filaLocal = vez.catch(() => {});
+  return vez;
+}
+let filaLocal: Promise<unknown> = Promise.resolve();
+
+async function marcarLocalAgora(uid: string | undefined, marcas: Marcas): Promise<void> {
   if (!uid) return;
   try {
     const local = await lerLocal(uid);
@@ -141,15 +153,19 @@ export async function marcarLocal(uid: string | undefined, marcas: Marcas): Prom
 export async function marcarConta(uid: string | undefined, marcas: Marcas): Promise<void> {
   if (!uid) return;
   try {
+    // A cópia local PRIMEIRO, antes de qualquer pedido: sem rede e com o token
+    // expirado, o getSession tenta renovar durante ~25 s (e cada chamada põe a
+    // sua renovação na fila). O passo tem de aparecer feito já e não se pode
+    // perder se a app for fechada entretanto; e as chamadas seguintes do mesmo
+    // passo saem logo no marcarPasso. O marcarLocal nunca deixa "nao_aplica"
+    // pisar "feita"/"adiada", e um "nao_aplica" local não sobe sem confirmação.
+    await marcarLocal(uid, marcas);
     // Só com a sessão DESTA conta. Com a de outra (troca de conta com um sync
     // a meio) o updateUser escrevia estas marcas nos metadados dela; sem
     // sessão nenhuma não sobe nada. Ficam locais e sobem numa próxima vez.
     const { data: s } = await supabase.auth.getSession();
     const sessao = s.session;
-    if (sessao?.user?.id !== uid) {
-      await marcarLocal(uid, marcas);
-      return;
-    }
+    if (sessao?.user?.id !== uid) return;
     let pedidas = { ...marcas };
     // "nao_aplica" só se escreve se o servidor CONFIRMAR que a conta ainda não
     // respondeu à primeira entrada (a sessão guardada pode estar velha).

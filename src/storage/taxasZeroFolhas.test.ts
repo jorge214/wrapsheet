@@ -29,7 +29,7 @@ vi.mock("../i18n/i18n", () => ({
 
 const { createProject, duplicateProject, duplicateProjectToProfile, getProject, saveProject } = await import("./projects");
 const { calcProject } = await import("../calc/project");
-const { avisoTaxasZero, confirmarZeros, zerosConfirmados } = await import("./taxasZero");
+const { avisoTaxasZero, confirmarZeros, editarSalario, zerosConfirmados, zerosSemeados } = await import("./taxasZero");
 
 function dia(data: string, inicio: string, fim: string): Dia {
   return {
@@ -62,6 +62,24 @@ describe("folha NOVA a partir do perfil", () => {
     const a = avisoTaxasZero(comDias(f))!;
     expect(a.chaves).toEqual(["rateHR"]);
     expect(a.diferenca).toBe(120);
+  });
+});
+
+describe("folha NOVA de um perfil SEM salário com a HR a 0", () => {
+  it("escrever o salário na folha não tira o 0 do perfil: 530 € e o aviso pergunta (2 h × 60 € = 120 €)", async () => {
+    gravaPerfis([{ id: "chefe", fixas: { rateHR: 0 } }], "chefe");
+    const f = (await getProject(await createProject({ mes: 11, ano: 2026 })))!;
+    expect(Number(f.tabela.salarioDia) || 0).toBe(0);
+    expect(f.tabela.rateHR).toBe(0);
+    // A folha é desta versão: o 0 veio do perfil, não da semente antiga
+    let semeados = zerosSemeados(f.tabela as any);
+    expect(semeados).toEqual([]);
+    let t: any = f.tabela;
+    for (const v of ["2", "22", "220"]) ({ tabela: t, semeados } = editarSalario(t, Number(v), semeados));
+    expect(t.rateHR).toBe(0);
+    // (220 + 3 × 30) + 220 = 530 €; a HR automática seria 2 × 60 = 120 €
+    expect(calcProject(comDias({ ...f, tabela: t })).totais.ValorBruto).toBe(530);
+    expect(avisoTaxasZero(comDias({ ...f, tabela: t }))!.diferenca).toBe(120);
   });
 });
 
