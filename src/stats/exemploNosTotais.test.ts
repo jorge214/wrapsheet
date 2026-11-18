@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // A folha de exemplo (exemplo: true no blob) fica fora dos totais da app — o
 // cartão da página inicial mostrava "A receber 750 €" a quem nunca trabalhou.
-// Mas deixa de ser exemplo quando é usada a sério: copiada, limpa ou renomeada.
-// Senão o trabalho real feito por cima dela sumia dos totais.
+// Mas só enquanto está INTACTA (título igual ao filme e os três dias com as
+// horas do modelo): copiada, limpa, renomeada ou mexida, é trabalho a sério e
+// conta. Senão o trabalho real feito por cima dela sumia dos totais.
 
 const mem = new Map<string, string>();
 vi.mock("@react-native-async-storage/async-storage", () => ({
@@ -21,7 +22,8 @@ vi.mock("../i18n/i18n", () => ({
 
 const { getMonthSummary, getYearSummary } = await import("./monthSummary");
 const { clearProjectData, duplicateProject, getProject, renameProject } = await import("../storage/projects");
-const { eExemplo, semExemplo } = await import("../storage/exemploMarca");
+const { eExemplo, HORAS_EXEMPLO, semExemplo, temMarcaExemplo } = await import("../storage/exemploMarca");
+const { calcProject } = await import("../calc/project");
 
 const INDEX = "projects:index:v1";
 const ITEM = "projects:item:";
@@ -33,61 +35,107 @@ function guarda(p: any) {
   mem.set(INDEX, JSON.stringify(idx));
 }
 
-// 1 dia de 08:00 a 18:00 a 200 €/dia, sem impostos: 200 € certos, sem horas extra.
-function folha(id: string, extra: Record<string, unknown> = {}) {
+const tabela = { salarioDia: 200, H_dia: 11, descanso_min: 11 };
+const fiscal = { IRS_percent: 0, IVA_percent: 0 };
+
+// A folha a sério: 1 dia de 08:00 a 18:00 a 200 €/dia, sem impostos — 200 €
+// certos (10 h, abaixo das 11 h do dia base: sem horas extra).
+function folhaReal(id: string) {
   return {
-    id, perfil: {}, projeto: { titulo: id, filme: "", produtora: "", mes: 11, ano: 2026 },
-    tabela: { salarioDia: 200, H_dia: 11, descanso_min: 11 },
-    fiscal: { IRS_percent: 0, IVA_percent: 0 }, notas: "", condicoes: "", condTitulo: "", pago: false,
+    id, perfil: {}, projeto: { titulo: "Spot X", filme: "Spot X", produtora: "", mes: 11, ano: 2026 },
+    tabela, fiscal, notas: "", condicoes: "", condTitulo: "", pago: false,
     dias: [{ descricao: "Filmagem", data: "2026-11-10", inicio: "08:00", fim: "18:00" }],
     updatedAt: "2026-11-12T10:00:00.000Z",
-    ...extra,
   };
 }
 
+// A folha de exemplo tal como a montarExemplo a deixa: título = filme e os
+// três dias com as horas do modelo.
+function folhaExemplo(id: string) {
+  const titulo = "Exemplo — Spot publicitário";
+  return {
+    id, exemplo: true, perfil: {}, projeto: { titulo, filme: titulo, produtora: "Produtora de exemplo", mes: 11, ano: 2026 },
+    tabela, fiscal, notas: "", condicoes: "", condTitulo: "", pago: false,
+    dias: HORAS_EXEMPLO.map(([inicio, fim], i) => ({ descricao: "Filmagem", data: `2026-11-0${i + 5}`, inicio, fim })),
+    updatedAt: "2026-11-12T10:00:00.000Z",
+  };
+}
+
+const valor = (p: any) => calcProject(p).totais.ValorBruto;
+
 beforeEach(() => {
   mem.clear();
-  guarda(folha("real"));
-  guarda(folha("exemplo", { exemplo: true }));
+  guarda(folhaReal("real"));
+  guarda(folhaExemplo("exemplo"));
 });
 
 describe("folha de exemplo nos totais", () => {
-  it("o mês e o ano contam só a folha a sério (200 €, não 400 €)", async () => {
+  it("o mês e o ano contam só a folha a sério (200 €)", async () => {
     const m = await getMonthSummary(11, 2026);
     expect(m.totalValorBruto).toBe(200);
     expect(m.totalReceberLiquido).toBe(200);
     expect(m.totalProjects).toBe(1);
     expect(m.activeProjects).toBe(1);
-    const y = await getYearSummary(2026);
-    expect(y.totalValorBruto).toBe(200);
+    expect((await getYearSummary(2026)).totalValorBruto).toBe(200);
   });
 
   it("uma cópia da folha de exemplo já é trabalho a sério e conta", async () => {
     const id = await duplicateProject("exemplo");
-    expect(eExemplo(await getProject(id))).toBe(false);
+    const copia = await getProject(id);
+    expect(temMarcaExemplo(copia)).toBe(false);
     expect(eExemplo(await getProject("exemplo"))).toBe(true); // o original continua exemplo
-    expect((await getMonthSummary(11, 2026)).totalValorBruto).toBe(400);
+    expect((await getMonthSummary(11, 2026)).totalValorBruto).toBe(200 + valor(copia));
   });
 
-  it("dar nome à folha de exemplo tira-lhe a marca", async () => {
+  it("dar nome à folha de exemplo tira-lhe a marca e passa a contar", async () => {
     await renameProject("exemplo", "Spot da Vodafone");
-    expect(eExemplo(await getProject("exemplo"))).toBe(false);
-    expect((await getMonthSummary(11, 2026)).totalValorBruto).toBe(400);
+    const p = await getProject("exemplo");
+    expect(temMarcaExemplo(p)).toBe(false);
+    expect((await getMonthSummary(11, 2026)).totalValorBruto).toBe(200 + valor(p));
   });
 
   it("limpar a folha de exemplo tira-lhe a marca", async () => {
     const limpa = await clearProjectData("exemplo", "Filmagem");
-    expect(eExemplo(limpa)).toBe(false);
-    expect(eExemplo(await getProject("exemplo"))).toBe(false);
+    expect(temMarcaExemplo(limpa)).toBe(false);
+    expect(temMarcaExemplo(await getProject("exemplo"))).toBe(false);
   });
+});
 
-  it("semExemplo devolve a própria folha quando não é exemplo, e nunca muda o original", () => {
-    const real = folha("x");
+describe("só conta como exemplo a folha intacta", () => {
+  // O que uma versão antiga da app (sem a atualização) pode ter feito à folha
+  // de exemplo SEM lhe tirar a marca: tem de voltar a contar.
+  it("intacta → exemplo", () => {
+    expect(eExemplo(folhaExemplo("e"))).toBe(true);
+  });
+  it("sem a marca → nunca é exemplo", () => {
+    const { exemplo: _x, ...semMarca } = folhaExemplo("e");
+    expect(eExemplo(semMarca)).toBe(false);
+  });
+  it("renomeada, copiada (\" (cópia)\") ou limpa → conta", () => {
+    const e = folhaExemplo("e");
+    expect(eExemplo({ ...e, projeto: { ...e.projeto, titulo: "Spot da Vodafone" } })).toBe(false);
+    expect(eExemplo({ ...e, projeto: { ...e.projeto, titulo: e.projeto.titulo + " (cópia)" } })).toBe(false);
+    expect(eExemplo({ ...e, projeto: { ...e.projeto, titulo: "", filme: "" } })).toBe(false);
+  });
+  it("com horas mudadas ou com mais dias → conta", () => {
+    const e = folhaExemplo("e");
+    expect(eExemplo({ ...e, dias: e.dias.map((d, i) => (i === 1 ? { ...d, fim: "23:00" } : d)) })).toBe(false);
+    expect(eExemplo({ ...e, dias: [...e.dias, { ...e.dias[0], data: "2026-11-20" }] })).toBe(false);
+  });
+  it("uma folha de exemplo mexida conta nos totais", async () => {
+    mem.clear();
+    const e = folhaExemplo("exemplo");
+    const mexida = { ...e, dias: e.dias.map((d, i) => (i === 0 ? { ...d, inicio: "08:00" } : d)) };
+    guarda(mexida);
+    expect((await getMonthSummary(11, 2026)).totalValorBruto).toBe(valor(mexida));
+  });
+  it("semExemplo devolve a própria folha quando não tem marca, e nunca muda o original", () => {
+    const real = folhaReal("x");
     expect(semExemplo(real)).toBe(real);
-    const ex = folha("y", { exemplo: true });
+    const ex = folhaExemplo("y");
     const sem = semExemplo(ex);
-    expect(eExemplo(sem)).toBe(false);
-    expect(eExemplo(ex)).toBe(true);
+    expect(temMarcaExemplo(sem)).toBe(false);
+    expect(temMarcaExemplo(ex)).toBe(true);
     expect((sem as any).projeto).toBe(ex.projeto);
   });
 });

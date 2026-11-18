@@ -8,8 +8,12 @@
 //
 // As marcas vivem nos METADADOS da conta (seguem a pessoa para outro aparelho)
 // e numa cópia LOCAL por conta, que mostra o passo feito logo, mesmo sem rede.
-// Lê-se sempre a sessão guardada (getSession): o AuthContext ignora o
-// USER_UPDATED, por isso o `user` do contexto fica com os metadados velhos.
+// Lê-se a sessão guardada (getSession): o AuthContext ignora o USER_UPDATED,
+// por isso o `user` do contexto fica com os metadados velhos. E a sessão
+// guardada também pode estar velha (só se renova com o token, ~1 h): por isso
+// "nao_aplica" nunca se escreve por cima de "feita"/"adiada" sem confirmar no
+// servidor — senão um aparelho com a sessão antiga apagava a marca de uma
+// conta que tinha acabado de responder noutro aparelho.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
 import { eExemplo } from "./exemploMarca";
@@ -19,6 +23,7 @@ import {
   MARCA_PASSO_DIA,
   MARCA_PASSO_PDF,
   MARCA_PASSOS_FECHADOS,
+  MARCA_PRIMEIRA_ENTRADA,
   type EstadoPassos,
   type Marcas,
 } from "./passosRegras";
@@ -26,6 +31,7 @@ import { getActiveProfile } from "./profile";
 import { listAllProjectsFull } from "./projects";
 
 const chaveLocal = (uid: string) => `passos:v1:${uid}`;
+const respondida = (v: unknown) => v === "feita" || v === "adiada";
 
 async function lerLocal(uid: string): Promise<Marcas> {
   try {
@@ -37,7 +43,7 @@ async function lerLocal(uid: string): Promise<Marcas> {
   }
 }
 
-/** Os metadados da sessão GUARDADA (frescos depois de um updateUser). */
+/** Os metadados da sessão GUARDADA (sem rede; podem ter até ~1 h). */
 async function lerMetadados(): Promise<Marcas> {
   try {
     const { data } = await supabase.auth.getSession();
@@ -47,30 +53,74 @@ async function lerMetadados(): Promise<Marcas> {
   }
 }
 
+/** Os metadados acabados de pedir ao servidor. `null` = sem rede/erro. */
+async function lerMetadadosFrescos(): Promise<Marcas | null> {
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) return null;
+    return (data.user.user_metadata ?? {}) as Marcas;
+  } catch {
+    return null;
+  }
+}
+
 export async function lerMarcas(uid: string): Promise<Marcas> {
   const [meta, local] = await Promise.all([lerMetadados(), lerLocal(uid)]);
   return juntarMarcas(meta, local);
 }
 
+/** Grava só a cópia local (sem rede, imediato) — para o ecrã mudar já. */
+export async function marcarLocal(uid: string | undefined, marcas: Marcas): Promise<void> {
+  if (!uid) return;
+  try {
+    const local = await lerLocal(uid);
+    const novo = { ...local, ...marcas };
+    // A primeira entrada respondida nunca volta a "nao_aplica"
+    if (respondida(local[MARCA_PRIMEIRA_ENTRADA]) && marcas[MARCA_PRIMEIRA_ENTRADA] === "nao_aplica") {
+      novo[MARCA_PRIMEIRA_ENTRADA] = local[MARCA_PRIMEIRA_ENTRADA];
+    }
+    if (JSON.stringify(novo) !== JSON.stringify(local)) await AsyncStorage.setItem(chaveLocal(uid), JSON.stringify(novo));
+  } catch {
+    /* sem armazenamento: fica só nos metadados */
+  }
+}
+
 /**
- * Grava marcas da conta: já na cópia local e, se ainda não estiverem nos
- * metadados, também lá. Em silêncio — sem rede ficam só locais e sobem da
- * próxima vez que se marcar alguma coisa.
+ * Grava marcas da conta: na cópia local e nos metadados. Sobem as marcas
+ * pedidas agora e as que só existem localmente (gravadas sem rede). Em
+ * silêncio: sem rede ficam locais e sobem numa próxima vez.
  */
 export async function marcarConta(uid: string | undefined, marcas: Marcas): Promise<void> {
   if (!uid) return;
   try {
-    const local = await lerLocal(uid);
-    const novoLocal = { ...local, ...marcas };
-    if (JSON.stringify(novoLocal) !== JSON.stringify(local)) {
-      await AsyncStorage.setItem(chaveLocal(uid), JSON.stringify(novoLocal));
+    let pedidas = { ...marcas };
+    // "nao_aplica" só se escreve se o servidor CONFIRMAR que a conta ainda não
+    // respondeu à primeira entrada (a sessão guardada pode estar velha).
+    if (pedidas[MARCA_PRIMEIRA_ENTRADA] === "nao_aplica") {
+      const fresca = await lerMetadadosFrescos();
+      if (fresca && respondida(fresca[MARCA_PRIMEIRA_ENTRADA])) {
+        pedidas = { ...pedidas, [MARCA_PRIMEIRA_ENTRADA]: fresca[MARCA_PRIMEIRA_ENTRADA] };
+      } else if (!fresca) {
+        // Sem confirmação: fica só local (e nunca sobe — ver abaixo)
+        await marcarLocal(uid, pedidas);
+        const { [MARCA_PRIMEIRA_ENTRADA]: _x, ...resto } = pedidas;
+        pedidas = resto;
+        if (!Object.keys(pedidas).length) return;
+      }
     }
-    // Sobe o que falta nos metadados (incluindo marcas que ficaram só locais
-    // por falta de rede)
+    await marcarLocal(uid, pedidas);
+    const local = await lerLocal(uid);
     const meta = await lerMetadados();
-    const falta: Marcas = {};
-    for (const [k, v] of Object.entries(novoLocal)) if (meta[k] !== v) falta[k] = v;
-    if (Object.keys(falta).length) await supabase.auth.updateUser({ data: falta });
+    const subir: Marcas = {};
+    // As pedidas agora (se diferentes) e as locais que nunca chegaram a subir
+    for (const [k, v] of Object.entries(pedidas)) if (meta[k] !== v) subir[k] = v;
+    for (const [k, v] of Object.entries(local)) {
+      if (k in subir || meta[k] !== undefined) continue;
+      // Um "nao_aplica" que ficou local sem confirmação não sobe sozinho
+      if (k === MARCA_PRIMEIRA_ENTRADA && v === "nao_aplica") continue;
+      subir[k] = v;
+    }
+    if (Object.keys(subir).length) await supabase.auth.updateUser({ data: subir });
   } catch {
     /* fica local; sobe da próxima vez */
   }

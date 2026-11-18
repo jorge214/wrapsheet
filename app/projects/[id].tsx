@@ -3,12 +3,12 @@ import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { aplicarEdicaoSobre, guardadoMaisRecente } from "../../src/storage/merge";
-import { CAMPOS_QUE_TORNAM_REAL, eExemplo, semExemplo } from "../../src/storage/exemploMarca";
+import { eExemplo, semExemplo, temMarcaExemplo } from "../../src/storage/exemploMarca";
 import { semeiaTaxaHE } from "../../src/storage/horasExtraPerfil";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
-import { deleteProjectFromCloud, syncProfileToCloud, syncProjectToCloud } from "../../src/sync/syncService";
+import { deleteProjectFromCloud, syncProjectToCloud } from "../../src/sync/syncService";
 import { useTranslation } from "react-i18next";
 import i18n from "../../src/i18n/i18n";
 import {
@@ -48,13 +48,13 @@ import { exportPDF } from "../../src/export/pdf";
 import { useLivePreview } from "../../src/contexts/LivePreviewContext";
 import { ProjectState } from "../../src/models/project";
 import { getEffectiveFiscal, getSettings } from "../../src/storage/appSettings";
-import { getActiveProfile, getProfileById, upsertProfile } from "../../src/storage/profile";
+import { getActiveProfile, getProfileById } from "../../src/storage/profile";
 import { registarExportacaoPdf } from "../../src/lib/eventos";
+import { guardarDadosNoPerfil } from "../../src/storage/primeiraEntrada";
 import { lerMarcas, marcarPasso } from "../../src/storage/primeirosPassos";
 import {
   CAMPOS_DADOS,
   dadosIniciais,
-  patchPerfilDono,
   pedirDadosNaExportacao,
   perfilFolhaComDados,
   type DadosFolha,
@@ -203,7 +203,7 @@ export default function ProjectEditor() {
     if (!nome || nome === (p.projeto.titulo || p.projeto.filme || "")) return;
     // titulo é o que aparece na lista e na barra vermelha da folha. Dar nome à
     // folha de exemplo faz dela uma folha a sério (ver exemploMarca.ts).
-    if (eExemplo(p)) { persist({ ...semExemplo(p), projeto: { ...p.projeto, titulo: nome } }); return; }
+    if (temMarcaExemplo(p)) { persist({ ...semExemplo(p), projeto: { ...p.projeto, titulo: nome } }); return; }
     setP("projeto", { ...p.projeto, titulo: nome });
   }
 
@@ -241,28 +241,12 @@ export default function ProjectEditor() {
   // perguntou a função e o valor. Num diálogo à parte, abrir um Modal logo a
   // seguir a fechar outro crashava o iOS. null = não se pede (passosRegras.ts).
   const [dadosExp, setDadosExp] = useState<DadosFolha | null>(null);
-  useEffect(() => {
-    if (!exportOpen) return;
-    let vivo = true;
-    (async () => {
-      const p = projectRef.current;
-      try {
-        // A folha de exemplo nunca leva os dados de ninguém
-        if (!p || !user || eExemplo(p) || !pedirDadosNaExportacao(p.perfil as any, await lerMarcas(user.id))) {
-          if (vivo) setDadosExp(null);
-          return;
-        }
-        const donoId = (p as { profileId?: string }).profileId;
-        const dono = await (donoId ? getProfileById(donoId) : getActiveProfile()).catch(() => null);
-        if (vivo) setDadosExp(dadosIniciais(p.perfil as any, dono as any, user.email ?? undefined));
-      } catch {
-        if (vivo) setDadosExp(null);
-      }
-    })();
-    return () => {
-      vivo = false;
-    };
-  }, [exportOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  // O que o formulário mostrava ao abrir: o perfil só troca o que a pessoa mudar
+  const dadosIniciaisRef = useRef<DadosFolha | null>(null);
+  // O fundo escuro só fecha o diálogo se o toque COMEÇOU nele: na web,
+  // selecionar texto num campo e largar o rato fora do cartão fechava-o e
+  // perdia-se o que se tinha escrito.
+  const toqueNoFundo = useRef(false);
   const [editHtml, setEditHtml] = useState(false);
   const [editHtmlContent, setEditHtmlContent] = useState("");
   const editIframeRef = useRef<any>(null);
@@ -480,15 +464,35 @@ export default function ProjectEditor() {
     const perfil = perfilFolhaComDados(p.perfil as any, dados);
     // persist muda o projectRef já (antes de qualquer await): o export lê-o
     if (JSON.stringify(perfil) !== JSON.stringify(p.perfil)) persist({ ...p, perfil });
-    const donoId = (p as { profileId?: string }).profileId;
-    (async () => {
-      const dono = await (donoId ? getProfileById(donoId) : getActiveProfile()).catch(() => null);
-      if (!dono) return;
-      const patch = patchPerfilDono(dono as any, dados);
-      if (!Object.keys(patch).length) return;
-      const gravado = await upsertProfile({ ...dono, ...patch });
-      if (userRef.current) syncProfileToCloud(userRef.current.id, gravado).catch(() => {});
-    })().catch(() => {});
+    // O perfil: o que faltava e o que se mudou aqui, sobre a cópia mais
+    // recente; sem perfil nenhum, cria-se o primeiro (ver primeiraEntrada.ts)
+    const uid = userRef.current?.id;
+    if (uid) {
+      guardarDadosNoPerfil(uid, (p as { profileId?: string }).profileId, dados, dadosIniciaisRef.current, p as any).catch(() => {});
+    }
+  }
+
+  // Decide ANTES de abrir se o diálogo pede os dados: abrir e decidir depois
+  // fazia o diálogo crescer a meio da animação, mostrava por instantes o
+  // formulário da vez anterior, e um toque rápido exportava sem perguntar.
+  async function abrirExportacao() {
+    const p = projectRef.current;
+    let dados: DadosFolha | null = null;
+    try {
+      // A folha de exemplo nunca leva os dados de ninguém
+      if (p && user && !eExemplo(p)) {
+        const donoId = (p as { profileId?: string }).profileId;
+        const dono = (donoId ? await getProfileById(donoId) : null) ?? (await getActiveProfile().catch(() => null));
+        if (pedirDadosNaExportacao(p.perfil as any, await lerMarcas(user.id), dono as any)) {
+          dados = dadosIniciais(p.perfil as any, dono as any, user.email ?? undefined);
+        }
+      }
+    } catch {
+      dados = null;
+    }
+    dadosIniciaisRef.current = dados;
+    setDadosExp(dados);
+    setExportOpen(true);
   }
 
   async function persist(next: ProjectState) {
@@ -845,12 +849,17 @@ export default function ProjectEditor() {
       const minhas = [editIframeRef.current?.contentWindow, inlineSheetRef.current?.contentWindow].filter(Boolean);
       if (!src || !minhas.includes(src)) return;
     }
-    const p = projectRef.current;
+    let p = projectRef.current;
     if (!p) return;
     if (d.type === "ws:ready") { postEditCalc(p); return; }
     // Saiu de uma célula: re-push dos valores formatados (a célula já não está
     // focada, o ws:calc pode reescrevê-la — "12" → "12,00 €", vazio → automático)
     if (d.type === "ws:blur") { postEditCalc(p); return; }
+
+    // Qualquer edição na folha de exemplo faz dela uma folha a sério: as horas
+    // e os valores escritos por cima dela têm de contar nos totais (com a
+    // marca, ficavam de fora — dinheiro a menos à vista). Ver exemploMarca.ts.
+    if (temMarcaExemplo(p)) p = semExemplo(p);
 
     // Tudo o que segue vem da própria folha e persiste o projeto — marca para
     // o efeito da folha inline NÃO a recarregar (perdia o foco/scroll)
@@ -993,8 +1002,6 @@ export default function ProjectEditor() {
       case "projeto": {
         const val = d.f === "totalDias" ? numOpt(d.value) : oneLine(d.value);
         next = { ...p, projeto: { ...p.projeto, [d.f]: val } };
-        // Nome ou produção na folha de exemplo = passou a ser trabalho a sério
-        if (eExemplo(p) && CAMPOS_QUE_TORNAM_REAL.has(String(d.f))) next = semExemplo(next);
         break;
       }
       case "fiscal": next = { ...p, fiscal: { ...p.fiscal, [d.f]: num(d.value) } }; break;
@@ -1418,7 +1425,13 @@ export default function ProjectEditor() {
     >
       <Pressable
         style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
-        onPress={() => setExportOpen(false)}
+        onPressIn={() => {
+          toqueNoFundo.current = true;
+        }}
+        onPress={() => {
+          if (toqueNoFundo.current) setExportOpen(false);
+          toqueNoFundo.current = false;
+        }}
       >
         <Pressable
           style={{ width: "100%", maxWidth: 460, backgroundColor: COLORS.card, borderRadius: 18, borderWidth: 1, borderColor: COLORS.border, overflow: "hidden" }}
@@ -1455,9 +1468,11 @@ export default function ProjectEditor() {
                   <TextInput
                     value={dadosExp[k]}
                     onChangeText={(v) => setDadosExp((d) => (d ? { ...d, [k]: v } : d))}
-                    autoCapitalize={k === "nome" ? "words" : k === "iban" ? "characters" : "none"}
+                    autoCapitalize={k === "nome" ? "words" : k === "iban" || k === "nif" ? "characters" : "none"}
                     autoCorrect={false}
-                    keyboardType={k === "email" ? "email-address" : k === "telefone" ? "phone-pad" : k === "nif" ? "number-pad" : "default"}
+                    // NIF com teclado completo: o NIF espanhol, o codice fiscale
+                    // italiano ou o BTW-nr holandês têm letras
+                    keyboardType={k === "email" ? "email-address" : k === "telefone" ? "phone-pad" : "default"}
                     style={{ backgroundColor: "#E8EBF0", borderRadius: 10, paddingHorizontal: 12, paddingVertical: Platform.OS === "web" ? 9 : 8, fontSize: 15, color: COLORS.text }}
                   />
                 </View>
@@ -1857,7 +1872,7 @@ export default function ProjectEditor() {
               )}
 
               <Pressable
-                onPress={() => setExportOpen(true)}
+                onPress={abrirExportacao}
                 style={({ pressed }) => [
                   ss.exportBtn,
                   pressed && { opacity: 0.85 },
@@ -2132,7 +2147,7 @@ export default function ProjectEditor() {
               {/* Exportar vive na página do projeto: no nativo, abrir o share
                   sheet por cima deste modal crashava o iOS (web mantém) */}
               {Platform.OS === "web" && (
-                <Pressable onPress={() => setExportOpen(true)} hitSlop={8} style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}>
+                <Pressable onPress={abrirExportacao} hitSlop={8} style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}>
                   <Text style={ss.exportBtnText}>{t("export_pdf")}</Text>
                 </Pressable>
               )}
@@ -2206,7 +2221,7 @@ export default function ProjectEditor() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               {Platform.OS === "web" && (
                 <Pressable
-                  onPress={() => setExportOpen(true)}
+                  onPress={abrirExportacao}
                   hitSlop={8}
                   style={({ pressed }) => [ss.exportBtn, pressed && { opacity: 0.85 }]}
                 >

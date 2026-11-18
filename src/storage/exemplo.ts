@@ -12,6 +12,7 @@
 import i18n from "../i18n/i18n";
 import { supabase } from "../lib/supabase";
 import { syncProjectToCloud } from "../sync/syncService";
+import { HORAS_EXEMPLO } from "./exemploMarca";
 import { createProject, getProject, listArchivedProjects, listProjects, saveProject, type Dia, type ProjectState } from "./projects";
 
 export const MARCA_EXEMPLO = "exemplo_v1";
@@ -31,10 +32,13 @@ export function montarExemplo(p: ProjectState, hoje: Date, t: (k: string, o?: an
   };
   const modelo = p.dias[0];
   const filmagem = t("day_description_default", { defaultValue: "Filmagem" });
+  // As horas vêm de HORAS_EXEMPLO: é por elas (e pelo título igual ao filme)
+  // que se reconhece a folha de exemplo ainda intacta (ver exemploMarca.ts).
+  const [h1, h2, h3] = HORAS_EXEMPLO;
   const dias: Dia[] = [
-    { ...modelo, data: dia(3), descricao: t("example_day_prep", { defaultValue: "Preparação" }), inicio: "09:00", fim: "18:00", ajRefeicao: 15 },
-    { ...modelo, data: dia(2), descricao: filmagem, inicio: "07:00", fim: "20:30", ajRefeicao: 15 },
-    { ...modelo, data: dia(1), descricao: filmagem, inicio: "06:30", fim: "19:00", ajRefeicao: 15, ajViatura: 25 },
+    { ...modelo, data: dia(3), descricao: t("example_day_prep", { defaultValue: "Preparação" }), inicio: h1[0], fim: h1[1], ajRefeicao: 15 },
+    { ...modelo, data: dia(2), descricao: filmagem, inicio: h2[0], fim: h2[1], ajRefeicao: 15 },
+    { ...modelo, data: dia(1), descricao: filmagem, inicio: h3[0], fim: h3[1], ajRefeicao: 15, ajViatura: 25 },
   ];
   return {
     ...p,

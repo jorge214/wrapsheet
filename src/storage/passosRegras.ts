@@ -131,14 +131,23 @@ export type DadosFolha = Record<CampoDados, string>;
 type ParcialDados = Partial<Record<CampoDados, string | undefined>>;
 
 /**
- * Na exportação pedem-se os dados que saem no PDF? Só antes do 1.º PDF a
- * sério. A uma conta nova, se faltar nome, NIF ou IBAN; a quem já usava a app,
- * só se a folha não tiver nome (nunca se incomoda quem já trabalha assim).
+ * Na exportação pedem-se os dados que saem no PDF?
+ *   • Antes do 1.º PDF a sério: a uma conta nova, se faltar nome, NIF ou IBAN;
+ *     a quem já usava a app, só se a folha não tiver nome (nunca se incomoda
+ *     quem já trabalha assim).
+ *   • Depois: só a contas novas, e só se o PERFIL tiver algo que falta a esta
+ *     folha — as folhas feitas antes de haver dados no perfil (a semana
+ *     seguinte duplicada, por exemplo) nasceram vazias e saíam sem NIF/IBAN.
+ *     O diálogo vem preenchido: é um toque. Quem deixou um campo vazio no
+ *     perfil de propósito nunca é incomodado por ele.
  */
-export function pedirDadosNaExportacao(perfilFolha: ParcialDados, m: Marcas): boolean {
-  if (m[MARCA_PASSO_PDF]) return false;
-  if (vazio(perfilFolha.nome)) return true;
-  return contaNova(m) && (vazio(perfilFolha.nif) || vazio(perfilFolha.iban));
+export function pedirDadosNaExportacao(perfilFolha: ParcialDados, m: Marcas, perfilDono?: ParcialDados | null): boolean {
+  if (!m[MARCA_PASSO_PDF]) {
+    if (vazio(perfilFolha.nome)) return true;
+    return contaNova(m) && (vazio(perfilFolha.nif) || vazio(perfilFolha.iban));
+  }
+  if (!contaNova(m)) return false;
+  return CAMPOS_DADOS.some((k) => vazio(perfilFolha[k]) && !vazio(perfilDono?.[k]));
 }
 
 /** O formulário começa com o que já existe: a folha, depois o perfil, e o email da conta. */
@@ -159,12 +168,25 @@ export function perfilFolhaComDados<T extends ParcialDados>(perfilFolha: T, dado
   return out as T;
 }
 
-/** O perfil só ganha o que lá está VAZIO — nunca se apaga nem troca o que existe. */
-export function patchPerfilDono(perfilDono: ParcialDados | null | undefined, dados: DadosFolha): Partial<DadosFolha> {
+/**
+ * O que o perfil ganha com o formulário: os campos que lá estão VAZIOS e os
+ * que a pessoa MUDOU neste diálogo (corrigiu o IBAN que veio do perfil, por
+ * exemplo — o diálogo promete que fica no perfil). Um campo apagado nunca
+ * apaga o do perfil, e o que veio preenchido e não se mexeu não troca nada.
+ * `iniciais` = o que o formulário mostrava ao abrir.
+ */
+export function patchPerfilDono(
+  perfilDono: ParcialDados | null | undefined,
+  dados: DadosFolha,
+  iniciais?: DadosFolha | null
+): Partial<DadosFolha> {
   const out: Partial<DadosFolha> = {};
   for (const k of CAMPOS_DADOS) {
     const novo = umaLinha(dados[k]);
-    if (novo && vazio(perfilDono?.[k])) out[k] = novo;
+    if (!novo) continue;
+    const atual = umaLinha(perfilDono?.[k]);
+    if (!atual) out[k] = novo;
+    else if (iniciais && novo !== umaLinha(iniciais[k]) && novo !== atual) out[k] = novo;
   }
   return out;
 }

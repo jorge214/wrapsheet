@@ -29,7 +29,7 @@ vi.mock("./supabase", () => ({
   },
 }));
 
-const { enviarFilaPdf, linhaExportacao, registarExportacaoPdf } = await import("./eventos");
+const { atrasoSegundos, enviarFilaPdf, linhaExportacao, registarExportacaoPdf } = await import("./eventos");
 const FILA = "eventos:pdf:fila:v1";
 const fila = () => JSON.parse(mem.get(FILA) ?? "[]");
 const ev = { formato: "cinema" as const, orientacao: "portrait" as const, exemplo: false, folhaId: "f1" };
@@ -55,10 +55,14 @@ describe("registo das exportações de PDF", () => {
   it("sem rede: fica na fila com a conta, e segue na sincronização", async () => {
     resposta = REDE;
     await registarExportacaoPdf("A", ev);
-    expect(fila()).toEqual([{ ...ev, uid: "A" }]);
+    expect(fila()).toHaveLength(1);
+    expect(fila()[0]).toMatchObject({ ...ev, uid: "A" });
+    expect(typeof fila()[0].em).toBe("number"); // a hora a que o PDF foi feito
     resposta = { error: null };
     await enviarFilaPdf("A");
     expect(enviados).toHaveLength(1);
+    // chega com o tempo que esperou na fila (o relatório recua a hora)
+    expect(enviados[0].atraso_s).toBeGreaterThanOrEqual(0);
     expect(mem.has(FILA)).toBe(false);
   });
 
@@ -82,6 +86,14 @@ describe("registo das exportações de PDF", () => {
     await enviarFilaPdf("B");
     expect(enviados.map((l) => l.folha_id)).toEqual(["f2"]);
     expect(fila().map((x: any) => x.uid)).toEqual(["A"]);
+  });
+
+  it("o atraso conta-se em segundos, nunca negativo nem acima de 30 dias", () => {
+    expect(atrasoSegundos(1_000_000, 1_090_000)).toBe(90);
+    expect(atrasoSegundos(2_000_000, 1_000_000)).toBe(0); // relógio que andou para trás
+    expect(atrasoSegundos(0, 40 * 86400 * 1000)).toBe(2592000);
+    expect(atrasoSegundos(undefined, 1)).toBeUndefined(); // eventos da fila antiga
+    expect(linhaExportacao(ev, 90)).toMatchObject({ atraso_s: 90 });
   });
 
   it("sem conta não faz nada", async () => {

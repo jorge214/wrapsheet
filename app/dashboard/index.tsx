@@ -30,6 +30,7 @@ import {
   listProjects,
   ProjectListItem,
 } from "../../src/storage/projects";
+import { eExemplo } from "../../src/storage/exemploMarca";
 import { getActiveProfileId } from "../../src/storage/profile";
 import { useTheme } from "../../src/theme/ThemeProvider";
 import { MonthYearPicker } from "../../src/ui/MonthYearPicker";
@@ -114,8 +115,12 @@ export default function DashboardScreen() {
       ]);
       const forActive = (arr: ProjectListItem[]) =>
         activeId ? arr.filter((p) => belongsToProfile(p, activeId)) : arr;
-      const activeList = forActive(activeRaw);
-      const archivedList = forActive(archivedRaw);
+      // Sem a folha de exemplo, como nos totais (getMonthSummary): senão o
+      // painel contava-a nos projetos do mês e mostrava-a nos recentes com um
+      // valor "A receber" que não está no total ao lado.
+      const exemplos = new Set(full.filter((p) => eExemplo(p)).map((p) => p.id));
+      const activeList = forActive(activeRaw).filter((p) => !exemplos.has(p.id));
+      const archivedList = forActive(archivedRaw).filter((p) => !exemplos.has(p.id));
       // Valor final por projeto (mesma regra fiscal do resumo/lista)
       const eff = effectiveFiscalOf(settings);
       const vmap: Record<string, number> = {};

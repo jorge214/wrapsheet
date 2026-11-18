@@ -142,4 +142,30 @@ describe("dados pedidos na primeira exportação", () => {
     const patch = patchPerfilDono({ nome: "Ana", email: "", nif: "999" }, { nome: "Outra", email: "a@x.pt", telefone: "", nif: "123", iban: "PT50" });
     expect(patch).toEqual({ email: "a@x.pt", iban: "PT50" });
   });
+  it("…a não ser que a pessoa o tenha MUDADO no diálogo (corrigiu o IBAN que veio do perfil)", () => {
+    const perfil = { nome: "Ana", email: "a@x.pt", nif: "123", iban: "PT50 ERRADO" };
+    const iniciais = { nome: "Ana", email: "a@x.pt", telefone: "", nif: "123", iban: "PT50 ERRADO" };
+    const dados = { ...iniciais, iban: "PT50 CERTO" };
+    expect(patchPerfilDono(perfil, dados, iniciais)).toEqual({ iban: "PT50 CERTO" });
+  });
+  it("um campo que veio da FOLHA e não se mexeu não troca o do perfil", () => {
+    // a folha tinha um nome diferente do perfil; a pessoa não lhe tocou
+    const perfil = { nome: "Ana Ribeiro", email: "", nif: "", iban: "" };
+    const iniciais = { nome: "Ana R.", email: "", telefone: "", nif: "", iban: "" };
+    expect(patchPerfilDono(perfil, iniciais, iniciais)).toEqual({});
+  });
+  it("apagar um campo no diálogo nunca apaga o do perfil", () => {
+    const perfil = { nome: "Ana", nif: "123" };
+    const iniciais = { nome: "Ana", email: "", telefone: "", nif: "123", iban: "" };
+    expect(patchPerfilDono(perfil, { ...iniciais, nif: "" }, iniciais)).toEqual({});
+  });
+  it("depois do 1.º PDF (conta nova): pede-se outra vez só se o PERFIL tiver o que falta à folha", () => {
+    const m = { ...nova, [MARCA_PASSO_PDF]: true };
+    // a semana seguinte, duplicada antes de haver dados no perfil, nasceu vazia
+    expect(pedirDadosNaExportacao({ nome: "", nif: "", iban: "" }, m, { nome: "Ana", nif: "123", iban: "PT50" })).toBe(true);
+    // o perfil também não tem (deixou vazio de propósito): não se incomoda
+    expect(pedirDadosNaExportacao({ nome: "Ana", nif: "", iban: "" }, m, { nome: "Ana", nif: "", iban: "" })).toBe(false);
+    // quem já usava a app nunca é incomodado depois do 1.º PDF
+    expect(pedirDadosNaExportacao({ nome: "", nif: "" }, { [MARCA_PASSO_PDF]: true }, { nome: "Ana", nif: "123" })).toBe(false);
+  });
 });

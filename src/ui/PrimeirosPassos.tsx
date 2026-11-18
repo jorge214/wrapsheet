@@ -12,7 +12,7 @@ import { Platform, Pressable, Text, View } from "react-native";
 import { useAuth } from "../auth/AuthContext";
 import type { EstadoPassos } from "../storage/passosRegras";
 import { fecharPassos, lerEstadoPassos, ultimaFolhaPropria } from "../storage/primeirosPassos";
-import { getActiveProfileId } from "../storage/profile";
+import { getActiveProfileId, listProfiles } from "../storage/profile";
 import { useSync } from "../sync/SyncProvider";
 import { useTheme } from "../theme/ThemeProvider";
 
@@ -22,7 +22,7 @@ export function PrimeirosPassos({ style }: { style?: any }) {
   const { COLORS } = useTheme();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { primeiraEntrada } = useSync();
+  const { primeiraEntrada, abrirPrimeiraEntrada } = useSync();
   const [estado, setEstado] = useState<EstadoPassos | null>(null);
   const [perfilId, setPerfilId] = useState("");
 
@@ -55,7 +55,17 @@ export function PrimeirosPassos({ style }: { style?: any }) {
   };
   const abrirFolha = async () => {
     const id = await ultimaFolhaPropria();
-    router.push(id ? `/projects/${id}` : "/projects");
+    if (id) {
+      router.push(`/projects/${id}`);
+      return;
+    }
+    // Sem nenhuma folha sua (quem disse "Agora não" só tem a de exemplo):
+    // sem perfil, as três perguntas outra vez — criam a folha; com perfil, a
+    // lista, onde está o "+". Mandar para a folha de exemplo punha a pessoa a
+    // escrever trabalho a sério por cima dela.
+    const perfis = await listProfiles().catch(() => []);
+    if (!perfis.length) abrirPrimeiraEntrada();
+    else router.push("/projects");
   };
   const abrirPerfil = () => router.push(perfilId ? `/profiles/${perfilId}` : "/profiles");
 

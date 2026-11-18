@@ -21,7 +21,8 @@ export type ExportacaoPdf = {
   folhaId?: string;
 };
 
-type Pendente = ExportacaoPdf & { uid: string };
+/** Na fila: a conta e a hora (relógio do aparelho) em que o PDF foi feito */
+type Pendente = ExportacaoPdf & { uid: string; em?: number };
 
 const FILA = "eventos:pdf:fila:v1";
 const MAX_FILA = 50;
@@ -30,15 +31,27 @@ function plataforma(): "ios" | "android" | "web" | null {
   return Platform.OS === "ios" || Platform.OS === "android" || Platform.OS === "web" ? Platform.OS : null;
 }
 
-/** A linha tal como vai para a tabela (só as colunas que o cliente pode escrever). */
-export function linhaExportacao(e: ExportacaoPdf) {
+/**
+ * A linha tal como vai para a tabela (só as colunas que o cliente pode
+ * escrever). `atrasoS`: quantos segundos o evento esperou na fila — o
+ * servidor põe a hora de chegada e o relatório recua-a (migração 0006). Só
+ * a DIFERENÇA de tempo vem do aparelho, nunca a hora em si.
+ */
+export function linhaExportacao(e: ExportacaoPdf, atrasoS?: number) {
   return {
     formato: e.formato,
     orientacao: e.orientacao,
     plataforma: plataforma(),
     exemplo: !!e.exemplo,
-    folha_id: e.folhaId ?? null,
+    folha_id: e.folhaId ? String(e.folhaId).slice(0, 64) : null,
+    ...(atrasoS != null ? { atraso_s: atrasoS } : {}),
   };
+}
+
+/** Segundos desde `em` até `agora`, entre 0 e 30 dias (o que o servidor aceita). */
+export function atrasoSegundos(em: number | undefined, agora: number): number | undefined {
+  if (typeof em !== "number" || !Number.isFinite(em)) return undefined;
+  return Math.min(2592000, Math.max(0, Math.round((agora - em) / 1000)));
 }
 
 /**
@@ -83,7 +96,7 @@ export async function registarExportacaoPdf(uid: string | undefined, e: Exportac
     /* sem rede: vai para a fila */
   }
   const fila = await lerFila();
-  fila.push({ ...e, uid });
+  fila.push({ ...e, uid, em: Date.now() });
   await gravarFila(fila);
 }
 
@@ -97,7 +110,10 @@ export async function enviarFilaPdf(uid: string | undefined): Promise<void> {
     const fila = await lerFila();
     const minhas = fila.filter((x) => x.uid === uid);
     if (!minhas.length) return;
-    const { error } = await supabase.from("pdf_exports").insert(minhas.map(linhaExportacao));
+    const agora = Date.now();
+    const { error } = await supabase
+      .from("pdf_exports")
+      .insert(minhas.map((x) => linhaExportacao(x, atrasoSegundos(x.em, agora))));
     // Enviados, ou recusados pelo servidor (repetir não muda nada): saem da fila.
     // Os de outras contas ficam à espera delas.
     if (!error || !eFalhaDeRede(error)) await gravarFila(fila.filter((x) => x.uid !== uid));

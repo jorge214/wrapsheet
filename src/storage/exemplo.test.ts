@@ -60,6 +60,13 @@ describe("a folha de exemplo", () => {
     expect(((await getProject(id)) as any)?.exemplo).toBe(true);
   });
 
+  it("a folha de exemplo acabada de criar é reconhecida como exemplo intacto (fica fora dos totais)", async () => {
+    const { eExemplo } = await import("./exemploMarca");
+    const id = await createProject();
+    await saveProject(montarExemplo((await getProject(id))!, new Date("2026-10-18T12:00:00Z"), t));
+    expect(eExemplo(await getProject(id))).toBe(true);
+  });
+
   it("um projeto normal não ganha a marca", async () => {
     const id = await createProject();
     expect(((await getProject(id)) as any)?.exemplo).toBeUndefined();
