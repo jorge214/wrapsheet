@@ -11,6 +11,7 @@ import { formatoDoBlob, formatoDoResumo } from "./formato";
 import { baseRegiaoHE, heParaTabela } from "./horasExtraPerfil";
 import { mesDaFolhaCinema, primeiroDiaPublicidade, segundaDaSemana } from "./novaFolha";
 import { semExemplo } from "./exemploMarca";
+import { zerosDoPerfil } from "./taxasZero";
 
 /* ------------ Tipos internos ------------ */
 
@@ -73,6 +74,9 @@ export type Tabela = {
   rateHEA?: number;
   rateHEB?: number;
   rateHR?: number;
+  // (o blob pode trazer também `zeroOk`, as taxas confirmadas a 0 de propósito:
+  // ver calc/types.ts e storage/taxasZero.ts. Fica fora DESTE tipo porque o
+  // ProjectState de models/ e o de storage/ ainda são dois — ver tsc-baseline.)
   limiar_A?: number;
   limiar_B?: number;
   limiar_HR?: number;
@@ -634,6 +638,10 @@ export async function createProject(opts?: {
       },
     } as Partial<Tabela>);
   }
+  // Um 0 nas taxas €/h do PERFIL só lá está se alguém o escreveu (campo vazio
+  // = sem valor): a folha nasce com ele confirmado, para o aviso das "horas
+  // pagas a 0 €" não perguntar em cada folha nova. Ver storage/taxasZero.ts.
+  if (!cinema) Object.assign(tabela, zerosDoPerfil(tabela as any));
   const monday = segundaDaSemana(opts?.mes, opts?.ano, opts?.semanas ?? 0);
   const regiaoPT = (settings.region ?? "pt") === "pt";
 

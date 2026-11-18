@@ -80,6 +80,10 @@ export type Tabela = {
   rateHEA?: number;
   rateHEB?: number;
   rateHR?: number;
+  /** As taxas (das três acima) que a pessoa confirmou a 0 DE PROPÓSITO: o
+   *  aviso das "horas pagas a 0 €" não volta a perguntar por elas. O motor
+   *  não lê isto. Ver storage/taxasZero.ts. */
+  zeroOk?: string[];
 
   H_dia: number;            // horas contratuais do dia (default 11)
   limiar_A?: number;        // início das HE-A em horas acumuladas (default 11 => 12.ª hora)

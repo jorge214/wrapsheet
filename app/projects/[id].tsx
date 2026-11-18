@@ -4,7 +4,8 @@ import dayjs from "dayjs";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { aplicarEdicaoSobre, guardadoMaisRecente } from "../../src/storage/merge";
 import { eExemplo, semExemplo, temMarcaExemplo } from "../../src/storage/exemploMarca";
-import { semeiaTaxaHE } from "../../src/storage/horasExtraPerfil";
+import { aoEscreverSalario, avisoTaxasZero, confirmarZeros, sementeTaxas } from "../../src/storage/taxasZero";
+import { AvisoTaxasZero } from "../../src/ui/AvisoTaxasZero";
 import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../src/auth/AuthContext";
@@ -545,6 +546,25 @@ export default function ProjectEditor() {
     saveTimer.current = setTimeout(() => setSaveStatus("idle"), 1500);
   }
 
+  // As duas respostas ao aviso das "horas pagas a 0 €". Leem o estado ATUAL
+  // (ref) e refazem a conta: entre o aviso aparecer e o toque, a folha pode
+  // ter mudado.
+  function usarTaxaAutomatica() {
+    const p = projectRef.current;
+    const a = avisoTaxasZero(p as any);
+    if (!p || !a) return;
+    // Mexe em dinheiro: uma folha de exemplo passa a ser uma folha a sério
+    const next = semExemplo({ ...p, tabela: a.tabela as any });
+    persist(next);
+    postEditCalc(next); // a folha aberta (editor ou inline) mostra já as taxas novas
+  }
+  function manterTaxasZero() {
+    const p = projectRef.current;
+    const a = avisoTaxasZero(p as any);
+    if (!p || !a) return;
+    persist({ ...p, tabela: confirmarZeros(p.tabela as any, a.chaves) as any });
+  }
+
   function setP<K extends keyof ProjectState>(key: K, value: ProjectState[K]) {
     if (!projectRef.current) return;
     const next = { ...projectRef.current, [key]: value };
@@ -568,6 +588,10 @@ export default function ProjectEditor() {
   const projCalc = useMemo(() => (project ? calcProject(project as any) : null), [project]);
   const calculos = projCalc?.calc ?? [];
   const totais = projCalc?.totais ?? { ValorBruto: 0, IRS_valor: 0, IVA_valor: 0, SS_valor: 0, ValorFinal: 0 };
+  // Horas pagas a 0 € por uma taxa gravada a 0 (storage/taxasZero.ts): a app
+  // não adivinha se o 0 é de propósito — pergunta, na página e ao exportar.
+  const avisoTaxas = useMemo(() => avisoTaxasZero(project as any), [project]);
+  const [avisoTaxasH, setAvisoTaxasH] = useState(0);
 
   const totalDias = useMemo(
     () =>
@@ -846,20 +870,14 @@ export default function ProjectEditor() {
     // usava salarioDia, que no cinema é undefined → base 0 → as três taxas
     // ficavam gravadas a 0,00 € e ganhavam ao multiplicador. Era o "os valores
     // estão sempre a 0" que o Jorge viu nas folhas de cinema (30/09).
-    const R0 = ratesFor(p0.tabela as any);
-    const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
-    const patch: any = {};
     // HE-A/HE-B a × 1 (escolha "hora normal" do perfil) não se semeiam: ver
     // semeiaTaxaHE — presas e arredondadas pagavam menos e não seguiam o salário.
     // Sem salário (folha acabada de criar, perfil sem valor) não se semeia
     // nada: as taxas ficavam gravadas a 0,00 € e, na publicidade, um 0
     // gravado paga 0 — escrever o salário depois já não as mudava e as horas
     // extra saíam a 0 € no PDF. Vazias, seguem o salário quando for escrito.
-    if (R0.horaBase > 0) {
-      if (semeiaTaxaHE(p0.tabela, "HEA")) patch.rateHEA = round2(R0.rateHEA);
-      if (semeiaTaxaHE(p0.tabela, "HEB")) patch.rateHEB = round2(R0.rateHEB);
-      if (p0.tabela.rateHR == null) patch.rateHR = round2(R0.rateHR);
-    }
+    // A regra vive em storage/taxasZero.ts (sementeTaxas), com testes.
+    const patch = sementeTaxas(p0.tabela as any);
     let p = p0;
     if (Object.keys(patch).length) { p = { ...p0, tabela: { ...p0.tabela, ...patch } }; persist(p); }
 
@@ -1048,7 +1066,11 @@ export default function ProjectEditor() {
         // Taxas €/h apagadas na folha = volta ao automático (hora normal × 1,5 /
         // × 2 / × 3). Antes ficava 0 gravado e pagava 0 € por cada hora extra.
         const taxa = d.f === "rateHEA" || d.f === "rateHEB" || d.f === "rateHR";
-        next = { ...p, tabela: { ...p.tabela, [d.f]: taxa ? numOpt(d.value) : num(d.value) } };
+        let tabela: any = { ...p.tabela, [d.f]: taxa ? numOpt(d.value) : num(d.value) };
+        // O salário escrito pela 1.ª vez (estava vazio ou a 0) tira as taxas que
+        // a semente antiga do editor deixou gravadas a 0 — storage/taxasZero.ts
+        if (d.f === "salarioDia") tabela = aoEscreverSalario(p.tabela as any, tabela);
+        next = { ...p, tabela };
         break;
       }
       case "ajudas": next = { ...p, tabela: { ...p.tabela, ajudas: { ...(p.tabela.ajudas as any), [d.f]: num(d.value) } } }; break;
@@ -1481,6 +1503,17 @@ export default function ProjectEditor() {
             {t("export_pdf", { defaultValue: "Exportar PDF" })}
           </Text>
 
+          {/* Último sítio antes de o PDF seguir: horas pagas a 0 € */}
+          {avisoTaxas && (
+            <AvisoTaxasZero
+              aviso={avisoTaxas}
+              valor={fmtMoney(avisoTaxas.diferenca, getPreset(regionCode).currency)}
+              onCorrigir={usarTaxaAutomatica}
+              onManter={manterTaxasZero}
+              style={{ marginBottom: 14 }}
+            />
+          )}
+
           {dadosExp && (
             <View style={{ marginBottom: 16 }}>
               <Text style={{ fontSize: 15, fontWeight: "900", color: COLORS.text }}>
@@ -1639,6 +1672,16 @@ export default function ProjectEditor() {
             <Text style={ss.mOpenBtnText}>{t("edit_sheet", { defaultValue: "Editar folha" })}</Text>
           </View>
         </Pressable>
+
+        {avisoTaxas && (
+          <AvisoTaxasZero
+            aviso={avisoTaxas}
+            valor={money(avisoTaxas.diferenca)}
+            onCorrigir={usarTaxaAutomatica}
+            onManter={manterTaxasZero}
+            style={{ marginBottom: 10 }}
+          />
+        )}
 
         <View style={ss.mStatsPanel}>
           <StatLine label={gs.totalDays} value={String(totalDias)} />
@@ -1937,6 +1980,17 @@ export default function ProjectEditor() {
             <>
               {/* Folha editável no formato do PDF — exatamente a mesma do
                   telemóvel (contenteditable, com condições), inline na página */}
+              {avisoTaxas && (
+                <View onLayout={(e) => setAvisoTaxasH(Math.ceil(e.nativeEvent.layout.height))}>
+                  <AvisoTaxasZero
+                    aviso={avisoTaxas}
+                    valor={fmtMoney(avisoTaxas.diferenca, getPreset(regionCode).currency)}
+                    onCorrigir={usarTaxaAutomatica}
+                    onManter={manterTaxasZero}
+                    style={{ marginBottom: 10 }}
+                  />
+                </View>
+              )}
               {/* @ts-ignore — iframe é web-only (desktop implica web aqui) */}
               <iframe
                 ref={inlineSheetRef}
@@ -1946,7 +2000,8 @@ export default function ProjectEditor() {
                   // Folha até ao fundo da janela (cabeçalho + margens ~96px);
                   // o scroll exterior está desativado, por isso isto tem de
                   // caber certinho na janela
-                  height: Math.max(560, winH - 96),
+                  // (menos o aviso das taxas a 0, quando aparece por cima)
+                  height: Math.max(560, winH - 96) - (avisoTaxas ? avisoTaxasH : 0),
                   border: "1px solid #E5E6EA",
                   borderRadius: 10,
                   backgroundColor: "#fff",
