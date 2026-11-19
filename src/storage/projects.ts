@@ -210,22 +210,32 @@ function updateIndex(
 // resumos UMA vez e grava-se o formato explícito ("publicidade" incluído, para
 // não voltar a ler). Junta-se ao índice RELIDO no fim, para não pisar uma
 // escrita feita entretanto (o sync grava projetos ao arrancar).
+// O mesmo para o 1.º dia (`inicio`, que dá o nome automático "Semana de 16
+// de nov." a uma folha sem título nem filme): sem ele, a mesma folha tinha um
+// nome na lista e outro no ecrã. "" = folha sem dias (para não voltar a ler).
 async function readIndexComFormato(key: string, prefix: string): Promise<ProjectListItem[]> {
   const list = await readIndex(key);
-  const sem = list.filter((i) => i.formato == null);
+  const sem = list.filter((i) => i.formato == null || i.inicio === undefined);
   if (!sem.length) return list;
-  const achados = new Map<string, ProjectListItem["formato"]>();
+  const achados = new Map<string, { formato: ProjectListItem["formato"]; inicio: string }>();
   for (const [k, v] of await AsyncStorage.multiGet(sem.map((i) => prefix + i.id))) {
     if (!v) continue;
     try {
-      achados.set(k.slice(prefix.length), formatoDoResumo(JSON.parse(v)));
+      const raw = JSON.parse(v);
+      const inicio = Array.isArray(raw?.dias) && typeof raw.dias[0]?.data === "string" ? raw.dias[0].data : "";
+      achados.set(k.slice(prefix.length), { formato: formatoDoResumo(raw), inicio });
     } catch {
       // folha ilegível: fica como está
     }
   }
   if (!achados.size) return list;
   return updateIndex(key, (fresh) => {
-    for (const it of fresh) if (it.formato == null && achados.has(it.id)) it.formato = achados.get(it.id);
+    for (const it of fresh) {
+      const a = achados.get(it.id);
+      if (!a) continue;
+      if (it.formato == null) it.formato = a.formato;
+      if (it.inicio === undefined) it.inicio = a.inicio;
+    }
   });
 }
 

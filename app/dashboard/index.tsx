@@ -22,6 +22,7 @@ import { formatNumber } from "../../src/format/money";
 import { getPreset } from "../../src/constants/countryPresets";
 import { effectiveFiscalOf, getSettings } from "../../src/storage/appSettings";
 import i18n from "../../src/i18n/i18n";
+import { nomeParaMostrar } from "../../src/storage/passosRegras";
 import { getMonthSummary, getYearSummary, MonthSummary, projectFinalValue, YearSummary } from "../../src/stats/monthSummary";
 import {
   belongsToProfile,
@@ -468,7 +469,7 @@ export default function DashboardScreen() {
                     >
                       <View style={[s.recentCard, p.status === "archived" && s.recentCardPaid]}>
                         <Text style={s.recentTitle} numberOfLines={2}>
-                          {p.nome || t("project_unnamed", { defaultValue: "Projeto sem nome" })}
+                          {nomeParaMostrar(p as any, i18n.language, (k, o) => String(t(k, o as any)))}
                         </Text>
                         <Text style={s.recentSub} numberOfLines={1}>
                           {(p.cliente || "—") + " · " + (p.mes || "--/----")}

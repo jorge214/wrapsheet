@@ -559,7 +559,8 @@ export default function ProjectsScreen() {
     if (!searchQuery) return filteredProjects;
     return allItems.filter(
       (p) =>
-        (p.nome || "").toLowerCase().includes(searchQuery) ||
+        // o nome que se VÊ (também o automático, "Semana de 16 de nov.")
+        nomeParaMostrar(p, i18n.language, (k, o) => String(t(k, o as any))).toLowerCase().includes(searchQuery) ||
         (p.cliente || "").toLowerCase().includes(searchQuery)
     );
   }, [searchQuery, allItems, filteredProjects]);
@@ -775,7 +776,7 @@ export default function ProjectsScreen() {
                         value={titleEditVal}
                         onChangeText={setTitleEditVal}
                         autoFocus
-                        placeholder={t("unnamed_project", { defaultValue: "Projeto sem nome" })}
+                        placeholder={nomeParaMostrar({ ...p, nome: "" }, i18n.language, (k, o) => String(t(k, o as any)))}
                         placeholderTextColor={COLORS.sub}
                         onSubmitEditing={commitTitleEdit}
                         onBlur={commitTitleEdit}

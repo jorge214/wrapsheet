@@ -32,6 +32,8 @@ type ProjectListItem = {
   cliente: string;
   mes: string;
   updatedAt: string;
+  /** 1.º dia (nome automático; ver projects.ts) */
+  inicio?: string;
 };
 
 /* ------------ Helpers de leitura ------------ */
@@ -128,7 +130,10 @@ function projectToSummary(raw: any, fallbackDate: string): ProjectListItem {
 
     return {
       id: String(raw.id),
-      nome: raw.projeto.filme || "",
+      // como no saveProject: o título, senão o filme
+      nome: raw.projeto.titulo || raw.projeto.filme || "",
+      // o 1.º dia: nome automático de uma folha sem título nem filme
+      inicio: Array.isArray(raw.dias) && typeof raw.dias[0]?.data === "string" ? raw.dias[0].data : "",
       cliente: raw.projeto.produtora || "",
       mes: mesStr,
       updatedAt,
