@@ -7,6 +7,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/auth/AuthContext";
 import i18n from "../../src/i18n/i18n";
+import { nomeParaMostrar } from "../../src/storage/passosRegras";
 import { getCurrentMonthSummary, MonthSummary } from "../../src/stats/monthSummary";
 import { belongsToProfile, getProject, listProjects } from "../../src/storage/projects";
 import { getActiveProfileId } from "../../src/storage/profile";
@@ -54,7 +55,7 @@ export default function HomeHub() {
             const full = await getProject(top.id);
             if (!alive) return;
             setLatest({
-              nome: top.nome || t("unnamed_project", { defaultValue: "Projeto sem nome" }),
+              nome: nomeParaMostrar({ nome: top.nome, formato: full?.formato, inicio: full?.dias?.[0]?.data }, i18n.language, (k, o) => String(t(k, o as any))),
               dias: full?.dias?.length ?? 0,
             });
           } else {

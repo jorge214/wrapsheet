@@ -5,6 +5,7 @@ import { useIsWide } from "../../src/ui/useBreakpoint";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "../../src/i18n/i18n";
+import { nomeParaMostrar } from "../../src/storage/passosRegras";
 import {
   Alert,
   Modal,
@@ -795,10 +796,7 @@ export default function ProjectsScreen() {
                       style={Platform.OS === "web" ? ({ cursor: "text", alignSelf: "flex-start" } as any) : undefined}
                     >
                       <Text style={[s.title, { flexShrink: 1 }]} numberOfLines={2}>
-                        {p.nome ||
-                          t("unnamed_project", {
-                            defaultValue: "Projeto sem nome",
-                          })}
+                        {nomeParaMostrar(p, i18n.language, (k, o) => String(t(k, o as any)))}
                       </Text>
                     </Pressable>
                   )}
@@ -993,7 +991,7 @@ export default function ProjectsScreen() {
         <Pressable style={s.modalBackdrop} onPress={() => { setOptsProject(null); setDeleteConfirm(false); }}>
           <Pressable style={s.modalCard} onPress={() => {}}>
             <Text style={s.modalTitle}>
-              {optsProject?.nome || t("unnamed_project")}
+              {optsProject ? nomeParaMostrar(optsProject, i18n.language, (k, o) => String(t(k, o as any))) : ""}
             </Text>
             {!deleteConfirm ? (
               <>

@@ -5,7 +5,8 @@ import {
   fecharPerguntasAbertas,
   juntarMarcas,
   lerValor,
-  nomeDaPrimeiraFolha,
+  nomeAutomaticoDaFolha,
+  nomeParaMostrar,
   novoParaOferecer,
   perfilComPendentes,
   MARCA_PASSO_DIA,
@@ -25,22 +26,37 @@ import {
 // aparecer a uma conta que já tem dados (criaria um 2.º perfil que o servidor
 // recusa) — e na dúvida, não aparece.
 
-describe("o nome da folha que a primeira entrada cria", () => {
+describe("o nome automático de uma folha sem título nem filme", () => {
   // um t() que interpola como o i18next, com o texto por omissão
   const t = (_k: string, o: Record<string, unknown>) => String(o.defaultValue).replace("{{data}}", String(o.data));
   it("cinema: \"Semana de\" + o primeiro dia (segunda-feira)", () => {
-    expect(nomeDaPrimeiraFolha("cinema", "2026-11-16", "pt", t)).toBe("Semana de 16 de nov.");
+    expect(nomeAutomaticoDaFolha("cinema", "2026-11-16", "pt", t)).toBe("Semana de 16 de nov.");
   });
   it("publicidade: \"Trabalho de\" + o dia da folha", () => {
-    expect(nomeDaPrimeiraFolha("publicidade", "2026-11-19", "pt", t)).toBe("Trabalho de 19 de nov.");
+    expect(nomeAutomaticoDaFolha("publicidade", "2026-11-19", "pt", t)).toBe("Trabalho de 19 de nov.");
   });
   it("a data na língua da app", () => {
-    expect(nomeDaPrimeiraFolha("publicidade", "2026-11-19", "en", t)).toBe("Trabalho de Nov 19");
-    expect(nomeDaPrimeiraFolha("cinema", "2026-12-07", "es", t)).toBe("Semana de 7 dic");
+    expect(nomeAutomaticoDaFolha("publicidade", "2026-11-19", "en", t)).toBe("Trabalho de Nov 19");
+    expect(nomeAutomaticoDaFolha("cinema", "2026-12-07", "es", t)).toBe("Semana de 7 dic");
   });
   it("sem data válida: sem nome (fica o \"Projeto sem nome\" de sempre)", () => {
-    expect(nomeDaPrimeiraFolha("cinema", undefined, "pt", t)).toBe("");
-    expect(nomeDaPrimeiraFolha("cinema", "16/11/2026", "pt", t)).toBe("");
+    expect(nomeAutomaticoDaFolha("cinema", undefined, "pt", t)).toBe("");
+    expect(nomeAutomaticoDaFolha("cinema", "16/11/2026", "pt", t)).toBe("");
+  });
+});
+
+describe("o nome a mostrar", () => {
+  const t = (_k: string, o: Record<string, unknown>) => String(o.defaultValue).replace("{{data}}", String(o.data));
+  it("o título ou o filme ganham ao nome automático", () => {
+    expect(nomeParaMostrar({ nome: "Spot Natal", formato: "cinema", inicio: "2026-11-16" }, "pt", t)).toBe("Spot Natal");
+    expect(nomeParaMostrar({ titulo: "", filme: "O Filme", inicio: "2026-11-16" }, "pt", t)).toBe("O Filme");
+  });
+  it("sem título nem filme: pela data DA PRÓPRIA folha (uma cópia da semana seguinte tem a sua)", () => {
+    expect(nomeParaMostrar({ nome: "", formato: "cinema", inicio: "2026-11-23" }, "pt", t)).toBe("Semana de 23 de nov.");
+    expect(nomeParaMostrar({ nome: "", inicio: "2026-11-19" }, "pt", t)).toBe("Trabalho de 19 de nov.");
+  });
+  it("sem data (itens antigos do índice): \"Projeto sem nome\" como sempre", () => {
+    expect(nomeParaMostrar({ nome: "" }, "pt", t)).toBe("Projeto sem nome");
   });
 });
 

@@ -29,4 +29,15 @@ describe("número escrito num campo do perfil", () => {
   it("um número partido não vira 0 escondido", () => {
     expect(lerNumero("1,2,3")).toBeUndefined();
   });
+
+  it("uma hora escrita como relógio fica VAZIA (não 1900 h): \"19:00\", \"19h00\", \"8h30\"", () => {
+    for (const v of ["11:00", "19:00", "19h00", "8h30"]) expect(lerNumero(v)).toBeUndefined();
+  });
+
+  it("a unidade e os símbolos só saem das pontas; espaços de milhar saem", () => {
+    expect(lerNumero("10 %")).toBe(10);
+    expect(lerNumero("12 h")).toBe(12);
+    expect(lerNumero("1 250")).toBe(1250);
+    expect(lerNumero("1\u00a0250 €")).toBe(1250);
+  });
 });

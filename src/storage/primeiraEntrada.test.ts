@@ -185,12 +185,13 @@ describe("primeira entrada com uma folha já criada pelo \"+\"", () => {
     expect(t.rateHR).toBeUndefined();
   });
 
-  it("sem folha nenhuma: a folha nova nasce com nome (não 'Projeto sem nome')", async () => {
+  it("sem folha nenhuma: a folha nova NÃO grava um nome (mostra-se pela data), e o índice leva o 1.º dia", async () => {
     const id = (await concluirPrimeiraEntrada("U", { formato: "publicidade", funcao: "Grip", valor: 250 }))!;
     const f = (await getProject(id))!;
-    // (o i18n deste teste devolve o texto por omissão, sem interpolar)
-    expect(f.projeto.titulo).toMatch(/^Trabalho de /);
+    expect(f.projeto.titulo).toBe("");
     expect(f.tabela.salarioDia).toBe(250);
+    const { listProjects } = await import("./projects");
+    expect((await listProjects()).find((i) => i.id === id)!.inicio).toBe(f.dias[0].data);
   });
 
   it("uma folha que já tem valor não é mexida", async () => {

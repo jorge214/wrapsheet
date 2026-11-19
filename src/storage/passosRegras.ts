@@ -89,12 +89,15 @@ export function lerValor(txt: string): number | undefined {
 }
 
 /**
- * O nome da folha que a primeira entrada cria — sem ele a lista dizia
- * "Projeto sem nome" logo na primeira impressão. Cinema: "Semana de 16 de
- * nov."; publicidade: "Trabalho de 19 de nov." (o dia da folha), na língua da
- * app. `t` é o i18n (passa-se de fora: módulo puro). Data inválida = "".
+ * O nome que uma folha SEM título nem filme mostra, em vez de "Projeto sem
+ * nome" (a folha da primeira entrada era a primeira impressão). Cinema:
+ * "Semana de 16 de nov."; publicidade: "Trabalho de 19 de nov." — o 1.º dia
+ * DA PRÓPRIA folha, na língua da app. Só se MOSTRA, nunca se grava: gravado no
+ * título, as cópias ("Semana seguinte") ficavam com a data da original e o
+ * filme escrito depois deixava de dar nome à folha. `t` é o i18n (passa-se
+ * de fora: módulo puro). Data inválida = "".
  */
-export function nomeDaPrimeiraFolha(
+export function nomeAutomaticoDaFolha(
   formato: "publicidade" | "cinema",
   primeiroDia: string | undefined,
   lang: string,
@@ -111,6 +114,21 @@ export function nomeDaPrimeiraFolha(
   return formato === "cinema"
     ? t("pe_nome_semana", { data, defaultValue: "Semana de {{data}}" })
     : t("pe_nome_dia", { data, defaultValue: "Trabalho de {{data}}" });
+}
+
+/** O nome a mostrar de uma folha: o título, o filme, o automático (pela data)
+ *  ou, sem data, "Projeto sem nome". Serve à lista (índice) e ao ecrã. */
+export function nomeParaMostrar(
+  f: { nome?: string; titulo?: string; filme?: string; formato?: string; inicio?: string },
+  lang: string,
+  t: (k: string, o: Record<string, unknown>) => string
+): string {
+  const proprio = umaLinha(f.nome) || umaLinha(f.titulo) || umaLinha(f.filme);
+  if (proprio) return proprio;
+  return (
+    nomeAutomaticoDaFolha(f.formato === "cinema" ? "cinema" : "publicidade", f.inicio, lang, t) ||
+    t("unnamed_project", { defaultValue: "Projeto sem nome" })
+  );
 }
 
 /* ---------- Primeiros passos ---------- */

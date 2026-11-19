@@ -153,6 +153,9 @@ export type ProjectListItem = {
   profileId?: string;
   /** Formato da folha (a lista mostra "Cinema" nas semanais). */
   formato?: FormatoFolha;
+  /** 1.º dia da folha: dá o nome automático a uma folha sem título nem filme
+   *  ("Semana de 16 de nov."). Ausente em itens antigos (até à próxima gravação). */
+  inicio?: string;
 };
 
 /* ------------ Keys no AsyncStorage ------------ */
@@ -491,6 +494,7 @@ export async function saveProject(
   const summary: ProjectListItem = {
     id: p.id,
     nome: toSave.projeto.titulo || toSave.projeto.filme || "",
+    inicio: toSave.dias?.[0]?.data,
     cliente: toSave.projeto.produtora || "",
     mes: `${String(toSave.projeto.mes).padStart(2, "0")}/${toSave.projeto.ano}`,
     pago: !!toSave.pago,
@@ -686,6 +690,7 @@ export async function createProject(opts?: {
     index.push({
       id,
       nome: "",
+      inicio: novo.dias?.[0]?.data,
       cliente: "",
       mes: `${String(novo.projeto.mes).padStart(2, "0")}/${novo.projeto.ano}`,
       updatedAt: novo.updatedAt,
@@ -739,6 +744,7 @@ export async function duplicateProject(id: string): Promise<string> {
     index.push({
       id: newId,
       nome: clone.projeto.titulo || clone.projeto.filme || "",
+      inicio: clone.dias?.[0]?.data,
       cliente: clone.projeto.produtora || "",
       mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
       updatedAt: now,
@@ -779,6 +785,7 @@ export async function duplicateProjectToMonth(
     index.push({
       id: newId,
       nome: clone.projeto.titulo || clone.projeto.filme || "",
+      inicio: clone.dias?.[0]?.data,
       cliente: clone.projeto.produtora || "",
       mes: `${String(mes).padStart(2, "0")}/${ano}`,
       updatedAt: now,
@@ -850,6 +857,7 @@ export async function duplicateProjectNextWeek(id: string): Promise<string> {
     index.push({
       id: newId,
       nome: clone.projeto.titulo || clone.projeto.filme || "",
+      inicio: clone.dias?.[0]?.data,
       cliente: clone.projeto.produtora || "",
       mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
       updatedAt: now,
@@ -989,6 +997,7 @@ export async function duplicateProjectToProfile(
     index.push({
       id: newId,
       nome: clone.projeto.titulo || clone.projeto.filme || "",
+      inicio: clone.dias?.[0]?.data,
       cliente: clone.projeto.produtora || "",
       mes: `${String(clone.projeto.mes).padStart(2, "0")}/${clone.projeto.ano}`,
       updatedAt: now,
@@ -1020,6 +1029,7 @@ export async function archiveProject(id: string): Promise<void> {
     archivedIndex.push({
       id,
       nome: project.projeto.titulo || project.projeto.filme || "",
+      inicio: project.dias?.[0]?.data,
       cliente: project.projeto.produtora || "",
       mes: `${String(project.projeto.mes).padStart(2, "0")}/${project.projeto.ano}`,
       pago: !!project.pago,
@@ -1061,6 +1071,7 @@ export async function unarchiveProject(id: string): Promise<void> {
   const summary: ProjectListItem = {
     id,
     nome: restored.projeto.titulo || restored.projeto.filme || "",
+    inicio: restored.dias?.[0]?.data,
     cliente: restored.projeto.produtora || "",
     mes: `${String(restored.projeto.mes).padStart(2, "0")}/${restored.projeto.ano}`,
     pago: false,

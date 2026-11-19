@@ -54,6 +54,7 @@ import { registarExportacaoPdf } from "../../src/lib/eventos";
 import { guardarDadosOuAdiar, lerDadosPendentes } from "../../src/storage/primeiraEntrada";
 import { confirmacaoDeDados, lerMarcasRapido, marcarDadosConfirmados, marcarPasso } from "../../src/storage/primeirosPassos";
 import { editarCampoDia } from "../../src/storage/diaEdicao";
+import { nomeParaMostrar } from "../../src/storage/passosRegras";
 import {
   CAMPOS_DADOS,
   dadosIniciais,
@@ -178,6 +179,13 @@ export default function ProjectEditor() {
 
   const [project, setProject] = useState<ProjectState | null>(null);
   const projectRef = useRef<ProjectState | null>(null);
+  // Título, filme, ou o nome automático pela data ("Semana de 16 de nov.")
+  const nomeDoProjeto = (p: ProjectState) =>
+    nomeParaMostrar(
+      { titulo: p.projeto.titulo, filme: p.projeto.filme, formato: (p as { formato?: string }).formato, inicio: p.dias?.[0]?.data },
+      i18n.language,
+      (k, o) => String(t(k, o as any))
+    );
   // Taxas a 0 que a folha já tinha ao ABRIR sem salário (as da semente antiga
   // do editor): só essas saem quando o salário é escrito — ver taxasZero.ts.
   const zerosSemeadosRef = useRef<ChaveTaxa[]>([]);
@@ -1716,7 +1724,7 @@ export default function ProjectEditor() {
         ) : (
           <Pressable onPress={openRenameTitle} hitSlop={6}>
             <Text style={ss.mStatsTitle} numberOfLines={2}>
-              {project!.projeto.titulo || project!.projeto.filme || t("unnamed_project")}
+              {nomeDoProjeto(project!)}
               {"  "}<Ionicons name="pencil-outline" size={16} color={COLORS.sub} />
             </Text>
           </Pressable>
@@ -2193,7 +2201,7 @@ export default function ProjectEditor() {
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
-              {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
+              {nomeDoProjeto(project)}
             </Text>
             <View style={ss.zoomRow}>
               <Pressable
@@ -2254,7 +2262,7 @@ export default function ProjectEditor() {
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
-              {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
+              {nomeDoProjeto(project)}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <Pressable
@@ -2294,7 +2302,7 @@ export default function ProjectEditor() {
         <SafeAreaView edges={["top", "bottom", "left", "right"]} style={{ flex: 1, backgroundColor: COLORS.bg }}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
-              {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
+              {nomeDoProjeto(project)}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               {/* Sem "A guardar/Guardado" aqui: aparecia/desaparecia a cada tecla
@@ -2373,7 +2381,7 @@ export default function ProjectEditor() {
         <SafeAreaView edges={["top", "bottom", "left", "right"]} style={ss.previewOverlay}>
           <View style={ss.previewHeader}>
             <Text style={ss.previewTitle} numberOfLines={1}>
-              {project.projeto.titulo || project.projeto.filme || t("unnamed_project")}
+              {nomeDoProjeto(project)}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               {Platform.OS === "web" && (

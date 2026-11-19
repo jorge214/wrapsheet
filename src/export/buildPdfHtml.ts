@@ -1941,11 +1941,10 @@ export function editorScript(s: any): string {
         // o valor todo, como o primeiro toque.
         document.addEventListener('dblclick', function(e){
           var el = e.target && e.target.closest ? e.target.closest('.ei.money') : null;
-          if(!el) return;
-          setTimeout(function(){
-            if(document.activeElement !== el) return;
-            selectAll(el);
-          }, 0);
+          if(!el || document.activeElement !== el) return;
+          // Já: o dblclick é o último evento do duplo clique (a seleção da
+          // palavra já foi feita) — à espera, uma tecla rápida chegava antes
+          selectAll(el);
         }, true);
         // Ao SAIR de qualquer célula editável, pede à app um re-push dos
         // valores calculados/formatados: a célula já não está focada e o
