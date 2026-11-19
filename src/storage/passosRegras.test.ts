@@ -5,6 +5,7 @@ import {
   fecharPerguntasAbertas,
   juntarMarcas,
   lerValor,
+  nomeDaPrimeiraFolha,
   novoParaOferecer,
   perfilComPendentes,
   MARCA_PASSO_DIA,
@@ -23,6 +24,25 @@ import {
 // exportação (18/11/2026). O ponto mais delicado é a primeira entrada NUNCA
 // aparecer a uma conta que já tem dados (criaria um 2.º perfil que o servidor
 // recusa) — e na dúvida, não aparece.
+
+describe("o nome da folha que a primeira entrada cria", () => {
+  // um t() que interpola como o i18next, com o texto por omissão
+  const t = (_k: string, o: Record<string, unknown>) => String(o.defaultValue).replace("{{data}}", String(o.data));
+  it("cinema: \"Semana de\" + o primeiro dia (segunda-feira)", () => {
+    expect(nomeDaPrimeiraFolha("cinema", "2026-11-16", "pt", t)).toBe("Semana de 16 de nov.");
+  });
+  it("publicidade: \"Trabalho de\" + o dia da folha", () => {
+    expect(nomeDaPrimeiraFolha("publicidade", "2026-11-19", "pt", t)).toBe("Trabalho de 19 de nov.");
+  });
+  it("a data na língua da app", () => {
+    expect(nomeDaPrimeiraFolha("publicidade", "2026-11-19", "en", t)).toBe("Trabalho de Nov 19");
+    expect(nomeDaPrimeiraFolha("cinema", "2026-12-07", "es", t)).toBe("Semana de 7 dic");
+  });
+  it("sem data válida: sem nome (fica o \"Projeto sem nome\" de sempre)", () => {
+    expect(nomeDaPrimeiraFolha("cinema", undefined, "pt", t)).toBe("");
+    expect(nomeDaPrimeiraFolha("cinema", "16/11/2026", "pt", t)).toBe("");
+  });
+});
 
 describe("primeira entrada aberta: quando o sync a fecha", () => {
   it("abertas pelo sync: fecham com qualquer resposta noutro aparelho", () => {

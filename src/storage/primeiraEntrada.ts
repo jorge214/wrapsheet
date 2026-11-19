@@ -12,12 +12,14 @@
 // dúvida (sem rede, erro na contagem, sessão que já não é desta conta), não
 // aparece — e não se cria perfil nenhum.
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import i18n from "../i18n/i18n";
 import { supabase } from "../lib/supabase";
 import { syncProfileToCloud, syncProjectToCloud } from "../sync/syncService";
 import { criarExemploSePreciso } from "./exemplo";
 import { eExemplo } from "./exemploMarca";
 import {
   MARCA_PRIMEIRA_ENTRADA,
+  nomeDaPrimeiraFolha,
   patchPerfilDono,
   perfilInicial,
   precisaPrimeiraEntrada,
@@ -165,7 +167,14 @@ export async function concluirPrimeiraEntrada(uid: string, d: DadosPrimeiraEntra
     // Publicidade: um dia, hoje. Cinema: a semana desta segunda a domingo.
     id = await createProject(d.formato === "cinema" ? { formato: "cinema", diasSemana: 5 } : {});
     const folha = await getProject(id);
-    if (folha) syncProjectToCloud(uid, folha).catch(() => {});
+    if (folha) {
+      // Com nome desde o início ("Semana de 16 de nov."), não "Projeto sem nome"
+      const titulo = nomeDaPrimeiraFolha(d.formato, folha.dias[0]?.data, i18n.language, (k, o) => String(i18n.t(k, o as any)));
+      const gravada = titulo && !String(folha.projeto?.titulo ?? "").trim()
+        ? await saveProject({ ...folha, projeto: { ...folha.projeto, titulo } })
+        : folha;
+      syncProjectToCloud(uid, gravada as any).catch(() => {});
+    }
   }
   // exemplo_v1: a conta já tem a sua folha, não precisa da de exemplo.
   // A marca local já (o perfil e a folha também já estão gravados); a subida

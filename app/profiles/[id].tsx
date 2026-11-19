@@ -58,6 +58,7 @@ import {
 } from "../../src/storage/horasExtraPerfil";
 import { getStrings } from "../../src/export/buildPdfHtml";
 import i18n from "../../src/i18n/i18n";
+import { lerNumero } from "../../src/format/numero";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 // A região é lida NA HORA de gravar (e não do estado do ecrã, que chega
@@ -167,7 +168,8 @@ function NumField({
           value={txt ?? (value != null ? String(value).replace(".", ",") : "")}
           onChangeText={(v) => {
             setTxt(v);
-            onChange(v.trim() === "" ? undefined : Number(v.replace(",", ".")) || 0);
+            // "34,09 €" lê-se 34,09 (antes dava NaN e gravava 0); sem algarismos = vazio
+            onChange(lerNumero(v));
           }}
           onBlur={() => setTxt(null)}
           placeholder={placeholder ?? "0"}

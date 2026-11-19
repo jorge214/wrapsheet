@@ -1935,6 +1935,18 @@ export function editorScript(s: any): string {
             selectAll(el);
           }, 0);
         }, true);
+        // Duplo (ou triplo) clique numa célula de dinheiro: o browser
+        // selecionava só uma "palavra" ("0,00" → "00") e o número escrito
+        // ficava colado ao resto ("220" → 0,220 = 0,22 €). Volta a selecionar
+        // o valor todo, como o primeiro toque.
+        document.addEventListener('dblclick', function(e){
+          var el = e.target && e.target.closest ? e.target.closest('.ei.money') : null;
+          if(!el) return;
+          setTimeout(function(){
+            if(document.activeElement !== el) return;
+            selectAll(el);
+          }, 0);
+        }, true);
         // Ao SAIR de qualquer célula editável, pede à app um re-push dos
         // valores calculados/formatados: a célula já não está focada e o
         // ws:calc pode reescrevê-la ("12" volta a "12,00 €"; vazio volta ao

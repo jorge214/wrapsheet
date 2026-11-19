@@ -211,7 +211,9 @@ export function PrimeiraEntrada({ visible, onClose }: { visible: boolean; onClos
                   <TextInput
                     value={valor}
                     onChangeText={setValor}
-                    placeholder={formato === "cinema" ? "1250" : "250"}
+                    // "Ex.: 250": só "250" a cinzento parecia já preenchido, e quem
+                    // seguia sem escrever ficava com uma folha a 0 €
+                    placeholder={`${t("pe_example", { defaultValue: "Ex.:" })} ${formato === "cinema" ? "1250" : "250"}`}
                     placeholderTextColor="#9aa0a6"
                     keyboardType="decimal-pad"
                     returnKeyType="done"

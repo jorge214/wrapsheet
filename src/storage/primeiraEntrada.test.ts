@@ -185,6 +185,14 @@ describe("primeira entrada com uma folha já criada pelo \"+\"", () => {
     expect(t.rateHR).toBeUndefined();
   });
 
+  it("sem folha nenhuma: a folha nova nasce com nome (não 'Projeto sem nome')", async () => {
+    const id = (await concluirPrimeiraEntrada("U", { formato: "publicidade", funcao: "Grip", valor: 250 }))!;
+    const f = (await getProject(id))!;
+    // (o i18n deste teste devolve o texto por omissão, sem interpolar)
+    expect(f.projeto.titulo).toMatch(/^Trabalho de /);
+    expect(f.tabela.salarioDia).toBe(250);
+  });
+
   it("uma folha que já tem valor não é mexida", async () => {
     const id = await createProject();
     const f0 = (await getProject(id))!;

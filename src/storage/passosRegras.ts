@@ -88,6 +88,31 @@ export function lerValor(txt: string): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
+/**
+ * O nome da folha que a primeira entrada cria — sem ele a lista dizia
+ * "Projeto sem nome" logo na primeira impressão. Cinema: "Semana de 16 de
+ * nov."; publicidade: "Trabalho de 19 de nov." (o dia da folha), na língua da
+ * app. `t` é o i18n (passa-se de fora: módulo puro). Data inválida = "".
+ */
+export function nomeDaPrimeiraFolha(
+  formato: "publicidade" | "cinema",
+  primeiroDia: string | undefined,
+  lang: string,
+  t: (k: string, o: Record<string, unknown>) => string
+): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(primeiroDia ?? ""))) return "";
+  const d = new Date(primeiroDia + "T12:00:00");
+  let data: string;
+  try {
+    data = new Intl.DateTimeFormat(lang || "pt", { day: "numeric", month: "short" }).format(d);
+  } catch {
+    data = String(primeiroDia);
+  }
+  return formato === "cinema"
+    ? t("pe_nome_semana", { data, defaultValue: "Semana de {{data}}" })
+    : t("pe_nome_dia", { data, defaultValue: "Trabalho de {{data}}" });
+}
+
 /* ---------- Primeiros passos ---------- */
 
 export type EstadoPassos = {
